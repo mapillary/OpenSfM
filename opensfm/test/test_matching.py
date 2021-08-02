@@ -77,14 +77,12 @@ def test_unfilter_matches():
 
 
 def test_match_images(scene_synthetic):
-    reference = scene_synthetic[0].get_reconstruction()
+    reference = scene_synthetic.reconstruction
     synthetic = synthetic_dataset.SyntheticDataSet(
         reference,
-        scene_synthetic[1],
-        scene_synthetic[2],
-        scene_synthetic[3],
-        scene_synthetic[4],
-        scene_synthetic[5],
+        scene_synthetic.exifs,
+        scene_synthetic.features,
+        scene_synthetic.tracks_manager,
     )
 
     synthetic.matches_exists = lambda im: False

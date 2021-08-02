@@ -12,6 +12,7 @@ In the bundle adjustment step, GCP observations are used as a constraint to refi
 
 GPSs can be specified in two file formats.  If existing, both are loaded.
 
+.. _json-gcps:
 
 JSON file format
 ~~~~~~~~~~~~~~~~

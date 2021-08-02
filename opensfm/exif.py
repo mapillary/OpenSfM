@@ -1,12 +1,13 @@
 import datetime
 import logging
 from codecs import encode, decode
+from typing import Tuple
 
 import exifread
 import xmltodict as x2d
 from opensfm import pygeometry
-from opensfm.sensors import sensor_data
 from opensfm.dataset import DataSetBase
+from opensfm.sensors import sensor_data
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def get_tag_as_float(tags, key, index=0):
         return None
 
 
-def compute_focal(focal_35, focal, sensor_width, sensor_string):
+def compute_focal(focal_35, focal, sensor_width, sensor_string) -> Tuple[float, float]:
     if focal_35 is not None and focal_35 > 0:
         focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
@@ -61,8 +62,8 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string):
             focal_ratio = focal / sensor_width
             focal_35 = 36.0 * focal_ratio
         else:
-            focal_35 = 0
-            focal_ratio = 0
+            focal_35 = 0.0
+            focal_ratio = 0.0
     return focal_35, focal_ratio
 
 
@@ -96,13 +97,13 @@ def camera_id_(make, model, width, height, projection_type, focal):
             str(int(width)),
             str(int(height)),
             projection_type,
-            str(focal)[:6],
+            str(float(focal))[:6],
         ]
     ).lower()
 
 
-def extract_exif_from_file(fileobj, image_size_loader, use_exif_size):
-    exif_data = EXIF(fileobj, image_size_loader, use_exif_size)
+def extract_exif_from_file(fileobj, image_size_loader, use_exif_size, name=None):
+    exif_data = EXIF(fileobj, image_size_loader, use_exif_size, name=name)
     d = exif_data.extract_exif()
     return d
 
@@ -151,13 +152,14 @@ def get_gpano_from_xmp(xmp):
 
 
 class EXIF:
-    def __init__(self, fileobj, image_size_loader, use_exif_size=True):
+    def __init__(self, fileobj, image_size_loader, use_exif_size=True, name=None):
         self.image_size_loader = image_size_loader
         self.use_exif_size = use_exif_size
         self.fileobj = fileobj
         self.tags = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
         self.xmp = get_xmp(fileobj)
+        self.fileobj_name = self.fileobj.name if name is None else name
 
     def extract_image_size(self):
         if (
@@ -327,11 +329,19 @@ class EXIF:
         if self.has_dji_altitude():
             altitude = self.extract_dji_altitude()
         elif "GPS GPSAltitude" in self.tags:
-            altitude = eval_frac(self.tags["GPS GPSAltitude"].values[0])
+            alt_value = self.tags["GPS GPSAltitude"].values[0]
+            if isinstance(alt_value, exifread.utils.Ratio):
+                altitude = eval_frac(alt_value)
+            elif isinstance(alt_value, int):
+                altitude = float(alt_value)
+            else:
+                altitude = None
+
             # Check if GPSAltitudeRef is equal to 1, which means GPSAltitude should be negative, reference: http://www.exif.org/Exif2-2.PDF#page=53
             if (
                 "GPS GPSAltitudeRef" in self.tags
                 and self.tags["GPS GPSAltitudeRef"].values[0] == 1
+                and altitude is not None
             ):
                 altitude = -altitude
         else:
@@ -381,7 +391,7 @@ class EXIF:
             except (TypeError, ValueError):
                 logger.info(
                     'The GPS time stamp in image file "{0:s}" is invalid. '
-                    "Falling back to DateTime*".format(self.fileobj.name)
+                    "Falling back to DateTime*".format(self.fileobj_name)
                 )
 
         time_strings = [
@@ -403,7 +413,7 @@ class EXIF:
                     logger.debug(
                         'The "{1:s}" time stamp or "{2:s}" tag is invalid in '
                         'image file "{0:s}"'.format(
-                            self.fileobj.name, datetime_tag, subsec_tag
+                            self.fileobj_name, datetime_tag, subsec_tag
                         )
                     )
                     continue
@@ -417,25 +427,25 @@ class EXIF:
                     except (TypeError, ValueError):
                         logger.debug(
                             'The "{0:s}" time zone offset in image file "{1:s}"'
-                            " is invalid".format(offset_tag, self.fileobj.name)
+                            " is invalid".format(offset_tag, self.fileobj_name)
                         )
                         logger.debug(
                             'Naively assuming UTC on "{0:s}" in image file '
-                            '"{1:s}"'.format(datetime_tag, self.fileobj.name)
+                            '"{1:s}"'.format(datetime_tag, self.fileobj_name)
                         )
                 else:
                     logger.debug(
                         "No GPS time stamp and no time zone offset in image "
-                        'file "{0:s}"'.format(self.fileobj.name)
+                        'file "{0:s}"'.format(self.fileobj_name)
                     )
                     logger.debug(
                         'Naively assuming UTC on "{0:s}" in image file "{1:s}"'.format(
-                            datetime_tag, self.fileobj.name
+                            datetime_tag, self.fileobj_name
                         )
                     )
                 return (d - datetime.datetime(1970, 1, 1)).total_seconds()
         logger.info(
-            'Image file "{0:s}" has no valid time stamp'.format(self.fileobj.name)
+            'Image file "{0:s}" has no valid time stamp'.format(self.fileobj_name)
         )
         return 0.0
 
@@ -508,8 +518,9 @@ def hard_coded_calibration(exif):
         elif "hdr-as300" in model:
             return {"focal": 0.3958, "k1": -0.1496, "k2": 0.0201}
     elif "PARROT" == make:
-        if 'Bebop 2' == model:
+        if "Bebop 2" == model:
             return {"focal": 0.36666666666666666}
+
 
 def focal_ratio_calibration(exif):
     if exif.get("focal_ratio"):

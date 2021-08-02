@@ -2,7 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <map/map.h>
-#include <sfm/observation.h>
+#include <map/observation.h>
 
 namespace {
 
@@ -205,7 +205,6 @@ class OneCameraMapFixture : public EmptyMapFixture {
 TEST_F(OneCameraMapFixture, ReturnsNumberOfShots) {
   const auto& shot = map.CreateShot("0", "0");
   ASSERT_EQ(shot.id_, "0");
-  ASSERT_EQ(shot.unique_id_, 0);
 }
 
 TEST_F(OneCameraMapFixture, ReturnsShots) {
@@ -235,7 +234,7 @@ TEST_F(EmptyMapFixture, ConstructSmallProblem) {
     const auto lm_id = std::to_string(i);
     auto& lm = map.CreateLandmark(std::to_string(i), pos);
     // all shots see all landmarks
-    Observation obs(100, 200, 0.5, 255, 255, 255, i);
+    map::Observation obs(100, 200, 0.5, 255, 255, 255, i);
     for (auto& shot_pair : shots) {
       map.AddObservation(&shot_pair.second, &lm, obs);
     }
@@ -245,7 +244,7 @@ TEST_F(EmptyMapFixture, ConstructSmallProblem) {
   ASSERT_EQ(map.GetLandmarks().size(), n_points);
 }
 
-TEST_F(OneCameraMapFixture, ComputeReprojectionError) {
+TEST_F(OneCameraMapFixture, ComputeReprojectionErrorNormalized) {
   const auto& shot = map.CreateShot("0", "0");
   Eigen::Vector3d pos = Eigen::Vector3d::Random();
   map.CreateLandmark("1", pos);
@@ -253,11 +252,12 @@ TEST_F(OneCameraMapFixture, ComputeReprojectionError) {
   const Vec2d expected = -shot.Project(pos);
   const auto scale = 0.1;
 
-  auto manager = TracksManager();
-  const Observation o(0., 0., scale, 1, 1, 1, 1, 1, 1);
+  auto manager = map::TracksManager();
+  const map::Observation o(0., 0., scale, 1, 1, 1, 1, 1, 1);
   manager.AddObservation("0", "1", o);
 
-  auto errors = map.ComputeReprojectionErrors(manager, true);
+  auto errors =
+      map.ComputeReprojectionErrors(manager, map::Map::ErrorType::Normalized);
   const auto computed = errors["0"]["1"];
   ASSERT_NEAR(expected[0] / scale, computed[0], 1e-8);
   ASSERT_NEAR(expected[1] / scale, computed[1], 1e-8);
@@ -303,7 +303,7 @@ TEST_F(OneRigMapFixture, HasRigInstances) {
 
 TEST_F(OneRigMapFixture, ReturnsRigInstance) {
   const auto& instance = map.GetRigInstance(1);
-  std::set<ShotId> expected_keys;
+  std::set<map::ShotId> expected_keys;
   expected_keys.insert("0");
   ASSERT_THAT(instance.GetShotIDs(), ::testing::ContainerEq(expected_keys));
 }
@@ -328,8 +328,9 @@ TEST_F(ToyMapFixture, ToTracksManager) {
   size_t feat_id = 0;
   for (auto& shot_pair : map.GetShots()) {
     for (auto& lm : map.GetLandmarks()) {
-      map.AddObservation(&shot_pair.second, &lm.second,
-                         Observation(100, 200, 0.5, 255, 255, 255, feat_id));
+      map.AddObservation(
+          &shot_pair.second, &lm.second,
+          map::Observation(100, 200, 0.5, 255, 255, 255, feat_id));
     }
     ++feat_id;
   }

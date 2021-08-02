@@ -1,5 +1,7 @@
 .. Doc on rig
 
+.. _rig-model:
+
 Rig Models
 ==========
 

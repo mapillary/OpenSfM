@@ -3,12 +3,13 @@
 #include <geo/geo.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
+#include <geometry/similarity.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
-#include <sfm/tracks_manager.h>
+#include <map/tracks_manager.h>
 
 #include <Eigen/Core>
 #include <map>
@@ -108,6 +109,7 @@ class Map {
 
   size_t NumberOfRigInstances() const;
   RigInstance& GetRigInstance(const RigInstanceId& instance_id);
+  const RigInstance& GetRigInstance(const RigInstanceId& instance_id) const;
   const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances()
       const {
     return rig_instances_;
@@ -115,6 +117,7 @@ class Map {
   std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() {
     return rig_instances_;
   }
+
   bool HasRigInstance(const RigInstanceId& instance_id) const;
 
   // Landmark
@@ -153,6 +156,22 @@ class Map {
   size_t NumberOfPanoShots() const { return pano_shots_.size(); }
   size_t NumberOfLandmarks() const { return landmarks_.size(); }
   size_t NumberOfCameras() const { return cameras_.size(); }
+  size_t NumberOfBiases() const { return bias_.size(); }
+
+  // Bias
+  BiasView GetBiasView() { return BiasView(*this); }
+  geometry::Similarity& GetBias(const CameraId& camera_id);
+  void SetBias(const CameraId& camera_id,
+               const geometry::Similarity& transform);
+  bool HasBias(const CameraId& cam_id) const {
+    return bias_.find(cam_id) != bias_.end();
+  }
+  const std::unordered_map<CameraId, geometry::Similarity>& GetBiases() const {
+    return bias_;
+  }
+  std::unordered_map<CameraId, geometry::Similarity>& GetBiases() {
+    return bias_;
+  }
 
   // TopocentricConverter
   const geo::TopocentricConverter& GetTopocentricConverter() const {
@@ -167,14 +186,16 @@ class Map {
   TracksManager ToTracksManager() const;
 
   // Tracks manager x Reconstruction intersection functions
+  enum ErrorType { Pixel = 0x0, Normalized = 0x1, Angular = 0x2 };
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
   ComputeReprojectionErrors(const TracksManager& tracks_manager,
-                            bool scaled) const;
+                            const ErrorType& error_type) const;
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Observation> >
   GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
   std::unordered_map<CameraId, geometry::Camera> cameras_;
+  std::unordered_map<CameraId, geometry::Similarity> bias_;
   std::unordered_map<ShotId, Shot> shots_;
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
@@ -182,10 +203,6 @@ class Map {
   std::unordered_map<RigCameraId, RigCamera> rig_cameras_;
 
   geo::TopocentricConverter topo_conv_;
-
-  LandmarkUniqueId landmark_unique_id_ = 0;
-  ShotUniqueId shot_unique_id_ = 0;
-  ShotUniqueId pano_shot_unique_id_ = 0;
 };
 
 }  // namespace map

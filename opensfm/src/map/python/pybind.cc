@@ -2,7 +2,6 @@
 #include <foundation/types.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
-#include <map/ba_helpers.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/ground_control_points.h>
@@ -45,6 +44,12 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
           }));
 }
 PYBIND11_MODULE(pymap, m) {
+  py::enum_<map::Map::ErrorType>(m, "ErrorType")
+      .value("Pixel", map::Map::Pixel)
+      .value("Normalized", map::Map::Normalized)
+      .value("Angular", map::Map::Angular)
+      .export_values();
+
   py::class_<map::Map>(m, "Map")
       .def(py::init())
       // Camera
@@ -52,6 +57,11 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("get_camera",
            py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
+           py::return_value_policy::reference_internal)
+      // Bias
+      .def("set_bias",&map::Map::SetBias,
+           py::return_value_policy::reference_internal)
+      .def("get_bias",&map::Map::GetBias,
            py::return_value_policy::reference_internal)
       // Rigs
       .def("create_rig_camera", &map::Map::CreateRigCamera,
@@ -86,7 +96,8 @@ PYBIND11_MODULE(pymap, m) {
            py::arg("shot_id"), py::arg("camera_id"),
            py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
-      .def("get_shot", py::overload_cast<const ShotId &>(&map::Map::GetShot),
+      .def("get_shot",
+           py::overload_cast<const map::ShotId &>(&map::Map::GetShot),
            py::return_value_policy::reference_internal)
       .def("update_shot", &map::Map::UpdateShot,
            py::return_value_policy::reference_internal)
@@ -101,19 +112,19 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("remove_pano_shot", &map::Map::RemovePanoShot)
       .def("get_pano_shot",
-           py::overload_cast<const ShotId &>(&map::Map::GetPanoShot),
+           py::overload_cast<const map::ShotId &>(&map::Map::GetPanoShot),
            py::return_value_policy::reference_internal)
       .def("update_pano_shot", &map::Map::UpdatePanoShot,
            py::return_value_policy::reference_internal)
       // Observation
       .def("add_observation",
            (void (map::Map::*)(map::Shot *const, map::Landmark *const,
-                               const Observation &)) &
+                               const map::Observation &)) &
                map::Map::AddObservation,
            py::arg("shot"), py::arg("landmark"), py::arg("observation"))
       .def("add_observation",
            (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &,
-                               const Observation &)) &
+                               const map::Observation &)) &
                map::Map::AddObservation,
            py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
       .def("remove_observation",
@@ -124,6 +135,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_shots", &map::Map::GetShotView)
       .def("get_pano_shots", &map::Map::GetPanoShotView)
       .def("get_cameras", &map::Map::GetCameraView)
+      .def("get_biases", &map::Map::GetBiasView)
       .def("get_camera_view", &map::Map::GetCameraView)
       .def("get_landmarks", &map::Map::GetLandmarkView)
       .def("get_landmark_view", &map::Map::GetLandmarkView)
@@ -140,10 +152,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("to_tracks_manager", &map::Map::ToTracksManager);
 
   py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const ShotId &, const geometry::Camera &,
+      .def(py::init<const map::ShotId &, const geometry::Camera &,
                     const geometry::Pose &>())
       .def_readonly("id", &map::Shot::id_)
-      .def_readonly("unique_id", &map::Shot::unique_id_)
       .def_readwrite("mesh", &map::Shot::mesh)
       .def_property("covariance", &map::Shot::GetCovariance,
                     &map::Shot::SetCovariance)
@@ -177,7 +188,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::Shot &s) {
             auto c = s.GetCamera();
             return py::make_tuple(
-                s.id_, s.unique_id_, s.GetPose()->CameraToWorld(),
+                s.id_, s.GetPose()->CameraToWorld(),
                 py::make_tuple(c->GetParametersTypes(),
                                c->GetParametersValues(), c->GetProjectionType(),
                                c->width, c->height, c->id));
@@ -196,9 +207,8 @@ PYBIND11_MODULE(pymap, m) {
             camera.height = t[4].cast<int>();
             camera.id = t[5].cast<std::string>();
             auto pose = geometry::Pose();
-            pose.SetFromCameraToWorld(s[2].cast<Mat4d>());
+            pose.SetFromCameraToWorld(s[1].cast<Mat4d>());
             auto shot = map::Shot(s[0].cast<map::ShotId>(), camera, pose);
-            shot.unique_id_ = s[1].cast<map::ShotUniqueId>();
             return shot;
           }));
 
@@ -251,12 +261,14 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("compass_accuracy",
                      &map::ShotMeasurements::compass_accuracy_)
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
+      .def_property("attributes", &map::ShotMeasurements::GetAttributes,
+                    &map::ShotMeasurements::SetAttributes)
       .def(py::pickle(
           [](const map::ShotMeasurements &s) {
-            return py::make_tuple(s.gps_accuracy_, s.gps_position_,
-                                  s.orientation_, s.capture_time_,
-                                  s.accelerometer_, s.compass_angle_,
-                                  s.compass_accuracy_, s.sequence_key_);
+            return py::make_tuple(
+                s.gps_accuracy_, s.gps_position_, s.orientation_,
+                s.capture_time_, s.accelerometer_, s.compass_angle_,
+                s.compass_accuracy_, s.sequence_key_, s.GetAttributes());
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
@@ -268,6 +280,7 @@ PYBIND11_MODULE(pymap, m) {
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.compass_accuracy_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
+            sm.GetMutableAttributes() = s[7].cast<decltype(sm.attributes_)>();
             return sm;
           }))
       .def(
@@ -289,7 +302,6 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::Landmark>(m, "Landmark")
       .def(py::init<const map::LandmarkId &, const Vec3d &>())
       .def_readonly("id", &map::Landmark::id_)
-      .def_readonly("unique_id", &map::Landmark::unique_id_)
       .def_property("coordinates", &map::Landmark::GetGlobalPos,
                     &map::Landmark::SetGlobalPos)
       .def("get_observations", &map::Landmark::GetObservations,
@@ -449,6 +461,43 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::CameraView::HasCamera);
 
+  py::class_<map::BiasView>(m, "BiasView")
+      .def(py::init<map::Map &>())
+      .def("__len__", &map::BiasView::NumberOfBiases)
+      .def(
+          "items",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "values",
+          [](map::BiasView &sv) {
+            auto &biases = sv.GetBiases();
+            return py::make_ref_value_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "__iter__",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_key_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def(
+          "keys",
+          [](const map::BiasView &sv) {
+            const auto &biases = sv.GetBiases();
+            return py::make_key_iterator(biases.begin(), biases.end());
+          },
+          py::return_value_policy::reference_internal)
+      .def("get", &map::BiasView::GetBias,
+           py::return_value_policy::reference_internal)
+      .def("__getitem__", &map::BiasView::GetBias,
+           py::return_value_policy::reference_internal)
+      .def("__contains__", &map::BiasView::HasBias);
+
   py::class_<map::RigCameraView>(m, "RigCameraView")
       .def(py::init<map::Map &>())
       .def("__len__", &map::RigCameraView::NumberOfRigCameras)
@@ -524,14 +573,6 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::RigInstanceView::HasRigInstance);
 
-  py::class_<BAHelpers>(m, "BAHelpers")
-      .def("bundle", &BAHelpers::Bundle)
-      .def("bundle_local", &BAHelpers::BundleLocal)
-      .def("bundle_shot_poses", &BAHelpers::BundleShotPoses)
-      .def("shot_neighborhood_ids", &BAHelpers::ShotNeighborhoodIds)
-      .def("detect_alignment_constraints",
-           &BAHelpers::DetectAlignmentConstraints);
-
   py::class_<map::GroundControlPointObservation>(
       m, "GroundControlPointObservation")
       .def(py::init())
@@ -539,6 +580,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
       .def_readwrite("projection",
                      &map::GroundControlPointObservation::projection_);
+
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
@@ -548,4 +590,51 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("observations", &map::GroundControlPoint::GetObservations,
                     &map::GroundControlPoint::SetObservations)
       .def("add_observation", &map::GroundControlPoint::AddObservation);
+
+  py::class_<map::Observation>(m, "Observation")
+      .def(py::init<double, double, double, int, int, int, int, int, int>(),
+           py::arg("x"), py::arg("y"), py::arg("s"), py::arg("r"), py::arg("g"),
+           py::arg("b"), py::arg("feature"),
+           py::arg("segmentation") = map::Observation::NO_SEMANTIC_VALUE,
+           py::arg("instance") = map::Observation::NO_SEMANTIC_VALUE)
+      .def_readwrite("point", &map::Observation::point)
+      .def_readwrite("scale", &map::Observation::scale)
+      .def_readwrite("id", &map::Observation::feature_id)
+      .def_readwrite("color", &map::Observation::color)
+      .def_readwrite("segmentation", &map::Observation::segmentation_id)
+      .def_readwrite("instance", &map::Observation::instance_id)
+      .def_readonly_static("NO_SEMANTIC_VALUE",
+                           &map::Observation::NO_SEMANTIC_VALUE);
+
+  py::class_<map::TracksManager>(m, "TracksManager")
+      .def(py::init())
+      .def_static("instanciate_from_file",
+                  &map::TracksManager::InstanciateFromFile,
+                  py::call_guard<py::gil_scoped_release>())
+      .def_static("instanciate_from_string",
+                  &map::TracksManager::InstanciateFromString,
+                  py::call_guard<py::gil_scoped_release>())
+      .def_static("merge_tracks_manager",
+                  &map::TracksManager::MergeTracksManager)
+      .def("add_observation", &map::TracksManager::AddObservation)
+      .def("remove_observation", &map::TracksManager::RemoveObservation)
+      .def("num_shots", &map::TracksManager::NumShots)
+      .def("num_tracks", &map::TracksManager::NumTracks)
+      .def("get_shot_ids", &map::TracksManager::GetShotIds)
+      .def("get_track_ids", &map::TracksManager::GetTrackIds)
+      .def("get_observation", &map::TracksManager::GetObservation)
+      .def("get_shot_observations", &map::TracksManager::GetShotObservations)
+      .def("get_track_observations", &map::TracksManager::GetTrackObservations)
+      .def("construct_sub_tracks_manager",
+           &map::TracksManager::ConstructSubTracksManager)
+      .def("write_to_file", &map::TracksManager::WriteToFile)
+      .def("as_string", &map::TracksManager::AsSring)
+      .def("get_all_common_observations",
+           &map::TracksManager::GetAllCommonObservations,
+           py::call_guard<py::gil_scoped_release>())
+      .def("get_all_pairs_connectivity",
+           &map::TracksManager::GetAllPairsConnectivity,
+           py::arg("shots") = std::vector<map::ShotId>(),
+           py::arg("tracks") = std::vector<map::TrackId>(),
+           py::call_guard<py::gil_scoped_release>());
 }

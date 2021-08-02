@@ -71,11 +71,11 @@ matching_order_neighbors: 0           # Number of images to match selected by im
 matching_bow_neighbors: 0             # Number of images to match selected by BoW distance. Set to 0 to disable
 matching_bow_gps_distance: 0          # Maximum GPS distance for preempting images before using selection by BoW distance. Set to 0 to disable
 matching_bow_gps_neighbors: 0         # Number of images (selected by GPS distance) to preempt before using selection by BoW distance. Set to 0 to use no limit (or disable if matching_bow_gps_distance is also 0)
-matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_bow_other_cameras: False     # If True, BoW image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
 matching_vlad_neighbors: 0            # Number of images to match selected by VLAD distance. Set to 0 to disable
 matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
 matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
-matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera.
+matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 
 # Params for geometric estimation
@@ -132,9 +132,13 @@ align_method: orientation_prior       # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
+bundle_compensate_gps_bias: no        # Compensate GPS with a per-camera similarity transform
+
 
 # Params for rigs
-rig_calibration_subset_size: 15
+rig_calibration_subset_size: 15       # Number of rig instances to use when calibration rigs
+rig_calibration_completeness: 0.85    # Ratio of reconstructed images needed to consider a reconstruction for rig calibration
+rig_calibration_max_rounds: 10        # Number of SfM tentatives to run until we get a satisfying reconstruction
 
 # Params for navigation graph
 nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
@@ -169,6 +173,7 @@ depthmap_save_debug_files: no         # Save debug files with partial reconstruc
 
 # Other params
 processes: 1                  # Number of threads to use
+read_processes: 4             # When processes > 1, number of threads used for reading images
 
 # Params for submodel split and merge
 submodel_size: 80                                                    # Average number of images per submodel
@@ -185,14 +190,21 @@ def default_config():
 
 
 def load_config(filepath):
-    """Load config from a config.yaml filepath"""
+    """DEPRECATED: Load config from a config.yaml filepath"""
+    if not os.path.isfile(filepath):
+        return default_config()
+
+    with open(filepath) as fin:
+        return load_config_from_fileobject(fin)
+
+
+def load_config_from_fileobject(f):
+    """Load config from a config.yaml fileobject"""
     config = default_config()
 
-    if os.path.isfile(filepath):
-        with open(filepath) as fin:
-            new_config = yaml.safe_load(fin)
-        if new_config:
-            for k, v in new_config.items():
-                config[k] = v
+    new_config = yaml.safe_load(f)
+    if new_config:
+        for k, v in new_config.items():
+            config[k] = v
 
     return config

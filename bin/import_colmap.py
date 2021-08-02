@@ -21,11 +21,7 @@ import numpy as np
 import opensfm.actions.undistort as osfm_u
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from opensfm import dataset
-from opensfm import features
-from opensfm import pygeometry
-from opensfm import pysfm
-from opensfm import types
+from opensfm import dataset, features, pygeometry, pymap, types
 
 EXPORT_DIR_NAME = "opensfm_export"
 logger = logging.getLogger(__name__)
@@ -50,7 +46,7 @@ def compute_and_save_undistorted_reconstruction(
 ):
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
-    utracks_manager = pysfm.TracksManager()
+    utracks_manager = pymap.TracksManager()
     undistorted_shots = []
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == "perspective":
@@ -62,7 +58,7 @@ def compute_and_save_undistorted_reconstruction(
         else:
             raise ValueError
         urec.add_camera(ucamera)
-        ushot = osfm_u.get_shot_with_different_camera(urec, shot, ucamera, image_format)
+        ushot = osfm_u.get_shot_with_different_camera(urec, shot, image_format)
         if tracks_manager:
             osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
         undistorted_shots.append(ushot)
@@ -205,7 +201,8 @@ def import_features(db, data, image_map, camera_map):
         filename, _ = image_map[image_id]
         descriptors = np.fromstring(arr, dtype=np.uint8).reshape((n_rows, n_cols))
         kp = keypoints[image_id]
-        data.save_features(filename, kp, descriptors, colors[image_id])
+        features_data = features.FeaturesData(kp, descriptors, colors[image_id], None)
+        data.save_features(filename, features_data)
 
     cursor.close()
     return keypoints
@@ -357,7 +354,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
     Read images.bin, building shots and tracks graph
     """
     logger.info("Importing images from {}".format(path_images))
-    tracks_manager = pysfm.TracksManager()
+    tracks_manager = pymap.TracksManager()
     image_ix_to_shot_id = {}
     with open(path_images, "rb") as f:
         n_ims = unpack("<Q", f.read(8))[0]
@@ -393,7 +390,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
                 if point3d_id != np.iinfo(np.uint64).max:
                     kp = keypoints[image_id][point2d_ix]
                     r, g, b = rec.points[str(point3d_id)].color
-                    obs = pysfm.Observation(
+                    obs = pymap.Observation(
                         x,
                         y,
                         kp[2],
@@ -563,7 +560,7 @@ def main():
         data.save_tracks_manager(tracks_manager)
 
         # Save undistorted reconstruction as well
-        udata = dataset.UndistortedDataSet(data)
+        udata = dataset.UndistortedDataSet(data, io_handler=data.io_handler)
         urec = compute_and_save_undistorted_reconstruction(
             reconstruction, tracks_manager, data, udata
         )

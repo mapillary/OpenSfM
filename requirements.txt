@@ -1,5 +1,6 @@
 cloudpickle==0.4.0
 exifread==2.1.2
+flask==1.1.2
 fpdf2==2.1.0
 joblib==0.14.1
 matplotlib

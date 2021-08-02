@@ -50,7 +50,7 @@ def test_essential_five_points(pairs_and_their_E):
             is_exact = np.linalg.norm(E - E_found, ord="fro") < 1e-6
             exact_found += good_det and is_exact
 
-    exacts = len(pairs_and_their_E) - 1
+    exacts = len(pairs_and_their_E) - 2
     assert exact_found >= exacts
 
 

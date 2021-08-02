@@ -23,6 +23,7 @@ def synthetic_circle_scene():
         camera_interval,
         position_perturbation,
         rotation_perturbation,
+        None,
     )
     return scene
 

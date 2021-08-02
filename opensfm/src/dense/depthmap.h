@@ -134,19 +134,17 @@ class DepthmapPruner {
   void AddView(const double *pK, const double *pR, const double *pt,
                const float *pdepth, const float *pplane,
                const unsigned char *pcolor, const unsigned char *plabel,
-               const unsigned char *pdetection, int width, int height);
+               int width, int height);
   void Prune(std::vector<float> *merged_points,
              std::vector<float> *merged_normals,
              std::vector<unsigned char> *merged_colors,
-             std::vector<unsigned char> *merged_labels,
-             std::vector<unsigned char> *merged_detections);
+             std::vector<unsigned char> *merged_labels);
 
  private:
   std::vector<cv::Mat> depths_;
   std::vector<cv::Mat> planes_;
   std::vector<cv::Mat> colors_;
   std::vector<cv::Mat> labels_;
-  std::vector<cv::Mat> detections_;
   std::vector<cv::Matx33d> Ks_;
   std::vector<cv::Matx33d> Rs_;
   std::vector<cv::Vec3d> ts_;

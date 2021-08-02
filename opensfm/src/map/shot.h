@@ -4,7 +4,7 @@
 #include <geometry/pose.h>
 #include <map/defines.h>
 #include <map/landmark.h>
-#include <sfm/observation.h>
+#include <map/observation.h>
 
 #include <Eigen/Eigen>
 #include <iostream>
@@ -36,6 +36,14 @@ struct ShotMeasurements {
   foundation::OptionalValue<int> orientation_;
   foundation::OptionalValue<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);
+
+  // Store any additional attributes
+  std::map<std::string, std::string> attributes_;
+  const auto& GetAttributes() const { return attributes_; }
+  auto& GetMutableAttributes() { return attributes_; }
+  void SetAttributes(const std::map<std::string, std::string>& attributes) {
+    attributes_ = attributes;
+  }
 };
 
 class Shot {
@@ -128,7 +136,6 @@ class Shot {
 
  public:
   const ShotId id_;  // the file name
-  ShotUniqueId unique_id_;
 
   // Ad-hoc merge-specific data
   ShotMesh mesh;

@@ -51,14 +51,14 @@ def run_dataset(data: DataSetBase):
     data.save_camera_models(camera_models)
 
     end = time.time()
-    with open(data.profile_log(), "a") as fout:
+    with data.io_handler.open(data.profile_log(), "a") as fout:
         fout.write("extract_metadata: {0}\n".format(end - start))
 
 
 def _extract_exif(image, data: DataSetBase):
     with data.open_image_file(image) as fp:
         d = exif.extract_exif_from_file(
-            fp, partial(data.image_size, image), data.config["use_exif_size"]
+            fp, partial(data.image_size, image), data.config["use_exif_size"], name=image
         )
 
     if data.config["unknown_camera_models_are_different"] and (

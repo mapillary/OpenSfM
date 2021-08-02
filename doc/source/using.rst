@@ -12,16 +12,43 @@ An example dataset is available at ``data/berlin``.  You can reconstruct it usin
 
     bin/opensfm_run_all data/berlin
 
-This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output. To visualize the result you can start a HTTP server running::
+This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output.
 
-    python3 -m http.server
 
-and then browse `<http://localhost:8000/viewer/reconstruction.html#file=/data/berlin/reconstruction.meshed.json>`_
-You should see something like
+Viewer setup
+''''''''''''
+
+Download the viewer dependencies (`mapillary-js <https://github.com/mapillary/mapillary-js>`_, `gl-matrix <https://github.com/toji/gl-matrix>`_, `dat.gui <https://github.com/dataarts/dat.gui>`_) from npm by running::
+
+    ./viewer/node_modules.sh
+
+
+Serve a dataset
+'''''''''''''''
+
+To visualize the result you can start the viewer HTTP server by running::
+
+    python3 viewer/server.py -d data/berlin
+
+and then browse to `<http://localhost:8080>`_ and select a reconstruction file. You should see something like
 
 .. image:: images/berlin_viewer.jpg
 
-You can click twice on an image to see it.  Then use arrows to move between images.
+Load reconstructions manually
+'''''''''''''''''''''''''''''
+
+Start the viewer HTTP server by running::
+
+    python3 viewer/server.py
+
+and then browse to `<http://localhost:8080>`_ and pick or drop one or multiple reconstruction files.
+Note that images will not be loaded for this case.
+
+You can switch between earth and street level controls. In street level mode you can use the arrows to move between images.
+
+
+Dense point clouds
+''''''''''''''''''
 
 If you want to get a denser point cloud, you can run::
 

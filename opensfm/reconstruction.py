@@ -38,7 +38,9 @@ def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Came
 
 
 def _add_gcp_to_bundle(
-    ba: pybundle.BundleAdjuster, gcp: List[pymap.GroundControlPoint], shots: List[str]
+    ba: pybundle.BundleAdjuster,
+    gcp: List[pymap.GroundControlPoint],
+    shots: Dict[str, pymap.Shot],
 ):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
@@ -87,7 +89,7 @@ def bundle(
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Bundle adjust a reconstruction."""
-    report = pymap.BAHelpers.bundle(
+    report = pysfm.BAHelpers.bundle(
         reconstruction.map,
         dict(camera_priors),
         dict(rig_camera_priors),
@@ -107,7 +109,7 @@ def bundle_shot_poses(
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Bundle adjust a set of shots poses."""
-    report = pymap.BAHelpers.bundle_shot_poses(
+    report = pysfm.BAHelpers.bundle_shot_poses(
         reconstruction.map,
         shot_ids,
         dict(camera_priors),
@@ -126,7 +128,7 @@ def bundle_local(
     config: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], List[int]]:
     """Bundle adjust the local neighborhood of a shot."""
-    pt_ids, report = pymap.BAHelpers.bundle_local(
+    pt_ids, report = pysfm.BAHelpers.bundle_local(
         reconstruction.map,
         dict(camera_priors),
         dict(rig_camera_priors),
@@ -215,12 +217,11 @@ def pairwise_reconstructability(common_tracks: int, rotation_inliers: int) -> fl
 TPairArguments = Tuple[
     str, str, np.ndarray, np.ndarray, pygeometry.Camera, pygeometry.Camera, float
 ]
-TPairTracks = Tuple[List[str], np.ndarray, np.ndarray]
 
 
 def compute_image_pairs(
-    track_dict: Dict[Tuple[str, str], TPairTracks], data: DataSetBase
-):
+    track_dict: Dict[Tuple[str, str], tracking.TPairTracks], data: DataSetBase
+) -> List[Tuple[str, str]]:
     """All matched image pairs sorted by reconstructability."""
     cameras = data.load_camera_models()
     args = _pair_reconstructability_arguments(track_dict, cameras, data)
@@ -234,7 +235,7 @@ def compute_image_pairs(
 
 
 def _pair_reconstructability_arguments(
-    track_dict: Dict[Tuple[str, str], TPairTracks],
+    track_dict: Dict[Tuple[str, str], tracking.TPairTracks],
     cameras: Dict[str, pygeometry.Camera],
     data: DataSetBase,
 ) -> List[TPairArguments]:
@@ -257,15 +258,15 @@ def _compute_pair_reconstructability(args: TPairArguments) -> Tuple[str, str, fl
     return (im1, im2, r)
 
 
-def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
-    """Get image metadata as a ShotMetadata object."""
+def exif_to_metadata(
+    exif: Dict[str, Any], use_altitude: bool, reference: types.TopocentricConverter
+) -> pymap.ShotMeasurements:
+    """Construct a metadata object from raw EXIF tags (as a dict)."""
     metadata = pymap.ShotMeasurements()
-    exif = data.load_exif(image)
-    reference = data.load_reference()
     if "gps" in exif and "latitude" in exif["gps"] and "longitude" in exif["gps"]:
         lat = exif["gps"]["latitude"]
         lon = exif["gps"]["longitude"]
-        if data.config["use_altitude_tag"]:
+        if use_altitude:
             alt = min([oexif.maximum_altitude, exif["gps"].get("altitude", 2.0)])
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
@@ -295,6 +296,13 @@ def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
         metadata.sequence_key.value = exif["skey"]
 
     return metadata
+
+
+def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
+    """Get image metadata as a ShotMetadata object."""
+    exif = data.load_exif(image)
+    reference = data.load_reference()
+    return exif_to_metadata(exif, data.config["use_altitude_tag"], reference)
 
 
 def add_shot(
@@ -343,7 +351,7 @@ def add_shot(
 def _two_view_reconstruction_inliers(
     b1: np.ndarray, b2: np.ndarray, R: np.ndarray, t: np.ndarray, threshold: float
 ) -> List[int]:
-    """ Returns indices of matches that can be triangulated. """
+    """Returns indices of matches that can be triangulated."""
     ok = matching.compute_inliers_bearings(b1, b2, R, t, threshold)
     return np.nonzero(ok)[0]
 
@@ -372,6 +380,9 @@ def two_view_reconstruction_plane_based(
 
     H, inliers = cv2.findHomography(x1, x2, cv2.RANSAC, threshold)
     motions = multiview.motion_from_plane_homography(H)
+
+    if not motions:
+        return None, None, []
 
     if len(motions) == 0:
         return None, None, []
@@ -504,7 +515,7 @@ def two_view_reconstruction_general(
 
 def bootstrap_reconstruction(
     data: DataSetBase,
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     im1: str,
     im2: str,
     p1: np.ndarray,
@@ -551,7 +562,7 @@ def bootstrap_reconstruction(
             data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
         )
 
-    align_reconstruction(reconstruction, None, data.config)
+    align_reconstruction(reconstruction, [], data.config)
     triangulate_shot_features(tracks_manager, reconstruction, new_shots, data.config)
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
@@ -584,7 +595,7 @@ def bootstrap_reconstruction(
 
 
 def reconstructed_points_for_images(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     images: Set[str],
 ) -> List[Tuple[str, int]]:
@@ -603,7 +614,7 @@ def reconstructed_points_for_images(
 
 def resect(
     data: DataSetBase,
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     shot_id: str,
     threshold: float,
@@ -672,7 +683,7 @@ def resect(
 
 
 def corresponding_tracks(
-    tracks1: Dict[str, pysfm.Observation], tracks2: Dict[str, pysfm.Observation]
+    tracks1: Dict[str, pymap.Observation], tracks2: Dict[str, pymap.Observation]
 ) -> List[Tuple[str, str]]:
     features1 = {obs.id: t1 for t1, obs in tracks1.items()}
     corresponding_tracks = []
@@ -686,8 +697,8 @@ def corresponding_tracks(
 def compute_common_tracks(
     reconstruction1: types.Reconstruction,
     reconstruction2: types.Reconstruction,
-    tracks_manager1: pysfm.TracksManager,
-    tracks_manager2: pysfm.TracksManager,
+    tracks_manager1: pymap.TracksManager,
+    tracks_manager2: pymap.TracksManager,
 ) -> List[Tuple[str, str]]:
     common_tracks = set()
     common_images = set(reconstruction1.shots.keys()).intersection(
@@ -710,8 +721,8 @@ def compute_common_tracks(
 def resect_reconstruction(
     reconstruction1: types.Reconstruction,
     reconstruction2: types.Reconstruction,
-    tracks_manager1: pysfm.TracksManager,
-    tracks_manager2: pysfm.TracksManager,
+    tracks_manager1: pymap.TracksManager,
+    tracks_manager2: pymap.TracksManager,
     threshold: float,
     min_inliers: int,
 ) -> Tuple[bool, np.ndarray, List[Tuple[str, str]]]:
@@ -731,7 +742,7 @@ def resect_reconstruction(
 
 
 def add_observation_to_reconstruction(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     shot_id: str,
     track_id: str,
@@ -746,7 +757,7 @@ class TrackTriangulator:
     Caches shot origin and rotation matrix
     """
 
-    tracks_manager: pysfm.TracksManager
+    tracks_manager: pymap.TracksManager
     reconstruction: types.Reconstruction
     origins: Dict[str, np.ndarray] = {}
     rotation_inverses: Dict[str, np.ndarray] = {}
@@ -754,7 +765,7 @@ class TrackTriangulator:
 
     def __init__(
         self,
-        tracks_manager: pysfm.TracksManager,
+        tracks_manager: pymap.TracksManager,
         reconstruction: types.Reconstruction,
     ):
         """Build a triangulator for a specific reconstruction."""
@@ -904,7 +915,7 @@ class TrackTriangulator:
 
 
 def triangulate_shot_features(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     shot_ids: Set[str],
     config: Dict[str, Any],
@@ -928,7 +939,7 @@ def triangulate_shot_features(
 
 
 def retriangulate(
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
@@ -1039,7 +1050,7 @@ def align_two_reconstruction(
     r2: types.Reconstruction,
     common_tracks: List[Tuple[str, str]],
     threshold: float,
-) -> Tuple[float, Optional[np.ndarray], List[int]]:
+) -> Tuple[bool, Optional[np.ndarray], List[int]]:
     """Estimate similarity transform between two reconstructions."""
     t1, t2 = r1.points, r2.points
 
@@ -1053,7 +1064,7 @@ def align_two_reconstruction(
             p1, p2, max_iterations=100, threshold=threshold
         )
         if len(inliers) > 0:
-            return True, T, inliers
+            return True, T, list(inliers)
     return False, None, []
 
 
@@ -1067,14 +1078,14 @@ def merge_two_reconstructions(
     common_tracks = list(set(r1.points) & set(r2.points))
     worked, T, inliers = align_two_reconstruction(r1, r2, common_tracks, threshold)
 
-    if worked and len(inliers) >= 10:
+    if T and worked and len(inliers) >= 10:
         s, A, b = multiview.decompose_similarity_transform(T)
         r1p = r1
         apply_similarity(r1p, s, A, b)
         r = r2
         r.shots.update(r1p.shots)
         r.points.update(r1p.points)
-        align_reconstruction(r, None, config)
+        align_reconstruction(r, [], config)
         return [r]
     else:
         return [r1, r2]
@@ -1119,7 +1130,7 @@ def merge_reconstructions(
 
 def paint_reconstruction(
     data: DataSetBase,
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
 ) -> None:
     """Set the color of the points from the color of the tracks."""
@@ -1183,7 +1194,7 @@ class ShouldRetriangulate:
 
 def grow_reconstruction(
     data: DataSetBase,
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     reconstruction: types.Reconstruction,
     images: Set[str],
     gcp: List[pymap.GroundControlPoint],
@@ -1300,7 +1311,12 @@ def grow_reconstruction(
 
     logger.info("-------------------------------------------------------")
 
-    align_reconstruction(reconstruction, gcp, config)
+    align_result = align_reconstruction(reconstruction, gcp, config, bias_override=True)
+    if not align_result and config["bundle_compensate_gps_bias"]:
+        overidden_config = config.copy()
+        overidden_config["bundle_compensate_gps_bias"] = False
+        config = overidden_config
+
     bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)
@@ -1308,7 +1324,7 @@ def grow_reconstruction(
 
 
 def incremental_reconstruction(
-    data: DataSetBase, tracks_manager: pysfm.TracksManager
+    data: DataSetBase, tracks_manager: pymap.TracksManager
 ) -> Tuple[Dict[str, Any], List[types.Reconstruction]]:
     """Run the entire incremental reconstruction pipeline."""
     logger.info("Starting incremental reconstruction")
@@ -1322,7 +1338,7 @@ def incremental_reconstruction(
 
     remaining_images = set(images)
     gcp = data.load_ground_control_points()
-    common_tracks = tracking.all_common_tracks(tracks_manager)
+    common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
     chrono.lap("compute_image_pairs")
@@ -1364,7 +1380,7 @@ def incremental_reconstruction(
 
 def reconstruct_from_prior(
     data: DataSetBase,
-    tracks_manager: pysfm.TracksManager,
+    tracks_manager: pymap.TracksManager,
     rec_prior: types.Reconstruction,
 ) -> Tuple[Dict[str, Any], types.Reconstruction]:
     """Retriangulate a new reconstruction from the rec_prior"""

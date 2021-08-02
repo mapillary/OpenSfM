@@ -1,0 +1,21 @@
+body{
+color: grey;
+font-family: "Lucida Sans Unicode", Lucida Grande, sans-serif;
+margin: 0px 0px;
+padding: 0px 0px;
+}
+
+#header {
+width: 800px;
+margin: 5px auto;
+}
+
+#viewport {
+border: 2px solid grey;
+border-radius: 5px;
+background-color: cornflowerblue;
+width: 800px;
+height: 600px;
+margin: 0 auto;
+padding: 0;
+}

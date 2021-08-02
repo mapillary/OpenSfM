@@ -3,21 +3,56 @@
 
 <head>
   <title>OpenSfM Viewer</title>
+  <link rel="icon" href="data:,">
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=no'>
 
-  <link rel='stylesheet' href='mjs/dependencies/mapillary.min.css' />
-  <link rel='stylesheet' href='mjs/opensfm-viewer.css' />
-
-  <script src='mjs/dependencies/mapillary.min.js'></script>
-  <script src='mjs/dependencies/dat.gui.min.js'></script>
-  <script src='mjs/dependencies/gl-matrix-min.js'></script>
-  <script src='mjs/opensfm-viewer.js'></script>
-  <script src='mjs/opensfm-data-provider.js'></script>
-  <script src='mjs/opensfm-loader.js'></script>
+  <link rel='stylesheet' href='node_modules/mapillary-js/dist/mapillary.css' />
+  <link rel='stylesheet' href='styles/opensfm.css' />
 </head>
 
-<body>
+<body class="opensfm-container">
+  <script type="module">
+    import {
+      createProviderOptions,
+      parseHash,
+      FileController,
+      FileLoader,
+      OpensfmDataProvider,
+      OpensfmViewer,
+    } from './src/opensfm.js';
+
+    const container = window.document.body;
+    const params = parseHash(window.location.hash);
+    const providerOptions = createProviderOptions(params);
+    const provider = new OpensfmDataProvider(providerOptions);
+    const viewer = new OpensfmViewer({ container, params, provider });
+
+    if (params.file) {
+      viewer.initialize();
+    } else {
+      const fileOptions = {
+        classNames: ['opensfm-file-container'],
+        itemsUrl: 'items',
+      };
+      const controller = new FileController(fileOptions);
+      controller.on('load', async event => {
+        try {
+          if (provider.loaded) {
+            await provider.add(event.file);
+          } else {
+            const inventImages = event.target instanceof FileLoader;
+            await provider.load(event.file, inventImages);
+            viewer.initialize();
+            controller.toggle();
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      });
+      controller.toggle();
+    }
+  </script>
 </body>
 
 </html>

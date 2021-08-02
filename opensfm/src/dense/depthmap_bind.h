@@ -98,11 +98,9 @@ class DepthmapPrunerWrapper {
   void SetSameDepthThreshold(float t) { dp_.SetSameDepthThreshold(t); }
 
   void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_f depth,
-               pyarray_f plane, pyarray_uint8 color, pyarray_uint8 label,
-               pyarray_uint8 detection) {
+               pyarray_f plane, pyarray_uint8 color, pyarray_uint8 label) {
     dp_.AddView(K.data(), R.data(), t.data(), depth.data(), plane.data(),
-                color.data(), label.data(), detection.data(), depth.shape(1),
-                depth.shape(0));
+                color.data(), label.data(), depth.shape(1), depth.shape(0));
   }
 
   py::object Prune() {
@@ -110,11 +108,10 @@ class DepthmapPrunerWrapper {
     std::vector<float> normals;
     std::vector<unsigned char> colors;
     std::vector<unsigned char> labels;
-    std::vector<unsigned char> detections;
 
     {
       py::gil_scoped_release release;
-      dp_.Prune(&points, &normals, &colors, &labels, &detections);
+      dp_.Prune(&points, &normals, &colors, &labels);
     }
 
     py::list retn;
@@ -123,7 +120,6 @@ class DepthmapPrunerWrapper {
     retn.append(py_array_from_data(&normals[0], n, 3));
     retn.append(py_array_from_data(&colors[0], n, 3));
     retn.append(py_array_from_data(&labels[0], n));
-    retn.append(py_array_from_data(&detections[0], n));
     return std::move(retn);
   }
 

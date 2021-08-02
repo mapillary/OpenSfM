@@ -4,6 +4,7 @@
 #include <map/rig.h>
 #include <map/shot.h>
 
+#include <cmath>
 #include <unordered_set>
 
 namespace map {
@@ -109,8 +110,6 @@ Shot& Map::CreateShot(const ShotId& shot_id, const geometry::Camera* const cam,
         shots_.emplace(std::piecewise_construct, std::forward_as_tuple(shot_id),
                        std::forward_as_tuple(shot_id, cam, pose));
 
-    it.first->second.unique_id_ = shot_unique_id_;
-    shot_unique_id_++;
     return it.first->second;
   } else {
     throw std::runtime_error("Shot " + shot_id + " already exists.");
@@ -169,8 +168,6 @@ Shot& Map::CreatePanoShot(const ShotId& shot_id,
     auto it = pano_shots_.emplace(std::piecewise_construct,
                                   std::forward_as_tuple(shot_id),
                                   std::forward_as_tuple(shot_id, cam, pose));
-    it.first->second.unique_id_ = pano_shot_unique_id_;
-    pano_shot_unique_id_++;
     return it.first->second;
   } else {
     throw std::runtime_error("Shot " + shot_id + " already exists.");
@@ -208,8 +205,6 @@ Landmark& Map::CreateLandmark(const LandmarkId& lm_id,
     auto it = landmarks_.emplace(std::piecewise_construct,
                                  std::forward_as_tuple(lm_id),
                                  std::forward_as_tuple(lm_id, global_pos));
-    it.first->second.unique_id_ = landmark_unique_id_;
-    landmark_unique_id_++;
     return it.first->second;
   } else {
     throw std::runtime_error("Landmark " + lm_id + " already exists.");
@@ -247,8 +242,8 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 
 geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
   auto it = cameras_.emplace(std::make_pair(cam.id, cam));
+  bias_.emplace(std::make_pair(cam.id, geometry::Similarity()));
   return it.first->second;
-  ;
 }
 
 geometry::Camera& Map::GetCamera(const CameraId& cam_id) {
@@ -362,13 +357,38 @@ RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) {
   return it->second;
 }
 
+const RigInstance& Map::GetRigInstance(const RigInstanceId& instance_id) const {
+  const auto& it = rig_instances_.find(instance_id);
+  if (it == rig_instances_.end()) {
+    throw std::runtime_error("Accessing invalid RigInstance index");
+  }
+  return it->second;
+}
+
 bool Map::HasRigInstance(const RigInstanceId& instance_id) const {
   return rig_instances_.find(instance_id) != rig_instances_.end();
 }
 
+geometry::Similarity& Map::GetBias(const CameraId& camera_id) {
+  const auto it = bias_.find(camera_id);
+  if (it == bias_.end()) {
+    throw std::runtime_error("Accessing invalid CameraID " + camera_id);
+  }
+  return it->second;
+}
+
+void Map::SetBias(const CameraId& camera_id,
+                  const geometry::Similarity& transform) {
+  auto it = bias_.find(camera_id);
+  if (it == bias_.end()) {
+    throw std::runtime_error("Accessing invalid CameraID " + camera_id);
+  }
+  it->second = transform;
+}
+
 std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> >
 Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
-                               bool scaled) const {
+                               const Map::ErrorType& error_type) const {
   std::unordered_map<ShotId, std::unordered_map<LandmarkId, Vec2d> > errors;
   for (const auto& shot_id : tracks_manager.GetShotIds()) {
     const auto find_shot = shots_.find(shot_id);
@@ -384,11 +404,27 @@ Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
         continue;
       }
 
-      const Vec2d error_2d =
-          (track_n_obs.second.point -
-           shot.Project(find_landmark->second.GetGlobalPos()));
-      const auto scale = scaled ? track_n_obs.second.scale : 1.0;
-      per_shot[track_n_obs.first] = error_2d / scale;
+      if (error_type == Map::ErrorType::Pixel) {
+        const Vec2d error_2d =
+            (track_n_obs.second.point -
+             shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_n_obs.first] = error_2d;
+      }
+      if (error_type == Map::ErrorType::Normalized) {
+        const Vec2d error_2d =
+            (track_n_obs.second.point -
+             shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_n_obs.first] = error_2d / track_n_obs.second.scale;
+      }
+      if (error_type == Map::ErrorType::Angular) {
+        const Vec3d point =
+            (find_landmark->second.GetGlobalPos() - shot.GetPose()->GetOrigin())
+                .normalized();
+        const Vec3d bearing =
+            shot.Bearing(track_n_obs.second.point).normalized();
+        const double angle = std::acos(point.dot(bearing));
+        per_shot[track_n_obs.first] = Vec2d::Constant(angle);
+      }
     }
   }
   return errors;

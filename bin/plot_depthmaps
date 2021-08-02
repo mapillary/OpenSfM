@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
     data = dataset.DataSet(args.dataset)
     udata_path = os.path.join(data.data_path, args.subfolder)
-    udata = dataset.UndistortedDataSet(data, udata_path)
+    udata = dataset.UndistortedDataSet(data, udata_path, io_handler=data.io_handler)
 
     if args.image:
         images = [args.image]

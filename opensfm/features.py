@@ -1,8 +1,8 @@
 """Tools to extract features."""
 
 import logging
-import sys
 import time
+from typing import Tuple, Dict, Any, List, Optional
 
 import cv2
 import numpy as np
@@ -12,9 +12,191 @@ from opensfm import context, pyfeatures
 logger = logging.getLogger(__name__)
 
 
-def resized_image(image, max_size):
+class SemanticData:
+    segmentation: np.ndarray
+    instances: np.ndarray
+    labels: List[Dict[str, Any]]
+
+    def __init__(
+        self,
+        segmentation: np.ndarray,
+        instances: np.ndarray,
+        labels: List[Dict[str, Any]],
+    ):
+        self.segmentation = segmentation
+        self.instances = instances
+        self.labels = labels
+
+    def mask(self, mask: np.ndarray) -> "SemanticData":
+        try:
+            segmentation = self.segmentation[mask]
+            instances = self.instances[mask]
+        except IndexError:
+            logger.error(
+                f"Invalid mask array of dtype {mask.dtype}, shape {mask.shape}: {mask}"
+            )
+            raise
+
+        return SemanticData(segmentation, instances, self.labels)
+
+
+class FeaturesData:
+    points: np.ndarray
+    descriptors: Optional[np.ndarray]
+    colors: np.ndarray
+    semantic: Optional[SemanticData]
+
+    FEATURES_VERSION: int = 2
+    FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
+
+    def __init__(
+        self,
+        points: np.ndarray,
+        descriptors: Optional[np.ndarray],
+        colors: np.ndarray,
+        semantic: Optional[SemanticData],
+    ):
+        self.points = points
+        self.descriptors = descriptors
+        self.colors = colors
+        self.semantic = semantic
+
+    def mask(self, mask: np.ndarray) -> "FeaturesData":
+        if self.semantic:
+            masked_semantic = self.semantic.mask(mask)  # pyre-fixme [16]
+        else:
+            masked_semantic = None
+        return FeaturesData(
+            self.points[mask],
+            # pyre-fixme [16]
+            self.descriptors[mask] if self.descriptors is not None else None,
+            self.colors[mask],
+            masked_semantic,
+        )
+
+    def save(self, fileobject: Any, config: Dict[str, Any]):
+        """Save features from file (path like or file object like)"""
+        feature_type = config["feature_type"]
+        if (
+            (
+                feature_type == "AKAZE"
+                and config["akaze_descriptor"] in ["MLDB_UPRIGHT", "MLDB"]
+            )
+            or (feature_type == "HAHOG" and config["hahog_normalize_to_uchar"])
+            or (feature_type == "ORB")
+        ):
+            feature_data_type = np.uint8
+        else:
+            feature_data_type = np.float32
+        if self.descriptors is None:
+            raise RuntimeError("No descriptors found, canot save features data.")
+        if self.semantic:
+            np.savez_compressed(
+                fileobject,
+                points=self.points.astype(np.float32),
+                # pyre-fixme [16]
+                descriptors=self.descriptors.astype(feature_data_type),
+                colors=self.colors,
+                segmentations=self.semantic.segmentation,  # pyre-fixme [16]
+                instances=self.semantic.instances,  # pyre-fixme [16]
+                segmentation_labels=self.semantic.labels,  # pyre-fixme [16]
+                OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
+                allow_pickle=True,
+            )
+        else:
+            np.savez_compressed(
+                fileobject,
+                points=self.points.astype(np.float32),
+                descriptors=self.descriptors.astype(feature_data_type),
+                colors=self.colors,
+                segmentations=None,
+                instances=None,
+                segmentation_labels=None,
+                OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
+                allow_pickle=True,
+            )
+
+    @classmethod
+    def from_file(cls, fileobject: Any, config: Dict[str, Any]) -> "FeaturesData":
+        """Load features from file (path like or file object like)"""
+        s = np.load(fileobject, allow_pickle=True)
+        version = cls._features_file_version(s)
+        return getattr(cls, "_from_file_v%d" % version)(s, config)
+
+    @classmethod
+    def _features_file_version(cls, obj: Dict[str, Any]) -> int:
+        """Retrieve features file version. Return 0 if none"""
+        if cls.FEATURES_HEADER in obj:
+            return obj[cls.FEATURES_HEADER]
+        else:
+            return 0
+
+    @classmethod
+    def _from_file_v0(
+        cls, data: Dict[str, np.ndarray], config: Dict[str, Any]
+    ) -> "FeaturesData":
+        """Base version of features file
+
+        Scale (desc[2]) set to reprojection_error_sd by default (legacy behaviour)
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        points = data["points"]
+        points[:, 2:3] = config["reprojection_error_sd"]
+        return FeaturesData(points, descriptors, data["colors"].astype(float), None)
+
+    @classmethod
+    def _from_file_v1(
+        cls, data: Dict[str, np.ndarray], config: Dict[str, Any]
+    ) -> "FeaturesData":
+        """Version 1 of features file
+
+        Scale is not properly set higher in the pipeline, default is gone.
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        return FeaturesData(
+            data["points"], descriptors, data["colors"].astype(float), None
+        )
+
+    @classmethod
+    def _from_file_v2(
+        cls,
+        data: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> "FeaturesData":
+        """Version 2 of features file
+
+        Added segmentation and segmentation labels.
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+        has_segmentation = data["segmentations"].any()
+        has_instances = data["instances"].any()
+
+        if has_segmentation and has_instances:
+            semantic_data = SemanticData(
+                data["segmentations"], data["instances"], data["segmentation_labels"]
+            )
+        else:
+            semantic_data = None
+        return FeaturesData(
+            data["points"], descriptors, data["colors"].astype(float), semantic_data
+        )
+
+
+def resized_image(image: np.ndarray, max_size: int) -> np.ndarray:
     """Resize image to feature_process_size."""
-    h, w, _ = image.shape
+    h, w = image.shape[:2]
     size = max(w, h)
     if 0 < max_size < size:
         dsize = w * max_size // size, h * max_size // size
@@ -23,7 +205,7 @@ def resized_image(image, max_size):
         return image
 
 
-def root_feature(desc, l2_normalization=False):
+def root_feature(desc: np.ndarray, l2_normalization: bool = False) -> np.ndarray:
     if l2_normalization:
         s2 = np.linalg.norm(desc, axis=1)
         desc = (desc.T / s2).T
@@ -32,7 +214,9 @@ def root_feature(desc, l2_normalization=False):
     return desc
 
 
-def root_feature_surf(desc, l2_normalization=False, partial=False):
+def root_feature_surf(
+    desc: np.ndarray, l2_normalization: bool = False, partial: bool = False
+) -> np.ndarray:
     """
     Experimental square root mapping of surf-like feature, only work for 64-dim surf now
     """
@@ -53,7 +237,9 @@ def root_feature_surf(desc, l2_normalization=False, partial=False):
     return desc
 
 
-def normalized_image_coordinates(pixel_coords, width, height):
+def normalized_image_coordinates(
+    pixel_coords: np.ndarray, width: int, height: int
+) -> np.ndarray:
     size = max(width, height)
     p = np.empty((len(pixel_coords), 2))
     p[:, 0] = (pixel_coords[:, 0] + 0.5 - width / 2.0) / size
@@ -61,7 +247,9 @@ def normalized_image_coordinates(pixel_coords, width, height):
     return p
 
 
-def denormalized_image_coordinates(norm_coords, width, height):
+def denormalized_image_coordinates(
+    norm_coords: np.ndarray, width: int, height: int
+) -> np.ndarray:
     size = max(width, height)
     p = np.empty((len(norm_coords), 2))
     p[:, 0] = norm_coords[:, 0] * size - 0.5 + width / 2.0
@@ -69,21 +257,25 @@ def denormalized_image_coordinates(norm_coords, width, height):
     return p
 
 
-def normalize_features(points, desc, colors, width, height):
+def normalize_features(
+    points: np.ndarray, desc: np.ndarray, colors: np.ndarray, width: int, height: int
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray,]:
     """Normalize feature coordinates and size."""
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     points[:, 2:3] /= max(width, height)
     return points, desc, colors
 
 
-def _in_mask(point, width, height, mask):
+def _in_mask(point: np.ndarray, width: int, height: int, mask: np.ndarray) -> bool:
     """Check if a point is inside a binary mask."""
     u = mask.shape[1] * (point[0] + 0.5) / width
     v = mask.shape[0] * (point[1] + 0.5) / height
     return mask[int(v), int(u)] != 0
 
 
-def extract_features_sift(image, config, features_count):
+def extract_features_sift(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
     sift_edge_threshold = config["sift_edge_threshold"]
     sift_peak_threshold = float(config["sift_peak_threshold"])
     # SIFT support is in cv2 main from version 4.4.0
@@ -140,7 +332,9 @@ def extract_features_sift(image, config, features_count):
     return points, desc
 
 
-def extract_features_surf(image, config, features_count):
+def extract_features_surf(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
     surf_hessian_threshold = config["surf_hessian_threshold"]
     if context.OPENCV3:
         try:
@@ -189,7 +383,7 @@ def extract_features_surf(image, config, features_count):
     return points, desc
 
 
-def akaze_descriptor_type(name):
+def akaze_descriptor_type(name: str) -> pyfeatures.AkazeDescriptorType:
     d = pyfeatures.AkazeDescriptorType.__dict__
     if name in d:
         return d[name]
@@ -198,7 +392,9 @@ def akaze_descriptor_type(name):
         return d["MSURF"]
 
 
-def extract_features_akaze(image, config, features_count):
+def extract_features_akaze(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
     options = pyfeatures.AKAZEOptions()
     options.omax = config["akaze_omax"]
     akaze_descriptor_name = config["akaze_descriptor"]
@@ -225,7 +421,9 @@ def extract_features_akaze(image, config, features_count):
     return points, desc
 
 
-def extract_features_hahog(image, config, features_count):
+def extract_features_hahog(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
     t = time.time()
     points, desc = pyfeatures.hahog(
         image.astype(np.float32) / 255,  # VlFeat expects pixel values between 0, 1
@@ -248,7 +446,9 @@ def extract_features_hahog(image, config, features_count):
     return points, desc
 
 
-def extract_features_orb(image, config, features_count):
+def extract_features_orb(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
     if context.OPENCV3:
         detector = cv2.ORB_create(nfeatures=features_count)
         descriptor = detector
@@ -268,7 +468,9 @@ def extract_features_orb(image, config, features_count):
     return points, desc
 
 
-def extract_features(image, config, is_panorama):
+def extract_features(
+    image: np.ndarray, config: Dict[str, Any], is_panorama: bool
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Detect features in a color or gray-scale image.
 
     The type of feature detected is determined by the ``feature_type``
@@ -301,18 +503,14 @@ def extract_features(image, config, is_panorama):
     )
 
     assert len(image.shape) == 3 or len(image.shape) == 2
-
+    image = resized_image(image, extraction_size)
     if len(image.shape) == 2:  # convert (h, w) to (h, w, 1)
         image = np.expand_dims(image, axis=2)
-
-    image = resized_image(image, extraction_size)
-
     # convert color to gray-scale if necessary
     if image.shape[2] == 3:
         image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     else:
         image_gray = image
-
     feature_type = config["feature_type"].upper()
     if feature_type == "SIFT":
         points, desc = extract_features_sift(image_gray, config, features_count)
@@ -338,7 +536,7 @@ def extract_features(image, config, is_panorama):
     return normalize_features(points, desc, colors, image.shape[1], image.shape[0])
 
 
-def build_flann_index(features, config):
+def build_flann_index(features: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_LINEAR = 0
     FLANN_INDEX_KDTREE = 1
     FLANN_INDEX_KMEANS = 2
@@ -366,109 +564,3 @@ def build_flann_index(features, config):
     }
 
     return context.flann_Index(features, flann_params)
-
-
-FEATURES_VERSION = 2
-FEATURES_HEADER = "OPENSFM_FEATURES_VERSION"
-
-
-def load_features(filepath, config):
-    """ Load features from filename """
-    s = np.load(filepath, allow_pickle=True)
-    version = _features_file_version(s)
-    return getattr(sys.modules[__name__], "_load_features_v%d" % version)(s, config)
-
-
-def _features_file_version(obj):
-    """ Retrieve features file version. Return 0 if none """
-    if FEATURES_HEADER in obj:
-        return obj[FEATURES_HEADER]
-    else:
-        return 0
-
-
-def _load_features_v0(s, config):
-    """Base version of features file
-
-    Scale (desc[2]) set to reprojection_error_sd by default (legacy behaviour)
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    points = s["points"]
-    points[:, 2:3] = config["reprojection_error_sd"]
-    return points, descriptors, s["colors"].astype(float), None
-
-
-def _load_features_v1(s, config):
-    """Version 1 of features file
-
-    Scale is not properly set higher in the pipeline, default is gone.
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    return s["points"], descriptors, s["colors"].astype(float), None
-
-
-def _load_features_v2(s, config):
-    """Version 2 of features file
-
-    Added segmentation and segmentation labels.
-    """
-    feature_type = config["feature_type"]
-    if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
-        descriptors = s["descriptors"].astype(np.float32)
-    else:
-        descriptors = s["descriptors"]
-    has_segmentation = s["segmentations"].any()
-    has_instances = s["instances"].any()
-    return (
-        s["points"],
-        descriptors,
-        s["colors"].astype(float),
-        {
-            "segmentations": s["segmentations"] if has_segmentation else None,
-            "instances": s["instances"] if has_instances else None,
-            "segmentation_labels": s["segmentation_labels"],
-        },
-    )
-
-
-def save_features(
-    filepath,
-    points,
-    desc,
-    colors,
-    segmentations,
-    instances,
-    segmentation_labels,
-    config,
-):
-    feature_type = config["feature_type"]
-    if (
-        (
-            feature_type == "AKAZE"
-            and config["akaze_descriptor"] in ["MLDB_UPRIGHT", "MLDB"]
-        )
-        or (feature_type == "HAHOG" and config["hahog_normalize_to_uchar"])
-        or (feature_type == "ORB")
-    ):
-        feature_data_type = np.uint8
-    else:
-        feature_data_type = np.float32
-    np.savez_compressed(
-        filepath,
-        points=points.astype(np.float32),
-        descriptors=desc.astype(feature_data_type),
-        colors=colors,
-        segmentations=segmentations,
-        instances=instances,
-        segmentation_labels=segmentation_labels,
-        OPENSFM_FEATURES_VERSION=FEATURES_VERSION,
-        allow_pickle=True,
-    )

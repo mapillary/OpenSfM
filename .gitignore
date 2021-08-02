@@ -17,8 +17,8 @@ launch.json
 .pytest_cache
 eval
 
-# Ignore viewer dependencies
-/viewer/mjs/dependencies
+# Viewer
+node_modules
 
 # Ignore the data folder, but not the berlin example.
 data/*

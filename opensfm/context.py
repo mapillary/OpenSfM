@@ -2,9 +2,10 @@ import logging
 import os
 import vmem
 import sys
+from typing import Optional
 
 import cv2
-from joblib import Parallel, delayed, externals, parallel_backend
+from joblib import Parallel, delayed, parallel_backend
 
 
 logger = logging.getLogger(__name__)
@@ -54,12 +55,27 @@ def parallel_map(func, args, num_proc, max_batch_size=1):
     return res
 
 
-def memory_available():
-    """Available memory in MB."""
-    return vmem.virtual_memory().available / 1024 / 1024
+# Memory usage
+if sys.platform == "darwin":
+    rusage_unit = 1
+else:
+    rusage_unit = 1024
 
 
-def processes_that_fit_in_memory(desired, per_process):
+def memory_available() -> Optional[int]:
+    """Available memory in MB.
+
+    Only works on linux and returns None otherwise.
+    """
+    with os.popen("free -t -m") as fp:
+        lines = fp.readlines()
+    if not lines:
+        return None
+    available_mem = int(lines[1].split()[6])
+    return available_mem
+
+
+def processes_that_fit_in_memory(desired: int, per_process: int) -> int:
     """Amount of parallel BoW process that fit in memory."""
     available_mem = memory_available()
     if available_mem is not None:

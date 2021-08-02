@@ -306,8 +306,9 @@ def load_points(im, data):
     :param data: The data set.
     :return: An array with rows containing the x and y coordinates for the features in the image.
     """
-    p, _, _, _ = data.load_features(im)
-    return np.array(p[:, :2], np.float64)
+    features_data = data.load_features(im)
+    assert features_data
+    return np.array(features_data.points[:, :2], np.float64)
 
 
 def load_common_tracks(im1, im2, tracks_manager):
@@ -409,8 +410,12 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     im2_array = data.load_image(im2)
 
     # Calculate symmetric matches.
-    p1, _, _, _ = data.load_features(im1)
-    p2, _, _, _ = data.load_features(im2)
+    features_data1 = data.load_features(im1)
+    features_data2 = data.load_features(im2)
+    assert features_data1
+    assert features_data2
+    p1 = features_data1.points
+    p2 = features_data2.points
 
     symmetric_matches = matching.match_brute_force_symmetric(f1, f2, data.config)
     symmetric_matches = np.array(symmetric_matches)

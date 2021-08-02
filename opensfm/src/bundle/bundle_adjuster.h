@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bundle/data/bias.h>
 #include <bundle/data/camera.h>
 #include <bundle/data/data.h>
 #include <bundle/data/pose.h>
@@ -101,6 +102,7 @@ struct TranslationPrior {
 
 struct PositionPrior {
   Shot *shot;
+  Bias *bias;
   double position[3];
   double std_deviation;
 };
@@ -303,6 +305,7 @@ class BundleAdjuster {
   void AddShot(const std::string &id, const std::string &camera,
                const Vec3d &rotation, const Vec3d &translation, bool constant);
   void AddPoint(const std::string &id, const Vec3d &position, bool constant);
+  void SetCameraBias(const std::string &id, const geometry::Similarity &bias);
 
   // Rigs
   void AddRigInstance(
@@ -416,6 +419,7 @@ class BundleAdjuster {
 
   // Getters
   geometry::Camera GetCamera(const std::string &id) const;
+  geometry::Similarity GetBias(const std::string &id) const;
   Shot GetShot(const std::string &id) const;
   Reconstruction GetReconstruction(const std::string &id) const;
   Point GetPoint(const std::string &id) const;
@@ -433,6 +437,7 @@ class BundleAdjuster {
 
   // minimized data
   std::map<std::string, Camera> cameras_;
+  std::map<std::string, Bias> bias_;
   std::map<std::string, Shot> shots_;
   std::map<std::string, RigShot> rig_shots_;
   std::map<std::string, Reconstruction> reconstructions_;

@@ -75,7 +75,7 @@ def _create_reconstruction(
                 if len(choice) > 1:
                     for ch in choice:
                         # create a new observation
-                        obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(pt.id))
+                        obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, int(pt.id))
                         shot = rec.shots[str(ch)]
                         rec.add_observation(shot, pt, obs)
         # TODO: If required, we have to do the same for pano shots
@@ -735,7 +735,6 @@ def test_single_point_create():
 
     # It should be there
     assert pt.id == "0"
-    assert pt.unique_id == 0
     assert len(rec.points) == 1
 
 
@@ -805,7 +804,6 @@ def test_point_add_from_point():
     assert "1" == pt2_1.id
 
     # ... and with correct values
-    assert pt2_1.unique_id == 0
     assert pt2_1 == rec.points["1"]
     assert np.allclose(pt2_1.coordinates, coord2)
 
@@ -864,7 +862,7 @@ def test_single_observation():
     rec = _create_reconstruction(1, n_shots_cam={"0": 1}, n_points=1)
 
     # When we add an observation to it
-    obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, 100, 2, 5)
+    obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, 100, 2, 5)
     rec.add_observation("0", "0", obs)
     shot = rec.shots["0"]
     pt = rec.points["0"]
@@ -882,7 +880,7 @@ def test_single_observation():
 def test_single_observation_delete():
     # Given a 1-camera, 1-point reconstruction and corresponding observation
     rec = _create_reconstruction(1, n_shots_cam={"0": 1}, n_points=1)
-    obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, 100)
+    obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, 100)
     rec.add_observation("0", "0", obs)
     shot = rec.shots["0"]
     pt = rec.points["0"]
@@ -919,7 +917,7 @@ def test_many_observations_delete():
         n_obs = 0
         for shot in m.get_shots().values():
             # create a new observation
-            obs = pysfm.Observation(100, 200, 0.5, 255, 0, 0, int(lm.id))
+            obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, int(lm.id))
             m.add_observation(shot, lm, obs)
             n_obs += 1
             n_total_obs += 1

@@ -1,9 +1,15 @@
 import numpy as np
+from typing import Optional
 
 
 def opensfm_to_upright(
-    coords, width, height, orientation, new_width=None, new_height=None
-):
+    coords: np.ndarray,
+    width: int,
+    height: int,
+    orientation: int,
+    new_width: Optional[int] = None,
+    new_height: Optional[int] = None,
+) -> np.ndarray:
     """
     Transform opensfm coordinates to upright coordinates, correcting for EXIF orientation.
 

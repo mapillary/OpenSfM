@@ -1,4 +1,3 @@
-#include <foundation/stl_extensions.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
@@ -84,6 +83,9 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
   } else {
     sequence_key_.Reset();
   }
+
+  // Copy the attributes
+  attributes_ = other.GetAttributes();
 }
 
 void Shot::RemoveLandmarkObservation(const FeatureId id) {
@@ -145,5 +147,4 @@ MatX3d Shot::BearingMany(const MatX2d& points) const {
   }
   return bearings;
 }
-
 }  // namespace map
