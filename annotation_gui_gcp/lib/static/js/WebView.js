@@ -1,25 +1,26 @@
-
-function initialize_event_source(source, handlers) {
-    let sse = new EventSource(source);
+function initialize_event_source(handlers) {
+    let sse = new EventSource(window.location.href + '/stream');
     sse.onmessage = e => {
         console.log("Message ", e);
     };
     sse.onerror = err => {
         console.log("Event: error");
         if (this.readyState == EventSource.CONNECTING) {
-          console.log(`Reconnecting (readyState=${this.readyState})...`);
+            console.log(`Reconnecting (readyState=${this.readyState})...`);
         } else {
-          console.log("Error has occured.");
+            console.log("Error has occured.");
         }
     };
-    sse.open = err => {
-        post_json({ event: "sync", data: {}});
-    };
+
+    // sse.open = e => {
+    //     console.log("sse opened");
+    //     post_json({ event: "init", data: {} });
+    // };
 
     handlers.forEach(handler => {
-        sse.addEventListener(handler.event, e => { 
-                console.log("Event ", e);
-                handler.handler(JSON.parse(e.data)) 
+        sse.addEventListener(handler.event, e => {
+            console.log("Event ", e);
+            handler.handler(JSON.parse(e.data))
         });
     });
 
@@ -27,11 +28,11 @@ function initialize_event_source(source, handlers) {
 }
 
 function button_bind(id, callback) {
-    var element = document.getElementById(id);
+    const element = document.getElementById(id);
     element.onclick = e => { callback(id, e); };
 }
 function check_bind(id, callback) {
-    var element = document.getElementById(id);
+    const element = document.getElementById(id);
     element.onchange = callback;
 }
 
@@ -42,6 +43,5 @@ function post_json(data) {
         'Content-Type': 'application/json',
     };
     const body = JSON.stringify(data, null, 4);
-    const url = 'postdata';
-    fetch(url, { method, headers, body })
+    fetch(window.location.href + "/postdata", { method, headers, body })
 }

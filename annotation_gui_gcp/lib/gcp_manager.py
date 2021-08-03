@@ -17,6 +17,7 @@ class GroundControlPointManager:
         self.path = path
         self.image_cache = {}
         self.id_generator = id_generator()
+        self.gcp_reprojections = {}
 
     def load_gcp_reprojections(self, filename):
         if os.path.isfile(filename):

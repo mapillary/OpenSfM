@@ -3,11 +3,13 @@ import random
 import subprocess
 import sys
 import time
+import webbrowser
 from collections import defaultdict
 
-from annotation_gui_gcp.web.cad_view import CADView
-from annotation_gui_gcp.web.image_view import ImageView
-from annotation_gui_gcp.web.tools import ToolsView
+from annotation_gui_gcp.lib.views.cad_view import CADView
+from annotation_gui_gcp.lib.views.image_view import ImageView
+from annotation_gui_gcp.lib.views.tools_view import ToolsView
+from flask import Flask
 from opensfm import dataset
 
 
@@ -25,6 +27,8 @@ class Gui:
         self.shot_std = {}
         self.rig_groups = rig_groups if rig_groups else {}
         self.path = self.gcp_manager.path
+        self.app = Flask(__name__)
+        self.app.config["TEMPLATES_AUTO_RELOAD"] = True
 
         self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(cad_paths)
@@ -33,6 +37,11 @@ class Gui:
         if os.path.exists(p_default_gcp):
             self.load_gcps(p_default_gcp)
         self.load_analysis_results(0, 1)
+
+        port = 5000
+        webbrowser.open(f"http://localhost:{port}/")
+        self.app.run(port=port)
+        print(f"{type(self).__name__} app finished")
 
     def get_reconstruction_options(self):
         p_recs = self.path + "/reconstruction.json"
@@ -53,23 +62,24 @@ class Gui:
         return options
 
     def create_ui(self, cad_paths):
-        port = 5000
-        self.tools_view = ToolsView(self, port)
-        port += 1
-
         has_views_that_need_tracking = len(cad_paths) > 0
+        self.tools_view = ToolsView(self, self.app)
 
         self.sequence_views = []
-        for image_keys in self.image_manager.seqs.values():
-            v = ImageView(self, image_keys, has_views_that_need_tracking, port)
+        for ix, image_keys in enumerate(self.image_manager.seqs.values()):
+            v = ImageView(
+                self,
+                self.app,
+                f"/sequence_view_{ix+1}",
+                image_keys,
+                has_views_that_need_tracking,
+            )
             self.sequence_views.append(v)
-            port += 1
 
         self.cad_views = []
-        for cad_path in cad_paths:
-            v = CADView(self, cad_path, port)
+        for ix, cad_path in enumerate(cad_paths):
+            v = CADView(self, self.app, f"/cad_view_{ix+1}", cad_path)
             self.cad_views.append(v)
-            port += 1
 
     def analyze_rigid(self):
         self.analyze(rigid=True, covariance=False)
@@ -151,7 +161,8 @@ class Gui:
             self.sticky_zoom.set(True)
 
     def populate_gcp_list(self):
-        self.tools_view.sync_to_client()
+        #self.tools_view.sync_to_client()
+        pass
 
     def remove_gcp(self):
         to_be_removed_point = self.curr_point

@@ -45,7 +45,7 @@ function onDOMLoaded() {
 }
 
 function initialize_view() {
-    var sse = initialize_event_source("/stream", [
+    const sse = initialize_event_source([
         { event: "sync", handler: onSyncHandler }
     ]);
     window.onunload = () => {

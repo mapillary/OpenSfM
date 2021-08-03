@@ -1,20 +1,13 @@
-from web.web_view import WebView
+from annotation_gui_gcp.lib.views.web_view import WebView
 
 
 class ToolsView(WebView):
-    def __init__(
-        self,
-        main_ui,
-        port=4990,
-    ):
-        super().__init__(main_ui)
+    def __init__(self, main_ui, web_app):
+        super().__init__(main_ui, web_app, "/tools")
         self.main_ui = main_ui
-        self.start(port)
 
     def process_client_message(self, data):
         # Got some input from the frontend
-        print(data)
-
         if data["event"] == "select_cp":
             self.main_ui.update_active_gcp(data["point_id"])
         elif data["event"] == "delCP":

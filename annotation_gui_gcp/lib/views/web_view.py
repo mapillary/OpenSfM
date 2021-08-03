@@ -4,7 +4,7 @@ import time
 from queue import Queue
 from threading import Thread
 
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Response, jsonify, render_template, request
 
 distinct_colors = [
     "#46f0f0",
@@ -30,11 +30,12 @@ distinct_colors = [
 
 
 class WebView(abc.ABC):
-    def __init__(self, main_ui):
+    def __init__(self, main_ui, web_app, route_prefix):
         self.main_ui = main_ui
-        self.app = Flask(__name__)
-        self.eventQueue = None
+        self.app = web_app
+        self.eventQueue = Queue()
         self.latlons = main_ui.image_manager.load_latlons()
+        self.register_routes(route_prefix)
 
     @abc.abstractclassmethod
     def sync_to_client(self):
@@ -48,25 +49,29 @@ class WebView(abc.ABC):
         class_name = type(self).__name__
         return class_name
 
-    def run_server(self, port, q):
-        app = self.app
-        app.config["TEMPLATES_AUTO_RELOAD"] = True
-
-        @app.route("/")
+    def register_routes(self, route):
         def send_main_page():
             template = self.template_name()
             self.sync_to_client()
             return render_template(f"{template}.html", class_name=template)
 
-        @app.route("/postdata", methods=["POST"])
+        self.app.add_url_rule(route, route + "_index", send_main_page)
+
         def postdata():
             data = request.get_json()
+
+            # Do something with the event received from the client
             self.process_client_message(data)
+
+            # Send a sync event back to the client to reflect the changed state
             self.sync_to_client()
             return jsonify(success=True)
 
+        self.app.add_url_rule(
+            route + "/postdata", route + "_postdata", postdata, methods=["POST"]
+        )
+
         # Stream for server -> client updates through Server-Sent Events
-        @app.route("/stream")
         def stream():
             def eventStream():
                 while True:
@@ -75,18 +80,7 @@ class WebView(abc.ABC):
 
             return Response(eventStream(), mimetype="text/event-stream")
 
-        app.run(port=port)
-        print(f"{type(self).__name__} app finished")
-
-    def start(self, port):
-        q = Queue()
-        server_thread = Thread(target=self.run_server, args=(port, q))
-        server_thread.start()
-
-        # Queue for Flask -> JS sync
-        # The GUI thread populates the Queue. The server thread listens to the queue and sends events to the JS client
-        self.eventQueue = Queue()
-        self.sync_to_client()
+        self.app.add_url_rule(route + "/stream", route + "_stream", stream)
 
     def send_sse_message(self, data, event_type="sync"):
         # Send to the client

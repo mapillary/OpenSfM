@@ -1,26 +1,24 @@
 import magic
+from annotation_gui_gcp.lib.views.web_view import WebView
 from flask import send_file
-
-from web.web_view import WebView
 
 
 class ImageView(WebView):
     def __init__(
         self,
         main_ui,
+        web_app,
+        route_prefix,
         image_keys,
         is_geo_reference,
-        port=5000,
     ):
-        super().__init__(main_ui)
+        super().__init__(main_ui, web_app, route_prefix)
         self.main_ui = main_ui
         self.image_manager = main_ui.image_manager
         self.is_geo_reference = is_geo_reference
         self.image_list = image_keys
 
-        self.app.add_url_rule("/image/<key>", view_func=self.get_image)
-
-        self.start(port)
+        self.app.add_url_rule(f"{route_prefix}/image/<key>", view_func=self.get_image)
 
     def get_candidate_images(self):
         return self.image_list
@@ -61,17 +59,20 @@ class ImageView(WebView):
     def display_points(self):
         # Data sent along with the rest of the state in sync_to_client.
         # This extra call might be redundant
-        self.sync_to_client()
+        # self.sync_to_client()
+        pass
 
     def highlight_gcp_reprojection(self, *args, **kwargs):
         # Data sent along with the rest of the state in sync_to_client.
         # This extra call might be redundant
-        self.sync_to_client()
+        # self.sync_to_client()
+        pass
 
     def populate_image_list(self, *args, **kwargs):
         # Data sent along with the rest of the state in sync_to_client.
         # This extra call might be redundant
-        self.sync_to_client()
+        # self.sync_to_client()
+        pass
 
     def sync_to_client(self):
         """
@@ -99,7 +100,10 @@ class ImageView(WebView):
         self.send_sse_message(data)
 
     def process_client_message(self, data):
-        command = data["command"]
+        command = data["event"]
+        print(data)
+        if command == "init":
+            return
 
         if data["point_id"] != self.main_ui.curr_point:
             print(data["point_id"], self.main_ui.curr_point)

@@ -21,7 +21,7 @@ function changeImage(image_key) {
         displayImage(image_key);
         drawMeasurements();
     };
-    image.src = 'image/' + image_key;
+    image.src = window.location.href + '/image/' + image_key;
 }
 
 function displayImage(image_key) {
@@ -89,26 +89,26 @@ function populateMeasurements(points) {
     redrawWindow();
 }
 
-function initialize_event_source() {
-    let sse = new EventSource("/stream");
-
-    sse.addEventListener("sync", function (e) {
-        const data = JSON.parse(e.data);
-        populateImageList(data["points"]);
-        populateMeasurements(data["points"]);
-        currentPointID = data["selected_point"];
-        redrawWindow();
-    })
-
+function onSyncHandler(data) {
+    populateImageList(data["points"]);
+    populateMeasurements(data["points"]);
+    currentPointID = data["selected_point"];
+    redrawWindow();
 }
 
 function initialize() {
-    initialize_event_source();
+    const sse = initialize_event_source([
+        { event: "sync", handler: onSyncHandler }
+    ]);
+    window.onunload = () => {
+        sse.close();
+    }
+
     canvas.addEventListener("mousedown", mouseClicked, false);
     canvas.addEventListener("mousewheel", mouseWheelTurned, false);
     window.addEventListener("resize", onWindowResize);
     imageListBox.addEventListener('change', onImageSelect);
-    redrawWindow();
+    post_json({ event: "init" });
 }
 
 function resizeCanvas() {
@@ -167,20 +167,9 @@ function drawMeasurements() {
     }
 };
 
-function post_json(data) {
-    const method = 'POST';
-    const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-    };
-    const body = JSON.stringify(data, null, 4);
-    const url = 'postdata';
-    fetch(url, { method, headers, body })
-}
-
 function remove_point_observation(image_id, point_id) {
     const data = {
-        command: "remove_point_observation",
+        event: "remove_point_observation",
         image_id: image_id,
         point_id: point_id,
     };
@@ -189,7 +178,7 @@ function remove_point_observation(image_id, point_id) {
 
 function add_or_update_point_observation(measurement) {
     const data = {
-        command: "add_or_update_point_observation",
+        event: "add_or_update_point_observation",
         point_id: measurement.id,
         radius_px: measurement.radius_px,
         xy: [measurement.norm_x, measurement.norm_y],

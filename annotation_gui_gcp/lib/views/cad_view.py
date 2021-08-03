@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 import rasterio
-from annotation_gui_gcp.web.web_view import WebView, distinct_colors
+from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
 from PIL import ImageColor
 
 
@@ -22,11 +22,12 @@ class CADView(WebView):
     def __init__(
         self,
         main_ui,
+        web_app,
+        route,
         path_cad_file,
-        port=5000,
         is_geo_reference=False,
     ):
-        super().__init__(main_ui)
+        super().__init__(main_ui, web_app)
 
         self.main_ui = main_ui
         path_cad_file = Path(path_cad_file).resolve()
@@ -47,8 +48,6 @@ class CADView(WebView):
         self.load_georeference_metadata(path_cad_file)
         self.is_geo_reference = is_geo_reference
 
-        self.start(port)
-
     def image_filename(self):
         return self.cad_filename
 
@@ -60,9 +59,6 @@ class CADView(WebView):
             self.add_remove_update_point_observation(None)
         else:
             raise ValueError
-
-        # Update the client with the new data
-        self.sync_to_client()
 
     def add_remove_update_point_observation(self, point_coordinates=None):
         gcp_manager = self.main_ui.gcp_manager
