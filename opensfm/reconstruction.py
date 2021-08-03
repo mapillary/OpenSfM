@@ -77,6 +77,7 @@ def _add_gcp_to_bundle(
                     observation.shot_id,
                     point_id,
                     observation.projection,
+                    # pyre-fixme[6]: Expected `ndarray` for 4th param but got `float`.
                     scale,
                 )
 

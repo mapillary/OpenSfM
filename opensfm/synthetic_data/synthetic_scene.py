@@ -364,13 +364,25 @@ class SyntheticStreetScene(SyntheticScene):
 
         return sg.create_reconstruction(
             [self.floor_points, self.wall_points],  # pyre-fixme [6]
+            # pyre-fixme[6]: Expected `List[np.ndarray]` for 2nd param but got
+            #  `List[List[int]]`.
             [floor_color, wall_color],
             self.cameras,
             self.shot_ids,
+            # pyre-fixme[6]: Expected `List[List[np.ndarray]]` for 5th param but got
+            #  `List[np.ndarray]`.
             self.shot_positions,
+            # pyre-fixme[6]: Expected `List[List[np.ndarray]]` for 6th param but got
+            #  `List[np.ndarray]`.
             self.shot_rotations,
+            # pyre-fixme[6]: Expected `List[List[List[str]]]` for 7th param but got
+            #  `List[List[List[Tuple[str, str]]]]`.
             self.rig_instances,
+            # pyre-fixme[6]: Expected `Optional[List[List[np.ndarray]]]` for 8th
+            #  param but got `List[np.ndarray]`.
             self.instances_positions,
+            # pyre-fixme[6]: Expected `Optional[List[List[np.ndarray]]]` for 9th
+            #  param but got `List[np.ndarray]`.
             self.instances_rotations,
             self.rig_cameras,
         )
