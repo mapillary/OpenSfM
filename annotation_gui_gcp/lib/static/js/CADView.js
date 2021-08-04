@@ -42,6 +42,8 @@ let _path_model = null;
 // Marker that points at the tracked camera
 let _trackingMarker = null;
 
+window.addEventListener('load', initialize);
+
 function getCompoundBoundingBox(object3D) {
     let box = null;
     object3D.traverse(function (obj3D) {
@@ -310,65 +312,45 @@ function point_camera_at_xyz(point) {
 }
 
 function onSyncHandler(data) {
-    console.log("OnSynchandler", data);
-}
-
-function initialize_event_source() {
-    let sse = new EventSource("/stream");
-    sse.addEventListener("sync", function (e) {
-        const data = JSON.parse(e.data);
-        const delay = Date.now() - Math.round(data.time*1000);
-        console.log("SSE message delay is", delay, "ms");
-        load_cad_model("/static/resources/cad_models/" + data.image_filename);
-        update_gcps(data.annotations);
-        update_text(data);
-    })
-    sse.addEventListener("move_camera", function (e) {
-        const data = JSON.parse(e.data);
-        point_camera_at_xy(data);
-    })
+    console.log("Syncing")
+    // load_cad_model("/static/resources/cad_models/" + data.image_filename);
+    update_gcps(data.annotations);
+    update_text(data);
 }
 
 function initialize() {
     setup_scene();
 
-    // window.addEventListener('resize', onWindowResize, false);
-    document.addEventListener('pointerdown', onDocumentMouseClick, false);
-
-    // Event source for server-to-client pushed updates
-    initialize_event_source();
+    viewport.addEventListener('pointerdown', onViewportMouseClick, false);
 
     // call update
     update();
+    const sse = initialize_event_source([
+        { event: "sync", handler: onSyncHandler },
+        { event: "move_camera", handler: point_camera_at_xy },
+    ]);
+    window.onunload = () => {
+        console.log("Unloaded CAD window? closing sse")
+        sse.close();
+    }
+
+    post_json({ event: "init" });
 }
 
-function post_json(data) {
-    const method = 'POST';
-    const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-    };
-    const body = JSON.stringify(data, null, 4);
-    const url = 'postdata';
-    fetch(url, { method, headers, body })
-}
 
 function remove_point_observation() {
-    const data = {
-        command: "remove_point_observation",
-    };
-    post_json(data);
+    post_json({ event: "remove_point_observation" });
 }
 
 function add_or_update_point_observation(xyz) {
     const data = {
         xyz: xyz,
-        command: "add_or_update_point_observation",
+        event: "add_or_update_point_observation",
     };
     post_json(data);
 }
 
-function onDocumentMouseClick(event) {
+function onViewportMouseClick(event) {
 
     if (!event.ctrlKey && !event.altKey) {
         return
@@ -460,9 +442,6 @@ window.requestAnimFrame = (function () {
 
 //----Update----//
 function update() {
-    // requests the browser to call update at it's own pace
-    requestAnimFrame(update);
-
     // Update GCP labels so that they track the camera
     updateGCPLabels();
 
@@ -471,10 +450,11 @@ function update() {
     pointLight.position.copy(camera.position);
 
     draw();
+
+    // requests the browser to call update again at it's own pace
+    requestAnimFrame(update);
 }
 
 function draw() {
     renderer.render(_scene, camera);
 }
-
-window.addEventListener('load', initialize);

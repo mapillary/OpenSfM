@@ -2,7 +2,6 @@ import abc
 import json
 import time
 from queue import Queue
-from threading import Thread
 
 from flask import Response, jsonify, render_template, request
 

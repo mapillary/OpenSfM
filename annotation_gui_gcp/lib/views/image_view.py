@@ -46,16 +46,11 @@ class ImageView(WebView):
 
         # Add the new observation
         if point_coordinates is not None:
-            lla = (
-                self.xyz_to_latlon(*point_coordinates)
-                if self.is_geo_reference
-                else None
-            )
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,
                 image_id,
                 point_coordinates,
-                lla,
+                latlon=None,
             )
 
         self.main_ui.populate_gcp_list()

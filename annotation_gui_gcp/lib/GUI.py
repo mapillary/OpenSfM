@@ -1,6 +1,8 @@
 import os
+import random
+import subprocess
+import sys
 import time
-import webbrowser
 from collections import defaultdict
 
 from annotation_gui_gcp.lib.views.cad_view import CADView
@@ -26,6 +28,8 @@ class Gui:
         self.path = self.gcp_manager.path
         self.app = Flask(__name__)
         self.app.config["TEMPLATES_AUTO_RELOAD"] = True
+        self.ix_a = 0
+        self.ix_b = 1
 
         self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(cad_paths)
@@ -33,10 +37,10 @@ class Gui:
         p_default_gcp = self.path + "/ground_control_points.json"
         if os.path.exists(p_default_gcp):
             self.load_gcps(p_default_gcp)
-        self.load_analysis_results(0, 1)
+
+        self.load_analysis_results(self.ix_a, self.ix_b)
 
         port = 5000
-        webbrowser.open(f"http://localhost:{port}/")
         self.app.run(port=port)
         print(f"{type(self).__name__} app finished")
 
@@ -81,7 +85,8 @@ class Gui:
             route_prefix = f"/cad_view_{ix+1}"
             v = CADView(self, self.app, route_prefix, cad_path)
             self.cad_views.append(v)
-            subpane_routes.append(route_prefix)
+            # subpane_routes.append(route_prefix)
+            print(f"Go to http://localhost:5000/{route_prefix} to open the CAD view")
 
         @self.app.route("/")
         def send_main_page():
@@ -97,8 +102,8 @@ class Gui:
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         # ix_a = self.reconstruction_options.index(self.rec_a.get())
         # ix_b = self.reconstruction_options.index(self.rec_b.get())
-        ix_a = 0
-        ix_b = 1
+        ix_a = self.ix_a
+        ix_b = self.ix_b
         if t > 30:
             print(
                 "Please save to ground_control_points.json before running the analysis"
@@ -179,6 +184,7 @@ class Gui:
         self.update_active_gcp(None)
 
     def update_active_gcp(self, new_active_gcp):
+        print("Active GCP is now", new_active_gcp)
         self.curr_point = new_active_gcp
         for view in self.sequence_views + self.cad_views:
             view.display_points()

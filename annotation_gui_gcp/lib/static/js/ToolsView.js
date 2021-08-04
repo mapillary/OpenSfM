@@ -34,6 +34,7 @@ function clickedMe(button, e) {
 function onPointSelect() {
     const opt = pointListBox.options[pointListBox.options.selectedIndex];
     const point_id = opt.value;
+    console.log("Selecting", point_id)
     post_json({ event: "select_cp", point_id: point_id })
 }
 

@@ -36,7 +36,8 @@ class CADView(WebView):
         # Create a symlink to the CAD file so that it is reachable
         path_this_file = Path(__file__)
         p_symlink = (
-            path_this_file.parent / f"static/resources/cad_models/{self.cad_filename}"
+            path_this_file.parent.parent
+            / f"static/resources/cad_models/{self.cad_filename}"
         )
         p_symlink.parent.mkdir(exist_ok=True, parents=True)
         if p_symlink.is_symlink():
@@ -48,17 +49,16 @@ class CADView(WebView):
         self.load_georeference_metadata(path_cad_file)
         self.is_geo_reference = is_geo_reference
 
-    def image_filename(self):
-        return self.cad_filename
-
     def process_client_message(self, data):
-        command = data["command"]
-        if command == "add_or_update_point_observation":
+        event = data["event"]
+        if event == "add_or_update_point_observation":
             self.add_remove_update_point_observation(point_coordinates=data["xyz"])
-        elif command == "remove_point_observation":
+        elif event == "remove_point_observation":
             self.add_remove_update_point_observation(None)
+        elif event in ("sync", "init"):
+            return
         else:
-            raise ValueError
+            raise ValueError(f"Unknown event {event}")
 
     def add_remove_update_point_observation(self, point_coordinates=None):
         gcp_manager = self.main_ui.gcp_manager
@@ -134,13 +134,13 @@ class CADView(WebView):
         """
         # Points with annotations on this file
         visible_points_coords = self.main_ui.gcp_manager.get_visible_points_coords(
-            self.image_filename()
+            self.cad_filename
         )
 
         data = {
             "annotations": {},
             "selected_point": self.main_ui.curr_point,
-            "image_filename": self.image_filename(),
+            "image_filename": self.cad_filename,
         }
 
         for point_id, coords in visible_points_coords.items():

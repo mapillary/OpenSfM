@@ -227,7 +227,4 @@ const mouseClicked = function (mouse) {
     else {
         remove_point_observation(currentImageID, currentPointID);
     }
-
-
-
 }
