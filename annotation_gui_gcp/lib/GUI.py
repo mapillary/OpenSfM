@@ -79,6 +79,7 @@ class Gui:
             )
             self.sequence_views.append(v)
             subpane_routes.append(route_prefix)
+            break
 
         self.cad_views = []
         for ix, cad_path in enumerate(cad_paths):
