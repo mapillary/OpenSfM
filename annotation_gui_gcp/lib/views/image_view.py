@@ -18,7 +18,11 @@ class ImageView(WebView):
         self.is_geo_reference = is_geo_reference
         self.image_list = image_keys
 
-        self.app.add_url_rule(f"{route_prefix}/image/<key>", view_func=self.get_image)
+        self.app.add_url_rule(
+            f"{route_prefix}/image/<key>",
+            f"{route_prefix}_image",
+            view_func=self.get_image,
+        )
 
     def get_candidate_images(self):
         return self.image_list
