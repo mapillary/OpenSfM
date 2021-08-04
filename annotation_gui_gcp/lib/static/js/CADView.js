@@ -36,8 +36,6 @@ let _gcps = {};
 // cad model
 let _cad_model = null;
 let _cad_model_bbox = null;
-// path to currently-loaded cad model
-let _path_model = null;
 
 // Marker that points at the tracked camera
 let _trackingMarker = null;
@@ -90,15 +88,11 @@ function fitCameraToSelection(camera, controls, selection, fitOffset = 1.2) {
 
 
 function load_cad_model(path_model) {
-    if (path_model == _path_model) {
-        return;
-    }
-
     console.log("Loading CAD model " + path_model)
     const loader = new FBXLoader();
     loader.load(path_model, function (object) {
+        console.log("Loaded CAD model " + path_model)
         _cad_model = object;
-        _path_model = path_model;
         _scene.add(object);
 
         // Set the camera position to center of bbox
@@ -118,7 +112,6 @@ function setup_scene() {
     //Sets up the renderer to the same size as a DOM element
     //and attaches it to that element
     renderer.setSize(viewportWidth, viewportHeight);
-    viewport = document.getElementById('viewport');
     viewport.appendChild(renderer.domElement);
 
 
@@ -312,19 +305,17 @@ function point_camera_at_xyz(point) {
 }
 
 function onSyncHandler(data) {
-    console.log("Syncing")
-    // load_cad_model("/static/resources/cad_models/" + data.image_filename);
     update_gcps(data.annotations);
     update_text(data);
 }
 
 function initialize() {
+    viewport = document.getElementById('viewport');
     setup_scene();
+    load_cad_model(window.location.href + '/model')
 
     viewport.addEventListener('pointerdown', onViewportMouseClick, false);
 
-    // call update
-    update();
     const sse = initialize_event_source([
         { event: "sync", handler: onSyncHandler },
         { event: "move_camera", handler: point_camera_at_xy },
@@ -334,6 +325,8 @@ function initialize() {
         sse.close();
     }
 
+    // call update
+    update();
     post_json({ event: "init" });
 }
 

@@ -85,8 +85,7 @@ class Gui:
             route_prefix = f"/cad_view_{ix+1}"
             v = CADView(self, self.app, route_prefix, cad_path)
             self.cad_views.append(v)
-            # subpane_routes.append(route_prefix)
-            print(f"Go to http://localhost:5000/{route_prefix} to open the CAD view")
+            subpane_routes.append(route_prefix)
 
         @self.app.route("/")
         def send_main_page():

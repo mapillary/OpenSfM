@@ -1,9 +1,9 @@
 import json
-import os
 from pathlib import Path
 
 import rasterio
 from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+from flask import send_file
 from PIL import ImageColor
 
 
@@ -30,24 +30,21 @@ class CADView(WebView):
         super().__init__(main_ui, web_app, route_prefix)
 
         self.main_ui = main_ui
-        path_cad_file = Path(path_cad_file).resolve()
-        self.cad_filename = path_cad_file.name
-
-        # Create a symlink to the CAD file so that it is reachable
-        path_this_file = Path(__file__)
-        p_symlink = (
-            path_this_file.parent.parent
-            / f"static/resources/cad_models/{self.cad_filename}"
-        )
-        p_symlink.parent.mkdir(exist_ok=True, parents=True)
-        if p_symlink.is_symlink():
-            os.remove(p_symlink)
-
-        os.symlink(path_cad_file, p_symlink)
+        self.cad_path = Path(path_cad_file).resolve()
+        self.cad_filename = self.cad_path.name
 
         # Load data required to georeference this model
         self.load_georeference_metadata(path_cad_file)
         self.is_geo_reference = is_geo_reference
+
+        self.app.add_url_rule(
+            f"{route_prefix}/model",
+            f"{route_prefix}_model",
+            view_func=self.get_model,
+        )
+
+    def get_model(self):
+        return send_file(self.cad_path, mimetype="application/octet-stream")
 
     def process_client_message(self, data):
         event = data["event"]
@@ -140,7 +137,6 @@ class CADView(WebView):
         data = {
             "annotations": {},
             "selected_point": self.main_ui.curr_point,
-            "image_filename": self.cad_filename,
         }
 
         for point_id, coords in visible_points_coords.items():
