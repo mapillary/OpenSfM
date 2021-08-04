@@ -1,7 +1,4 @@
 import os
-import random
-import subprocess
-import sys
 import time
 import webbrowser
 from collections import defaultdict
@@ -9,7 +6,7 @@ from collections import defaultdict
 from annotation_gui_gcp.lib.views.cad_view import CADView
 from annotation_gui_gcp.lib.views.image_view import ImageView
 from annotation_gui_gcp.lib.views.tools_view import ToolsView
-from flask import Flask
+from flask import Flask, render_template
 from opensfm import dataset
 
 
@@ -62,24 +59,33 @@ class Gui:
         return options
 
     def create_ui(self, cad_paths):
+        subpane_routes = []
         has_views_that_need_tracking = len(cad_paths) > 0
         self.tools_view = ToolsView(self, self.app)
 
         self.sequence_views = []
         for ix, image_keys in enumerate(self.image_manager.seqs.values()):
+            route_prefix = f"/sequence_view_{ix+1}"
             v = ImageView(
                 self,
                 self.app,
-                f"/sequence_view_{ix+1}",
+                route_prefix,
                 image_keys,
                 has_views_that_need_tracking,
             )
             self.sequence_views.append(v)
+            subpane_routes.append(route_prefix)
 
         self.cad_views = []
         for ix, cad_path in enumerate(cad_paths):
-            v = CADView(self, self.app, f"/cad_view_{ix+1}", cad_path)
+            route_prefix = f"/cad_view_{ix+1}"
+            v = CADView(self, self.app, route_prefix, cad_path)
             self.cad_views.append(v)
+            subpane_routes.append(route_prefix)
+
+        @self.app.route("/")
+        def send_main_page():
+            return render_template("mosaic.html", subpane_routes=subpane_routes)
 
     def analyze_rigid(self):
         self.analyze(rigid=True, covariance=False)
@@ -161,7 +167,7 @@ class Gui:
             self.sticky_zoom.set(True)
 
     def populate_gcp_list(self):
-        #self.tools_view.sync_to_client()
+        # self.tools_view.sync_to_client()
         pass
 
     def remove_gcp(self):

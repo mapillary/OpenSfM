@@ -33,12 +33,9 @@ function displayImage(image_key) {
     // Scale image to fit and draw
     const w = image.width;
     const h = image.height;
-    if (w > h) {
-        currentImageScale = canvas.width / w;
-    }
-    else {
-        currentImageScale = canvas.height / h;
-    }
+    const scale_x = canvas.width / image.width;
+    const scale_y = canvas.height / image.height;
+    currentImageScale = Math.min(scale_x, scale_y);
     context.drawImage(image, 0, 0, w * currentImageScale, h * currentImageScale);
 
 

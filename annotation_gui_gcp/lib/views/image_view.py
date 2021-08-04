@@ -57,9 +57,7 @@ class ImageView(WebView):
         self.main_ui.populate_gcp_list()
 
     def display_points(self):
-        # Data sent along with the rest of the state in sync_to_client.
-        # This extra call might be redundant
-        # self.sync_to_client()
+        self.sync_to_client()
         pass
 
     def highlight_gcp_reprojection(self, *args, **kwargs):

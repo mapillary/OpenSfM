@@ -23,11 +23,11 @@ class CADView(WebView):
         self,
         main_ui,
         web_app,
-        route,
+        route_prefix,
         path_cad_file,
         is_geo_reference=False,
     ):
-        super().__init__(main_ui, web_app)
+        super().__init__(main_ui, web_app, route_prefix)
 
         self.main_ui = main_ui
         path_cad_file = Path(path_cad_file).resolve()

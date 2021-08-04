@@ -1,7 +1,9 @@
-.tools div {
-    padding: 10px;
+body {
+    margin: 0;
 }
 
-.tools select {
+.tools{
     font-size: 16px;
+    padding: 10px;
+    display: inline-flex;
 }

@@ -24,8 +24,6 @@ function populatePointsList(points) {
 
         pointListBox.options.add(opt);
     }
-
-    pointListBox.size = Math.min(20, pointListBox.options.length);
 }
 
 function clickedMe(button, e) {
