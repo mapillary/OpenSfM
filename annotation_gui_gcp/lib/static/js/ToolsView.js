@@ -24,6 +24,7 @@ function populatePointsList(points) {
 
         pointListBox.options.add(opt);
     }
+    pointListBox.value = currentPointID;
 }
 
 function clickedMe(button, e) {

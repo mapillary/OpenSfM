@@ -43,6 +43,7 @@ function displayImage(image_key) {
         const opt = imageListBox.options[i];
         opt.style.fontWeight = (opt.value == currentImageID) ? "bold" : "normal"
     }
+    imageListBox.value = currentImageID;
 
 }
 
@@ -59,18 +60,21 @@ function populateImageList(points) {
         imageListBox.remove(i);
     }
 
+    let index = 1;
     for (let image_id in points) {
         const opt = document.createElement("option");
-        opt.text = image_id;
+        opt.text = index;
         opt.value = image_id;
         imageListBox.options.add(opt);
 
         if (opt.value == currentImageID) {
             opt.style.fontWeight = "bold";
         }
+        index +=1;
     }
 
-    imageListBox.size = Math.min(20, imageListBox.options.length);
+    // imageListBox.size = Math.min(20, imageListBox.options.length);
+    imageListBox.value = currentImageID;
     redrawWindow();
 }
 
