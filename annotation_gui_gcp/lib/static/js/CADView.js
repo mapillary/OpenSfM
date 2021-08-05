@@ -31,6 +31,7 @@ let _gcps = {};
 // cad model
 let _cad_model = null;
 let _cad_model_bbox = null;
+let _cad_model_filename = null;
 
 // Marker that points at the tracked camera
 let _trackingMarker = null;
@@ -57,9 +58,8 @@ function onWindowResize() {
 }
 
 function resizeCanvas() {
-    const header = document.getElementById("header");
     const w = window.innerWidth;
-    const h = window.innerHeight - header.offsetHeight;
+    const h = window.innerHeight;
     renderer.setSize(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
@@ -211,12 +211,6 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.stroke();
 }
 
-function update_text(data) {
-    const txt = "Annotating point " + data.selected_point + " on file " + data.image_filename;
-    const header = document.getElementById("header");
-    header.innerHTML = txt;
-}
-
 function initializeTrackingMarker() {
     const sphereGeometry = new THREE.SphereGeometry(150);
     _trackingMarker = new THREE.Mesh(sphereGeometry);
@@ -314,7 +308,6 @@ function point_camera_at_xyz(point) {
 
 function onSyncHandler(data) {
     update_gcps(data.annotations);
-    update_text(data);
 }
 
 function initialize() {

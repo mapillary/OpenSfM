@@ -15,7 +15,7 @@ function populatePointsList(points) {
 
     for (let point_id in points) {
         const opt = document.createElement("option");
-        opt.text = point_id;
+        opt.text = "Point " + point_id;
         opt.value = point_id;
 
         if (opt.value == currentPointID) {
