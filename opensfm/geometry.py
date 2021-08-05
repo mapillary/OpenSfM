@@ -1,21 +1,25 @@
+from typing import Tuple
+
 import cv2
 import numpy as np
 from opensfm import transformations
 
 
-def rotation_from_angle_axis(angle_axis):
+def rotation_from_angle_axis(angle_axis: np.ndarray) -> np.ndarray:
     return cv2.Rodrigues(np.asarray(angle_axis))[0]
 
 
-def rotation_from_ptr(pan, tilt, roll):
+def rotation_from_ptr(pan: float, tilt: float, roll: float) -> np.ndarray:
     """Camera rotation matrix from pan, tilt and roll."""
-    R1 = rotation_from_angle_axis([0.0, 0.0, roll])
-    R2 = rotation_from_angle_axis([tilt + np.pi / 2, 0.0, 0.0])
-    R3 = rotation_from_angle_axis([0.0, 0.0, pan])
+    R1 = rotation_from_angle_axis(np.array([0.0, 0.0, roll]))
+    R2 = rotation_from_angle_axis(np.array([tilt + np.pi / 2, 0.0, 0.0]))
+    R3 = rotation_from_angle_axis(np.array([0.0, 0.0, pan]))
     return R1.dot(R2).dot(R3)
 
 
-def ptr_from_rotation(rotation_matrix):
+def ptr_from_rotation(
+    rotation_matrix: np.ndarray,
+) -> Tuple[float, float, float]:
     """Pan tilt and roll from camera rotation matrix"""
     pan = pan_from_rotation(rotation_matrix)
     tilt = tilt_from_rotation(rotation_matrix)
@@ -23,18 +27,18 @@ def ptr_from_rotation(rotation_matrix):
     return pan, tilt, roll
 
 
-def pan_from_rotation(rotation_matrix):
+def pan_from_rotation(rotation_matrix: np.ndarray) -> float:
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     return np.arctan2(Rt_ez[0], Rt_ez[1])
 
 
-def tilt_from_rotation(rotation_matrix):
+def tilt_from_rotation(rotation_matrix: np.ndarray) -> float:
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     l = np.linalg.norm(Rt_ez[:2])
     return np.arctan2(-Rt_ez[2], l)
 
 
-def roll_from_rotation(rotation_matrix):
+def roll_from_rotation(rotation_matrix: np.ndarray) -> float:
     Rt_ex = np.dot(rotation_matrix.T, [1, 0, 0])
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     a = np.cross(Rt_ez, [0, 0, 1])
@@ -43,7 +47,7 @@ def roll_from_rotation(rotation_matrix):
     return np.arcsin(np.dot(Rt_ez, b))
 
 
-def rotation_from_ptr_v2(pan, tilt, roll):
+def rotation_from_ptr_v2(pan: float, tilt: float, roll: float) -> np.ndarray:
     """Camera rotation matrix from pan, tilt and roll.
 
     This is the implementation used in the Single Image Calibration code.
@@ -52,7 +56,7 @@ def rotation_from_ptr_v2(pan, tilt, roll):
     return transformations.euler_matrix(pan, tilt, roll, "szxz")[:3, :3]
 
 
-def ptr_from_rotation_v2(rotation_matrix):
+def ptr_from_rotation_v2(rotation_matrix: np.ndarray) -> Tuple[float, float, float]:
     """Pan tilt and roll from camera rotation matrix.
 
     This is the implementation used in the Single Image Calibration code.

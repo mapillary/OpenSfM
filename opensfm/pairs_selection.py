@@ -10,7 +10,7 @@ from opensfm.dataset import DataSetBase
 logger = logging.getLogger(__name__)
 
 
-def has_gps_info(exif) -> bool:
+def has_gps_info(exif: Dict[str, Any]) -> bool:
     return (
         exif
         and "gps" in exif

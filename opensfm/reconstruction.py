@@ -38,7 +38,9 @@ def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Came
 
 
 def _add_gcp_to_bundle(
-    ba: pybundle.BundleAdjuster, gcp: List[pymap.GroundControlPoint], shots: List[str]
+    ba: pybundle.BundleAdjuster,
+    gcp: List[pymap.GroundControlPoint],
+    shots: Dict[str, pymap.Shot],
 ):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
@@ -75,6 +77,7 @@ def _add_gcp_to_bundle(
                     observation.shot_id,
                     point_id,
                     observation.projection,
+                    # pyre-fixme[6]: Expected `ndarray` for 4th param but got `float`.
                     scale,
                 )
 
@@ -379,6 +382,9 @@ def two_view_reconstruction_plane_based(
     H, inliers = cv2.findHomography(x1, x2, cv2.RANSAC, threshold)
     motions = multiview.motion_from_plane_homography(H)
 
+    if not motions:
+        return None, None, []
+
     if len(motions) == 0:
         return None, None, []
 
@@ -557,7 +563,7 @@ def bootstrap_reconstruction(
             data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
         )
 
-    align_reconstruction(reconstruction, None, data.config)
+    align_reconstruction(reconstruction, [], data.config)
     triangulate_shot_features(tracks_manager, reconstruction, new_shots, data.config)
 
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
@@ -1045,7 +1051,7 @@ def align_two_reconstruction(
     r2: types.Reconstruction,
     common_tracks: List[Tuple[str, str]],
     threshold: float,
-) -> Tuple[float, Optional[np.ndarray], List[int]]:
+) -> Tuple[bool, Optional[np.ndarray], List[int]]:
     """Estimate similarity transform between two reconstructions."""
     t1, t2 = r1.points, r2.points
 
@@ -1059,7 +1065,7 @@ def align_two_reconstruction(
             p1, p2, max_iterations=100, threshold=threshold
         )
         if len(inliers) > 0:
-            return True, T, inliers
+            return True, T, list(inliers)
     return False, None, []
 
 
@@ -1073,14 +1079,14 @@ def merge_two_reconstructions(
     common_tracks = list(set(r1.points) & set(r2.points))
     worked, T, inliers = align_two_reconstruction(r1, r2, common_tracks, threshold)
 
-    if worked and len(inliers) >= 10:
+    if T and worked and len(inliers) >= 10:
         s, A, b = multiview.decompose_similarity_transform(T)
         r1p = r1
         apply_similarity(r1p, s, A, b)
         r = r2
         r.shots.update(r1p.shots)
         r.points.update(r1p.points)
-        align_reconstruction(r, None, config)
+        align_reconstruction(r, [], config)
         return [r]
     else:
         return [r1, r2]
