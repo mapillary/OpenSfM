@@ -14,23 +14,29 @@ logger = logging.getLogger(__name__)
 
 class SemanticData:
     segmentation: np.ndarray
-    instances: np.ndarray
+    instances: Optional[np.ndarray]
     labels: List[Dict[str, Any]]
 
     def __init__(
         self,
         segmentation: np.ndarray,
-        instances: np.ndarray,
+        instances: Optional[np.ndarray],
         labels: List[Dict[str, Any]],
     ):
         self.segmentation = segmentation
         self.instances = instances
         self.labels = labels
 
+    def has_instances(self) -> bool:
+        return self.instances is not None
+
     def mask(self, mask: np.ndarray) -> "SemanticData":
         try:
             segmentation = self.segmentation[mask]
-            instances = self.instances[mask]
+            if self.has_instances():
+                instances = self.instances[mask]  # pyre-fixme [16]
+            else:
+                instances = None
         except IndexError:
             logger.error(
                 f"Invalid mask array of dtype {mask.dtype}, shape {mask.shape}: {mask}"
@@ -60,6 +66,18 @@ class FeaturesData:
         self.descriptors = descriptors
         self.colors = colors
         self.semantic = semantic
+
+    def has_segmentation(self) -> bool:
+        semantic = self.semantic
+        if not semantic:
+            return False
+        return semantic.segmentation is not None
+
+    def has_instances(self) -> bool:
+        semantic = self.semantic
+        if not semantic:
+            return False
+        return semantic.instances is not None
 
     def mask(self, mask: np.ndarray) -> "FeaturesData":
         if self.semantic:
@@ -180,12 +198,14 @@ class FeaturesData:
             descriptors = data["descriptors"].astype(np.float32)
         else:
             descriptors = data["descriptors"]
-        has_segmentation = data["segmentations"].any()
-        has_instances = data["instances"].any()
+        has_segmentation = (data["segmentations"] != None).all()
+        has_instances = (data["instances"] != None).all()
 
-        if has_segmentation and has_instances:
+        if has_segmentation or has_instances:
             semantic_data = SemanticData(
-                data["segmentations"], data["instances"], data["segmentation_labels"]
+                data["segmentations"] if has_segmentation else None,
+                data["instances"] if has_instances else None,
+                data["segmentation_labels"],
             )
         else:
             semantic_data = None

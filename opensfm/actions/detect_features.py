@@ -256,9 +256,11 @@ def detect(
     p_sorted = p_unsorted[order, :]
     f_sorted = f_unsorted[order, :]
     c_sorted = c_unsorted[order, :]
-    if s_unsorted is not None and i_unsorted is not None:
+    if s_unsorted is not None:
         semantic_data = features.SemanticData(
-            s_unsorted[order], i_unsorted[order], data.segmentation_labels()
+            s_unsorted[order],
+            i_unsorted[order] if i_unsorted is not None else None,
+            data.segmentation_labels(),
         )
     else:
         semantic_data = None

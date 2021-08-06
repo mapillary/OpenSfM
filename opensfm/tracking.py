@@ -36,7 +36,8 @@ def load_features(
         semantic_data = features_data.semantic
         if semantic_data:
             segmentations[im] = semantic_data.segmentation
-            instances[im] = semantic_data.instances
+            if semantic_data.has_instances():
+                instances[im] = semantic_data.instances
 
     return features, colors, segmentations, instances
 
