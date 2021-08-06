@@ -305,7 +305,12 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
         actions.create_tracks.run_dataset(subset_data)
         actions.reconstruct.run_dataset(subset_data)
 
-        reconstruction = subset_data.load_reconstruction()[0]
+        reconstructions = subset_data.load_reconstruction()
+        if len(reconstructions) == 0:
+            logger.error("Couldn't run sucessful SfM on the subset of images.")
+            continue
+
+        reconstruction = reconstructions[0]
 
         # Compute some relative poses
         rig_cameras = create_rig_cameras_from_reconstruction(
@@ -328,6 +333,9 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
             reconstructed_instances
             < len(instances) * data.config["rig_calibration_completeness"]
         ):
+            logger.error(
+                f"Not enough reconstructed instances: {reconstructed_instances} instances over {len(instances)} instances."
+            )
             continue
 
         best_reconstruction = reconstruction
