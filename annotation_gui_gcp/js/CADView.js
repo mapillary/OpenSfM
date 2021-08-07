@@ -9,19 +9,14 @@ let viewport;
 //built-in three.js _cameraControls will be attached to this
 let _cameraControls;
 
-//viewport size
-let viewportWidth = 800;
-let viewportHeight = 600;
-
 //camera attributes
 const view_angle = 45;
-const aspect = viewportWidth / viewportHeight;
 
 //----Constructors----//
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const _scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(view_angle, aspect);
+const camera = new THREE.PerspectiveCamera(view_angle, 1);
 
 //constructs an instance of a white light
 renderer.setClearColor(0x05CB63); // Background color
@@ -36,11 +31,12 @@ let _gcps = {};
 // cad model
 let _cad_model = null;
 let _cad_model_bbox = null;
-// path to currently-loaded cad model
-let _path_model = null;
+let _cad_model_filename = null;
 
 // Marker that points at the tracked camera
 let _trackingMarker = null;
+
+window.addEventListener('load', initialize);
 
 function getCompoundBoundingBox(object3D) {
     let box = null;
@@ -55,6 +51,18 @@ function getCompoundBoundingBox(object3D) {
         }
     });
     return box;
+}
+
+function onWindowResize() {
+    resizeCanvas()
+}
+
+function resizeCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
 }
 
 function fitCameraToSelection(camera, controls, selection, fitOffset = 1.2) {
@@ -88,15 +96,11 @@ function fitCameraToSelection(camera, controls, selection, fitOffset = 1.2) {
 
 
 function load_cad_model(path_model) {
-    if (path_model == _path_model) {
-        return;
-    }
-
     console.log("Loading CAD model " + path_model)
     const loader = new FBXLoader();
     loader.load(path_model, function (object) {
+        console.log("Loaded CAD model " + path_model)
         _cad_model = object;
-        _path_model = path_model;
         _scene.add(object);
 
         // Set the camera position to center of bbox
@@ -115,8 +119,6 @@ function load_cad_model(path_model) {
 function setup_scene() {
     //Sets up the renderer to the same size as a DOM element
     //and attaches it to that element
-    renderer.setSize(viewportWidth, viewportHeight);
-    viewport = document.getElementById('viewport');
     viewport.appendChild(renderer.domElement);
 
 
@@ -136,34 +138,35 @@ function setup_scene() {
     _scene.add(ambientLight);
 
     initializeTrackingMarker();
+    resizeCanvas()
 }
 
 
 function makeTextSprite(message, parameters) {
     if (parameters === undefined) parameters = {};
 
-    var fontface = parameters.hasOwnProperty("fontface") ?
+    let fontface = parameters.hasOwnProperty("fontface") ?
         parameters["fontface"] : "Arial";
 
-    var fontsize = parameters.hasOwnProperty("fontsize") ?
+    let fontsize = parameters.hasOwnProperty("fontsize") ?
         parameters["fontsize"] : 18;
 
-    var borderThickness = parameters.hasOwnProperty("borderThickness") ?
+    let borderThickness = parameters.hasOwnProperty("borderThickness") ?
         parameters["borderThickness"] : 4;
 
-    var borderColor = parameters.hasOwnProperty("borderColor") ?
+    let borderColor = parameters.hasOwnProperty("borderColor") ?
         parameters["borderColor"] : { r: 0, g: 0, b: 0, a: 1.0 };
 
-    var backgroundColor = parameters.hasOwnProperty("backgroundColor") ?
+    let backgroundColor = parameters.hasOwnProperty("backgroundColor") ?
         parameters["backgroundColor"] : { r: 255, g: 255, b: 255, a: 1.0 };
 
-    var canvas = document.createElement('canvas');
-    var context = canvas.getContext('2d');
+    let canvas = document.createElement('canvas');
+    let context = canvas.getContext('2d');
     context.font = "Bold " + fontsize + "px " + fontface;
 
     // get size data (height depends only on font size)
-    var metrics = context.measureText(message);
-    var textWidth = metrics.width;
+    let metrics = context.measureText(message);
+    let textWidth = metrics.width;
 
     // background color
     context.fillStyle = "rgba(" + backgroundColor.r + "," + backgroundColor.g + ","
@@ -182,11 +185,11 @@ function makeTextSprite(message, parameters) {
     context.fillText(message, borderThickness, fontsize + borderThickness);
 
     // canvas contents will be used for a texture
-    var texture = new THREE.Texture(canvas)
+    let texture = new THREE.Texture(canvas)
     texture.needsUpdate = true;
 
-    var spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    var sprite = new THREE.Sprite(spriteMaterial);
+    let spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    let sprite = new THREE.Sprite(spriteMaterial);
     sprite.scale.set(500, 250, 1.0);
     return sprite;
 }
@@ -206,12 +209,6 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-}
-
-function update_text(data) {
-    const txt = "Annotating point " + data.selected_point + " on file " + data.cad_filename;
-    const header = document.getElementById("header");
-    header.innerHTML = txt;
 }
 
 function initializeTrackingMarker() {
@@ -298,7 +295,7 @@ function update_gcps(annotations) {
 
 function point_camera_at_xy(point) {
     // Replace Z with the maximum Z on the whole model
-    point.y = _cad_model_bbox.max.z
+    point.y = _cad_model_bbox.max.y
     point_camera_at_xyz(point);
 }
 
@@ -309,60 +306,46 @@ function point_camera_at_xyz(point) {
     _cameraControls.update();
 }
 
-function initialize_event_source() {
-    let sse = new EventSource("/stream");
-    sse.addEventListener("sync", function (e) {
-        const data = JSON.parse(e.data)
-        load_cad_model("/static/resources/cad_models/" + data.cad_filename);
-        update_gcps(data.annotations);
-        update_text(data);
-    })
-    sse.addEventListener("move_camera", function (e) {
-        const data = JSON.parse(e.data);
-        point_camera_at_xy(data);
-    })
+function onSyncHandler(data) {
+    update_gcps(data.annotations);
 }
 
 function initialize() {
+    viewport = document.getElementById('viewport');
     setup_scene();
+    load_cad_model(window.location.href + '/model')
 
-    // window.addEventListener('resize', onWindowResize, false);
-    document.addEventListener('pointerdown', onDocumentMouseClick, false);
+    viewport.addEventListener('pointerdown', onViewportMouseClick, false);
+    window.addEventListener("resize", onWindowResize);
 
-    // Event source for server-to-client pushed updates
-    initialize_event_source();
+    const sse = initialize_event_source([
+        { event: "sync", handler: onSyncHandler },
+        { event: "move_camera", handler: point_camera_at_xy },
+    ]);
+    window.onunload = () => {
+        console.log("Unloaded CAD window? closing sse")
+        sse.close();
+    }
 
     // call update
     update();
+    post_json({ event: "init" });
 }
 
-function post_json(data) {
-    const method = 'POST';
-    const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-    };
-    const body = JSON.stringify(data, null, 4);
-    const url = 'postdata';
-    fetch(url, { method, headers, body })
-}
 
 function remove_point_observation() {
-    const data = {
-        command: "remove_point_observation",
-    };
-    post_json(data);
+    post_json({ event: "remove_point_observation" });
 }
 
 function add_or_update_point_observation(xyz) {
     const data = {
         xyz: xyz,
-        command: "add_or_update_point_observation",
+        event: "add_or_update_point_observation",
     };
     post_json(data);
 }
 
-function onDocumentMouseClick(event) {
+function onViewportMouseClick(event) {
 
     if (!event.ctrlKey && !event.altKey) {
         return
@@ -454,9 +437,6 @@ window.requestAnimFrame = (function () {
 
 //----Update----//
 function update() {
-    // requests the browser to call update at it's own pace
-    requestAnimFrame(update);
-
     // Update GCP labels so that they track the camera
     updateGCPLabels();
 
@@ -465,10 +445,11 @@ function update() {
     pointLight.position.copy(camera.position);
 
     draw();
+
+    // requests the browser to call update again at it's own pace
+    requestAnimFrame(update);
 }
 
 function draw() {
     renderer.render(_scene, camera);
 }
-
-document.onload = initialize();

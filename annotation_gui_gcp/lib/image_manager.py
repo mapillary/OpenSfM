@@ -74,8 +74,8 @@ class ImageManager:
                 paths.append(self.image_path(k))
 
         f_pool = partial(load_image, max_image_size=self.max_image_size)
-        pool = multiprocessing.Pool(processes=n_cpu)
-        images = pool.map(f_pool, paths)
+        with multiprocessing.Pool(processes=n_cpu) as pool:
+            images = pool.map(f_pool, paths)
         for image_name, im in zip(image_names, images):
             self.image_cache[image_name] = im
 

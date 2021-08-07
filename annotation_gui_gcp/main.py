@@ -1,7 +1,6 @@
 import argparse
 import json
 import shutil
-import tkinter as tk
 import typing as t
 from collections import OrderedDict, defaultdict
 from pathlib import Path
@@ -12,6 +11,7 @@ from opensfm import dataset, io
 from annotation_gui_gcp.lib import GUI
 from annotation_gui_gcp.lib.gcp_manager import GroundControlPointManager
 from annotation_gui_gcp.lib.image_manager import ImageManager
+from flask import Flask
 
 
 def parse_args():
@@ -50,14 +50,6 @@ def parse_args():
         default="sequence_database.json",
     )
     parser.add_argument(
-        "-o",
-        "--ortho",
-        type=str,
-        action="append",
-        help="Specify one or more directories containing geotiffs",
-        default=[],
-    )
-    parser.add_argument(
         "--cad",
         type=str,
         help="Specify a directory containing CAD files in FBX format",
@@ -94,7 +86,8 @@ def update_reconstruction_and_assignments_to_new_format(root: Path):
     # Reconstruction
     p_reconstruction = root / "reconstruction.json"
     if p_reconstruction.exists():
-        recs_raw = json.load(open(p_reconstruction))
+        with open(p_reconstruction) as f:
+            recs_raw = json.load(f)
         need_dump = False
         for ix_rec, rec in enumerate(recs_raw):
             if "rig_models" in rec:
@@ -114,7 +107,8 @@ def update_reconstruction_and_assignments_to_new_format(root: Path):
     # Assignments file
     p_assignments = root / "rig_assignments.json"
     if p_assignments.exists():
-        assignments_raw = json.load(open(p_assignments))
+        with open(p_assignments) as f:
+            assignments_raw = json.load(f)
         if isinstance(assignments_raw, dict):
             print(f"Updating rig format of {p_assignments}")
             new_assignments = []
@@ -136,7 +130,8 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
         return {}
 
     output = {}
-    assignments = json.load(open(p_json))
+    with open(p_json) as f:
+        assignments = json.load(f)
     for shot_group in assignments:
         group_shot_ids = [s[0] for s in shot_group]
         for shot_id, _ in shot_group:
@@ -156,7 +151,8 @@ def load_sequence_database_from_file(
     p_json = root / fname
     if not p_json.exists():
         return None
-    seq_dict = OrderedDict(io.json_load(open(p_json, "r")))
+    with open(p_json) as f:
+        seq_dict = OrderedDict(io.json_load(f))
 
     available_images = file_sanity_check(root, seq_dict, fname)
 
@@ -209,7 +205,7 @@ def load_shots_from_reconstructions(path, min_ims):
 
 def group_by_reconstruction(args, groups_from_sequence_database):
     all_recs_shots = load_shots_from_reconstructions(
-        path, min_ims=args.min_images_in_reconstruction
+        args.dataset, min_ims=args.min_images_in_reconstruction
     )
 
     map_key_to_skey = {}
@@ -260,13 +256,14 @@ def group_images(args):
         return groups_from_sequence_database
 
 
-def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=3):
+def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
     if path_cad_files is None:
         return []
 
     def latlon_from_meta(path_cad):
         path_meta = path_cad.with_suffix(".json")
-        meta = json.load(open(path_meta))
+        with open(path_meta) as f:
+            meta = json.load(f)
         return meta["center"]["latitude"], meta["center"]["longitude"]
 
     # Returns the top N cad models sorted by distance to the dataset
@@ -287,7 +284,8 @@ def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=3):
     return [cad_files[i] for i in ixs_sort]
 
 
-if __name__ == "__main__":
+def init_ui():
+    app = Flask(__name__)
     args = parse_args()
     path = args.dataset
     rig_groups = load_rig_assignments(Path(args.dataset))
@@ -299,18 +297,17 @@ if __name__ == "__main__":
         max_image_size=args.max_image_size,
     )
     gcp_manager = GroundControlPointManager(path)
-    root = tk.Tk()
-    root.resizable(True, True)
-
-    ui = GUI.Gui(
-        root,
+    GUI.Gui(
+        app,
         gcp_manager,
         image_manager,
         rig_groups,
-        args.ortho,
-        find_suitable_cad_paths(args.cad, path),
+        find_suitable_cad_paths(args.cad, path, 1),
     )
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_rowconfigure(0, weight=1)
-    root.title("Tools")
-    root.mainloop()
+    return app
+
+
+if __name__ == "__main__":
+    app = init_ui()
+    port = 5000
+    app.run(host="::", port=port)

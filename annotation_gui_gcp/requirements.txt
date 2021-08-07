@@ -1,3 +1,2 @@
-matplotlib
-rasterio
 flask
+python-magic
