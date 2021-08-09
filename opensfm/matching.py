@@ -255,8 +255,13 @@ def _match_descriptors_impl(
     """Perform descriptor matching for a pair of images. It also apply static objects removal."""
     # Will apply mask to features if any
     dummy = np.array([])
-    features_data1 = feature_loader.instance.load_all_data(data, im1, masked=True)
-    features_data2 = feature_loader.instance.load_all_data(data, im2, masked=True)
+    segmentation_in_descriptor = overriden_config["matching_use_segmentation"]
+    features_data1 = feature_loader.instance.load_all_data(
+        data, im1, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+    )
+    features_data2 = feature_loader.instance.load_all_data(
+        data, im2, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+    )
     if (
         features_data1 is None
         or len(features_data1.points) < 2
@@ -296,19 +301,29 @@ def _match_descriptors_impl(
             )
 
     elif matcher_type == "FLANN":
-        f1 = feature_loader.instance.load_features_index(data, im1, masked=True)
+        f1 = feature_loader.instance.load_features_index(
+            data,
+            im1,
+            masked=True,
+            segmentation_in_descriptor=segmentation_in_descriptor,
+        )
         if not f1:
             return dummy, dummy, dummy
         feat_data_index1, index1 = f1
         if symmetric_matching:
-            f2 = feature_loader.instance.load_features_index(data, im2, masked=True)
+            f2 = feature_loader.instance.load_features_index(
+                data,
+                im2,
+                masked=True,
+                segmentation_in_descriptor=segmentation_in_descriptor,
+            )
             if not f2:
                 return dummy, dummy, dummy
             feat_data_index2, index2 = f2
             matches = match_flann_symmetric(
-                d1,
+                feat_data_index1.descriptors,  # pyre-fixme [6]
                 index1,
-                d2,
+                feat_data_index2.descriptors,  # pyre-fixme [6]
                 index2,
                 overriden_config,
             )
@@ -352,8 +367,15 @@ def match_robust(
     overriden_config.update(config_override)
 
     # Will apply mask to features if any
-    features_data1 = feature_loader.instance.load_all_data(data, im1, masked=True)
-    features_data2 = feature_loader.instance.load_all_data(data, im2, masked=True)
+    segmentation_in_descriptor = overriden_config[
+        "matching_use_segmentation"
+    ]  # unused but keep using the same cache
+    features_data1 = feature_loader.instance.load_all_data(
+        data, im1, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+    )
+    features_data2 = feature_loader.instance.load_all_data(
+        data, im2, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+    )
     if (
         features_data1 is None
         or len(features_data1.points) < 2

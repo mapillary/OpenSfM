@@ -67,7 +67,9 @@ class VladCache(object):
     @lru_cache(1000)
     def vlad_histogram(self, data: DataSetBase, image: str) -> Optional[np.ndarray]:
         words = self.load_words(data)
-        features_data = feature_loader.instance.load_all_data(data, image, masked=True)
+        features_data = feature_loader.instance.load_all_data(
+            data, image, masked=True, segmentation_in_descriptor=False
+        )
         if features_data is None:
             return None
         descriptors = features_data.descriptors

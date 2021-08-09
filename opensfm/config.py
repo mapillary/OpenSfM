@@ -77,6 +77,7 @@ matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting imag
 matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
 matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
+matching_use_segmentation: no         # Use segmentation information (if available) to improve matching
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width

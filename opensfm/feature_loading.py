@@ -10,6 +10,11 @@ from opensfm.dataset import DataSetBase
 logger = logging.getLogger(__name__)
 
 
+SEGMENTATION_IN_DESCRIPTOR_MULT = (
+    35  # determined experimentally for HAHOG UCHAR type descriptors
+)
+
+
 class FeatureLoader(object):
     def clear_cache(self) -> None:
         self.load_mask.cache_clear()
@@ -56,12 +61,54 @@ class FeatureLoader(object):
         )
 
     def load_all_data(
-        self, data: DataSetBase, image: str, masked: bool
+        self,
+        data: DataSetBase,
+        image: str,
+        masked: bool,
+        segmentation_in_descriptor: bool,
     ) -> Optional[ft.FeaturesData]:
         if masked:
-            return self._load_all_data_masked(data, image)
+            features_data = self._load_all_data_masked(data, image)
         else:
-            return self._load_all_data_unmasked(data, image)
+            features_data = self._load_all_data_unmasked(data, image)
+        if not features_data:
+            return None
+        if segmentation_in_descriptor:
+            return self._add_segmentation_in_descriptor(data, features_data)
+        else:
+            return features_data
+
+    def _add_segmentation_in_descriptor(
+        self, data: DataSetBase, features: ft.FeaturesData
+    ) -> ft.FeaturesData:
+        if (
+            not data.config["hahog_normalize_to_uchar"]
+            or data.config["feature_type"] != "HAHOG"
+        ):
+            raise RuntimeError(
+                "Semantic segmentation in descriptor only supported for HAHOG UCHAR descriptors"
+            )
+
+        if not features.has_segmentation():
+            return features
+
+        desc_augmented = np.concatenate(
+            (
+                features.descriptors,
+                (
+                    np.array([features.semantic.segmentation]).T  # pyre-fixme [16]
+                ).astype(np.float32),
+            ),
+            axis=1,
+        )
+        desc_augmented[:, -1] *= SEGMENTATION_IN_DESCRIPTOR_MULT
+
+        return ft.FeaturesData(
+            features.points,
+            desc_augmented,
+            features.colors,
+            features.semantic,
+        )
 
     @lru_cache(20)
     def _load_all_data_unmasked(
@@ -83,9 +130,15 @@ class FeatureLoader(object):
 
     @lru_cache(200)
     def load_features_index(
-        self, data: DataSetBase, image: str, masked: bool
+        self,
+        data: DataSetBase,
+        image: str,
+        masked: bool,
+        segmentation_in_descriptor: bool,
     ) -> Optional[Tuple[ft.FeaturesData, Any]]:
-        features_data = self.load_all_data(data, image, masked)
+        features_data = self.load_all_data(
+            data, image, masked, segmentation_in_descriptor
+        )
         if not features_data:
             return None
         return features_data, ft.build_flann_index(

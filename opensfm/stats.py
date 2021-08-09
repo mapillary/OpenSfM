@@ -326,7 +326,7 @@ def features_statistics(
     detected = []
     images = {s for r in reconstructions for s in r.shots}
     for im in images:
-        features_data = feature_loader.instance.load_all_data(data, im, False)
+        features_data = feature_loader.instance.load_all_data(data, im, False, False)
         if not features_data:
             continue
         detected.append(len(features_data.points))
