@@ -6,12 +6,11 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 
 import numpy as np
-from opensfm import dataset, io
-
 from annotation_gui_gcp.lib import GUI
 from annotation_gui_gcp.lib.gcp_manager import GroundControlPointManager
 from annotation_gui_gcp.lib.image_manager import ImageManager
 from flask import Flask
+from opensfm import dataset, io
 
 
 def parse_args():
@@ -54,6 +53,11 @@ def parse_args():
         type=str,
         help="Specify a directory containing CAD files in FBX format",
         default=None,
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=5000,
     )
     return parser.parse_args()
 
@@ -304,10 +308,9 @@ def init_ui():
         rig_groups,
         find_suitable_cad_paths(args.cad, path, 1),
     )
-    return app
+    return app, args
 
 
 if __name__ == "__main__":
-    app = init_ui()
-    port = 5000
-    app.run(host="::", port=port)
+    app, args = init_ui()
+    app.run(host="::", port=args.port)
