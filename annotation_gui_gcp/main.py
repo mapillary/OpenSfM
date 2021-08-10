@@ -1,6 +1,5 @@
 import argparse
 import json
-import shutil
 import typing as t
 from collections import OrderedDict, defaultdict
 from pathlib import Path
@@ -16,15 +15,6 @@ from opensfm import dataset, io
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", help="dataset")
-    parser.add_argument(
-        "-n", "--no-preload", help="skip preloading", action="store_true"
-    )
-    parser.add_argument(
-        "--max-image-size",
-        help="maximum cached image size",
-        default=1000,
-        type=int,
-    )
     parser.add_argument(
         "--group-by-reconstruction",
         action="store_true",
@@ -78,57 +68,10 @@ def file_sanity_check(root, seq_dict, fname):
     return available_images
 
 
-def update_reconstruction_and_assignments_to_new_format(root: Path):
-    """
-    The format for the rigs was updated at some point.
-    The tool now expects reconstructions and rig assignments to be in the new format
-    This function updates these two files if needed, creating a backup as well:
-      - reconstruction.json
-      - rig_assignments.json
-    """
-
-    # Reconstruction
-    p_reconstruction = root / "reconstruction.json"
-    if p_reconstruction.exists():
-        with open(p_reconstruction) as f:
-            recs_raw = json.load(f)
-        need_dump = False
-        for ix_rec, rec in enumerate(recs_raw):
-            if "rig_models" in rec:
-                print(f"Updating rig format of {p_reconstruction}")
-                need_dump = True
-                recs_raw[ix_rec]["rig_cameras"] = {}
-                for rig_model in rec["rig_models"].values():
-                    recs_raw[ix_rec]["rig_cameras"].update(rig_model["rig_cameras"])
-                del rec["rig_models"]
-
-        if need_dump:
-            p_backup = root / "reconstruction_old_rigs_format.json"
-            shutil.copy(p_reconstruction, p_backup)
-            with open(p_reconstruction, "w") as f:
-                json.dump(recs_raw, f, indent=4, sort_keys=True)
-
-    # Assignments file
-    p_assignments = root / "rig_assignments.json"
-    if p_assignments.exists():
-        with open(p_assignments) as f:
-            assignments_raw = json.load(f)
-        if isinstance(assignments_raw, dict):
-            print(f"Updating rig format of {p_assignments}")
-            new_assignments = []
-            for rig_assignment in assignments_raw.values():
-                new_assignments.extend(rig_assignment)
-            p_backup = root / "rig_assignments_old_rigs_format.json"
-            shutil.copy(p_assignments, p_backup)
-            with open(p_assignments, "w") as f:
-                json.dump(new_assignments, f, indent=4, sort_keys=True)
-
-
 def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
     """
     Returns a dict mapping every shot to all the other corresponding shots in the rig
     """
-    update_reconstruction_and_assignments_to_new_format(root)
     p_json = root / "rig_assignments.json"
     if not p_json.exists():
         return {}
@@ -297,8 +240,6 @@ def init_ui():
     image_manager = ImageManager(
         groups,
         path,
-        preload_images=not args.no_preload,
-        max_image_size=args.max_image_size,
     )
     gcp_manager = GroundControlPointManager(path)
     GUI.Gui(
