@@ -685,6 +685,10 @@ def compute_inliers_bearings(
     good_idx = [i for i in range(len(p)) if p[i][0]]
     points = np.array([p[i][1] for i in range(len(p)) if p[i][0]])
 
+    inliers = [False] * len(b1)
+    if len(points) < 1:
+        return inliers
+
     br1 = points.copy()
     br1 /= np.linalg.norm(br1, axis=1)[:, np.newaxis]
     br2 = R.T.dot((points - t).T).T
@@ -694,7 +698,6 @@ def compute_inliers_bearings(
     ok2 = np.linalg.norm(br2 - b2[good_idx], axis=1) < threshold
     is_ok = ok1 * ok2
 
-    inliers = [False] * len(b1)
     for i, ok in enumerate(is_ok):
         inliers[good_idx[i]] = ok
     return inliers
