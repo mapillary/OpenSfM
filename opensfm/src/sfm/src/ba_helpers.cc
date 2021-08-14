@@ -907,7 +907,7 @@ std::string BAHelpers::DetectAlignmentConstraints(
   const Mat3d input = X_zero.transpose() * X_zero;
   Eigen::SelfAdjointEigenSolver<MatXd> ses(input, Eigen::EigenvaluesOnly);
   const Vec3d evals = ses.eigenvalues();
-  const auto ratio_1st_2nd = std::abs(evals[2] / evals[1]);
+  const auto ratio_1st_2nd = std::abs<double>(evals[2] / evals[1]);
   constexpr double epsilon_abs = 1e-10;
   constexpr double epsilon_ratio = 5e3;
   int cond1 = 0;

@@ -118,7 +118,7 @@ TEST_F(CovarianceFixture, EvaluatesPointCovarianceOK) {
 
 TEST_F(CovarianceFixture, EvaluatesPointCovarianceSmallBaseline) {
   const double baseline = 1e-5;
-  const double angle = M_PI_2 - std::abs(std::atan2(point[2], baseline));
+  const double angle = M_PI_2 - std::abs<double>(std::atan2(point[2], baseline));
 
   geometry::Pose pose_rotated_y;
   pose_rotated_y.SetWorldToCamRotation(Vec3d(0, angle, 0));
