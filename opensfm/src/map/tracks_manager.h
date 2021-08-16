@@ -43,7 +43,7 @@ class TracksManager {
   void WriteToFile(const std::string& filename) const;
 
   static TracksManager InstanciateFromString(const std::string& str);
-  std::string AsSring() const;
+  std::string AsString() const;
 
   static TracksManager MergeTracksManager(
       const std::vector<const TracksManager*>& tracks_manager);

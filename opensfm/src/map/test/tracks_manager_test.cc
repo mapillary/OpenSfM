@@ -168,7 +168,7 @@ TEST_F(TracksManagerTest, HasIOFileConsistency) {
 }
 
 TEST_F(TracksManagerTest, HasIOStringConsistency) {
-  const auto serialized = manager.AsSring();
+  const auto serialized = manager.AsString();
   const map::TracksManager manager_new =
       map::TracksManager::InstanciateFromString(serialized);
 

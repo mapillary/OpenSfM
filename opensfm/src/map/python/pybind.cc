@@ -628,7 +628,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("construct_sub_tracks_manager",
            &map::TracksManager::ConstructSubTracksManager)
       .def("write_to_file", &map::TracksManager::WriteToFile)
-      .def("as_string", &map::TracksManager::AsSring)
+      .def("as_string", &map::TracksManager::AsString)
       .def("get_all_common_observations",
            &map::TracksManager::GetAllCommonObservations,
            py::call_guard<py::gil_scoped_release>())

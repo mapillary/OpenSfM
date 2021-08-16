@@ -442,7 +442,7 @@ TracksManager TracksManager::InstanciateFromString(const std::string& str) {
   return InstanciateFromStreamT(sstream);
 }
 
-std::string TracksManager::AsSring() const {
+std::string TracksManager::AsString() const {
   std::stringstream sstream;
   WriteToStreamCurrentVersion(sstream, *this);
   return sstream.str();
