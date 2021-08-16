@@ -17,7 +17,7 @@ class ImageView(WebView):
         self.image_list = image_keys
 
         self.app.add_url_rule(
-            f"{route_prefix}/image/<path:path>",
+            f"{route_prefix}/image/<int:max_sz>/<path:path>",
             f"{route_prefix}_image",
             view_func=self.get_image,
         )
@@ -25,8 +25,8 @@ class ImageView(WebView):
     def get_candidate_images(self):
         return self.image_list
 
-    def get_image(self, path):
-        return self.image_manager.get_image(path)
+    def get_image(self, path, max_sz):
+        return self.image_manager.get_image(path, max_sz)
 
     def add_remove_update_point_observation(self, image_id, point_coordinates=None):
         gcp_manager = self.main_ui.gcp_manager

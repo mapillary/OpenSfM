@@ -21,7 +21,8 @@ function changeImage(image_key) {
         displayImage(image_key);
         drawMeasurements();
     };
-    image.src = window.location.href + '/image/' + image_key;
+    const max_sz = Math.min(context.canvas.width, context.canvas.height);
+    image.src = window.location.href + '/image/' + max_sz + '/' + image_key;
 }
 
 function displayImage(image_key) {
