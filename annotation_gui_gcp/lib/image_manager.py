@@ -1,3 +1,5 @@
+from flask import send_file
+from magic import Magic
 from opensfm import dataset
 
 
@@ -6,8 +8,11 @@ class ImageManager:
         self.seqs = seqs
         self.path = path
 
-    def image_path(self, image_name):
-        return f"{self.path}/images/{image_name}"
+    def get_image(self, image_name):
+        path_image = f"{self.path}/images/{image_name}"
+        magic = Magic(mime=True)
+        mimetype = magic.from_file(path_image)
+        return send_file(path_image, mimetype=mimetype)
 
     def load_latlons(self):
         data = dataset.DataSet(self.path)
