@@ -184,7 +184,6 @@ class SyntheticDataSet(DataSet):
         self,
     ) -> List[pymap.GroundControlPoint]:
         if self.gcps:
-            # pyre-fixme [16]
             return list(self.gcps.values())
         else:
             return []

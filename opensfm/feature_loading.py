@@ -33,7 +33,6 @@ class FeatureLoader(object):
             data.config["features_bake_segmentation"]
             and all_features_data.semantic is not None
         ):
-            # pyre-fixme [16]: `Optional` has no attribute `segmentation`
             segmentations = all_features_data.semantic.segmentation
             ignore_values = set(data.segmentation_ignore_values(image))
             return np.array(

@@ -81,12 +81,11 @@ class FeaturesData:
 
     def mask(self, mask: np.ndarray) -> "FeaturesData":
         if self.semantic:
-            masked_semantic = self.semantic.mask(mask)  # pyre-fixme [16]
+            masked_semantic = self.semantic.mask(mask)
         else:
             masked_semantic = None
         return FeaturesData(
             self.points[mask],
-            # pyre-fixme [16]
             self.descriptors[mask] if self.descriptors is not None else None,
             self.colors[mask],
             masked_semantic,
