@@ -75,7 +75,7 @@ def average_image_size(data: DataSetBase) -> float:
     average_size_mb = 0
     for camera in data.load_camera_models().values():
         average_size_mb += camera.width * camera.height * 4 / 1024 / 1024
-    return average_size_mb / len(data.load_camera_models())
+    return average_size_mb / max(1, len(data.load_camera_models()))
 
 
 def write_report(data: DataSetBase, wall_time: float):

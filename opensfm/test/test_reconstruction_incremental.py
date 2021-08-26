@@ -27,7 +27,7 @@ def test_reconstruction_incremental(
     assert errors["ratio_cameras"] == 1.0
     assert 0.7 < errors["ratio_points"] < 1.0
 
-    assert 0 < errors["aligned_position_rmse"] < 0.02
+    assert 0 < errors["aligned_position_rmse"] < 0.022
     assert 0 < errors["aligned_rotation_rmse"] < 0.002
     assert 0 < errors["aligned_points_rmse"] < 0.1
 
