@@ -47,6 +47,15 @@ export class OpensfmViewer extends EventEmitter {
       pointsVisible: true,
     };
 
+    const mapOptions = {
+      basemapVisible: false,
+      tileServerUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      basemapOpacity: 1.0,
+      basemapAltitude: -1.0,
+      basemapTileCount: 121,
+      basemapZoomLevel: 19,
+    };
+
     const cameraControlMode = CameraControlMode.ORBIT;
     const imagesVisible = false;
     const viewer = new Viewer({
@@ -80,18 +89,19 @@ export class OpensfmViewer extends EventEmitter {
       cameraControlMode,
       commandsVisible,
       gridVisible: true,
-      basemapVisible: false,
       imagesVisible,
       infoSize,
       statsVisible,
       thumbnailVisible,
     };
+
     this._optionController = new OptionController(
       Object.assign(
         {},
         this._spatial.defaultConfiguration,
         spatialConfiguration,
         controllerOptions,
+        mapOptions,
       ),
     );
 
@@ -129,7 +139,7 @@ export class OpensfmViewer extends EventEmitter {
     this._makeCommands();
 
     this._axesRenderer = new AxesRenderer();
-    this._basemapRenderer = new BasemapRenderer();
+    this._basemapRenderer = new BasemapRenderer(mapOptions);
     this._earthRenderer = new EarthRenderer({
       mode: cameraControlMode,
     });
@@ -210,6 +220,22 @@ export class OpensfmViewer extends EventEmitter {
     optionController.on('basemapvisible', event =>
       this._onBasemapVisible(event),
     );
+    optionController.on('basemapopacity', event =>
+      this._onBasemapOpacity(event)
+    );
+    optionController.on('basemapaltitude', event =>
+      this._onBasemapAltitude(event),
+    );
+    optionController.on('basemaptilecount', event =>
+      this._onBasemapTileCount(event)
+    );
+    optionController.on('basemapzoomlevel', event =>
+      this._onBasemapZoomLevel(event),
+    );
+    optionController.on('tileserverurl', event =>
+      this._onTileServerUrl(event),
+    );
+
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
     );
@@ -341,6 +367,31 @@ export class OpensfmViewer extends EventEmitter {
     } else {
       this._customRenderer.remove(this._basemapRenderer);
     }
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapOpacity(event) {
+    this._basemapRenderer.setOpacity(event.opacity);
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapAltitude(event) {
+    this._basemapRenderer.setAltitude(event.altitude);
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapTileCount(event) {
+    this._basemapRenderer.setTileCount(event.tileCount);
+    this._viewer.triggerRerender();
+  }
+
+  _onBasemapZoomLevel(event) {
+    this._basemapRenderer.setZoomLevel(event.zoomLevel);
+    this._viewer.triggerRerender();
+  }
+
+  _onTileServerUrl(event) {
+    this._basemapRenderer.setTileServerUrl(event.tileServerUrl);
     this._viewer.triggerRerender();
   }
 
