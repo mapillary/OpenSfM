@@ -301,7 +301,7 @@ def fit_plane_ransac(
 
 
 def fit_plane(
-    points: np.ndarray, vectors: np.ndarray, verticals: np.ndarray
+    points: np.ndarray, vectors: Optional[np.ndarray], verticals: Optional[np.ndarray]
 ) -> np.ndarray:
     """Estimate a plane fron on-plane points and vectors.
 
@@ -324,7 +324,7 @@ def fit_plane(
     points = np.array(points)
     s = 1.0 / max(1e-8, points.std())  # Normalize the scale to improve conditioning.
     x = homogeneous(s * points)
-    if len(vectors) > 0:
+    if vectors is not None and len(vectors) > 0:
         v = homogeneous_vec(s * np.array(vectors))
         A = np.vstack((x, v))
     else:
@@ -336,7 +336,7 @@ def fit_plane(
         return np.array([0.0, 0.0, 1.0, 0])
 
     # Use verticals to decide the sign of p
-    if len(verticals) > 0:
+    if verticals is not None and len(verticals) > 0:
         d = 0
         for vertical in verticals:
             d += p[:3].dot(vertical)

@@ -1645,7 +1645,7 @@ def vector_norm(
     True
     >>> v = numpy.random.rand(5, 4, 3)
     >>> n = numpy.empty((5, 3))
-    >>> vector_norm(v, axis=1, out=n)
+    >>> dummy = vector_norm(v, axis=1, out=n)
     >>> numpy.allclose(n, numpy.sqrt(numpy.sum(v*v, axis=1)))
     True
     >>> vector_norm([])
@@ -1687,7 +1687,7 @@ def unit_vector(
     >>> numpy.allclose(v1, v2)
     True
     >>> v1 = numpy.empty((5, 4, 3))
-    >>> unit_vector(v0, axis=1, out=v1)
+    >>> dummy = unit_vector(v0, axis=1, out=v1)
     >>> numpy.allclose(v1, v2)
     True
     >>> list(unit_vector([]))
