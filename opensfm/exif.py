@@ -57,7 +57,7 @@ def compute_focal(focal_35, focal, sensor_width, sensor_string) -> Tuple[float, 
         focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
         if not sensor_width:
-            sensor_width = sensor_data.get(sensor_string, None)
+            sensor_width = sensor_data().get(sensor_string, None)
         if sensor_width and focal:
             focal_ratio = focal / sensor_width
             focal_35 = 36.0 * focal_ratio
