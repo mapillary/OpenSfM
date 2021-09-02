@@ -80,6 +80,13 @@ class Camera {
   int height{1};
   std::string id;
 
+  /** OpenSfM uses normalized coordinates with the origin
+   in the middle of the image. Normalized coordinates pt' are computed
+   from pixel coordinates pt = [x,y] as:
+   pt' = pt - [(width - 1) / 2, (height - 1) / 2] * 1 / max(width, height)
+   And vice-versa:
+   pt = pt' * max(width, height) + [(width - 1) / 2, (height - 1) / 2]
+  */
   Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord) const;
   Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
   static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord,

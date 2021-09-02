@@ -322,14 +322,14 @@ Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord) const {
 Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord,
                                            const int width, const int height) {
   const auto size = std::max(width, height);
-  return Vec2d(norm_coord[0] * size - 0.5 + width / 2.0,
-               norm_coord[1] * size - 0.5 + height / 2.0);
+  return Vec2d(norm_coord[0] * size + (width - 1.0) * 0.5,
+               norm_coord[1] * size + (height - 1.0) * 0.5);
 }
 
 Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord,
                                            const int width, const int height) {
   const auto inv_size = 1.0 / std::max(width, height);
-  return Vec2d((px_coord[0] + 0.5 - width / 2.0) * inv_size,
-               (px_coord[1] + 0.5 - height / 2.0) * inv_size);
+  return Vec2d((px_coord[0] - (width - 1.0) * 0.5) * inv_size,
+               (px_coord[1] - (height - 1.0) * 0.5) * inv_size);
 }
 }  // namespace geometry
