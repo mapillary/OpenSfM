@@ -54,12 +54,6 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_static("create_radial", &geometry::Camera::CreateRadialCamera)
       .def_static("create_simple_radial",
                   &geometry::Camera::CreateSimpleRadialCamera)
-      .def("pixel_to_normalized_coordinates_common",
-           (Vec2d(*)(const Vec2d&, const int, const int)) &
-               geometry::Camera::PixelToNormalizedCoordinates)
-      .def("normalized_to_pixel_coordinates_common",
-           (Vec2d(*)(const Vec2d&, const int, const int)) &
-               geometry::Camera::NormalizedToPixelCoordinates)
       .def("project", &geometry::Camera::Project)
       .def("project_many", &geometry::Camera::ProjectMany,
            py::call_guard<py::gil_scoped_release>())
@@ -75,12 +69,30 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_parameters_values", &geometry::Camera::GetParametersValues)
       .def("get_parameters_types", &geometry::Camera::GetParametersTypes)
       .def("get_parameters_map", &geometry::Camera::GetParametersMap)
+      .def("pixel_to_normalized_coordinates_common",
+           (Vec2d(*)(const Vec2d&, const int, const int)) &
+               geometry::Camera::PixelToNormalizedCoordinates)
+      .def("pixel_to_normalized_coordinates_many_common",
+           (MatX2d(*)(const MatX2d&, const int, const int)) &
+               geometry::Camera::PixelToNormalizedCoordinatesMany)
       .def("pixel_to_normalized_coordinates",
            (Vec2d(geometry::Camera::*)(const Vec2d&) const) &
                geometry::Camera::PixelToNormalizedCoordinates)
+      .def("pixel_to_normalized_coordinates_many",
+           (MatX2d(geometry::Camera::*)(const MatX2d&) const) &
+               geometry::Camera::PixelToNormalizedCoordinatesMany)
+      .def("normalized_to_pixel_coordinates_common",
+           (Vec2d(*)(const Vec2d&, const int, const int)) &
+               geometry::Camera::NormalizedToPixelCoordinates)
+      .def("normalized_to_pixel_coordinates_many_common",
+           (MatX2d(*)(const MatX2d&, const int, const int)) &
+               geometry::Camera::NormalizedToPixelCoordinatesMany)
       .def("normalized_to_pixel_coordinates",
            (Vec2d(geometry::Camera::*)(const Vec2d&) const) &
                geometry::Camera::NormalizedToPixelCoordinates)
+      .def("normalized_to_pixel_coordinates_many",
+           (MatX2d(geometry::Camera::*)(const MatX2d&) const) &
+               geometry::Camera::NormalizedToPixelCoordinatesMany)
       .def_readwrite("width", &geometry::Camera::width)
       .def_readwrite("height", &geometry::Camera::height)
       .def_readwrite("id", &geometry::Camera::id)

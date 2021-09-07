@@ -315,8 +315,35 @@ Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord) const {
   return PixelToNormalizedCoordinates(px_coord, width, height);
 }
 
+MatX2d Camera::PixelToNormalizedCoordinatesMany(const MatX2d& px_coords) const {
+  return PixelToNormalizedCoordinatesMany(px_coords, width, height);
+}
+
+Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord,
+                                           const int width, const int height) {
+  const auto inv_size = 1.0 / std::max(width, height);
+  return Vec2d((px_coord[0] + 0.5 - width / 2.0) * inv_size,
+               (px_coord[1] + 0.5 - height / 2.0) * inv_size);
+}
+
+MatX2d Camera::PixelToNormalizedCoordinatesMany(const MatX2d& px_coords,
+                                                const int width,
+                                                const int height) {
+  MatX2d norm_coords(px_coords.rows(), 2);
+  for (int i = 0; i < px_coords.rows(); ++i) {
+    norm_coords.row(i) =
+        PixelToNormalizedCoordinates(px_coords.row(i), width, height);
+  }
+  return px_coords;
+}
+
 Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord) const {
   return NormalizedToPixelCoordinates(norm_coord, width, height);
+}
+
+MatX2d Camera::NormalizedToPixelCoordinatesMany(
+    const MatX2d& norm_coords) const {
+  return NormalizedToPixelCoordinatesMany(norm_coords, width, height);
 }
 
 Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord,
@@ -326,10 +353,15 @@ Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord,
                norm_coord[1] * size + (height - 1.0) * 0.5);
 }
 
-Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord,
-                                           const int width, const int height) {
-  const auto inv_size = 1.0 / std::max(width, height);
-  return Vec2d((px_coord[0] - (width - 1.0) * 0.5) * inv_size,
-               (px_coord[1] - (height - 1.0) * 0.5) * inv_size);
+MatX2d Camera::NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords,
+                                                const int width,
+                                                const int height) {
+  MatX2d px_coords(norm_coords.rows(), 2);
+  for (int i = 0; i < norm_coords.rows(); ++i) {
+    px_coords.row(i) =
+        Camera::NormalizedToPixelCoordinates(norm_coords.row(i), width, height);
+  }
+  return px_coords;
 }
+
 }  // namespace geometry
