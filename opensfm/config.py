@@ -141,18 +141,6 @@ rig_calibration_subset_size: 15       # Number of rig instances to use when cali
 rig_calibration_completeness: 0.85    # Ratio of reconstructed images needed to consider a reconstruction for rig calibration
 rig_calibration_max_rounds: 10        # Number of SfM tentatives to run until we get a satisfying reconstruction
 
-# Params for navigation graph
-nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
-nav_step_pref_distance: 6             # Preferred distance between camera centers
-nav_step_max_distance: 20             # Maximum distance for a possible step edge between two nodes
-nav_turn_max_distance: 15             # Maximum distance for a possible turn edge between two nodes
-nav_step_forward_view_threshold: 15   # Maximum difference of angles in degrees between viewing directions for forward steps
-nav_step_view_threshold: 30           # Maximum difference of angles in degrees between viewing directions for other steps
-nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
-nav_turn_view_threshold: 40           # Maximum difference of angles in degrees with respect to turn directions
-nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewing direction in degrees
-nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
-
 # Params for image undistortion
 undistorted_image_format: jpg         # Format in which to save the undistorted images
 undistorted_image_max_size: 100000    # Max width and height of the undistorted image
