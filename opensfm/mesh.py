@@ -19,14 +19,16 @@ def triangle_mesh(shot_id, r, tracks_manager):
 
     shot = r.shots[shot_id]
 
-    if shot.camera.projection_type in ["perspective", "brown"]:
+    if shot.camera.projection_type in ["perspective", "brown", "radial", "simple_radial"]:
         return triangle_mesh_perspective(shot_id, r, tracks_manager)
-    elif shot.camera.projection_type in ["fisheye", "fisheye_opencv", "dual"]:
+    elif shot.camera.projection_type in ["fisheye", "fisheye_opencv", "fisheye62", "dual"]:
         return triangle_mesh_fisheye(shot_id, r, tracks_manager)
     elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
         return triangle_mesh_spherical(shot_id, r, tracks_manager)
     else:
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"triangle_mesh not implemented for projection type {shot.camera.projection_type}"
+        )
 
 
 def triangle_mesh_perspective(shot_id, r, tracks_manager):
