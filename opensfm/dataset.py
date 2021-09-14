@@ -78,6 +78,10 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
+    def undistorted_segmentation_ignore_values(self, image: str) -> List[int]:
+        pass
+
+    @abstractmethod
     def mask_from_segmentation(
         self, segmentation: np.ndarray, ignore_values: List[int]
     ) -> np.ndarray:
@@ -446,10 +450,21 @@ class DataSet(DataSetBase):
     def segmentation_ignore_values(self, image: str) -> List[int]:
         """List of label values to ignore.
 
-        Pixels with this labels values will be masked out and won't be
-        processed when extracting features or computing depthmaps.
+        Pixels with these label values will be masked out and won't be
+        processed when extracting and matching features.
         """
         return self.config.get("segmentation_ignore_values", [])
+
+    def undistorted_segmentation_ignore_values(self, image: str) -> List[int]:
+        """List of label values to ignore on undistorted images
+
+        Pixels with these label values will be masked out and won't be
+        processed when computing depthmaps.
+        """
+        return self.config.get(
+            "undistorted_segmentation_ignore_values",
+            self.segmentation_ignore_values(image),
+        )
 
     def load_segmentation_mask(self, image: str) -> Optional[np.ndarray]:
         """Build a mask from segmentation ignore values.
@@ -1125,9 +1140,12 @@ class UndistortedDataSet(object):
         """Build a mask from the undistorted segmentation.
 
         The mask is non-zero only for pixels with segmentation
-        labels not in segmentation_ignore_values.
+        labels not in undistorted_segmentation_ignore_values.
+
+        If there are no undistorted_segmentation_ignore_values in the config,
+        the segmentation_ignore_values are used instead.
         """
-        ignore_values = self.base.segmentation_ignore_values(image)
+        ignore_values = self.base.undistorted_segmentation_ignore_values(image)
         if not ignore_values:
             return None
 
