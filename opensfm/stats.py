@@ -40,7 +40,7 @@ def _gps_errors(reconstruction: types.Reconstruction) -> List[np.ndarray]:
         if shot.metadata.gps_position.has_value:
             bias = reconstruction.biases[shot.camera.id]
             gps = shot.metadata.gps_position.value
-            unbiased_gps = bias.scale * bias.transform(gps)
+            unbiased_gps = bias.transform(gps)
             optical_center = shot.pose.get_origin()
             errors.append(np.array(optical_center - unbiased_gps))
     return errors
