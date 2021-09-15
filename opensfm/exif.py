@@ -274,7 +274,7 @@ class EXIF:
         orientation = 1
         if "Image Orientation" in self.tags:
             value = self.tags.get("Image Orientation").values[0]
-            if type(value) == int:
+            if type(value) == int and value != 0:
                 orientation = value
         return orientation
 
