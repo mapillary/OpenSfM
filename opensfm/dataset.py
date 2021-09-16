@@ -58,7 +58,9 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_features_mask(self, image: str, points: np.ndarray) -> np.ndarray:
+    def load_features_mask(
+        self, image: str, points: np.ndarray, mask_image: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -374,7 +376,9 @@ class DataSet(DataSetBase):
             mask = None
         return mask
 
-    def load_features_mask(self, image: str, points: np.ndarray) -> np.ndarray:
+    def load_features_mask(
+        self, image: str, points: np.ndarray, mask_image: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """Load a feature-wise mask.
 
         This is a binary array true for features that lie inside the
@@ -384,7 +388,8 @@ class DataSet(DataSetBase):
         if points is None or len(points) == 0:
             return np.array([], dtype=bool)
 
-        mask_image = self.load_combined_mask(image)
+        if mask_image is None:
+            mask_image = self.load_combined_mask(image)
         if mask_image is None:
             logger.debug("No segmentation for {}, no features masked.".format(image))
             return np.ones((points.shape[0],), dtype=bool)

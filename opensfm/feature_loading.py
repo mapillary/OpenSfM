@@ -33,15 +33,27 @@ class FeatureLoader(object):
             data.config["features_bake_segmentation"]
             and all_features_data.semantic is not None
         ):
+            # feature mask for baked segmentation
             segmentations = all_features_data.semantic.segmentation
             ignore_values = set(data.segmentation_ignore_values(image))
-            return np.array(
+            smask = np.array(
                 [
                     False if segmentations[i] in ignore_values else True
                     for i in range(len(segmentations))
                 ],
                 dtype=bool,
             )
+
+            # combine with 'classic' mask if any
+            mask_image = data.load_mask(image)
+            if mask_image is not None:
+                mask = data.load_features_mask(
+                    image, all_features_data.points[:, :2], mask_image
+                )
+                smask &= mask
+
+            return smask
+
         else:
             return data.load_features_mask(image, all_features_data.points[:, :2])
 
