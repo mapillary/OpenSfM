@@ -225,6 +225,8 @@ def resized_image(image: np.ndarray, max_size: int) -> np.ndarray:
 
 
 def root_feature(desc: np.ndarray, l2_normalization: bool = False) -> np.ndarray:
+    if desc is None:
+        return desc
     if l2_normalization:
         s2 = np.linalg.norm(desc, axis=1)
         desc = (desc.T / s2).T
@@ -239,6 +241,8 @@ def root_feature_surf(
     """
     Experimental square root mapping of surf-like feature, only work for 64-dim surf now
     """
+    if desc is None:
+        return desc
     if desc.shape[1] == 64:
         if l2_normalization:
             s2 = np.linalg.norm(desc, axis=1)
@@ -545,6 +549,9 @@ def extract_features(
         raise ValueError(
             "Unknown feature type " "(must be SURF, SIFT, AKAZE, HAHOG or ORB)"
         )
+    if len(points) == 0:
+        points = np.empty([0, 4])
+        desc = np.empty([0, 128])
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
