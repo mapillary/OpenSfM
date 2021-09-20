@@ -82,6 +82,7 @@ def create_match_candidates_config(**kwargs):
         "matching_order_neighbors": 0,
         "matching_bow_neighbors": 0,
         "matching_vlad_neighbors": 0,
+        "matching_graph_rounds": 0,
     }
 
     for key, value in kwargs.items():
@@ -115,6 +116,13 @@ def test_match_candidates_from_metadata_gps(lund_path):
 
 def test_match_candidates_from_metadata_time(lund_path):
     config = create_match_candidates_config(matching_time_neighbors=NEIGHBORS)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
+    match_candidates_from_metadata(data)
+
+
+def test_match_candidates_from_metadata_graph(lund_path):
+    config = create_match_candidates_config(matching_graph_rounds=50)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)

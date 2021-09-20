@@ -1,5 +1,8 @@
+import copy
 import logging
+import math
 from collections import defaultdict
+from itertools import combinations
 from typing import Tuple, List, Set, Dict, Iterable, Any
 
 import numpy as np
@@ -75,6 +78,60 @@ def match_candidates_by_distance(
             image_cand = images_cand[j]
             if image_cand != image_ref:
                 pairs.add(sorted_pair(image_ref, image_cand))
+    return pairs
+
+
+def norm_2d(vec):
+    """Return the 2D norm of a vector."""
+    return math.sqrt(vec[0] ** 2 + vec[1] ** 2)
+
+
+def match_candidates_by_graph(images_ref, images_cand, exifs, reference, rounds):
+    """Find by triangulating the GPS points on X/Y axises"""
+    if len(images_cand) == 0 or rounds < 1:
+        return set()
+
+    images = []
+    points = np.zeros((len(images_cand + images_ref), 2))
+    for i, image in enumerate(images_cand + images_ref):
+        gps = exifs[image]["gps"]
+        points[i] = reference.to_topocentric(gps["latitude"], gps["longitude"], 0)[:2]
+        images.append(image)
+
+    images_cand_set = set(images_cand)
+    images_ref_set = set(images_ref)
+
+    def produce_edges(triangles):
+        for triangle in triangles:
+            for vertex1, vertex2 in combinations(triangle, 2):
+                image1, image2 = images[vertex1], images[vertex2]
+                if image1 == image2:
+                    continue
+                pair_way1 = image1 in images_cand_set and image2 in images_ref_set
+                pair_way2 = image2 in images_cand_set and image1 in images_ref_set
+                if pair_way1 or pair_way2:
+                    yield sorted_pair(image1, image2), (vertex1, vertex2)
+
+    pairs = set()
+
+    # first round compute scale based on edges (and push delaunay edges)
+    edge_distances = []
+    triangles = spatial.Delaunay(points).simplices
+    for (image1, image2), (vertex1, vertex2) in produce_edges(triangles):
+        pairs.add((image1, image2))
+        edge_distances.append(norm_2d(points[vertex1] - points[vertex2]))
+    scale = np.median(edge_distances)
+
+    # further rounds produces edges from jittered version of the original points
+    # in order to get 'alternative' delaunay triangulations : a perfect square
+    # will only produce one diangonale edge, so by jittering it, we get more
+    # chances of getting such diagonal edges and having more diversity
+    for _ in range(rounds):
+        points_current = copy.copy(points) + np.random.rand(*points.shape) * scale
+        triangles = spatial.Delaunay(points_current).simplices
+        for (image1, image2), _ in produce_edges(triangles):
+            pairs.add((image1, image2))
+
     return pairs
 
 
@@ -382,6 +439,7 @@ def match_candidates_from_metadata(
 
     max_distance = overriden_config["matching_gps_distance"]
     gps_neighbors = overriden_config["matching_gps_neighbors"]
+    graph_rounds = overriden_config["matching_graph_rounds"]
     time_neighbors = overriden_config["matching_time_neighbors"]
     order_neighbors = overriden_config["matching_order_neighbors"]
     bow_neighbors = overriden_config["matching_bow_neighbors"]
@@ -404,6 +462,7 @@ def match_candidates_from_metadata(
             )
         gps_neighbors = 0
         max_distance = 0
+        graph_rounds = 0
 
     images_ref.sort()
 
@@ -414,11 +473,13 @@ def match_candidates_from_metadata(
         == order_neighbors
         == bow_neighbors
         == vlad_neighbors
+        == graph_rounds
         == 0
     ):
         # All pair selection strategies deactivated so we match all pairs
         d = set()
         t = set()
+        g = set()
         o = set()
         b = set()
         v = set()
@@ -426,6 +487,9 @@ def match_candidates_from_metadata(
     else:
         d = match_candidates_by_distance(
             images_ref, images_cand, exifs, reference, gps_neighbors, max_distance
+        )
+        g = match_candidates_by_graph(
+            images_ref, images_cand, exifs, reference, graph_rounds
         )
         t = match_candidates_by_time(images_ref, images_cand, exifs, time_neighbors)
         o = match_candidates_by_order(images_ref, images_cand, order_neighbors)
@@ -452,12 +516,13 @@ def match_candidates_from_metadata(
             vlad_other_cameras,
             {},
         )
-        pairs = d | t | o | set(b) | set(v)
+        pairs = d | g | t | o | set(b) | set(v)
 
     pairs = ordered_pairs(pairs, images_ref)
 
     report = {
         "num_pairs_distance": len(d),
+        "num_pairs_graph": len(g),
         "num_pairs_time": len(t),
         "num_pairs_order": len(o),
         "num_pairs_bow": len(b),
