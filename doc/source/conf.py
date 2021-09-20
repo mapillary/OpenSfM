@@ -290,7 +290,7 @@ html_context = {
     "display_github": True,  # Add 'Edit on Github' link instead of 'View page source'
     "github_user": "mapillary",
     "github_repo": project,
-    "github_version": "master",
+    "github_version": "main",
     "conf_py_path": "/doc/source/",
     "source_suffix": source_suffix,
 }

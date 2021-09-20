@@ -33,7 +33,7 @@ Python dependencies can be installed with::
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
+See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
 Installing dependencies on Fedora
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
