@@ -168,7 +168,8 @@ class BundleAdjuster:
         arg0: str,
         arg1: numpy.ndarray,
         arg2: float,
-        arg3: PositionConstraintType,
+        arg3: float,
+        arg4: PositionConstraintType,
     ) -> None: ...
     def add_point_projection_observation(self, arg0: str, arg1: str, arg2: float, arg3: numpy.ndarray) -> None: ...
     def add_position_prior(

@@ -156,7 +156,7 @@ def test_pair_with_shot_point(bundle_adjuster):
     )
     sa.add_point_position_shot("p1", "1", "12", [1, 0, 0], 1, pybundle.XYZ)
     sa.add_point_position_shot("p1", "2", "12", [-1, 0, 0], 1, pybundle.XYZ)
-    sa.add_point_position_world("p1", [1, 0, 0], 1, pybundle.XYZ)
+    sa.add_point_position_world("p1", [1, 0, 0], 1, 1, pybundle.XYZ)
 
     sa.run()
     s1 = sa.get_shot("1")

@@ -56,7 +56,8 @@ class BAHelpers {
   static void AddGCPToBundle(
       bundle::BundleAdjuster& ba,
       const AlignedVector<map::GroundControlPoint>& gcp,
-      const std::unordered_map<map::ShotId, map::Shot>& shots);
+      const std::unordered_map<map::ShotId, map::Shot>& shots,
+      const double& horizontal_sigma, const double& vertical_sigma);
   static bool TriangulateGCP(
       const map::GroundControlPoint& point,
       const std::unordered_map<map::ShotId, map::Shot>& shots,

@@ -107,8 +107,10 @@ radial_distortion_k1_sd: 0.01   # The standard deviation of the first radial dis
 radial_distortion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
-tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
-tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+tangential_distortion_p1_sd: 0.01  # The standard deviation of the first tangential distortion parameter
+tangential_distortion_p2_sd: 0.01  # The standard deviation of the second tangential distortion parameter
+gcp_horizontal_sd: 0.01            # The default horizontal standard deviation of the GCPs (in meters)
+gcp_vertical_sd: 0.1               # The default vertical standard deviation of the GCPs (in meters)
 rig_translation_sd: 0.1            # The standard deviation of the rig translation
 rig_rotation_sd: 0.1               # The standard deviation of the rig rotation
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)

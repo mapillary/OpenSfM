@@ -332,7 +332,8 @@ def create_reconstruction(
 def generate_track_data(
     reconstruction: types.Reconstruction,
     maximum_depth: float,
-    noise: float,
+    projection_noise: float,
+    gcp_noise: Tuple[float, float],
     gcps_count: Optional[int],
     gcp_shift: Optional[np.ndarray],
     on_disk_features_filename: Optional[str],
@@ -384,7 +385,9 @@ def generate_track_data(
         center = shot.pose.get_origin()
         z_axis = shot.pose.get_rotation_matrix()[2]
         is_panorama = pygeometry.Camera.is_panorama(shot.camera.projection_type)
-        perturbation = float(noise) / float(max(shot.camera.width, shot.camera.height))
+        perturbation = float(projection_noise) / float(
+            max(shot.camera.width, shot.camera.height)
+        )
         sigmas = np.array([perturbation, perturbation])
 
         # pre-generate random perturbations
@@ -441,11 +444,17 @@ def generate_track_data(
             all_track_ids[i]
             for i in np.random.randint(len(all_track_ids) - 1, size=gcps_count)
         ]
-        for gcp_id in gcps_ids:
+
+        sigmas_gcp = np.random.normal(
+            0.0,
+            np.array([gcp_noise[0], gcp_noise[0], gcp_noise[1]]),
+            (len(gcps_ids), 3),
+        )
+        for i, gcp_id in enumerate(gcps_ids):
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
-            gcp.coordinates.value = point.coordinates + gcp_shift
+            gcp.coordinates.value = point.coordinates + gcp_shift + sigmas_gcp[i]
             lat, lon, alt = reconstruction.reference.to_lla(*gcp.coordinates.value)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             gcp.has_altitude = True

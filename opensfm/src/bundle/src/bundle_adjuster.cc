@@ -431,12 +431,14 @@ void BundleAdjuster::AddPointPositionShot(const std::string &point_id,
 
 void BundleAdjuster::AddPointPositionWorld(const std::string &point_id,
                                            const Vec3d &position,
-                                           double std_deviation,
+                                           double std_deviation_horizontal,
+                                           double std_deviation_vertical,
                                            const PositionConstraintType &type) {
   PointPositionWorld a;
   a.point_id = point_id;
   a.position = position;
-  a.std_deviation = std_deviation;
+  a.std_deviation_horizontal = std_deviation_horizontal;
+  a.std_deviation_vertical = std_deviation_vertical;
   a.type = type;
   point_positions_world_.push_back(a);
 }
@@ -1018,7 +1020,7 @@ void BundleAdjuster::Run() {
     cost_function = new ceres::DynamicAutoDiffCostFunction<
         AbsolutePositionError<ShotPositionShotParam>>(
         new AbsolutePositionError<ShotPositionShotParam>(
-            pos_func, a.position, 1.0, true, PositionConstraintType::XYZ));
+            pos_func, a.position, 1.0, 1.0, true, PositionConstraintType::XYZ));
 
     // world parametrization
     // ShotPositionWorldParam pos_func(0);
@@ -1135,7 +1137,8 @@ void BundleAdjuster::Run() {
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
         AbsolutePositionError<PointPositionScaledShot>>(
         new AbsolutePositionError<PointPositionScaledShot>(
-            pos_func, p.position, p.std_deviation, false, p.type));
+            pos_func, p.position, p.std_deviation, p.std_deviation, false,
+            p.type));
 
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
@@ -1155,7 +1158,8 @@ void BundleAdjuster::Run() {
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
         AbsolutePositionError<PointPositionWorldFunc>>(
         new AbsolutePositionError<PointPositionWorldFunc>(
-            pos_func, p.position, p.std_deviation, false, p.type));
+            pos_func, p.position, p.std_deviation_horizontal,
+            p.std_deviation_vertical, false, p.type));
 
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(3);
