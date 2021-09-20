@@ -19,7 +19,11 @@ def test_reconstruction_incremental(
     _, reconstructed_scene = reconstruction.incremental_reconstruction(
         dataset, scene_synthetic.tracks_manager
     )
-    errors = synthetic_scene.compare(reference, reconstructed_scene[0])
+    errors = synthetic_scene.compare(
+        reference,
+        scene_synthetic.gcps,
+        reconstructed_scene[0],
+    )
 
     assert reconstructed_scene[0].reference.lat == 47.0
     assert reconstructed_scene[0].reference.lon == 6.0
@@ -33,6 +37,10 @@ def test_reconstruction_incremental(
 
     # Sanity check that GPS error is similar to the generated gps_noise
     assert 4.0 < errors["absolute_gps_rmse"] < 7.0
+
+    # Sanity check that GCP error is similar to the generated gcp_noise
+    assert 0.01 < errors["absolute_gcp_rmse_horizontal"] < 0.02
+    assert 0.08 < errors["absolute_gcp_rmse_vertical"] < 0.12
 
     # Check that the GPS bias (only translation) is recovered
     translation = reconstructed_scene[0].biases["1"].translation
@@ -55,7 +63,7 @@ def test_reconstruction_incremental_rig(
     _, reconstructed_scene = reconstruction.incremental_reconstruction(
         dataset, scene_synthetic_rig.tracks_manager
     )
-    errors = synthetic_scene.compare(reference, reconstructed_scene[0])
+    errors = synthetic_scene.compare(reference, {}, reconstructed_scene[0])
 
     assert reconstructed_scene[0].reference.lat == 47.0
     assert reconstructed_scene[0].reference.lon == 6.0

@@ -407,6 +407,7 @@ class SyntheticInputData:
         projection_max_depth: float,
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
+        gcp_noise: Tuple[float, float],
         causal_gps_noise: bool,
         gcps_count: Optional[int] = None,
         gcps_shift: Optional[np.ndarray] = None,
@@ -423,6 +424,7 @@ class SyntheticInputData:
                 reconstruction,
                 projection_max_depth,
                 projection_noise,
+                gcp_noise,
                 gcps_count,
                 gcps_shift,
                 on_disk_features_filename,
@@ -433,7 +435,9 @@ class SyntheticInputData:
 
 
 def compare(
-    reference: types.Reconstruction, reconstruction: types.Reconstruction
+    reference: types.Reconstruction,
+    gcps: Dict[str, pymap.GroundControlPoint],
+    reconstruction: types.Reconstruction,
 ) -> Dict[str, float]:
     """Compare a reconstruction with reference groundtruth."""
     completeness = sm.completeness_errors(reference, reconstruction)
@@ -442,6 +446,7 @@ def compare(
     absolute_rotation = sm.rotation_errors(reference, reconstruction)
     absolute_points = sm.points_errors(reference, reconstruction)
     absolute_gps = sm.gps_errors(reconstruction)
+    absolute_gcp = sm.gcp_errors(reconstruction, gcps)
 
     aligned = sm.aligned_to_reference(reference, reconstruction)
     aligned_position = sm.position_errors(reference, aligned)
@@ -460,6 +465,12 @@ def compare(
         "absolute_points_mad": sm.mad(absolute_points),
         "absolute_gps_rmse": sm.rmse(absolute_gps),
         "absolute_gps_mad": sm.mad(absolute_gps),
+        "absolute_gcp_rmse_horizontal": sm.rmse(absolute_gcp[:, :2])
+        if len(absolute_gcp.shape) > 1
+        else 0.0,
+        "absolute_gcp_rmse_vertical": sm.rmse(absolute_gcp[:, 2])
+        if len(absolute_gcp.shape) > 1
+        else 0.0,
         "aligned_position_rmse": sm.rmse(aligned_position),
         "aligned_position_mad": sm.mad(aligned_position),
         "aligned_rotation_rmse": sm.rmse(aligned_rotation),

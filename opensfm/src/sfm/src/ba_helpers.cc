@@ -275,7 +275,9 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetShots());
+    AddGCPToBundle(ba, gcp, map.GetShots(),
+                   config["gcp_horizontal_sd"].cast<double>(),
+                   config["gcp_vertical_sd"].cast<double>());
   }
 
   ba.SetPointProjectionLossFunction(
@@ -385,7 +387,8 @@ bool BAHelpers::TriangulateGCP(
 void BAHelpers::AddGCPToBundle(
     bundle::BundleAdjuster& ba,
     const AlignedVector<map::GroundControlPoint>& gcp,
-    const std::unordered_map<map::ShotId, map::Shot>& shots) {
+    const std::unordered_map<map::ShotId, map::Shot>& shots,
+    const double& horizontal_sigma, const double& vertical_sigma) {
   for (const auto& point : gcp) {
     const auto point_id = "gcp-" + point.id_;
     Vec3d coordinates;
@@ -402,8 +405,8 @@ void BAHelpers::AddGCPToBundle(
       const auto point_type = point.has_altitude_
                                   ? bundle::PositionConstraintType::XYZ
                                   : bundle::PositionConstraintType::XY;
-      ba.AddPointPositionWorld(point_id, point.coordinates_.Value(), 0.1,
-                               point_type);
+      ba.AddPointPositionWorld(point_id, point.coordinates_.Value(),
+                               horizontal_sigma, vertical_sigma, point_type);
     }
 
     // Now iterate through the observations
@@ -752,7 +755,9 @@ py::dict BAHelpers::Bundle(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetShots());
+    AddGCPToBundle(ba, gcp, map.GetShots(),
+                   config["gcp_horizontal_sd"].cast<double>(),
+                   config["gcp_vertical_sd"].cast<double>());
   }
 
   if (config["bundle_compensate_gps_bias"].cast<bool>()) {

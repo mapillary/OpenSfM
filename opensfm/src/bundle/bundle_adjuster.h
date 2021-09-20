@@ -288,7 +288,8 @@ struct PointPositionShot {
 struct PointPositionWorld {
   std::string point_id;
   Vec3d position;
-  double std_deviation;
+  double std_deviation_horizontal;
+  double std_deviation_vertical;
   PositionConstraintType type;
 };
 
@@ -388,7 +389,8 @@ class BundleAdjuster {
                             const Vec3d &position, double std_deviation,
                             const PositionConstraintType &type);
   void AddPointPositionWorld(const std::string &point_id, const Vec3d &position,
-                             double std_deviation,
+                             double std_deviation_horizontal,
+                             double std_deviation_vertical,
                              const PositionConstraintType &type);
 
   // Minimization setup

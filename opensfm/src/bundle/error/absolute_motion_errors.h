@@ -10,11 +10,14 @@ namespace bundle {
 template <class PosFunc>
 struct AbsolutePositionError {
   AbsolutePositionError(const PosFunc& pos_func, const Vec3d& pos_prior,
-                        double std_deviation, bool has_std_deviation_param,
+                        double std_deviation_horizontal,
+                        double std_deviation_vertical,
+                        bool has_std_deviation_param,
                         const PositionConstraintType& type)
       : pos_func_(pos_func),
         pos_prior_(pos_prior),
-        scale_(1.0 / std_deviation),
+        scale_xy_(1.0 / std_deviation_horizontal),
+        scale_z_(1.0 / std_deviation_vertical),
         has_std_deviation_param_(has_std_deviation_param),
         type_(type) {}
 
@@ -27,7 +30,9 @@ struct AbsolutePositionError {
     if (has_std_deviation_param_) {
       residual /= p[1][0];
     } else {
-      residual *= T(scale_);
+      residual[0] *= T(scale_xy_);
+      residual[1] *= T(scale_xy_);
+      residual[2] *= T(scale_z_);
     }
 
     // filter axises to use
@@ -48,7 +53,8 @@ struct AbsolutePositionError {
 
   PosFunc pos_func_;
   Vec3d pos_prior_;
-  double scale_;
+  double scale_xy_;
+  double scale_z_;
   bool has_std_deviation_param_;
   PositionConstraintType type_;
 };
