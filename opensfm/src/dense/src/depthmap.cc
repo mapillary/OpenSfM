@@ -138,7 +138,8 @@ DepthmapEstimator::DepthmapEstimator()
       min_patch_variance_(5 * 5),
       rng_{std::random_device{}()},
       uni_(0, 0),
-      unit_normal_(0, 1) {}
+      unit_normal_(0, 1),
+      patch_variance_buffer_(patch_size_ * patch_size_) {}
 
 void DepthmapEstimator::AddView(const double *pK, const double *pR,
                                 const double *pt, const unsigned char *pimage,
@@ -169,7 +170,10 @@ void DepthmapEstimator::SetPatchMatchIterations(int n) {
   patchmatch_iterations_ = n;
 }
 
-void DepthmapEstimator::SetPatchSize(int size) { patch_size_ = size; }
+void DepthmapEstimator::SetPatchSize(int size) {
+  patch_size_ = size;
+  patch_variance_buffer_.resize(patch_size_ * patch_size_);
+}
 
 void DepthmapEstimator::SetMinPatchSD(float sd) {
   min_patch_variance_ = sd * sd;
@@ -263,7 +267,7 @@ void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult *result) {
 }
 
 float DepthmapEstimator::PatchVariance(int i, int j) {
-  float patch[patch_size_ * patch_size_];
+  float *patch = patch_variance_buffer_.data();
   int hpz = (patch_size_ - 1) / 2;
   int counter = 0;
   for (int u = -hpz; u <= hpz; ++u) {
