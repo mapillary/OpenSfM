@@ -38,19 +38,15 @@ See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfil
 Installing dependencies on Fedora
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tested on Fedora 33
+Tested on Fedora 33 & 34
 
-    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel eigen3-devel libomp cmake glog-devel
+    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel python3-opencv eigen3-devel libomp cmake glog-devel
 
-There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. We need to build from scratch instead of relying on the version installed by dnf:
+There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. This quick workaround works::
 
-    mkdir ~/src && cd ~/src && clone git@github.com:gflags/gflags.git && checkout v2.2.2
+    sudo sed -i "s^set (GFLAGS_INCLUDE_DIR.*^set (GFLAGS_INCLUDE_DIR "/usr/include")^" /usr/lib64/cmake/gflags/gflags-config.cmake
 
-    mkdir ~/src/gflags/build && cd ~/src/gflags/build && cmake ../ && make -j4
-
-    sudo make install
-
-Install python dependencies before building:
+Install python dependencies before building::
 
     cd ~/src/OpenSfM && pip install -r requirements.txt
 
