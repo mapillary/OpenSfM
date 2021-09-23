@@ -46,7 +46,6 @@ def gcp_to_ply(gcps, reconstruction):
             continue
 
         c = 255, 0, 0
-        print(dir(p))
         s = "{} {} {} {} {} {}".format(
             p.value[0], p.value[1], p.value[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
