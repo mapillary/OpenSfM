@@ -931,6 +931,41 @@ def test_many_observations_delete():
     m.clear_observations_and_landmarks()
 
 
+def test_clean_landmarks_with_min_observations():
+    m = pymap.Map()
+    n_cams = 2
+    n_shots = 2
+    n_landmarks = 10
+    for cam_id in range(n_cams):
+        cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+        cam.id = "cam" + str(cam_id)
+        m.create_camera(cam)
+
+    for shot_id in range(n_shots):
+        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+
+    for point_id in range(n_landmarks):
+        m.create_landmark(str(point_id), np.random.rand(3))
+
+    for point_id in range(int(n_landmarks / 2)):
+        for shot in m.get_shots().values():
+            # create a new observation
+            obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, point_id)
+            m.add_observation(shot, m.get_landmark(str(point_id)), obs)
+
+    for point_id in range(int(n_landmarks / 2), n_landmarks):
+        shot = m.get_shot("0")
+        # create a new observation
+        obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, point_id)
+        m.add_observation(shot, m.get_landmark(str(point_id)), obs)
+
+    m.clean_landmarks_below_min_observations(n_shots)
+
+    assert len(m.get_landmarks()) == int(n_landmarks / 2)
+    m.clean_landmarks_below_min_observations(n_shots + 1)
+    assert len(m.get_landmarks()) == 0
+
+
 def test_camera_deepcopy():
     # Given a camera
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)

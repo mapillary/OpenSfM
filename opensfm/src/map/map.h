@@ -150,6 +150,7 @@ class Map {
                       const Observation& obs);
   void RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id);
   void ClearObservationsAndLandmarks();
+  void CleanLandmarksBelowMinObservations(const size_t min_observations);
 
   // Map information and access methods
   size_t NumberOfShots() const { return shots_.size(); }

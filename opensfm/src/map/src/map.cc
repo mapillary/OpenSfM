@@ -88,6 +88,25 @@ void Map::ClearObservationsAndLandmarks() {
   landmarks_.clear();
 }
 
+void Map::CleanLandmarksBelowMinObservations(const size_t min_observations) {
+  for (auto it = landmarks_.begin(); it != landmarks_.end();) {
+    const auto& landmark = it->second;
+    if (landmark.NumberOfObservations() < min_observations) {
+      // 2) Remove all its observation
+      const auto& observations = landmark.GetObservations();
+      for (const auto& obs : observations) {
+        Shot* shot = obs.first;
+        const auto feat_id = obs.second;
+        shot->RemoveLandmarkObservation(feat_id);
+      }
+      // 3) Remove from landmarks
+      it = landmarks_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
 Shot& Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id) {
   return CreateShot(shot_id, camera_id, geometry::Pose());
 }

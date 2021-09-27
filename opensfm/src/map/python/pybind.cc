@@ -84,6 +84,8 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
+      .def("clean_landmarks_below_min_observations",
+           &map::Map::CleanLandmarksBelowMinObservations)
       // Shot
       .def("create_shot",
            py::overload_cast<const map::ShotId &, const map::CameraId &,
