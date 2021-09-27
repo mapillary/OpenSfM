@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Statistics and Quality Report &mdash; OpenSfM 0.5.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Rig Models" href="rig.html" />
+    <link rel="prev" title="Reporting" href="reporting.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.5
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Statistics and Quality Report</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dataset-summary">Dataset Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processing-summary">Processing Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#features-details">Features Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reconstruction-details">Reconstruction Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tracks-details">Tracks Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#camera-models-details">Camera Models Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gps-gcp-errors-details">GPS/GCP Errors Details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processing-time-details">Processing Time Details</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rig.html">Rig Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="annotation_tool.html">Control points annotation tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Statistics and Quality Report</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/main/doc/source/quality_report.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="statistics-and-quality-report">
+<h1>Statistics and Quality Report<a class="headerlink" href="#statistics-and-quality-report" title="Permalink to this headline">¶</a></h1>
+<p>OpenSfM commands <cite>compute_statistics</cite> and <cite>export_report</cite> respectively generates a JSON statistics file and a PDF report based on it.
+The report is broke down into several subsection, which are documented below.</p>
+<div class="section" id="dataset-summary">
+<h2>Dataset Summary<a class="headerlink" href="#dataset-summary" title="Permalink to this headline">¶</a></h2>
+<p><img alt="summary" src="_images/summary.png" /></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Dataset : name of the dataset’s folder name</p></li>
+<li><p>Date : day and time at which <cite>reconstruction.json</cite> was created by the <cite>reconstruct</cite> command.</p></li>
+<li><p>Area Covered : area covered by the bounding box enclosing all the cameras</p></li>
+<li><p>Processing Time : total time taken by the SfM processing (<cite>detect_features</cite>, <cite>match_features</cite>, <cite>create_tracks</cite> and <cite>reconstruct</cite>)</p></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="processing-summary">
+<h2>Processing Summary<a class="headerlink" href="#processing-summary" title="Permalink to this headline">¶</a></h2>
+<p><img alt="processing" src="_images/processing.png" /></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Reconstructed Images : reconstructed images over total number of images</p></li>
+<li><p>Reconstructed Images : reconstructed points over total number of points in the <cite>tracks.csv</cite> file (<cite>create_tracks</cite>)</p></li>
+<li><p>Reconstructed Components : number of continously reconstructed sets of images</p></li>
+<li><p>Detected Features : median number (accross images) of detected features</p></li>
+<li><p>Reconstructed Features : median number (accross images) of reconstructed features</p></li>
+<li><p>Geographic Reference : indicated wether GPS and/or GCP have been used for geo-alignment</p></li>
+<li><p>GPS / GCP errors : GPS and/or GCP RMS errors</p></li>
+</ul>
+</div></blockquote>
+<p><img alt="topview" src="_images/topview.png" /></p>
+<blockquote>
+<div><p>The top-view map represent GPS coordinates of images in blue points and the actual reconstructed position in red.
+Lines links images in order of their capture time. Reconstructed points are visible as true-colors points.</p>
+</div></blockquote>
+</div>
+<div class="section" id="features-details">
+<h2>Features Details<a class="headerlink" href="#features-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="feat1" src="_images/feat1.png" /></p>
+<p>The heatmap represent the density of detected features : the gradient goes from blue for no features, to yellow for the most.</p>
+<p><img alt="feat2" src="_images/feat2.png" /></p>
+<p>The table below lists minimum/maximum/mean and median detected and reconstructed features accross images.</p>
+</div>
+<div class="section" id="reconstruction-details">
+<h2>Reconstruction Details<a class="headerlink" href="#reconstruction-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="rec" src="_images/rec.png" /></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Average reprojection error (normalized/pixels): normalized (by features uncertainty) average norm of reprojection errors and same, but pixel-wise,</p></li>
+</ul>
+<p>un-normalized, error. Errors bigger than 4 pixels are pruned out.
+- Average Track Length : average number of images in which a reconstructed points has been detected.
+- Average Track Length (&gt; 2) : same as above but ignoring 2-images points.</p>
+<p><img alt="residual_histogram" src="_images/residual_histogram.png" /></p>
+<p>The tables are the histogram of the certainty-normalized and un-normalized reprojection errors norm. Errors bigger than 4 pixels are pruned out.</p>
+</div></blockquote>
+</div>
+<div class="section" id="tracks-details">
+<h2>Tracks Details<a class="headerlink" href="#tracks-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="tracks" src="_images/tracks.png" /></p>
+<p>The plot shows a graph of image’s coordinates (GPS-based), which links are colored by the amount of common detected points any two images
+pairs shares : yellow for few common points, blue for the most. In addition, the dots representing the images are colored by same color if
+the images are in the same connected component.</p>
+<p>The table is the histogram of the number of reconstructed points for a given number of image detections.</p>
+</div>
+<div class="section" id="camera-models-details">
+<h2>Camera Models Details<a class="headerlink" href="#camera-models-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="camera" src="_images/camera.png" /></p>
+<p>For each camera model, the table shows the initial values in <cite>camera_models.json</cite> and the optimized values
+that were computed during <cite>reconstruct</cite> and that are stored in the <cite>reconstruction.json</cite> file.</p>
+<p><img alt="residuals" src="_images/residuals.png" /></p>
+<p>The plot shows, for each camera model, a grid of the reprojection errors averaged by cells of fixed size.
+In addition, this per-cell reprojections error are represented by scaled arrows (see plot legend) which color
+depends on their norm : yellow for the bigger errors, blue for the smaller ones.</p>
+</div>
+<div class="section" id="gps-gcp-errors-details">
+<h2>GPS/GCP Errors Details<a class="headerlink" href="#gps-gcp-errors-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="gps" src="_images/gps.png" /></p>
+<dl class="simple">
+<dt>The GPS/GCP tables lists :</dt><dd><ul class="simple">
+<li><p>Per-coordinates (X, Y, Z) sum of errors, median and standard deviation (sigma)</p></li>
+<li><p>Per-coordinates and total RMS (root mean squared) errors.</p></li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="processing-time-details">
+<h2>Processing Time Details<a class="headerlink" href="#processing-time-details" title="Permalink to this headline">¶</a></h2>
+<p><img alt="time" src="_images/time.png" /></p>
+<p>This table list the time breakdown of each SfM step.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="rig.html" class="btn btn-neutral float-right" title="Rig Models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="reporting.html" class="btn btn-neutral float-left" title="Reporting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Mapillary.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>

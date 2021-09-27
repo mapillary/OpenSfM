@@ -1,0 +1,6 @@
+.DS_store
+.cache
+.vscode
+build
+cmake_build
+opensfm

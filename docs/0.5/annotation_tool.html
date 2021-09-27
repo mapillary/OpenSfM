@@ -1,0 +1,448 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Control points annotation tool &mdash; OpenSfM 0.5.2 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="_static/mathjax_conf.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Code Documentation" href="api.html" />
+    <link rel="prev" title="Rig Models" href="rig.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> OpenSfM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.5
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="building.html">Building</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using.html">Using</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html#reconstruction-file-format">Reconstruction file format</a></li>
+<li class="toctree-l1"><a class="reference internal" href="geometry.html">Geometric Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cam_coord_system.html">Camera Coordinate System and Conventions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reconstruction_module.html">Incremental reconstruction algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="large.html">Splitting a large dataset into smaller submodels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reporting.html">Reporting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quality_report.html">Statistics and Quality Report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rig.html">Rig Models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Control points annotation tool</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setup">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#layout">Layout</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main-toolbox">Main toolbox</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#image-view">Image view</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basic-workflow">Basic workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-alignment-and-detecting-wrong-annotations">Running the alignment and detecting wrong annotations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-features">Advanced features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#aligning-two-reconstructions">Aligning two reconstructions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#annotating-cad-models">Annotating CAD models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Code Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenSfM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Control points annotation tool</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            
+              <a href="https://github.com/mapillary/OpenSfM/blob/main/doc/source/annotation_tool.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="control-points-annotation-tool">
+<h1>Control points annotation tool<a class="headerlink" href="#control-points-annotation-tool" title="Permalink to this headline">¶</a></h1>
+<p>The usage of control points during the reconstruction process in OpenSfM is documented
+<a class="reference external" href="using.html#ground-control-points">here</a>.
+This page deals with a graphical user interface to create control points manually.</p>
+<p>The typical use case of this tool is to annotate the pixel locations surveyed ground control points
+on 2D images so that they can be used during the reconstruction phase for accurate georegistration.</p>
+<p>Other less common use cases are also made possible with control points and can be realized with this tool,
+some of these are discussed at the end of this page:</p>
+<ul class="simple">
+<li><p>Annotating pseudo-ground control points on orthophotos.</p></li>
+<li><p>Annotating correspondences between two reconstructions that can’t be matched automatically.
+(e.g. one created during the day and another one during the night, summer-winter, and so on).</p></li>
+<li><p>Annotating correspondences between 2D images and a 3D CAD model.</p></li>
+</ul>
+<p>Besides annotating control points, the tool also includes features to check for correctness
+in the annotation by reporting and visualizing reprojection errors.</p>
+<div class="section" id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h2>
+<p>Install requirements:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">OpenSfM</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">annotation_gui_gcp</span><span class="o">/</span><span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>Launch the UI on a sample dataset:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">annotation_gui_gcp</span><span class="o">/</span><span class="n">main</span><span class="o">.</span><span class="n">py</span> <span class="n">data</span><span class="o">/</span><span class="n">berlin</span>
+</pre></div>
+</div>
+<p>A browser window should open. If not, visit <a class="reference external" href="http:/localhost:5000">http:/localhost:5000</a>.</p>
+</div>
+<div class="section" id="layout">
+<h2>Layout<a class="headerlink" href="#layout" title="Permalink to this headline">¶</a></h2>
+<p>The tool is a multi-pane web-app.
+There is a main toolbox on the top and one or more panes to interact with images.
+The number of panes depends on the contents of the sequence_database.json file.
+This file defines one or more image sequences. Each sequence will open in a new window.
+The example dataset at <code class="docutils literal notranslate"><span class="pre">data/berlin</span></code> contains a single sequence in
+<a class="reference external" href="https://github.com/mapillary/OpenSfM/blob/main/data/berlin/sequence_database.json">sequence_database.json</a></p>
+<div class="section" id="main-toolbox">
+<h3>Main toolbox<a class="headerlink" href="#main-toolbox" title="Permalink to this headline">¶</a></h3>
+<p>The main toolbox contains the list of existing control points as well as several controls.
+The basic controls are explained here. Scroll to <span class="xref std std-ref">additional-controls</span> for information on the rest.</p>
+<ul class="simple">
+<li><p>The ‘Load’, ‘Save’ buttons save and load the ground control points into a <code class="docutils literal notranslate"><span class="pre">ground_control_points.json</span></code> file with <a class="reference internal" href="gcp.html#json-gcps"><span class="std std-ref">JSON file format</span></a>.</p></li>
+<li><p>If there is a <code class="docutils literal notranslate"><span class="pre">ground_control_points.json</span></code> file in the dataset directory, it will be loaded upon launch.</p></li>
+<li><p>Control points can be added or removed with the ‘Add GCP’ and ‘Remove GCP’ buttons. The active point can be selected from the dropdown.</p></li>
+<li><p>By selecting a point in the list it becomes active and can be annotated on all images.</p></li>
+</ul>
+</div>
+<div class="section" id="image-view">
+<h3>Image view<a class="headerlink" href="#image-view" title="Permalink to this headline">¶</a></h3>
+<p>Each Image view displays a sequence of images as defined in the <code class="docutils literal notranslate"><span class="pre">sequence_database.json</span></code> file.
+The view allows navigating through the sequence and creating, deleting and correcting control points on each image.
+The panel on the left contains a list of frames.</p>
+<p>Basic controls:</p>
+<ul class="simple">
+<li><p>Clicking on a frame on the frame list will display that image.</p></li>
+<li><p>Scrolling up/down with the mouse wheel or the up/down arrows will move to the next/previous frame.</p></li>
+<li><p>Left clicking will create or update a control point annotation for the currently selected control point.</p></li>
+<li><p>Right clicking will remove the control point annotation on this image.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="basic-workflow">
+<h3>Basic workflow<a class="headerlink" href="#basic-workflow" title="Permalink to this headline">¶</a></h3>
+<p>Assuming that you have a set of ground control points whose geodetic coordinates you know:</p>
+<ol class="arabic simple">
+<li><p>Create a OpenSfM dataset containing your images under images/ and their order in a <code class="docutils literal notranslate"><span class="pre">sequence_database.json</span></code> file.
+You can use <code class="docutils literal notranslate"><span class="pre">data/berlin</span></code> for this example.</p></li>
+<li><p>Generate a <code class="docutils literal notranslate"><span class="pre">ground_control_points.json</span></code> file with all your measured ground control points and place it in the root of the dataset
+See the example below. Note how the ‘observations’ is empty as we will generate those using the annotation tool.</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;points&quot;</span><span class="p">:</span> <span class="p">[</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="mf">52.519</span><span class="p">,</span><span class="s2">&quot;altitude&quot;</span><span class="p">:</span> <span class="mf">14.946</span><span class="p">,</span><span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="mf">13.400</span><span class="p">},</span>
+    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;my_measured_gcp_1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;observations&quot;</span><span class="p">:</span> <span class="p">[]</span>
+  <span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Launch the annotation tool, note how the control points dropdown contains your ground control points.</p></li>
+<li><p>Scroll through all the images, annotating each GCP on all the locations where it is visible.</p></li>
+<li><p>Click on ‘save’ to overwrite the <code class="docutils literal notranslate"><span class="pre">ground_control_points.json</span></code> file with your annotations.
+The annotated ground control points can now be used in the OpenSfM reconstruction pipeline,
+see the relevant docs <a class="reference external" href="using.html#ground-control-points">here</a>.</p></li>
+</ol>
+</div>
+<div class="section" id="running-the-alignment-and-detecting-wrong-annotations">
+<span id="running-alignment"></span><h3>Running the alignment and detecting wrong annotations<a class="headerlink" href="#running-the-alignment-and-detecting-wrong-annotations" title="Permalink to this headline">¶</a></h3>
+<p>After annotating a point in more than two images, it can be triangulated using known camera poses.
+The reprojection of the triangulated points onto the images can be used as a check that the annotations
+are correct. This is enabled by the Analysis section in the main toolbox.</p>
+<ol class="arabic simple">
+<li><p>Ensure that there is a reconstruction.json file in the <code class="docutils literal notranslate"><span class="pre">data/berlin</span></code> directory.
+(see <a class="reference external" href="using.html#ground-control-points">this</a> link for instructions on that).</p></li>
+<li><p>Annotate a control point in at least three images.</p></li>
+<li><p>Save the control points using the ‘Save’ button.</p></li>
+<li><p>Click on ‘Rigid’. After a moment, you will see output in the terminal indicating reprojection errors.</p></li>
+</ol>
+<p>After running the analysis, the output aligned reconstructions are saved with new filenames in the root
+folder and can be viewed in 3D with the OpenSfM viewer.</p>
+<p>The ‘Flex’ and ‘Full’ buttons produce additional analysis results and
+are explained in <a class="reference internal" href="#two-reconstruction-annotation"><span class="std std-ref">Aligning two reconstructions</span></a></p>
+</div>
+</div>
+<div class="section" id="advanced-features">
+<h2>Advanced features<a class="headerlink" href="#advanced-features" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="aligning-two-reconstructions">
+<span id="two-reconstruction-annotation"></span><h3>Aligning two reconstructions<a class="headerlink" href="#aligning-two-reconstructions" title="Permalink to this headline">¶</a></h3>
+<p>The tool can be used to align two reconstructions that were not reconstructed together for whatever reason
+(e.g. day and night or winter and summer images)</p>
+<p>Detailed documentation for this is not available as the feature is experimental, but, in short:</p>
+<ul class="simple">
+<li><p>Start from a dataset containing more than one reconstruction in <code class="docutils literal notranslate"><span class="pre">reconstruction.json</span></code>.</p></li>
+<li><dl class="simple">
+<dt>Launch the tool:</dt><dd><ul>
+<li><p>If the two reconstructions come from different sequences, lauch as usual.</p></li>
+<li><p>If the two reconstructions come from the same sequence, launch using the <code class="docutils literal notranslate"><span class="pre">--group-by-reconstruction</span></code> argument.
+This will split the images into two windows, one for each reconstruction.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Find control points in common and annotate them.
+Make sure to annotate enough points to constrain the alignment.</p></li>
+</ul>
+<p>Use the ‘Rigid’, ‘Flex’ or ‘Full’ buttons to run the alignment using the annotations:</p>
+<ul class="simple">
+<li><p>The ‘Rigid’ option triangulates the control points in each reconstruction independently and finds a rigid transform to align them.</p></li>
+<li><p>The ‘Flex’ option additionally re-runs bundle adjustment, allowing for some deformation of both reconstructions to fit the annotations.</p></li>
+<li><p>The ‘Full’ option attempts to obtain positional covariances for each camera pose.
+If succesful, the frame list on the image views is populated with the positional covariance norm. Lower is better.</p></li>
+</ul>
+<p>After running analysis, the reprojection errors are overlaid on the image views as shown in <a class="reference internal" href="#running-alignment"><span class="std std-ref">Running the alignment and detecting wrong annotations</span></a>.
+The aligned reconstructions are saved with new filenames in the root folder and can be viewed in 3D with the OpenSfM viewer.</p>
+</div>
+<div class="section" id="annotating-cad-models">
+<span id="cad-model-annotation"></span><h3>Annotating CAD models<a class="headerlink" href="#annotating-cad-models" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/cad_annotation.jpg" src="_images/cad_annotation.jpg" />
+<p>3D models in .FBX format can also be annotated with this tool.</p>
+<p>The behavior is similar to the orthophoto annotation: the GPS coordinates of the ground-level images
+are used to pick from a collection of models. Annotations are 3D instead of 2D and can be used to align
+the SfM reconstruction with the CAD models.</p>
+<p>This is highly experimental at the moment. Check out the –cad argument and the files in
+<a class="reference external" href="https://github.com/mapillary/OpenSfM/blob/feat_annotation_ui/annotation_gui_gcp/cad_viewer">cad_viewer</a>
+for more information and/or get in touch.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="api.html" class="btn btn-neutral float-right" title="Code Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="rig.html" class="btn btn-neutral float-left" title="Rig Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Mapillary.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+  
+ 
+<style>
+  @import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700&display=swap');
+  html {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+  .highlight {
+    font-family: "Lucida Console", Monaco, monospace!important;
+  }
+  .wy-side-nav-search {
+    background: #212b36;
+  }
+  .wy-side-nav-search input[type=text] {
+    border-color: transparent;
+    
+  }
+  .wy-nav-side {
+    background: #212b36;
+  }
+  .wy-menu-vertical a:hover {
+    color: #d9d9d9;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  a, a:hover {
+    color: #05cb63;
+  }
+  body {
+    color: #212b36;
+  }
+  .wy-nav-content-wrap {
+    background: #fcfcfc!important;
+  }
+  .wy-side-nav-search>a:hover {
+    color: #fff!important;
+  }
+  .highlight {
+    background: #dee5ed;
+  }
+  .wy-menu-vertical li.on a, .wy-menu-vertical li.current>a {
+
+  }
+  .wy-menu-vertical li.toctree-l1.current>a {
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .rst-content pre.literal-block, .rst-content div[class^='highlight'] {
+    border-radius: 4px;
+    border-color: #dee5ed!important;  
+  }
+</style>
+
+
+</body>
+</html>
