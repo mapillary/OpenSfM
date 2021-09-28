@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from opensfm import pygeometry
 from opensfm import pymap
-from opensfm import pysfm
 from opensfm import types
 from opensfm.test.utils import (
     assert_metadata_equal,
@@ -1090,3 +1089,33 @@ def test_gcp():
     for pt in gcp:
         assert pt.observations[0].shot_id == "p1"
         assert pt.observations[1].shot_id == "p2"
+
+
+def test_add_correspondences_from_tracks_manager():
+    n_shots=3
+    rec = _create_reconstruction(
+        n_cameras=1,
+        n_shots_cam={"0": n_shots},
+        n_points=10,
+    )
+    # create tracks manager
+    tm = pymap.TracksManager()
+    # add observations for 3 tracks
+    # One shot and one landmark are not in the reconstruction
+    for track_id in ["0", "1", "100"]:
+        for shot_id in range(n_shots + 1):
+            obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, 100)
+            tm.add_observation(str(shot_id), track_id, obs)
+
+    # add a shot that is NOT in the tracks manager
+    rec.create_shot(str(n_shots + 5), next(iter(rec.cameras)))
+
+    rec.add_correspondences_from_tracks_manager(tm)
+
+    # make sure to have the observations for []
+    assert "100" not in rec.points
+
+    for track_id in ["0", "1"]:
+        pt = rec.points[track_id]
+        observations = pt.get_observations()
+        assert len(observations) == n_shots

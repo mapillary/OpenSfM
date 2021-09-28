@@ -286,7 +286,9 @@ class Reconstruction(object):
     def add_correspondences_from_tracks_manager(
         self, tracks_manager: pymap.TracksManager
     ) -> None:
-        for track_id in self.points.keys():
+        for track_id in tracks_manager.get_track_ids():
+            if track_id not in self.points:
+                continue
             track_obs = tracks_manager.get_track_observations(track_id)
             for shot_id in track_obs.keys():
                 if shot_id in self.shots:
