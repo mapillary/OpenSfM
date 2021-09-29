@@ -73,14 +73,18 @@ def create_instances_with_patterns(
 
         cameras_group = {c for _, c in cameras}
         for _, c in cameras:
-            if c in groups_per_camera and cameras_group != groups_per_camera[c]:
+            size_new = len(cameras_group)
+            override = c in groups_per_camera and size_new >= len(groups_per_camera[c])
+            is_new = c not in groups_per_camera
+            if is_new or override:
+                groups_per_camera[c] = cameras_group
+            else:
                 logger.warning(
                     (
                         f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}."
                         f"This rig camera is probably part of an incomplete instance : {cameras_group}"
                     )
                 )
-            groups_per_camera[c] = cameras_group
         per_complete_instance_id[instance_id] = cameras
 
     return per_complete_instance_id, single_shots
@@ -133,7 +137,7 @@ def propose_subset_dataset_from_instances(
         for i, gps in gpses:
             distances, neighbors = tree.query(gps, k=nn)
             for d, n in zip(distances, neighbors):
-                if i == n:
+                if i == n or n >= len(gpses):
                     continue
                 instances_graph.add_edge(i, n, weight=d)
         all_components = sorted(
@@ -142,6 +146,8 @@ def propose_subset_dataset_from_instances(
             reverse=True,
         )
         logger.info(f"Found {len(all_components)} connected components")
+        if len(all_components) < 1:
+            continue
 
         # keep the biggest one
         biggest_component = all_components[0]
