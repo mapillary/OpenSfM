@@ -222,11 +222,15 @@ void BundleAdjuster::AddReconstructionShot(const std::string &reconstruction_id,
 
 void BundleAdjuster::AddPoint(const std::string &id, const Vec3d &position,
                               bool constant) {
-  Point p;
-  p.id = id;
-  p.parameters = position;
-  p.constant = constant;
-  points_[id] = p;
+  auto point =
+      &points_
+           .emplace(std::piecewise_construct, std::forward_as_tuple(id),
+                    std::forward_as_tuple(id, position))
+           .first->second;
+
+  if (constant) {
+    point->SetParametersToOptimize({});
+  }
 }
 
 void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
@@ -238,7 +242,7 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
     PointProjectionObservation o;
     o.shot = &shots_.at(shot);
     o.camera = &cameras_.at(o.shot->GetCamera()->GetID());
-    o.point = &points_[point];
+    o.point = &points_.at(point);
     o.coordinates = observation;
     o.std_deviation = std_deviation;
     point_projection_observations_.push_back(o);
@@ -246,7 +250,7 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
     PointRigProjectionObservation o;
     o.rig_shot = &find_rig_shot->second;
     o.camera = &cameras_.at(o.rig_shot->GetCamera()->GetID());
-    o.point = &points_[point];
+    o.point = &points_.at(point);
     o.coordinates = observation;
     o.std_deviation = std_deviation;
     point_rig_projection_observations_.push_back(o);
@@ -270,7 +274,7 @@ void BundleAdjuster::AddPointPositionPrior(const std::string &point_id,
                                            double x, double y, double z,
                                            double std_deviation) {
   PointPositionPrior p;
-  p.point = &points_[point_id];
+  p.point = &points_.at(point_id);
   p.position[0] = x;
   p.position[1] = y;
   p.position[2] = z;
@@ -561,7 +565,7 @@ struct AddProjectionError {
     problem->AddResidualBlock(cost_function, loss,
                               obs.shot->GetCamera()->GetValueData().data(),
                               obs.shot->GetPose()->GetValueData().data(),
-                              obs.point->parameters.data());
+                              obs.point->GetValueData().data());
   }
 };
 
@@ -591,7 +595,7 @@ struct AddRigProjectionError {
         cost_function, loss, obs.camera->GetValueData().data(),
         obs.rig_shot->GetRigInstance()->GetValueData().data(),
         obs.rig_shot->GetRigCamera()->GetValueData().data(),
-        obs.point->parameters.data());
+        obs.point->GetValueData().data());
   }
 };
 
@@ -610,7 +614,7 @@ struct ComputeResidualError {
                       obs.coordinates, 1.0);
       const double *params[] = {obs.shot->GetCamera()->GetValueData().data(),
                                 obs.shot->GetPose()->GetValueData().data(),
-                                obs.point->parameters.data()};
+                                obs.point->GetValueData().data()};
       error.Evaluate(params, residuals.data(), nullptr);
       obs.point->reprojection_errors[obs.shot->GetID()] = residuals;
     } else {
@@ -622,7 +626,7 @@ struct ComputeResidualError {
                       obs.coordinates, 1.0);
       error(obs.shot->GetCamera()->GetValueData().data(),
             obs.shot->GetPose()->GetValueData().data(),
-            obs.point->parameters.data(), residuals.data());
+            obs.point->GetValueData().data(), residuals.data());
       obs.point->reprojection_errors[obs.shot->GetID()] = residuals;
     }
   }
@@ -644,7 +648,7 @@ struct ComputeRigResidualError {
           obs.camera->GetValueData().data(),
           obs.rig_shot->GetRigInstance()->GetValueData().data(),
           obs.rig_shot->GetRigCamera()->GetValueData().data(),
-          obs.point->parameters.data()};
+          obs.point->GetValueData().data()};
       error.Evaluate(params, residuals.data(), nullptr);
       obs.point->reprojection_errors[obs.rig_shot->GetID()] = residuals;
     } else {
@@ -657,7 +661,7 @@ struct ComputeRigResidualError {
       error(obs.camera->GetValueData().data(),
             obs.rig_shot->GetRigInstance()->GetValueData().data(),
             obs.rig_shot->GetRigCamera()->GetValueData().data(),
-            obs.point->parameters.data(), residuals.data());
+            obs.point->GetValueData().data(), residuals.data());
       obs.point->reprojection_errors[obs.rig_shot->GetID()] = residuals;
     }
   }
@@ -766,6 +770,17 @@ void BundleAdjuster::Run() {
     }
   }
 
+  // Add points
+  for (auto &p : points_) {
+    auto &data = p.second.GetValueData();
+    problem.AddParameterBlock(data.data(), data.size());
+
+    // Lock parameters based on bitmask of parameters : only constant for now
+    if (p.second.GetParametersToOptimize().empty()) {
+      problem.SetParameterBlockConstant(data.data());
+    }
+  }
+
   // Reconstructions
   for (auto &i : reconstructions_) {
     for (auto &s : i.second.scales) {
@@ -781,14 +796,20 @@ void BundleAdjuster::Run() {
     }
   }
 
+  // New generic prior errors (only rig instances + rig models + points for now)
   for (auto &i : points_) {
-    if (i.second.constant) {
-      problem.AddParameterBlock(i.second.parameters.data(), 3);
-      problem.SetParameterBlockConstant(i.second.parameters.data());
+    if (!i.second.HasPrior()) {
+      continue;
     }
+    auto *position_prior = new DataPriorError<Vec3d>(&i.second);
+    position_prior->SetConstrainedDataIndexes(
+        {Point::Parameter::PX, Point::Parameter::PY, Point::Parameter::PZ});
+    ceres::CostFunction *cost_function = new ceres::AutoDiffCostFunction<
+        DataPriorError<Vec3d>, 3, Point::Parameter::NUM_PARAMS>(position_prior);
+    problem.AddResidualBlock(cost_function, nullptr,
+                             i.second.GetValueData().data());
   }
 
-  // New generic prior errors (only rig instances + rig modelsfor now)
   for (auto &i : rig_instances_) {
     if (!i.second.HasPrior()) {
       continue;
@@ -855,7 +876,7 @@ void BundleAdjuster::Run() {
             new PointPositionPriorError(pp.position, pp.std_deviation));
 
     problem.AddResidualBlock(cost_function, nullptr,
-                             pp.point->parameters.data());
+                             pp.point->GetValueData().data());
   }
 
   // Add internal parameter priors blocks
@@ -1115,7 +1136,7 @@ void BundleAdjuster::Run() {
         cost_function, nullptr,
         shots_.at(p.shot_id).GetPose()->GetValueData().data(),
         reconstructions_[p.reconstruction_id].GetScalePtr(p.shot_id),
-        points_[p.point_id].parameters.data());
+        points_.at(p.point_id).GetValueData().data());
   }
 
   // Add point positions with world position priors
@@ -1130,7 +1151,7 @@ void BundleAdjuster::Run() {
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(3);
     problem.AddResidualBlock(cost_function, nullptr,
-                             points_[p.point_id].parameters.data());
+                             points_.at(p.point_id).GetValueData().data());
   }
 
   // Solve

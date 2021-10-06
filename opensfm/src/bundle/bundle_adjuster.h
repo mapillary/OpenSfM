@@ -3,6 +3,7 @@
 #include <bundle/data/bias.h>
 #include <bundle/data/camera.h>
 #include <bundle/data/data.h>
+#include <bundle/data/point.h>
 #include <bundle/data/pose.h>
 #include <bundle/data/rig.h>
 #include <bundle/data/shot.h>
@@ -33,16 +34,6 @@ enum PositionConstraintType {
   Z = 0x4,
   XY = X | Y,
   XYZ = XY | Z
-};
-
-struct Point {
-  std::string id;
-  Eigen::Matrix<double, 3, 1> parameters;
-  bool constant;
-  std::map<std::string, VecXd> reprojection_errors;
-
-  Vec3d GetPoint() const { return parameters; }
-  void SetPoint(const Vec3d &p) { parameters = p; }
 };
 
 struct Reconstruction {

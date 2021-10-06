@@ -321,7 +321,7 @@ py::tuple BAHelpers::BundleLocal(
 
   for (auto* point : points) {
     const auto& pt = ba.GetPoint(point->id_);
-    point->SetGlobalPos(pt.GetPoint());
+    point->SetGlobalPos(pt.GetValue());
     point->SetReprojectionErrors(pt.reprojection_errors);
   }
   const auto timer_teardown = std::chrono::high_resolution_clock::now();
@@ -835,7 +835,7 @@ py::dict BAHelpers::Bundle(
   // Update points
   for (auto& point : map.GetLandmarks()) {
     const auto& pt = ba.GetPoint(point.first);
-    point.second.SetGlobalPos(pt.GetPoint());
+    point.second.SetGlobalPos(pt.GetValue());
     point.second.SetReprojectionErrors(pt.reprojection_errors);
   }
   const auto timer_teardown = std::chrono::high_resolution_clock::now();

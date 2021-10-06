@@ -107,9 +107,10 @@ PYBIND11_MODULE(pybundle, m) {
       .def_readwrite("id", &bundle::Reconstruction::id);
 
   py::class_<bundle::Point>(m, "Point")
-      .def(py::init())
-      .def_property("p", &bundle::Point::GetPoint, &bundle::Point::SetPoint)
-      .def_readwrite("id", &bundle::Point::id)
+      .def_property_readonly(
+          "p", [](const bundle::Point &p) { return p.GetValue(); })
+      .def_property_readonly("id",
+                             [](const bundle::Point &p) { return p.GetID(); })
       .def_readwrite("reprojection_errors",
                      &bundle::Point::reprojection_errors);
 
