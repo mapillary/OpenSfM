@@ -2,6 +2,7 @@
 
 #include <bundle/bundle_adjuster.h>
 #include <bundle/error/error_utils.h>
+#include <bundle/error/position_functors.h>
 
 #include <Eigen/Eigen>
 
@@ -79,11 +80,11 @@ struct UpVectorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* r) const {
-    Eigen::Map<const Vec3<T>> R(shot + Pose::Parameter::RX);
+    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
     Eigen::Map<Vec3<T>> residual(r);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
-    const Vec3<T> z_world = RotatePoint(R.eval(), acceleration);
+    const Vec3<T> z_world = RotatePoint(R, acceleration);
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     residual = T(scale_) * (z_world - z_axis);
     return true;
@@ -99,10 +100,10 @@ struct PanAngleError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    Eigen::Map<const Vec3<T>> R(shot + Pose::Parameter::RX);
+    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
 
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
-    const auto z_world = RotatePoint(R.eval(), z_axis);
+    const auto z_world = RotatePoint(R, z_axis);
 
     if (ceres::abs(z_world(0)) < T(1e-8) && ceres::abs(z_world(1)) < T(1e-8)) {
       residuals[0] = T(0.0);
@@ -124,10 +125,10 @@ struct TiltAngleError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T* const R = shot + Pose::Parameter::RX;
+    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
     T ez[3] = {T(0), T(0), T(1)};  // ez: A point in front of the camera (z=1)
     T Rt_ez[3];
-    ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
+    ceres::AngleAxisRotatePoint(R.data(), ez, Rt_ez);
 
     T l = sqrt(Rt_ez[0] * Rt_ez[0] + Rt_ez[1] * Rt_ez[1]);
     T predicted_angle = -atan2(Rt_ez[2], l);
@@ -146,13 +147,13 @@ struct RollAngleError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T* const R = shot + Pose::Parameter::RX;
+    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
     T ex[3] = {T(1), T(0), T(0)};  // A point to the right of the camera (x=1)
     T ez[3] = {T(0), T(0), T(1)};  // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
     T tangle_ = T(angle_);
-    ceres::AngleAxisRotatePoint(R, ex, Rt_ex);
-    ceres::AngleAxisRotatePoint(R, ez, Rt_ez);
+    ceres::AngleAxisRotatePoint(R.data(), ex, Rt_ex);
+    ceres::AngleAxisRotatePoint(R.data(), ez, Rt_ez);
 
     T a[3] = {Rt_ez[1], -Rt_ez[0], T(0)};
     T la = sqrt(a[0] * a[0] + a[1] * a[1]);
@@ -184,13 +185,12 @@ struct RotationPriorError {
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
     // Get rotation and translation values.
-    const T R[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
-                    -shot[Pose::Parameter::RZ]};
+    Vec3<T> R = -ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
     T Rpt[3] = {-T(R_prior_[0]), -T(R_prior_[1]), -T(R_prior_[2])};
 
     // Compute rotation residual: log( R Rp^t )
     T qR[4], qRpt[4], qR_Rpt[4];
-    ceres::AngleAxisToQuaternion(R, qR);
+    ceres::AngleAxisToQuaternion(R.data(), qR);
     ceres::AngleAxisToQuaternion(Rpt, qRpt);
     ceres::QuaternionProduct(qR, qRpt, qR_Rpt);
     T R_Rpt[3];
@@ -213,12 +213,10 @@ struct TranslationPriorError {
 
   template <typename T>
   bool operator()(const T* const shot, T* residuals) const {
-    const T mt[3] = {-shot[Pose::Parameter::TX], -shot[Pose::Parameter::TY],
-                     -shot[Pose::Parameter::TZ]};
-    const T Rt[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
-                     -shot[Pose::Parameter::RZ]};
+    Vec3<T> mt = -ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&shot);
+    Vec3<T> Rt = -ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
     T translation[3];
-    ceres::AngleAxisRotatePoint(Rt, mt, translation);
+    ceres::AngleAxisRotatePoint(Rt.data(), mt.data(), translation);
 
     residuals[0] = T(scale_) * (T(translation_prior_[0]) - translation[0]);
     residuals[1] = T(scale_) * (T(translation_prior_[1]) - translation[1]);
@@ -237,13 +235,13 @@ struct PositionPriorError {
   template <typename T>
   bool operator()(const T* const shot, const T* const bias,
                   T* residuals) const {
-    Eigen::Map<const Vec3<T>> R(bias + Bias::Parameter::RX);
-    Eigen::Map<const Vec3<T>> t(bias + Bias::Parameter::TX);
+    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&bias);
+    Vec3<T> t = ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&bias);
     const T* const scale = bias + Bias::Parameter::SCALE;
 
     Eigen::Map<Vec3d> prior(position_prior_);
     Eigen::Map<Vec3<T>> res(residuals);
-    Eigen::Map<const Vec3<T>> optical_center(shot + Pose::Parameter::TX);
+    Vec3<T> optical_center = ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&shot);
 
     res = T(scale_) *
           (optical_center -
@@ -298,8 +296,9 @@ struct HeatmapdCostFunctor {
 
   template <typename T>
   bool operator()(T const* p, T* residuals) const {
-    const T x_coor = p[Pose::Parameter::TX] - x_offset_;
-    const T y_coor = p[Pose::Parameter::TY] - y_offset_;
+    Vec3<T> position = ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&p);
+    const T x_coor = position[0] - x_offset_;
+    const T y_coor = position[1] - y_offset_;
     // const T z_coor = x[2]; - Z goes brrrrr
     const T row = height_ / 2. - (y_coor / resolution_);
     const T col = width_ / 2. + (x_coor / resolution_);

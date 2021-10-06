@@ -1016,18 +1016,11 @@ void BundleAdjuster::Run() {
     ceres::DynamicCostFunction *cost_function = nullptr;
 
     // camera parametrization
-    ShotPositionShotParam pos_func(0);
+    ShotPositionFunctor pos_func(0, -1);
     cost_function = new ceres::DynamicAutoDiffCostFunction<
-        AbsolutePositionError<ShotPositionShotParam>>(
-        new AbsolutePositionError<ShotPositionShotParam>(
+        AbsolutePositionError<ShotPositionFunctor>>(
+        new AbsolutePositionError<ShotPositionFunctor>(
             pos_func, a.position, 1.0, 1.0, true, PositionConstraintType::XYZ));
-
-    // world parametrization
-    // ShotPositionWorldParam pos_func(0);
-    // cost_function = new ceres::AutoDiffCostFunction<
-    //     BAAbsolutePositionError<ShotPositionWorldParam>, 3, 6>(
-    //     new BAAbsolutePositionError(pos_func, a.position,
-    //     a.std_deviation));
 
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
@@ -1133,10 +1126,10 @@ void BundleAdjuster::Run() {
 
   // Add point positions with shot position priors
   for (auto &p : point_positions_shot_) {
-    PointPositionScaledShot pos_func(0, 1, 2);
+    PointPositionShotFunctor pos_func(0, -1, 1, 2);
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
-        AbsolutePositionError<PointPositionScaledShot>>(
-        new AbsolutePositionError<PointPositionScaledShot>(
+        AbsolutePositionError<PointPositionShotFunctor>>(
+        new AbsolutePositionError<PointPositionShotFunctor>(
             pos_func, p.position, p.std_deviation, p.std_deviation, false,
             p.type));
 
@@ -1154,10 +1147,10 @@ void BundleAdjuster::Run() {
 
   // Add point positions with world position priors
   for (auto &p : point_positions_world_) {
-    PointPositionWorldFunc pos_func(0);
+    PointPositionWorldFunctor pos_func(0);
     auto *cost_function = new ceres::DynamicAutoDiffCostFunction<
-        AbsolutePositionError<PointPositionWorldFunc>>(
-        new AbsolutePositionError<PointPositionWorldFunc>(
+        AbsolutePositionError<PointPositionWorldFunctor>>(
+        new AbsolutePositionError<PointPositionWorldFunctor>(
             pos_func, p.position, p.std_deviation_horizontal,
             p.std_deviation_vertical, false, p.type));
 

@@ -123,8 +123,11 @@ class ReprojectionError2D : public ReprojectionError {
   template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
+    T scale_one = T(1.0);
+    T* no_rig_camera = nullptr;
     T camera_point[3];
-    WorldToCameraCoordinates(shot, point, camera_point);
+    WorldToCameraCoordinatesRig(&scale_one, shot, no_rig_camera, point,
+                                camera_point);
 
     // Apply camera projection
     T predicted[2];
@@ -149,11 +152,10 @@ class RigReprojectionError2D : public ReprojectionError {
   bool operator()(const T* const camera, const T* const rig_instance,
                   const T* const rig_camera, const T* const point,
                   T* residuals) const {
-    T instance_point[3];
-    WorldToCameraCoordinates(rig_instance, point, instance_point);
-
+    T scale_one = T(1.0);
     T camera_point[3];
-    WorldToCameraCoordinates(rig_camera, instance_point, camera_point);
+    WorldToCameraCoordinatesRig(&scale_one, rig_instance, rig_camera, point,
+                                camera_point);
 
     // Apply camera projection
     T predicted[2];
@@ -357,8 +359,11 @@ class ReprojectionError3D : public ReprojectionError {
   template <typename T>
   bool operator()(const T* const camera, const T* const shot,
                   const T* const point, T* residuals) const {
+    T scale_one = T(1.0);
+    T* no_rig_camera = nullptr;
     Vec3<T> predicted;
-    WorldToCameraCoordinates(shot, point, predicted.data());
+    WorldToCameraCoordinatesRig(&scale_one, shot, no_rig_camera, point,
+                                predicted.data());
     predicted.normalize();
 
     /* Difference between projected vector and observed bearing vector. We use

@@ -45,11 +45,12 @@ Vec3<T> RotatePoint(const Vec3<T>& R, const Vec3<T>& x) {
   return rotated;
 }
 
-/* bring a point into shot coordinates as x_shot = shot_scale * shot_rotation(t)
- * * (x_world - shot_center) */
+/* bring a point into shot coordinates as :
+x_shot = shot_scale * shot_rotation(t) * (x_world - shot_center)
+*/
 template <typename T>
-void WorldToCameraCoordinates(const T* scale, const T* const shot,
-                              const T world_point[3], T camera_point[3]) {
+void WorldToLocal(const T* scale, const T* const shot, const T world_point[3],
+                  T camera_point[3]) {
   const T pt[3] = {scale[0] * world_point[0] - shot[Pose::Parameter::TX],
                    scale[0] * world_point[1] - shot[Pose::Parameter::TY],
                    scale[0] * world_point[2] - shot[Pose::Parameter::TZ]};
@@ -58,9 +59,27 @@ void WorldToCameraCoordinates(const T* scale, const T* const shot,
   ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
 }
 template <typename T>
-void WorldToCameraCoordinates(const T* const shot, const T world_point[3],
-                              T camera_point[3]) {
+void WorldToLocal(const T* const shot, const T world_point[3],
+                  T camera_point[3]) {
   const T scale_one = T(1.0);
-  WorldToCameraCoordinates(&scale_one, shot, world_point, camera_point);
+  WorldToLocal(&scale_one, shot, world_point, camera_point);
+}
+
+/* bring a point into shot coordinates as  :
+x_shot = rig_camera_rotation(t) * (rig_instance_scale * rig_instance_rotation(t)
+* (x_world - rig_instance_center) - rig_camera__center)
+*/
+template <typename T>
+void WorldToCameraCoordinatesRig(const T* scale, const T* const rig_instance,
+                                 const T* const rig_camera,
+                                 const T world_point[3], T camera_point[3]) {
+  if (rig_camera) {
+    T instance_point[3];
+    WorldToLocal(scale, rig_instance, world_point, instance_point);
+    const T scale_one = T(1.0);
+    WorldToLocal(&scale_one, rig_camera, instance_point, camera_point);
+  } else {
+    WorldToLocal(scale, rig_instance, world_point, camera_point);
+  }
 }
 }  // namespace bundle
