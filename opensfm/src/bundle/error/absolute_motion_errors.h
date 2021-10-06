@@ -106,8 +106,10 @@ struct PanAngleError {
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> R = ShotRotationFunctor(0, 1)(params);
 
     const Vec3<T> z_axis = Vec3d(0, 0, 1).cast<T>();
     const auto z_world = RotatePoint(R, z_axis);
@@ -131,8 +133,10 @@ struct TiltAngleError {
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> R = ShotRotationFunctor(0, 1)(params);
     T ez[3] = {T(0), T(0), T(1)};  // ez: A point in front of the camera (z=1)
     T Rt_ez[3];
     ceres::AngleAxisRotatePoint(R.data(), ez, Rt_ez);
@@ -153,8 +157,10 @@ struct RollAngleError {
       : angle_(angle), scale_(1.0 / std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> R = ShotRotationFunctor(0, 1)(params);
     T ex[3] = {T(1), T(0), T(0)};  // A point to the right of the camera (x=1)
     T ez[3] = {T(0), T(0), T(1)};  // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
@@ -191,6 +197,7 @@ struct RollAngleError {
   double scale_;
 };
 
+// CANDIDATE FOR DELETION
 struct PositionPriorError {
   PositionPriorError(double* position_prior, double std_deviation)
       : position_prior_(position_prior), scale_(1.0 / std_deviation) {}
@@ -217,6 +224,7 @@ struct PositionPriorError {
   double scale_;
 };
 
+// CANDIDATE FOR DELETION
 struct UnitTranslationPriorError {
   UnitTranslationPriorError() {}
 
@@ -228,6 +236,7 @@ struct UnitTranslationPriorError {
   }
 };
 
+// CANDIDATE FOR DELETION
 struct PointPositionPriorError {
   PointPositionPriorError(double* position, double std_deviation)
       : position_(position), scale_(1.0 / std_deviation) {}
@@ -258,8 +267,10 @@ struct HeatmapdCostFunctor {
         scale_(1. / std_deviation) {}
 
   template <typename T>
-  bool operator()(T const* p, T* residuals) const {
-    Vec3<T> position = ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&p);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> position = ShotPositionFunctor(0, 1)(params);
     const T x_coor = position[0] - x_offset_;
     const T y_coor = position[1] - y_offset_;
     // const T z_coor = x[2]; - Z goes brrrrr
@@ -274,7 +285,7 @@ struct HeatmapdCostFunctor {
       const ceres::BiCubicInterpolator<ceres::Grid2D<double>>& interpolator,
       double x_offset, double y_offset, double height, double width,
       double heatmap_resolution, double std_deviation) {
-    return new ceres::AutoDiffCostFunction<HeatmapdCostFunctor, 1, 6>(
+    return new ceres::AutoDiffCostFunction<HeatmapdCostFunctor, 1, 6, 6>(
         new HeatmapdCostFunctor(interpolator, x_offset, y_offset, height, width,
                                 heatmap_resolution, std_deviation));
   }

@@ -16,12 +16,24 @@ PYBIND11_MODULE(pybundle, m) {
            &bundle::BundleAdjuster::SetRelativeMotionLossFunction)
       .def("add_camera", &bundle::BundleAdjuster::AddCamera)
       .def("get_camera", &bundle::BundleAdjuster::GetCamera)
-      .def("get_shot", &bundle::BundleAdjuster::GetShot)
-      .def("get_point", &bundle::BundleAdjuster::GetPoint)
+      .def("add_rig_camera", &bundle::BundleAdjuster::AddRigCamera)
+      .def("get_rig_camera_pose",
+           [](const bundle::BundleAdjuster &ba,
+              const std::string &rig_camera_id) {
+             return ba.GetRigCamera(rig_camera_id).GetValue();
+           })
+      .def("add_rig_instance", &bundle::BundleAdjuster::AddRigInstance)
+      .def("get_rig_instance_pose",
+           [](const bundle::BundleAdjuster &ba,
+              const std::string &rig_instance_id) {
+             return ba.GetRigInstance(rig_instance_id).GetValue();
+           })
+      .def("add_rig_instance_position_prior",
+           &bundle::BundleAdjuster::AddRigInstancePositionPrior)
       .def("set_scale_sharing", &bundle::BundleAdjuster::SetScaleSharing)
       .def("get_reconstruction", &bundle::BundleAdjuster::GetReconstruction)
-      .def("add_shot", &bundle::BundleAdjuster::AddShot)
       .def("add_point", &bundle::BundleAdjuster::AddPoint)
+      .def("get_point", &bundle::BundleAdjuster::GetPoint)
       .def("add_reconstruction", &bundle::BundleAdjuster::AddReconstruction)
       .def("add_reconstruction_shot",
            &bundle::BundleAdjuster::AddReconstructionShot)

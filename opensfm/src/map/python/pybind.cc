@@ -230,7 +230,16 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init<>())
       .def(py::init<const geometry::Pose &, const map::RigCameraId &>())
       .def_readwrite("id", &map::RigCamera::id)
-      .def_readwrite("pose", &map::RigCamera::pose);
+      .def_readwrite("pose", &map::RigCamera::pose)
+      // pickle support
+      .def(py::pickle(
+          [](const map::RigCamera &rc) {
+            return py::make_tuple(rc.pose, rc.id);
+          },
+          [](py::tuple s) {
+            return map::RigCamera(s[0].cast<geometry::Pose>(),
+                                  s[1].cast<map::RigCameraId>());
+          }));
 
   py::class_<map::RigInstance>(m, "RigInstance")
       .def(py::init<map::RigInstanceId>())
@@ -242,7 +251,7 @@ PYBIND11_MODULE(pymap, m) {
           "rig_cameras", py::overload_cast<>(&map::RigInstance::GetRigCameras),
           py::return_value_policy::reference_internal)
       .def_property_readonly(
-          "camera_ids",
+          "rig_camera_ids",
           [](const map::RigInstance &ri) {
             std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
             for (const auto &rig_camera : ri.GetRigCameras()) {
@@ -250,6 +259,15 @@ PYBIND11_MODULE(pymap, m) {
             }
             return rig_camera_ids;
           })
+      .def_property_readonly("camera_ids",
+                             [](const map::RigInstance &ri) {
+                               std::map<map::ShotId, map::CameraId> camera_ids;
+                               for (const auto &shot : ri.GetShots()) {
+                                 camera_ids[shot.first] =
+                                     shot.second->GetCamera()->id;
+                               }
+                               return camera_ids;
+                             })
       .def("keys", &map::RigInstance::GetShotIDs)
       .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
                     &map::RigInstance::SetPose,

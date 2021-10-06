@@ -158,7 +158,7 @@ class Reconstruction(object):
             raise RuntimeError("Shots already exist in another instance")
 
         if rig_instance.id not in self.rig_instances:
-            self.map.create_rig_instance(rig_instance.id, rig_instance.camera_ids)
+            self.map.create_rig_instance(rig_instance.id, rig_instance.rig_camera_ids)
         return self.map.update_rig_instance(rig_instance)
 
     # Shot
@@ -196,43 +196,9 @@ class Reconstruction(object):
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
         if shot.id not in self.shots:
-            if not shot.is_in_rig():
-                self.create_shot(shot.id, shot.camera.id, shot.pose)
-                self.map.update_shot(shot)
-            else:
-                has_instance, rig_instance = shot.rig_instance
-                if not has_instance:
-                    raise RuntimeError(
-                        f"Shot {shot.id} is in Rig whereas it hasn't any RigInstance"
-                    )
-
-                created_shot = {}
-                for instance_shot in rig_instance.shots.values():
-                    created_shot[instance_shot.id] = self.create_shot(
-                        instance_shot.id,
-                        instance_shot.camera.id,
-                        instance_shot.pose,
-                        False,
-                    )
-                    self.map.update_shot(instance_shot)
-                self.map.update_shot(shot)
-
-                new_rig_instance = self.add_rig_instance(
-                    pymap.RigInstance(rig_instance.id)
-                )
-                for instance_shot in rig_instance.shots.values():
-                    curr_has_camera, curr_rig_camera = instance_shot.rig_camera
-                    assert curr_has_camera
-                    if curr_rig_camera.id not in self.rig_cameras:
-                        new_rig_camera = self.add_rig_camera(curr_rig_camera)
-                    else:
-                        new_rig_camera = self.rig_cameras[curr_rig_camera.id]
-                    new_rig_instance.add_shot(
-                        new_rig_camera, created_shot[instance_shot.id]
-                    )
-                new_rig_instance.update_instance_pose_with_shot(shot.id, shot.pose)
-
-        return self.get_shot(shot.id)
+            self.map.create_shot(shot.id, shot.camera.id, shot.pose)
+        ret = self.map.update_shot(shot)
+        return ret
 
     def get_shot(self, id: str) -> pymap.Shot:
         """Return a shot by id.

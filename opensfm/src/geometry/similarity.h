@@ -1,6 +1,8 @@
 #pragma once
 #include <geometry/pose.h>
 
+#include <cmath>
+
 namespace geometry {
 class Similarity {
  public:
@@ -20,6 +22,8 @@ class Similarity {
   Vec3d Transform(const Vec3d& point) const {
     return scale_ * RotationMatrix() * point + Translation();
   }
+
+  bool IsValid() const { return Rt_.IsValid() && std::isfinite(scale_); }
 
  private:
   geometry::Pose Rt_;

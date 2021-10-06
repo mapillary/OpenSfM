@@ -35,6 +35,9 @@ class BAHelpers {
           rig_camera_priors,
       const py::dict& config);
 
+  static void BundleToMap(const bundle::BundleAdjuster& bundle_adjuster,
+                          map::Map& output_map, bool update_cameras);
+
   static std::pair<std::unordered_set<map::ShotId>,
                    std::unordered_set<map::ShotId>>
   ShotNeighborhoodIds(map::Map& map, const map::ShotId& central_shot_id,

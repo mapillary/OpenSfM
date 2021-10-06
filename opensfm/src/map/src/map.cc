@@ -7,6 +7,17 @@
 #include <cmath>
 #include <unordered_set>
 
+namespace {
+void AssignShot(map::Shot& to, const map::Shot& from) {
+  to.merge_cc = from.merge_cc;
+  to.scale = from.scale;
+  to.SetShotMeasurements(from.GetShotMeasurements());
+  to.SetCovariance(from.GetCovariance());
+  if (!to.IsInRig()) {
+    to.SetPose(*from.GetPose());
+  }
+}
+}  // namespace
 namespace map {
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
@@ -281,17 +292,43 @@ const geometry::Camera& Map::GetCamera(const CameraId& cam_id) const {
   return it->second;
 }
 
+void Map::UpdateShotWithRig(const Shot& other_shot) {
+  std::map<map::ShotId, map::RigCameraId> instance_shots;
+  const auto maybe_rig_instance = other_shot.GetRigInstance();
+  const auto& instance_id = maybe_rig_instance.Value()->id;
+  for (const auto& instance_shot : maybe_rig_instance.Value()->GetShots()) {
+    const auto& shot_id = instance_shot.first;
+    const auto& shot = instance_shot.second;
+    if (!HasShot(shot_id)) {
+      auto& new_shot =
+          CreateShot(shot_id, shot->GetCamera()->id, *shot->GetPose());
+      AssignShot(new_shot, *shot);
+    }
+
+    const auto maybe_rig_camera = shot->GetRigCamera();
+    const auto& rig_camera_id = maybe_rig_camera.Value()->id;
+    if (!HasRigCamera(rig_camera_id)) {
+      CreateRigCamera(*maybe_rig_camera.Value());
+    }
+    instance_shots[shot_id] = rig_camera_id;
+  }
+  if (!HasRigInstance(instance_id)) {
+    auto& new_instance = CreateRigInstance(instance_id, instance_shots);
+    new_instance.UpdateInstancePoseWithShot(other_shot.id_,
+                                            *other_shot.GetPose());
+  }
+}
+
 Shot& Map::UpdateShot(const Shot& other_shot) {
   auto it_exist = shots_.find(other_shot.id_);
   if (it_exist == shots_.end()) {
     throw std::runtime_error("Shot " + other_shot.id_ + " does not exists.");
   } else {
     auto& shot = it_exist->second;
-    shot.merge_cc = other_shot.merge_cc;
-    shot.scale = other_shot.scale;
-    shot.SetShotMeasurements(other_shot.GetShotMeasurements());
-    shot.SetCovariance(other_shot.GetCovariance());
-    shot.SetPose(*other_shot.GetPose());
+    if (other_shot.IsInRig()) {
+      UpdateShotWithRig(other_shot);
+    }
+    AssignShot(shot, other_shot);
     return shot;
   }
 }

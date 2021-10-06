@@ -21,6 +21,7 @@ PYBIND11_MODULE(pysfm, m) {
       .def("bundle", &sfm::BAHelpers::Bundle)
       .def("bundle_local", &sfm::BAHelpers::BundleLocal)
       .def("bundle_shot_poses", &sfm::BAHelpers::BundleShotPoses)
+      .def("bundle_to_map", &sfm::BAHelpers::BundleToMap)
       .def("shot_neighborhood_ids", &sfm::BAHelpers::ShotNeighborhoodIds)
       .def("detect_alignment_constraints",
            &sfm::BAHelpers::DetectAlignmentConstraints);

@@ -79,18 +79,21 @@ struct PointRigProjectionObservation {
   double std_deviation;
 };
 
+// CANDIDATE FOR DELETION
 struct RotationPrior {
   Shot *shot;
   double rotation[3];
   double std_deviation;
 };
 
+// CANDIDATE FOR DELETION
 struct TranslationPrior {
   Shot *shot;
   double translation[3];
   double std_deviation;
 };
 
+// CANDIDATE FOR DELETION
 struct PositionPrior {
   Shot *shot;
   Bias *bias;
@@ -181,14 +184,14 @@ struct RelativeRotation {
 };
 
 struct CommonPosition {
-  Shot *shot1;
-  Shot *shot2;
+  std::string shot_i;
+  std::string shot_j;
   double margin;
   double std_deviation;
 };
 
 struct AbsolutePosition {
-  Shot *shot;
+  std::string shot_id;
   Vec3d position;
   double std_deviation;
   std::string std_deviation_group;
@@ -206,7 +209,7 @@ struct HeatmapInterpolator {
 };
 
 struct AbsolutePositionHeatmap {
-  Shot *shot;
+  std::string shot_id;
   std::shared_ptr<HeatmapInterpolator> heatmap;
   double x_offset;
   double y_offset;
@@ -222,20 +225,21 @@ struct AbsoluteUpVector {
 };
 
 struct AbsoluteAngle {
-  Shot *shot;
+  std::string shot_id;
   double angle;
   double std_deviation;
 };
 
 struct LinearMotion {
-  Shot *shot0;
-  Shot *shot1;
-  Shot *shot2;
+  std::string shot0;
+  std::string shot1;
+  std::string shot2;
   double alpha;
   double position_std_deviation;
   double orientation_std_deviation;
 };
 
+// CANDIDATE FOR DELETION
 struct PointPositionShot {
   std::string shot_id;
   std::string reconstruction_id;
@@ -277,8 +281,8 @@ class BundleAdjuster {
       bool fixed);
   void AddRigCamera(const std::string &rig_camera, const geometry::Pose &pose,
                     const geometry::Pose &pose_prior, bool fixed);
-  void AddRigPositionPrior(const std::string &instance_id,
-                           const Vec3d &position, double std_deviation);
+  void AddRigInstancePositionPrior(const std::string &instance_id,
+                                   const Vec3d &position, double std_deviation);
 
   // Cluster-based
   void AddReconstruction(const std::string &id, bool constant);
@@ -379,10 +383,13 @@ class BundleAdjuster {
   geometry::Camera GetCamera(const std::string &id) const;
   geometry::Similarity GetBias(const std::string &id) const;
   Shot GetShot(const std::string &id) const;
-  Reconstruction GetReconstruction(const std::string &id) const;
+  Reconstruction GetReconstruction(const std::string &reconstruction_id) const;
+  Reconstruction GetShotReconstruction(const std::string &shot_id) const;
   Point GetPoint(const std::string &id) const;
   RigCamera GetRigCamera(const std::string &rig_camera_id) const;
   RigInstance GetRigInstance(const std::string &instance_id) const;
+  std::map<std::string, RigCamera> GetRigCameras() const;
+  std::map<std::string, RigInstance> GetRigInstances() const;
 
   // Minimization details
   std::string BriefReport() const;
@@ -403,6 +410,7 @@ class BundleAdjuster {
   std::map<std::string, RigCamera> rig_cameras_;
   std::map<std::string, RigInstance> rig_instances_;
 
+  std::unordered_map<std::string, std::string> shot_to_reconstruction_;
   bool use_analytic_{false};
 
   // minimization constraints

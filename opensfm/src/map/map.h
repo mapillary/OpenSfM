@@ -195,6 +195,8 @@ class Map {
   GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
+  void UpdateShotWithRig(const Shot& other_shot);
+
   std::unordered_map<CameraId, geometry::Camera> cameras_;
   std::unordered_map<CameraId, geometry::Similarity> bias_;
   std::unordered_map<ShotId, Shot> shots_;

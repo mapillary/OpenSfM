@@ -435,7 +435,7 @@ def rig_instance_to_json(rig_instance: pymap.RigInstance) -> Dict[str, Any]:
     return {
         "translation": list(rig_instance.pose.translation),
         "rotation": list(rig_instance.pose.rotation),
-        "rig_camera_ids": rig_instance.camera_ids,
+        "rig_camera_ids": rig_instance.rig_camera_ids,
     }
 
 

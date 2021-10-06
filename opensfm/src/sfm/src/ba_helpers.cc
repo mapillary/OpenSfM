@@ -6,7 +6,10 @@
 #include <sfm/ba_helpers.h>
 
 #include <chrono>
+#include <cmath>
 #include <stdexcept>
+
+#include "map/defines.h"
 
 namespace sfm {
 std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
@@ -211,7 +214,8 @@ py::tuple BAHelpers::BundleLocal(
     if (!fix_instance && gps_count > 0) {
       average_position /= gps_count;
       average_std /= gps_count;
-      ba.AddRigPositionPrior(rig_instance_id, average_position, average_std);
+      ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
+                                     average_std);
     }
   }
 
@@ -527,7 +531,8 @@ py::dict BAHelpers::BundleShotPoses(
       if (!fix_instance && gps_count > 0) {
         average_position /= gps_count;
         average_std /= gps_count;
-        ba.AddRigPositionPrior(rig_instance_id, average_position, average_std);
+        ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
+                                       average_std);
       }
     }
   }
@@ -715,8 +720,8 @@ py::dict BAHelpers::Bundle(
     if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
       average_position /= gps_count;
       average_std /= gps_count;
-      ba.AddRigPositionPrior(instance_pair.first, average_position,
-                             average_std);
+      ba.AddRigInstancePositionPrior(instance_pair.first, average_position,
+                                     average_std);
     }
   }
 
@@ -796,48 +801,8 @@ py::dict BAHelpers::Bundle(
 
   const auto timer_run = std::chrono::high_resolution_clock::now();
 
-  // update cameras if optimized
-  if (!fix_cameras) {
-    for (auto& cam : map.GetCameras()) {
-      const auto& ba_cam = ba.GetCamera(cam.first);
-      for (const auto& p : ba_cam.GetParametersMap()) {
-        cam.second.SetParameterValue(p.first, p.second);
-      }
-    }
-  }
+  BundleToMap(ba, map, !fix_cameras);
 
-  // Update bias
-  for (auto& bias : map.GetBiases()) {
-    bias.second = ba.GetBias(bias.first);
-  }
-
-  // Update shots
-  for (auto& shot : map.GetShots()) {
-    if (shot.second.IsInRig()) {
-      continue;
-    }
-    auto s = ba.GetShot(shot.first);
-    shot.second.SetPose(s.GetPose()->GetValue());
-  }
-
-  // Update rig instances
-  for (auto& instance : map.GetRigInstances()) {
-    auto i = ba.GetRigInstance(instance.first);
-    instance.second.SetPose(i.GetValue());
-  }
-
-  // Update rig models
-  for (auto& rig_camera : map.GetRigCameras()) {
-    auto i = ba.GetRigCamera(rig_camera.first);
-    rig_camera.second.pose = i.GetValue();
-  }
-
-  // Update points
-  for (auto& point : map.GetLandmarks()) {
-    const auto& pt = ba.GetPoint(point.first);
-    point.second.SetGlobalPos(pt.GetValue());
-    point.second.SetReprojectionErrors(pt.reprojection_errors);
-  }
   const auto timer_teardown = std::chrono::high_resolution_clock::now();
   report["brief_report"] = ba.BriefReport();
   report["wall_times"] = py::dict();
@@ -856,6 +821,76 @@ py::dict BAHelpers::Bundle(
           .count() /
       1000000.0;
   return report;
+}
+
+void BAHelpers::BundleToMap(const bundle::BundleAdjuster& bundle_adjuster,
+                            map::Map& output_map, bool update_cameras) {
+  // update cameras
+  if (update_cameras) {
+    for (auto& cam : output_map.GetCameras()) {
+      const auto& ba_cam = bundle_adjuster.GetCamera(cam.first);
+      for (const auto& p : ba_cam.GetParametersMap()) {
+        cam.second.SetParameterValue(p.first, p.second);
+      }
+    }
+  }
+
+  // Update bias
+  for (auto& bias : output_map.GetBiases()) {
+    const auto& new_bias = bundle_adjuster.GetBias(bias.first);
+    if (!new_bias.IsValid()) {
+      throw std::runtime_error("Bias " + bias.first +
+                               " has either NaN or INF values.");
+    }
+    bias.second = new_bias;
+  }
+
+  // Update shots
+  for (auto& shot : output_map.GetShots()) {
+    if (shot.second.IsInRig()) {
+      continue;
+    }
+    const auto& new_pose =
+        bundle_adjuster.GetShot(shot.first).GetPose()->GetValue();
+    if (!new_pose.IsValid()) {
+      throw std::runtime_error("Shot " + shot.first +
+                               " has either NaN or INF values.");
+    }
+    shot.second.SetPose(new_pose);
+  }
+
+  // Update rig instances
+  for (auto& instance : output_map.GetRigInstances()) {
+    const auto new_instance =
+        bundle_adjuster.GetRigInstance(instance.first).GetValue();
+    if (!new_instance.IsValid()) {
+      throw std::runtime_error("Rig Instance " + instance.first +
+                               " has either NaN or INF values.");
+    }
+    instance.second.SetPose(new_instance);
+  }
+
+  // Update rig cameras
+  for (auto& rig_camera : output_map.GetRigCameras()) {
+    const auto new_rig_camera =
+        bundle_adjuster.GetRigCamera(rig_camera.first).GetValue();
+    if (!new_rig_camera.IsValid()) {
+      throw std::runtime_error("Rig Camera " + rig_camera.first +
+                               " has either NaN or INF values.");
+    }
+    rig_camera.second.pose = new_rig_camera;
+  }
+
+  // Update points
+  for (auto& point : output_map.GetLandmarks()) {
+    const auto& pt = bundle_adjuster.GetPoint(point.first);
+    if (!pt.GetValue().allFinite()) {
+      throw std::runtime_error("Point " + point.first +
+                               " has either NaN or INF values.");
+    }
+    point.second.SetGlobalPos(pt.GetValue());
+    point.second.SetReprojectionErrors(pt.reprojection_errors);
+  }
 }
 
 void BAHelpers::AlignmentConstraints(

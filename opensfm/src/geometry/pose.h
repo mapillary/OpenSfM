@@ -173,6 +173,10 @@ class Pose {
            RotationWorldToCameraMin().norm() < epsilon;
   }
 
+  bool IsValid() const {
+    return GetOrigin().allFinite() && RotationWorldToCameraMin().allFinite();
+  }
+
  protected:
   Mat4d cam_to_world_;  // [R',-R't] cam to world
   Mat4d world_to_cam_;  // [R, t] world to cam
