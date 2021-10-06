@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bundle/data/pose.h>
 #include <foundation/types.h>
 
 #include <initializer_list>
@@ -44,19 +45,22 @@ Vec3<T> RotatePoint(const Vec3<T>& R, const Vec3<T>& x) {
   return rotated;
 }
 
-/* bring a point x in the coordinate frame of a camera with rotation and camera
- * center in world coordinates being respectively R and c such : x(camera) =
- * R(t).(x(world) - c) */
+/* bring a point into shot coordinates as x_shot = shot_scale * shot_rotation(t)
+ * * (x_world - shot_center) */
 template <typename T>
-Vec3<T> WorldToCamera(const Vec3<T>& R, const Vec3<T>& c, const Vec3<T>& x) {
-  return RotatePoint((-R).eval(), (x - c).eval());
+void WorldToCameraCoordinates(const T* scale, const T* const shot,
+                              const T world_point[3], T camera_point[3]) {
+  const T pt[3] = {scale[0] * world_point[0] - shot[Pose::Parameter::TX],
+                   scale[0] * world_point[1] - shot[Pose::Parameter::TY],
+                   scale[0] * world_point[2] - shot[Pose::Parameter::TZ]};
+  const T Rt[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
+                   -shot[Pose::Parameter::RZ]};
+  ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
 }
-
-/* apply a similarity transform of scale s, rotation R and translation t to some
- * point x as s * R * x + t */
-template <class T>
-Vec3<T> ApplySimilarity(const T& s, const Vec3<T>& R, const Vec3<T>& t,
-                        const Vec3<T>& x) {
-  return RotatePoint((-R).eval(), (s * x - t).eval());
+template <typename T>
+void WorldToCameraCoordinates(const T* const shot, const T world_point[3],
+                              T camera_point[3]) {
+  const T scale_one = T(1.0);
+  WorldToCameraCoordinates(&scale_one, shot, world_point, camera_point);
 }
 }  // namespace bundle

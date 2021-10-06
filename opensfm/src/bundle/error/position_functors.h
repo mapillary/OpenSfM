@@ -43,15 +43,12 @@ struct PointPositionScaledShot {
   template <typename T>
   Vec3<T> operator()(T const* const* p) const {
     const T* const shot = p[shot_index_];
-    Eigen::Map<const Vec3<T> > R(shot + Pose::Parameter::RX);
-    Eigen::Map<const Vec3<T> > t(shot + Pose::Parameter::TX);
-
     const T* const point = p[point_index_];
-    Eigen::Map<const Vec3<T> > p_world(point);
-
     const T* const scale = p[scale_index_];
 
-    return ApplySimilarity(scale[0], R.eval(), t.eval(), p_world.eval());
+    Vec3<T> camera_point = Vec3<T>::Zero();
+    WorldToCameraCoordinates(scale, shot, point, camera_point.data());
+    return camera_point;
   }
 
   const int shot_index_{-1};

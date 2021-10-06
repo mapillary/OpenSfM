@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bundle/bundle_adjuster.h>
+#include <bundle/error/error_utils.h>
 #include <ceres/sized_cost_function.h>
 #include <foundation/types.h>
 #include <geometry/functions.h>
@@ -31,17 +32,6 @@ struct BABearingError {
   Eigen::Vector3d bearing_;
   PointFunc pos_func_;
 };
-
-template <typename T>
-void WorldToCameraCoordinates(const T* const shot, const T world_point[3],
-                              T camera_point[3]) {
-  const T pt[3] = {world_point[0] - shot[Pose::Parameter::TX],
-                   world_point[1] - shot[Pose::Parameter::TY],
-                   world_point[2] - shot[Pose::Parameter::TZ]};
-  const T Rt[3] = {-shot[Pose::Parameter::RX], -shot[Pose::Parameter::RY],
-                   -shot[Pose::Parameter::RZ]};
-  ceres::AngleAxisRotatePoint(Rt, pt, camera_point);
-}
 
 template <class DATA>
 struct DataPriorError {
