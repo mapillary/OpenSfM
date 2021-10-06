@@ -43,9 +43,6 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_absolute_pan", &bundle::BundleAdjuster::AddAbsolutePan)
       .def("add_absolute_tilt", &bundle::BundleAdjuster::AddAbsoluteTilt)
       .def("add_absolute_roll", &bundle::BundleAdjuster::AddAbsoluteRoll)
-      .def("add_rotation_prior", &bundle::BundleAdjuster::AddRotationPrior)
-      .def("add_translation_prior",
-           &bundle::BundleAdjuster::AddTranslationPrior)
       .def("add_position_prior", &bundle::BundleAdjuster::AddPositionPrior)
       .def("add_point_position_prior",
            &bundle::BundleAdjuster::AddPointPositionPrior)

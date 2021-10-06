@@ -253,30 +253,6 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
   }
 }
 
-void BundleAdjuster::AddRotationPrior(const std::string &shot_id, double rx,
-                                      double ry, double rz,
-                                      double std_deviation) {
-  RotationPrior p;
-  p.shot = &shots_.at(shot_id);
-  p.rotation[0] = rx;
-  p.rotation[1] = ry;
-  p.rotation[2] = rz;
-  p.std_deviation = std_deviation;
-  rotation_priors_.push_back(p);
-}
-
-void BundleAdjuster::AddTranslationPrior(const std::string &shot_id, double tx,
-                                         double ty, double tz,
-                                         double std_deviation) {
-  TranslationPrior p;
-  p.shot = &shots_.at(shot_id);
-  p.translation[0] = tx;
-  p.translation[1] = ty;
-  p.translation[2] = tz;
-  p.std_deviation = std_deviation;
-  translation_priors_.push_back(p);
-}
-
 void BundleAdjuster::AddPositionPrior(const std::string &shot_id, double x,
                                       double y, double z,
                                       double std_deviation) {
@@ -859,26 +835,6 @@ void BundleAdjuster::Run() {
         observation.camera->GetValue().GetProjectionType();
     geometry::Dispatch<AddRigProjectionError>(
         projection_type, use_analytic_, observation, projection_loss, &problem);
-  }
-
-  // Add rotation priors
-  for (auto &rp : rotation_priors_) {
-    ceres::CostFunction *cost_function =
-        new ceres::AutoDiffCostFunction<RotationPriorError, 3, 6>(
-            new RotationPriorError(rp.rotation, rp.std_deviation));
-
-    problem.AddResidualBlock(cost_function, nullptr,
-                             rp.shot->GetPose()->GetValueData().data());
-  }
-
-  // Add translation priors
-  for (auto &tp : translation_priors_) {
-    ceres::CostFunction *cost_function =
-        new ceres::AutoDiffCostFunction<TranslationPriorError, 3, 6>(
-            new TranslationPriorError(tp.translation, tp.std_deviation));
-
-    problem.AddResidualBlock(cost_function, nullptr,
-                             tp.shot->GetPose()->GetValueData().data());
   }
 
   // Add position priors

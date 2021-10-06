@@ -141,16 +141,25 @@ def test_pair(bundle_adjuster):
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_with_shot_point(bundle_adjuster):
+def test_pair_with_shot_point():
+    bundle_adjuster = pybundle.BundleAdjuster()
+    camera = pygeometry.Camera.create_spherical()
+    bundle_adjuster.add_camera("cam1", camera, camera, True)
+
     """Simple two camera test with a point constraint for anchoring"""
     sa = bundle_adjuster
-    sa.add_shot("1", "cam1", [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
-    sa.add_shot("2", "cam1", [0, 0, 0], [1e-3, 1e-3, 1e-3], False)
+    sa.add_shot("1", "cam1", [1e-3, 1e-3, 1e-3], [1e-3, 1e-3, 1e-3], False)
+    sa.add_shot("2", "cam1", [1e-3, 1e-3, 1e-3], [1e-3, 1e-3, 1e-3], False)
     sa.add_point("p1", [0, 0, 0], False)
     sa.add_reconstruction("12", False)
     sa.add_reconstruction_shot("12", 4, "1")
     sa.add_reconstruction_shot("12", 4, "2")
-    sa.add_rotation_prior("1", 0, 0, 0, 1)
+
+    # identity rotation with pan/tilt/roll
+    sa.add_absolute_roll("1", np.radians(90), 1)
+    sa.add_absolute_pan("1", -np.radians(90), 1)
+    sa.add_absolute_tilt("1", -np.radians(90), 1)
+
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
         pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
@@ -170,6 +179,10 @@ def test_pair_with_shot_point(bundle_adjuster):
     assert np.allclose(p1.p, [1, 0, 0], atol=1e-6)
     assert np.allclose(r12.get_scale("1"), 0.5)
     assert np.allclose(r12.get_scale("2"), 0.5)
+
+
+if __name__ == "__main__":
+    test_pair_with_shot_point()
 
 
 def test_pair_non_rigid(bundle_adjuster):
@@ -500,7 +513,6 @@ def test_heatmaps_position(bundle_adjuster):
     )
 
     sa.run()
-    print(sa.brief_report())
     s1 = sa.get_shot("1")
     s2 = sa.get_shot("2")
     s3 = sa.get_shot("3")

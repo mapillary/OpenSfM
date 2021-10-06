@@ -333,10 +333,6 @@ class BundleAdjuster {
                                      const std::string &point,
                                      const Vec2d &observation,
                                      double std_deviation);
-  void AddRotationPrior(const std::string &shot_id, double rx, double ry,
-                        double rz, double std_deviation);
-  void AddTranslationPrior(const std::string &shot_id, double tx, double ty,
-                           double tz, double std_deviation);
   void AddPositionPrior(const std::string &shot_id, double x, double y,
                         double z, double std_deviation);
   void AddPointPositionPrior(const std::string &point_id, double x, double y,
@@ -470,8 +466,6 @@ class BundleAdjuster {
   std::vector<AbsoluteAngle> absolute_tilts_;
   std::vector<AbsoluteAngle> absolute_rolls_;
 
-  std::vector<RotationPrior> rotation_priors_;
-  std::vector<TranslationPrior> translation_priors_;
   std::vector<PositionPrior> position_priors_;
   std::vector<PointPositionPrior> point_position_priors_;
 

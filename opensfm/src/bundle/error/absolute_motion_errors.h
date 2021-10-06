@@ -165,7 +165,8 @@ struct RollAngleError {
     T a[3] = {Rt_ez[1], -Rt_ez[0], T(0)};
     T la = sqrt(a[0] * a[0] + a[1] * a[1]);
 
-    if (la < 1e-5) {
+    const double eps = 1e-5;
+    if (la < eps) {
       residuals[0] = T(0.0);
       return true;
     }
@@ -175,6 +176,11 @@ struct RollAngleError {
     T b[3];
     ceres::CrossProduct(Rt_ex, a, b);
     T sin_roll = Rt_ez[0] * b[0] + Rt_ez[1] * b[1] + Rt_ez[2] * b[2];
+    if (sin_roll <= -(1.0 - eps)) {
+      residuals[0] = T(0.0);
+      return true;
+    }
+
     T predicted_angle = asin(sin_roll);
     residuals[0] = T(scale_) * diff_between_angles(predicted_angle, T(angle_));
 
@@ -182,56 +188,6 @@ struct RollAngleError {
   }
 
   double angle_;
-  double scale_;
-};
-
-struct RotationPriorError {
-  RotationPriorError(double* R_prior, double std_deviation)
-      : R_prior_(R_prior), scale_(1.0 / std_deviation) {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    // Get rotation and translation values.
-    Vec3<T> R = -ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
-    T Rpt[3] = {-T(R_prior_[0]), -T(R_prior_[1]), -T(R_prior_[2])};
-
-    // Compute rotation residual: log( R Rp^t )
-    T qR[4], qRpt[4], qR_Rpt[4];
-    ceres::AngleAxisToQuaternion(R.data(), qR);
-    ceres::AngleAxisToQuaternion(Rpt, qRpt);
-    ceres::QuaternionProduct(qR, qRpt, qR_Rpt);
-    T R_Rpt[3];
-    ceres::QuaternionToAngleAxis(qR_Rpt, R_Rpt);
-
-    residuals[0] = T(scale_) * R_Rpt[0];
-    residuals[1] = T(scale_) * R_Rpt[1];
-    residuals[2] = T(scale_) * R_Rpt[2];
-
-    return true;
-  }
-
-  double* R_prior_;
-  double scale_;
-};
-
-struct TranslationPriorError {
-  TranslationPriorError(double* translation_prior, double std_deviation)
-      : translation_prior_(translation_prior), scale_(1.0 / std_deviation) {}
-
-  template <typename T>
-  bool operator()(const T* const shot, T* residuals) const {
-    Vec3<T> mt = -ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&shot);
-    Vec3<T> Rt = -ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
-    T translation[3];
-    ceres::AngleAxisRotatePoint(Rt.data(), mt.data(), translation);
-
-    residuals[0] = T(scale_) * (T(translation_prior_[0]) - translation[0]);
-    residuals[1] = T(scale_) * (T(translation_prior_[1]) - translation[1]);
-    residuals[2] = T(scale_) * (T(translation_prior_[2]) - translation[2]);
-    return true;
-  }
-
-  double* translation_prior_;
   double scale_;
 };
 
