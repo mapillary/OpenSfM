@@ -204,15 +204,14 @@ py::tuple BAHelpers::BundleLocal(
       }
     }
 
-    ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
-                      shot_cameras, shot_rig_cameras, fix_instance);
+    ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
+                      shot_rig_cameras, fix_instance);
 
     // only add averaged rig position constraints to moving instances
     if (!fix_instance && gps_count > 0) {
       average_position /= gps_count;
       average_std /= gps_count;
-      ba.AddRigPositionPrior(std::to_string(rig_instance_id), average_position,
-                             average_std);
+      ba.AddRigPositionPrior(rig_instance_id, average_position, average_std);
     }
   }
 
@@ -316,7 +315,7 @@ py::tuple BAHelpers::BundleLocal(
 
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
-    auto i = ba.GetRigInstance(std::to_string(rig_instance_id));
+    auto i = ba.GetRigInstance(rig_instance_id);
     instance.SetPose(i.GetValue());
   }
 
@@ -521,15 +520,14 @@ py::dict BAHelpers::BundleShotPoses(
         fix_instance = true;
       }
 
-      ba.AddRigInstance(std::to_string(rig_instance_id), instance.GetPose(),
-                        shot_cameras, shot_rig_cameras, fix_instance);
+      ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
+                        shot_rig_cameras, fix_instance);
 
       // only add averaged rig position constraints to moving instances
       if (!fix_instance && gps_count > 0) {
         average_position /= gps_count;
         average_std /= gps_count;
-        ba.AddRigPositionPrior(std::to_string(rig_instance_id),
-                               average_position, average_std);
+        ba.AddRigPositionPrior(rig_instance_id, average_position, average_std);
       }
     }
   }
@@ -603,7 +601,7 @@ py::dict BAHelpers::BundleShotPoses(
 
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
-    auto i = ba.GetRigInstance(std::to_string(rig_instance_id));
+    auto i = ba.GetRigInstance(rig_instance_id);
     instance.SetPose(i.GetValue());
   }
 
@@ -707,14 +705,14 @@ py::dict BAHelpers::Bundle(
       }
     }
 
-    ba.AddRigInstance(std::to_string(instance_pair.first), instance.GetPose(),
-                      shot_cameras, shot_rig_cameras, false);
+    ba.AddRigInstance(instance_pair.first, instance.GetPose(), shot_cameras,
+                      shot_rig_cameras, false);
 
     if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
       average_position /= gps_count;
       average_std /= gps_count;
-      ba.AddRigPositionPrior(std::to_string(instance_pair.first),
-                             average_position, average_std);
+      ba.AddRigPositionPrior(instance_pair.first, average_position,
+                             average_std);
     }
   }
 
@@ -820,7 +818,7 @@ py::dict BAHelpers::Bundle(
 
   // Update rig instances
   for (auto& instance : map.GetRigInstances()) {
-    auto i = ba.GetRigInstance(std::to_string(instance.first));
+    auto i = ba.GetRigInstance(instance.first);
     instance.second.SetPose(i.GetValue());
   }
 

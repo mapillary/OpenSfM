@@ -235,7 +235,7 @@ class DataSetBase(ABC):
     @abstractmethod
     def load_rig_assignments_per_image(
         self,
-    ) -> Dict[str, Tuple[int, str, List[str]]]:
+    ) -> Dict[str, Tuple[str, str, List[str]]]:
         pass
 
     @abstractmethod
@@ -886,7 +886,7 @@ class DataSet(DataSetBase):
 
     def load_rig_assignments_per_image(
         self,
-    ) -> Dict[str, Tuple[int, str, List[str]]]:
+    ) -> Dict[str, Tuple[str, str, List[str]]]:
         """Return rig assignments  data"""
         raw_assignments = self.load_rig_assignments()
         assignments_per_image = {}
@@ -894,7 +894,7 @@ class DataSet(DataSetBase):
             instance_shots = [s[0] for s in instance]
             for (shot_id, rig_camera_id) in instance:
                 assignments_per_image[shot_id] = (
-                    instance_id,
+                    f"rig_{instance_id}",
                     rig_camera_id,
                     instance_shots,
                 )

@@ -192,12 +192,11 @@ def rig_cameras_from_json(obj: Dict[str, Any]) -> Dict[str, pymap.RigCamera]:
 
 
 def rig_instance_from_json(
-    reconstruction: types.Reconstruction, key: str, obj: Dict[str, Any]
+    reconstruction: types.Reconstruction, instance_id: str, obj: Dict[str, Any]
 ) -> None:
     """
     Read any rig instance from a json shot object
     """
-    instance_id = int(key)
     reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
 
     pose = pygeometry.Pose()

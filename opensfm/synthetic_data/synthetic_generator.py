@@ -281,7 +281,7 @@ def add_rigs_to_reconstruction(
             rec_rig_cameras.append(reconstruction.rig_cameras[rig_camera.id])
 
     for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
-        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(i))
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(str(i)))
         for j, s in enumerate(i_shots):
             rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))

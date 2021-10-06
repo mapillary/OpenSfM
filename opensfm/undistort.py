@@ -283,7 +283,7 @@ def perspective_views_of_a_panorama(
         tf.rotation_matrix(+np.pi / 2, np.array([1, 0, 0])),
     ]
 
-    rig_instance = pymap.RigInstance(next(rig_instance_count))
+    rig_instance = pymap.RigInstance(str(next(rig_instance_count)))
     rig_instance.pose = spherical_shot.pose
 
     shots = []

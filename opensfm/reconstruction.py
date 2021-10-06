@@ -309,7 +309,7 @@ def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
 def add_shot(
     data: DataSetBase,
     reconstruction: types.Reconstruction,
-    rig_assignments: Dict[str, Tuple[int, str, List[str]]],
+    rig_assignments: Dict[str, Tuple[str, str, List[str]]],
     shot_id: str,
     pose: pygeometry.Pose,
 ) -> Set[str]:

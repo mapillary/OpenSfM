@@ -20,9 +20,9 @@ class RigCameraFixture : public ::testing::Test {
 class SharedRigInstanceFixture : public RigCameraFixture {
  public:
   SharedRigInstanceFixture()
-      : instance1(1),
+      : instance1("1"),
         shot_instance1("1", camera, geometry::Pose()),
-        instance2(2),
+        instance2("2"),
         shot_instance2("2", camera, geometry::Pose()) {
     instance_pose1.SetWorldToCamRotation(Vec3d::Random());
     instance_pose1.SetOrigin(Vec3d::Random());
@@ -92,8 +92,8 @@ TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigCamera) {
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigInstance) {
-  ASSERT_EQ(1, shot_instance1.GetRigInstanceId());
-  ASSERT_EQ(2, shot_instance2.GetRigInstanceId());
+  ASSERT_EQ("1", shot_instance1.GetRigInstanceId());
+  ASSERT_EQ("2", shot_instance2.GetRigInstanceId());
 }
 
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotThrowWhenSettingPose) {
