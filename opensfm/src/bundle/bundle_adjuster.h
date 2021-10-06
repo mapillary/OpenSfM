@@ -171,37 +171,6 @@ struct RelativeSimilarity : public RelativeMotion {
   double scale;
 };
 
-struct RelativeSimilarityCovariance {
-  static const int Size = Pose::Parameter::NUM_PARAMS + 1;
-  std::vector<Vec3d> points;
-  Eigen::Matrix<double, Size, Size> covariance;
-
-  void AddPoint(const Vec3d &v) { points.push_back(v); }
-
-  void Compute() {
-    covariance.setZero();
-    for (const auto &p : points) {
-      const auto &x = p[0];
-      const auto &y = p[1];
-      const auto &z = p[2];
-      Eigen::Matrix<double, 3, Pose::Parameter::NUM_PARAMS + 1> local_jacobian;
-      local_jacobian.block(0, Pose::Parameter::TX, 3, 3) =
-          Eigen::Matrix<double, 3, 3>::Identity();
-      local_jacobian.block(0, Pose::Parameter::RX, 3, 3) << 0, z, -y, -z, 0, x,
-          y, -x, 0;
-      local_jacobian.block(0, Pose::Parameter::NUM_PARAMS, 3, 1) << x, y, z;
-      covariance += local_jacobian.transpose() * local_jacobian;
-    }
-    if (covariance.determinant() < 1e-20) {
-      covariance.setIdentity();
-    } else {
-      covariance = covariance.inverse();
-    }
-  }
-
-  Eigen::Matrix<double, Size, Size> GetCovariance() const { return covariance; }
-};
-
 struct RelativeRotation {
   RelativeRotation(const std::string &shot_i, const std::string &shot_j,
                    const Vec3d &r) {

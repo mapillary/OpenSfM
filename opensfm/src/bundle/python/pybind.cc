@@ -137,14 +137,6 @@ PYBIND11_MODULE(pybundle, m) {
       .def_readwrite("scale", &bundle::RelativeSimilarity::scale)
       .def("set_scale_matrix", &bundle::RelativeSimilarity::SetScaleMatrix);
 
-  py::class_<bundle::RelativeSimilarityCovariance>(
-      m, "RelativeSimilarityCovariance")
-      .def(py::init())
-      .def("add_point", &bundle::RelativeSimilarityCovariance::AddPoint)
-      .def("compute", &bundle::RelativeSimilarityCovariance::Compute)
-      .def("get_covariance",
-           &bundle::RelativeSimilarityCovariance::GetCovariance);
-
   py::class_<bundle::RelativeRotation>(m, "RelativeRotation")
       .def(py::init<const std::string &, const std::string &,
                     const Eigen::Vector3d &>())
