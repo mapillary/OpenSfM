@@ -133,6 +133,7 @@ def shot_in_reconstruction_from_json(
     key: str,
     obj: Dict[str, Any],
     is_pano_shot: bool = False,
+    enforce_rig=False,
 ) -> pymap.Shot:
     """
     Read shot from a json object and append it to a reconstruction
@@ -142,7 +143,7 @@ def shot_in_reconstruction_from_json(
     if is_pano_shot:
         shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
     else:
-        shot = reconstruction.create_shot(key, obj["camera"], pose)
+        shot = reconstruction.create_shot(key, obj["camera"], pose, enforce_rig)
     assign_shot_attributes(obj, shot)
     return shot
 
@@ -233,8 +234,19 @@ def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
             reconstruction.add_rig_camera(rig_camera_from_json(key, value))
 
     # Extract shots
+    rigs_shot = set()
+    if "rig_instances" in obj:
+        rigs_shot = {
+            s for ri in obj["rig_instances"].values() for s in ri["rig_camera_ids"]
+        }
     for key, value in obj["shots"].items():
-        shot_in_reconstruction_from_json(reconstruction, key, value)
+        shot_in_reconstruction_from_json(
+            reconstruction,
+            key,
+            value,
+            is_pano_shot=False,
+            enforce_rig=key not in rigs_shot,
+        )
 
     # Extract rig instances from shots
     if "rig_instances" in obj:
@@ -249,8 +261,9 @@ def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
     # Extract pano_shots
     if "pano_shots" in obj:
         for key, value in obj["pano_shots"].items():
-            is_pano_shot = True
-            shot_in_reconstruction_from_json(reconstruction, key, value, is_pano_shot)
+            shot_in_reconstruction_from_json(
+                reconstruction, key, value, is_pano_shot=True, enforce_rig=False
+            )
 
     # Extract reference topocentric frame
     if "reference_lla" in obj:

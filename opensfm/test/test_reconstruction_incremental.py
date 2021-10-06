@@ -44,8 +44,8 @@ def test_reconstruction_incremental(
 
     # Check that the GPS bias (only translation) is recovered
     translation = reconstructed_scene[0].biases["1"].translation
-    assert 9.9 < translation[0] < 10.1
-    assert 99.9 < translation[2] < 100.1
+    assert 9.9 < translation[0] < 10.11
+    assert 99.9 < translation[2] < 100.11
 
 
 def test_reconstruction_incremental_rig(

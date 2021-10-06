@@ -639,7 +639,8 @@ py::dict BAHelpers::Bundle(
       config["bundle_analytic_derivatives"].cast<bool>());
   const auto start = std::chrono::high_resolution_clock::now();
 
-  for (const auto& cam_pair : map.GetCameras()) {
+  const auto& all_cameras = map.GetCameras();
+  for (const auto& cam_pair : all_cameras) {
     const auto& cam = cam_pair.second;
     const auto& cam_prior = camera_priors.at(cam.id);
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
@@ -673,9 +674,12 @@ py::dict BAHelpers::Bundle(
   const auto lock_rig_camera =
       map.GetRigInstances().size() <= kMinRigInstanceForAdjust;
   for (const auto& camera_pair : map.GetRigCameras()) {
+    // could be set to false (not locked) the day we expose leverarm adjustment
+    const bool is_leverarm =
+        all_cameras.find(camera_pair.first) != all_cameras.end();
     ba.AddRigCamera(camera_pair.first, camera_pair.second.pose,
                     rig_camera_priors.at(camera_pair.first).pose,
-                    lock_rig_camera);
+                    is_leverarm | lock_rig_camera);
   }
 
   // setup rig instances
@@ -736,12 +740,12 @@ py::dict BAHelpers::Bundle(
                               shot.GetShotMeasurements().gps_accuracy_.Value());
         }
       }
+    }
 
-      // that one doesn't have it's rig counterpart
-      if (do_add_align_vector) {
-        constexpr double std_dev = 1e-3;
-        ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
-      }
+    // that one doesn't have it's rig counterpart
+    if (do_add_align_vector) {
+      constexpr double std_dev = 1e-3;
+      ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
     }
 
     // setup observations for any shot type

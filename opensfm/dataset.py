@@ -861,12 +861,25 @@ class DataSet(DataSetBase):
         """Return path of rig models file"""
         return os.path.join(self.data_path, "rig_cameras.json")
 
+    def default_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
+        """Return per-camera models default rig cameras (identity pose)."""
+        default_rig_cameras = {}
+        for camera_id in self.load_camera_models():
+            default_rig_cameras[camera_id] = pymap.RigCamera(
+                pygeometry.Pose(), camera_id
+            )
+        return default_rig_cameras
+
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         """Return rig models data"""
+        all_rig_cameras = self.default_rig_cameras()
         if not self.io_handler.exists(self._rig_cameras_file()):
-            return {}
+            return all_rig_cameras
         with self.io_handler.open_rt(self._rig_cameras_file()) as fin:
-            return io.rig_cameras_from_json(json.load(fin))
+            rig_cameras = io.rig_cameras_from_json(json.load(fin))
+            for rig_camera_id, rig_camera in rig_cameras.items():
+                all_rig_cameras[rig_camera_id] = rig_camera
+        return all_rig_cameras
 
     def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
         """Save rig models data"""
@@ -894,7 +907,7 @@ class DataSet(DataSetBase):
             instance_shots = [s[0] for s in instance]
             for (shot_id, rig_camera_id) in instance:
                 assignments_per_image[shot_id] = (
-                    f"rig_{instance_id}",
+                    f"{instance_id}",
                     rig_camera_id,
                     instance_shots,
                 )

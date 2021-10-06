@@ -333,7 +333,7 @@ def add_shot(
         for shot in instance_shots:
             camera_id = data.load_exif(shot)["camera"]
             created_shots[shot] = reconstruction.create_shot(
-                shot, camera_id, pygeometry.Pose()
+                shot, camera_id, pose=pygeometry.Pose(), enforce_rig=False
             )
             created_shots[shot].metadata = get_image_metadata(data, shot)
 

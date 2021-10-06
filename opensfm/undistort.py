@@ -298,7 +298,7 @@ def perspective_views_of_a_panorama(
         shot_id = add_image_format_extension(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
-        shot = reconstruction.create_shot(shot_id, camera.id)
+        shot = reconstruction.create_shot(shot_id, camera.id, enforce_rig=False)
         shot.metadata = spherical_shot.metadata
         rig_instance.add_shot(rig_camera, shot)
 

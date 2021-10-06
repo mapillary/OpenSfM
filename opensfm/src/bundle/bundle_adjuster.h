@@ -256,7 +256,7 @@ struct AbsolutePositionHeatmap {
 };
 
 struct AbsoluteUpVector {
-  Shot *shot;
+  std::string shot_id;
   Vec3d up_vector;
   double std_deviation;
 };

@@ -59,9 +59,9 @@ PYBIND11_MODULE(pymap, m) {
            py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
       // Bias
-      .def("set_bias",&map::Map::SetBias,
+      .def("set_bias", &map::Map::SetBias,
            py::return_value_policy::reference_internal)
-      .def("get_bias",&map::Map::GetBias,
+      .def("get_bias", &map::Map::GetBias,
            py::return_value_policy::reference_internal)
       // Rigs
       .def("create_rig_camera", &map::Map::CreateRigCamera,
@@ -163,6 +163,18 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
       .def("is_in_rig", &map::Shot::IsInRig)
+      .def_property_readonly("rig_instance",
+                             [](const map::Shot &s) {
+                               const auto &instance = s.GetRigInstance();
+                               return py::make_tuple(instance.HasValue(),
+                                                     instance.Value());
+                             })
+      .def_property_readonly("rig_camera",
+                             [](const map::Shot &s) {
+                               const auto &camera = s.GetRigCamera();
+                               return py::make_tuple(camera.HasValue(),
+                                                     camera.Value());
+                             })
       .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
       .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
       .def("get_observation", &map::Shot::GetObservation,

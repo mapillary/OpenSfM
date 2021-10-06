@@ -73,14 +73,20 @@ T diff_between_angles(T a, T b) {
 }
 
 struct UpVectorError {
-  UpVectorError(const Vec3d& acceleration, double std_deviation)
-      : scale_(1.0 / std_deviation) {
+  UpVectorError(const Vec3d& acceleration, double std_deviation,
+                bool is_rig_shot)
+      : is_rig_shot_(is_rig_shot), scale_(1.0 / std_deviation) {
     acceleration_ = acceleration.normalized();
   }
 
   template <typename T>
-  bool operator()(const T* const shot, T* r) const {
-    Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&shot);
+  bool operator()(T const* const* p, T* r) const {
+    int instance_index = 0;
+    int camera_index = FUNCTOR_NOT_SET;
+    if (is_rig_shot_) {
+      camera_index = 1;
+    }
+    Vec3<T> R = ShotRotationFunctor(instance_index, camera_index)(p);
     Eigen::Map<Vec3<T>> residual(r);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
@@ -91,6 +97,7 @@ struct UpVectorError {
   }
 
   Vec3d acceleration_;
+  bool is_rig_shot_;
   double scale_;
 };
 

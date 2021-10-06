@@ -5,6 +5,23 @@
 #include <algorithm>
 #include <numeric>
 #include <stdexcept>
+namespace {
+bool HasRigMembers(
+    const foundation::OptionalValue<map::RigInstance*>& rig_instance,
+    const foundation::OptionalValue<const map::RigCamera*>& rig_camera) {
+  return (rig_instance.HasValue() || rig_camera.HasValue());
+}
+
+bool IsSingleShotRig(
+    const foundation::OptionalValue<map::RigInstance*>& rig_instance,
+    const foundation::OptionalValue<const map::RigCamera*>& rig_camera) {
+  const bool has_identity_rig_camera = rig_camera.Value()->pose.IsIdentity();
+  const bool is_single_shot_instance =
+      rig_instance.Value()->GetShotIDs().size() == 1;
+  return has_identity_rig_camera && is_single_shot_instance;
+}
+}  // namespace
+
 namespace map {
 
 Shot::Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
@@ -20,8 +37,9 @@ Shot::Shot(const ShotId& shot_id, const geometry::Camera& shot_camera,
       own_camera_(shot_camera),
       shot_camera_(&own_camera_.Value()) {}
 
-void Shot::SetRig(const RigInstance* rig_instance,
-                  const RigCamera* rig_camera) {
+bool Shot::IsInRig() const { return HasRigMembers(rig_instance_, rig_camera_); }
+
+void Shot::SetRig(RigInstance* rig_instance, const RigCamera* rig_camera) {
   rig_instance_.SetValue(rig_instance);
   rig_camera_.SetValue(rig_camera);
   pose_ = std::make_unique<geometry::PoseImmutable>(*pose_);
@@ -95,9 +113,13 @@ void Shot::RemoveLandmarkObservation(const FeatureId id) {
 }
 
 void Shot::SetPose(const geometry::Pose& pose) {
-  if (IsInRig()) {
-    throw std::runtime_error(
-        "Can't set the pose of Shot belonging to a RigInstance");
+  if (HasRigMembers(rig_instance_, rig_camera_)) {
+    if (!IsSingleShotRig(rig_instance_, rig_camera_)) {
+      throw std::runtime_error(
+          "Can't set the pose of Shot belonging to a RigInstance");
+    } else {
+      rig_instance_.Value()->SetPose(pose);
+    }
   }
   *pose_ = pose;
 }
@@ -110,15 +132,21 @@ geometry::Pose Shot::GetPoseInRig() const {
 }
 
 const geometry::Pose* const Shot::GetPose() const {
-  if (IsInRig()) {
+  if (HasRigMembers(rig_instance_, rig_camera_)) {
     *pose_ = GetPoseInRig();
+    if (IsSingleShotRig(rig_instance_, rig_camera_)) {
+      return &rig_instance_.Value()->GetPose();
+    }
   }
   return pose_.get();
 }
 
 geometry::Pose* const Shot::GetPose() {
-  if (IsInRig()) {
+  if (HasRigMembers(rig_instance_, rig_camera_)) {
     *pose_ = GetPoseInRig();
+    if (IsSingleShotRig(rig_instance_, rig_camera_)) {
+      return &rig_instance_.Value()->GetPose();
+    }
   }
   return pose_.get();
 }

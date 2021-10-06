@@ -614,6 +614,9 @@ def test_pano_shot_create_remove_create():
 def _create_rig_camera():
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
+    rig_camera.pose = pygeometry.Pose(
+        np.array([0.1, 0.2, 0.3]), np.array([0.1, 0.2, 0.3])
+    )
     return rig_camera
 
 
@@ -629,7 +632,10 @@ def _create_rig_instance():
 def test_rig_camera_create():
     rec = _create_reconstruction(1, {"0": 2})
     rec.add_rig_camera(_create_rig_camera())
-    assert list(rec.rig_cameras.keys()) == ["rig_camera"]
+
+    # we should have default-per-camera rig and the created rig camera
+    assert "0" in rec.rig_cameras.keys()
+    assert "rig_camera" in rec.rig_cameras.keys()
 
 
 def test_rig_instance():
@@ -637,19 +643,33 @@ def test_rig_instance():
     assert list(rig_instance.keys()) == ["0"]
 
 
-def test_rig_instance_create():
+def test_rig_instance_create_default():
+    # one default rig instance per shot
     rec, rig_instance, _ = _create_rig_instance()
-    rec.add_rig_instance(rig_instance)
 
-    assert len(rec.rig_instances) == 1
-    assert dict(rec.rig_instances["1"].camera_ids.items()) == {"0": "rig_camera"}
-    assert list(rec.rig_instances["1"].shots.keys()) == ["0"]
+    assert len(rec.rig_instances) == 2
+    assert dict(rec.rig_instances["0"].camera_ids.items()) == {"0": "0"}
+    assert list(rec.rig_instances["0"].shots.keys()) == ["0"]
+    assert dict(rec.rig_instances["1"].camera_ids.items()) == {"1": "0"}
+    assert list(rec.rig_instances["1"].shots.keys()) == ["1"]
 
 
-def test_rig_shot_modify_pose():
+def test_rig_instance_create_add_existing():
+    rec, rig_instance, _ = _create_rig_instance()
+    with pytest.raises(RuntimeError):
+        rec.add_rig_instance(rig_instance)
+
+
+def test_rig_shot_modify_pose_raise():
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
         shot.pose.set_origin(np.array([1, 2, 3]))
+
+
+def test_rig_shot_modify_pose_succeed():
+    _, rig_instance, shot = _create_rig_instance()
+    next(iter(rig_instance.rig_cameras.values())).pose = pygeometry.Pose()
+    shot.pose.set_origin(np.array([1, 2, 3]))
 
 
 def test_rig_shot_set_pose():

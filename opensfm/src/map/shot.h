@@ -58,10 +58,14 @@ class Shot {
   ShotId GetId() const { return id_; }
 
   // Rig
-  bool IsInRig() const {
-    return (rig_instance_.HasValue() || rig_camera_.HasValue());
+  bool IsInRig() const;
+  void SetRig(RigInstance* rig_instance, const RigCamera* rig_camera);
+  foundation::OptionalValue<RigInstance*> GetRigInstance() const {
+    return rig_instance_;
   }
-  void SetRig(const RigInstance* rig_instance, const RigCamera* rig_camera);
+  foundation::OptionalValue<const RigCamera*> GetRigCamera() const {
+    return rig_camera_;
+  }
   RigInstanceId GetRigInstanceId() const;
   RigCameraId GetRigCameraId() const;
 
@@ -150,7 +154,7 @@ class Shot {
   foundation::OptionalValue<MatXd> covariance_;
 
   // Optional rig data
-  foundation::OptionalValue<const RigInstance*> rig_instance_;
+  foundation::OptionalValue<RigInstance*> rig_instance_;
   foundation::OptionalValue<const RigCamera*> rig_camera_;
 
   // Camera pointer (can optionaly belong to the shot)

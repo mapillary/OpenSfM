@@ -163,21 +163,76 @@ class Reconstruction(object):
 
     # Shot
     def create_shot(
-        self, shot_id: str, camera_id: str, pose: Optional[pygeometry.Pose] = None
+        self,
+        shot_id: str,
+        camera_id: str,
+        pose: Optional[pygeometry.Pose] = None,
+        enforce_rig: bool = True,
     ) -> pymap.Shot:
         if pose is None:
             pose = pygeometry.Pose()
-        return self.map.create_shot(shot_id, camera_id, pose)
+        created_shot = self.map.create_shot(shot_id, camera_id, pose)
+
+        if enforce_rig:
+            instance_id = f"{shot_id}"
+            rig_instance = self.add_rig_instance(pymap.RigInstance(instance_id))
+            if camera_id not in self.rig_cameras:
+                rig_camera = self.add_rig_camera(
+                    pymap.RigCamera(pygeometry.Pose(), camera_id)
+                )
+            else:
+                rig_camera = self.rig_cameras[camera_id]
+            rig_instance.add_shot(rig_camera, created_shot)
+            rig_instance.update_instance_pose_with_shot(shot_id, pose)
+
+        return created_shot
 
     def add_shot(self, shot: pymap.Shot) -> pymap.Shot:
-        """Creates a copy of the passed shot
-        in the current reconstruction"""
+        """Creates a copy of the passed shot in the current reconstruction
+        If the shot belong to a Rig, we recursively copy the entire rig
+        instance, so rigs stay consistents.
+        """
 
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
         if shot.id not in self.shots:
-            self.create_shot(shot.id, shot.camera.id, shot.pose)
-        return self.map.update_shot(shot)
+            if not shot.is_in_rig():
+                self.create_shot(shot.id, shot.camera.id, shot.pose)
+                self.map.update_shot(shot)
+            else:
+                has_instance, rig_instance = shot.rig_instance
+                if not has_instance:
+                    raise RuntimeError(
+                        f"Shot {shot.id} is in Rig whereas it hasn't any RigInstance"
+                    )
+
+                created_shot = {}
+                for instance_shot in rig_instance.shots.values():
+                    created_shot[instance_shot.id] = self.create_shot(
+                        instance_shot.id,
+                        instance_shot.camera.id,
+                        instance_shot.pose,
+                        False,
+                    )
+                    self.map.update_shot(instance_shot)
+                self.map.update_shot(shot)
+
+                new_rig_instance = self.add_rig_instance(
+                    pymap.RigInstance(rig_instance.id)
+                )
+                for instance_shot in rig_instance.shots.values():
+                    curr_has_camera, curr_rig_camera = instance_shot.rig_camera
+                    assert curr_has_camera
+                    if curr_rig_camera.id not in self.rig_cameras:
+                        new_rig_camera = self.add_rig_camera(curr_rig_camera)
+                    else:
+                        new_rig_camera = self.rig_cameras[curr_rig_camera.id]
+                    new_rig_instance.add_shot(
+                        new_rig_camera, created_shot[instance_shot.id]
+                    )
+                new_rig_instance.update_instance_pose_with_shot(shot.id, shot.pose)
+
+        return self.get_shot(shot.id)
 
     def get_shot(self, id: str) -> pymap.Shot:
         """Return a shot by id.

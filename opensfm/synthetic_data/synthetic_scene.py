@@ -108,7 +108,7 @@ class SyntheticCubeScene(SyntheticScene):
             shot_id = "shot%04d" % i
             camera_id = "camera%04d" % i
             pose = camera_pose(position, lookat, up)
-            self.reconstruction.create_shot(shot_id, camera_id, pose)
+            self.reconstruction.create_shot(shot_id, camera_id, pose, False)
 
         points = np.random.rand(num_points, 3) - [0.5, 0.5, 0.5]
         for i, p in enumerate(points):
@@ -122,7 +122,7 @@ class SyntheticCubeScene(SyntheticScene):
         # since we do not want to modify the reference
         reconstruction.cameras = self.cameras
         for shot in self.reconstruction.shots.values():
-            reconstruction.create_shot(shot.id, shot.camera.id, shot.pose)
+            reconstruction.create_shot(shot.id, shot.camera.id, shot.pose, False)
         for point in self.reconstruction.points.values():
             pt = reconstruction.create_point(point.id, point.coordinates)
             pt.color = point.color
@@ -279,8 +279,20 @@ class SyntheticStreetScene(SyntheticScene):
         self.shot_positions.append(positions)
 
         shift = 0 if len(self.shot_ids) == 0 else len(self.shot_ids[-1])
-        self.shot_ids.append([f"Shot {shift+i:04d}" for i in range(len(positions))])
+        new_shot_ids = [f"Shot {shift+i:04d}" for i in range(len(positions))]
+        self.shot_ids.append(new_shot_ids)
         self.cameras.append(camera)
+
+        rig_camera = pymap.RigCamera(pygeometry.Pose(), camera.id)
+        self.rig_cameras.append([rig_camera])
+
+        rig_instances = []
+        for shot_id in new_shot_ids:
+            rig_instances.append([(shot_id, camera.id)])
+        self.rig_instances.append(rig_instances)
+        self.instances_positions.append(positions)
+        self.instances_rotations.append(rotations)
+
         return self
 
     def add_rig_camera_sequence(

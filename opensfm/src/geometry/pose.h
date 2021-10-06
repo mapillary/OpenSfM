@@ -168,6 +168,11 @@ class Pose {
     return invpose;
   }
 
+  bool IsIdentity(double epsilon = 1e-15) const {
+    return GetOrigin().norm() < epsilon &&
+           RotationWorldToCameraMin().norm() < epsilon;
+  }
+
  protected:
   Mat4d cam_to_world_;  // [R',-R't] cam to world
   Mat4d world_to_cam_;  // [R, t] world to cam

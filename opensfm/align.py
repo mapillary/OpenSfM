@@ -21,7 +21,10 @@ def align_reconstruction(
     bias_override: bool = False,
 ) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
     """Align a reconstruction with GPS and GCP data."""
-    use_scale = len(reconstruction.rig_instances) < 1
+    has_scaled_rigs = any(
+        [True for ri in reconstruction.rig_instances.values() if len(ri.shots) > 1]
+    )
+    use_scale = not has_scaled_rigs
     if bias_override and config["bundle_compensate_gps_bias"]:
         return set_gps_bias(reconstruction, config, gcp, use_scale)
     else:
@@ -69,7 +72,8 @@ def apply_similarity(
 
     # Align rig instances
     for rig_instance in reconstruction.rig_instances.values():
-        apply_similarity_pose(rig_instance.pose, s, A, b)
+        if all([s.is_in_rig() for s in rig_instance.shots.values()]):
+            apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
 def compute_reconstruction_similarity(

@@ -380,7 +380,7 @@ void BundleAdjuster::AddAbsoluteUpVector(const std::string &shot_id,
                                          const Vec3d &up_vector,
                                          double std_deviation) {
   AbsoluteUpVector a;
-  a.shot = &shots_.at(shot_id);
+  a.shot_id = shot_id;
   a.up_vector = up_vector;
   a.std_deviation = std_deviation;
   absolute_up_vectors_.push_back(a);
@@ -1053,12 +1053,29 @@ void BundleAdjuster::Run() {
       if (up_vector_loss == nullptr) {
         up_vector_loss = new ceres::CauchyLoss(1);
       }
-      auto *up_vector_cost_function =
-          new ceres::AutoDiffCostFunction<UpVectorError, 3, 6>(
-              new UpVectorError(a.up_vector, a.std_deviation));
 
-      problem.AddResidualBlock(up_vector_cost_function, up_vector_loss,
-                               a.shot->GetPose()->GetValueData().data());
+      const auto find_rig_shot = rig_shots_.find(a.shot_id);
+      const bool is_rig_shot = find_rig_shot != rig_shots_.end();
+
+      auto *up_vector_cost_function =
+          new ceres::DynamicAutoDiffCostFunction<UpVectorError>(
+              new UpVectorError(a.up_vector, a.std_deviation, is_rig_shot));
+      up_vector_cost_function->AddParameterBlock(6);
+      up_vector_cost_function->SetNumResiduals(3);
+
+      if (!is_rig_shot) {
+        problem.AddResidualBlock(
+            up_vector_cost_function, up_vector_loss,
+            shots_.at(a.shot_id).GetPose()->GetValueData().data());
+      } else {
+        auto camera_data =
+            find_rig_shot->second.GetRigCamera()->GetValueData().data();
+        auto instance_data =
+            find_rig_shot->second.GetRigInstance()->GetValueData().data();
+        up_vector_cost_function->AddParameterBlock(6);
+        problem.AddResidualBlock(up_vector_cost_function, up_vector_loss,
+                                 instance_data, camera_data);
+      }
     }
   }
 

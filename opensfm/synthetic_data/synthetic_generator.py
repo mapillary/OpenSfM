@@ -253,7 +253,7 @@ def add_shots_to_reconstruction(
     for shot_id, position, rotation in zip(shot_ids, positions, rotations):
         pose = pygeometry.Pose(rotation)
         pose.set_origin(position)
-        shot = reconstruction.create_shot(shot_id, camera.id, pose)
+        shot = reconstruction.create_shot(shot_id, camera.id, pose, False)
         shot.metadata.sequence_key.value = sequence_key
 
 
