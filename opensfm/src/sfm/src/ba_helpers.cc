@@ -47,12 +47,10 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
   constexpr size_t MaxBoundarySize{1000000};
   std::unordered_set<map::Shot*> interior;
   auto& central_shot = map.GetShot(central_shot_id);
-  if (central_shot.IsInRig()) {
-    const auto instance_shot =
-        map.GetRigInstance(central_shot.GetRigInstanceId()).GetShotIDs();
-    for (const auto& s : instance_shot) {
-      interior.insert(&map.GetShot(s));
-    }
+  const auto instance_shot =
+      map.GetRigInstance(central_shot.GetRigInstanceId()).GetShotIDs();
+  for (const auto& s : instance_shot) {
+    interior.insert(&map.GetShot(s));
   }
   interior.insert(&central_shot);
   for (size_t distance = 1;
@@ -100,14 +98,10 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   size_t idx = 0;
   for (auto& p : pairs) {
     if (p.second >= min_common_points && idx < max_n) {
-      if (p.first->IsInRig()) {
-        const auto instance_shots =
-            map.GetRigInstance(p.first->GetRigInstanceId()).GetShotIDs();
-        for (const auto& s : instance_shots) {
-          neighbors.insert(&map.GetShot(s));
-        }
-      } else {
-        neighbors.insert(p.first);
+      const auto instance_shots =
+          map.GetRigInstance(p.first->GetRigInstanceId()).GetShotIDs();
+      for (const auto& s : instance_shots) {
+        neighbors.insert(&map.GetShot(s));
       }
     } else {
       break;
@@ -158,9 +152,6 @@ py::tuple BAHelpers::BundleLocal(
   std::unordered_set<map::RigCameraId> rig_cameras_ids;
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
   for (auto* shot : int_and_bound) {
-    if (!shot->IsInRig()) {
-      continue;
-    }
     rig_cameras_ids.insert(shot->GetRigCameraId());
     rig_instances_ids.insert(shot->GetRigInstanceId());
   }
@@ -174,6 +165,7 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   // add rig instances shots
+  const std::string gps_scale_group = "dummy";  // unused for now
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
@@ -215,41 +207,9 @@ py::tuple BAHelpers::BundleLocal(
       average_position /= gps_count;
       average_std /= gps_count;
       ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
-                                     average_std);
+                                     Vec3d::Constant(average_std),
+                                     gps_scale_group);
     }
-  }
-
-  // add interior shots (non-rig)
-  for (auto* shot : interior) {
-    if (shot->IsInRig()) {
-      continue;
-    }
-    const auto& pose = shot->GetPose();
-    constexpr auto shot_constant{false};
-
-    ba.AddShot(shot->id_, shot->GetCamera()->id,
-               pose->RotationWorldToCameraMin(),
-               pose->TranslationWorldToCamera(), shot_constant);
-    if (config["bundle_use_gps"].cast<bool>()) {
-      const auto pos = shot->GetShotMeasurements().gps_position_;
-      const auto acc = shot->GetShotMeasurements().gps_accuracy_;
-      if (pos.HasValue() && acc.HasValue()) {
-        const Vec3d g = pos.Value();
-        ba.AddPositionPrior(shot->id_, g[0], g[1], g[2], acc.Value());
-      }
-    }
-  }
-
-  // add boundary shots (non-rig)
-  for (auto* shot : boundary) {
-    if (shot->IsInRig()) {
-      continue;
-    }
-    const auto& pose = shot->GetPose();
-    constexpr auto shot_constant{true};
-    ba.AddShot(shot->id_, shot->GetCamera()->id,
-               pose->RotationWorldToCameraMin(),
-               pose->TranslationWorldToCamera(), shot_constant);
   }
 
   for (auto* shot : interior) {
@@ -309,14 +269,6 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   const auto timer_run = std::chrono::high_resolution_clock::now();
-  for (auto* shot : interior) {
-    if (shot->IsInRig()) {
-      continue;
-    }
-    auto s = ba.GetShot(shot->id_);
-    shot->SetPose(s.GetPose()->GetValue());
-  }
-
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     auto i = ba.GetRigInstance(rig_instance_id);
@@ -405,11 +357,10 @@ void BAHelpers::AddGCPToBundle(
     constexpr auto point_constant{false};
     ba.AddPoint(point_id, coordinates, point_constant);
     if (point.coordinates_.HasValue()) {
-      const auto point_type = point.has_altitude_
-                                  ? bundle::PositionConstraintType::XYZ
-                                  : bundle::PositionConstraintType::XY;
-      ba.AddPointPositionWorld(point_id, point.coordinates_.Value(),
-                               horizontal_sigma, vertical_sigma, point_type);
+      ba.AddPointPrior(
+          point_id, point.coordinates_.Value(),
+          Vec3d(horizontal_sigma, horizontal_sigma, vertical_sigma),
+          point.has_altitude_);
     }
 
     // Now iterate through the observations
@@ -445,9 +396,6 @@ py::dict BAHelpers::BundleShotPoses(
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
   for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
-    if (!shot.IsInRig()) {
-      continue;
-    }
     rig_instances_ids.insert(shot.GetRigInstanceId());
   }
   std::unordered_set<map::RigCameraId> rig_cameras_ids;
@@ -489,6 +437,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   // add rig instances shots
+  const std::string gps_scale_group = "dummy";  // unused for now
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
@@ -532,28 +481,8 @@ py::dict BAHelpers::BundleShotPoses(
         average_position /= gps_count;
         average_std /= gps_count;
         ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
-                                       average_std);
-      }
-    }
-  }
-
-  // add non-rig shots
-  for (const auto shot_id : shot_ids) {
-    const auto& shot = map.GetShot(shot_id);
-    if (shot.IsInRig()) {
-      continue;
-    }
-    const auto& pose = shot.GetPose();
-    constexpr auto fix_shot = false;
-    ba.AddShot(shot.id_, shot.GetCamera()->id, pose->RotationWorldToCameraMin(),
-               pose->TranslationWorldToCamera(), fix_shot);
-    if (config["bundle_use_gps"].cast<bool>()) {
-      const auto pos = shot.GetShotMeasurements().gps_position_;
-      const auto acc = shot.GetShotMeasurements().gps_accuracy_;
-      if (pos.HasValue() && acc.HasValue()) {
-        const auto& g = pos.Value();
-        ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
-                            shot.GetShotMeasurements().gps_accuracy_.Value());
+                                       Vec3d::Constant(average_std),
+                                       gps_scale_group);
       }
     }
   }
@@ -594,15 +523,6 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   const auto timer_run = std::chrono::high_resolution_clock::now();
-
-  // update non-rig shots
-  for (const auto shot_id : shot_ids) {
-    auto& shot_dst = map.GetShot(shot_id);
-    if (shot_dst.IsInRig()) {
-      continue;
-    }
-    shot_dst.SetPose(ba.GetShot(shot_id).GetPose()->GetValue());
-  }
 
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
@@ -688,6 +608,7 @@ py::dict BAHelpers::Bundle(
   }
 
   // setup rig instances
+  const std::string gps_scale_group = "dummy";  // unused for now
   for (auto instance_pair : map.GetRigInstances()) {
     auto& instance = instance_pair.second;
 
@@ -721,31 +642,13 @@ py::dict BAHelpers::Bundle(
       average_position /= gps_count;
       average_std /= gps_count;
       ba.AddRigInstancePositionPrior(instance_pair.first, average_position,
-                                     average_std);
+                                     Vec3d::Constant(average_std),
+                                     gps_scale_group);
     }
   }
 
   for (const auto& shot_pair : map.GetShots()) {
     const auto& shot = shot_pair.second;
-    const auto& pose = shot.GetPose();
-    constexpr auto fix_shot = false;
-
-    // setup shots only for non-rigs
-    const bool is_in_rig = shot.IsInRig();
-    if (!is_in_rig) {
-      ba.AddShot(shot.id_, shot.GetCamera()->id,
-                 pose->RotationWorldToCameraMin(),
-                 pose->TranslationWorldToCamera(), fix_shot);
-      if (config["bundle_use_gps"].cast<bool>()) {
-        const auto pos = shot.GetShotMeasurements().gps_position_;
-        const auto acc = shot.GetShotMeasurements().gps_accuracy_;
-        if (pos.HasValue() && acc.HasValue()) {
-          const Vec3d g = pos.Value();
-          ba.AddPositionPrior(shot.id_, g[0], g[1], g[2],
-                              shot.GetShotMeasurements().gps_accuracy_.Value());
-        }
-      }
-    }
 
     // that one doesn't have it's rig counterpart
     if (do_add_align_vector) {
@@ -843,20 +746,6 @@ void BAHelpers::BundleToMap(const bundle::BundleAdjuster& bundle_adjuster,
                                " has either NaN or INF values.");
     }
     bias.second = new_bias;
-  }
-
-  // Update shots
-  for (auto& shot : output_map.GetShots()) {
-    if (shot.second.IsInRig()) {
-      continue;
-    }
-    const auto& new_pose =
-        bundle_adjuster.GetShot(shot.first).GetPose()->GetValue();
-    if (!new_pose.IsValid()) {
-      throw std::runtime_error("Shot " + shot.first +
-                               " has either NaN or INF values.");
-    }
-    shot.second.SetPose(new_pose);
   }
 
   // Update rig instances

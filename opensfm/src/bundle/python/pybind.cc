@@ -33,6 +33,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def("set_scale_sharing", &bundle::BundleAdjuster::SetScaleSharing)
       .def("get_reconstruction", &bundle::BundleAdjuster::GetReconstruction)
       .def("add_point", &bundle::BundleAdjuster::AddPoint)
+      .def("add_point_prior", &bundle::BundleAdjuster::AddPointPrior)
       .def("get_point", &bundle::BundleAdjuster::GetPoint)
       .def("add_reconstruction", &bundle::BundleAdjuster::AddReconstruction)
       .def("add_reconstruction_shot",
@@ -45,8 +46,6 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_relative_rotation",
            &bundle::BundleAdjuster::AddRelativeRotation)
       .def("add_common_position", &bundle::BundleAdjuster::AddCommonPosition)
-      .def("add_absolute_position",
-           &bundle::BundleAdjuster::AddAbsolutePosition)
       .def("add_heatmap", &bundle::BundleAdjuster::AddHeatmap)
       .def("add_absolute_position_heatmap",
            &bundle::BundleAdjuster::AddAbsolutePositionHeatmap)
@@ -55,16 +54,6 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_absolute_pan", &bundle::BundleAdjuster::AddAbsolutePan)
       .def("add_absolute_tilt", &bundle::BundleAdjuster::AddAbsoluteTilt)
       .def("add_absolute_roll", &bundle::BundleAdjuster::AddAbsoluteRoll)
-      .def("add_position_prior", &bundle::BundleAdjuster::AddPositionPrior)
-      .def("add_point_position_prior",
-           &bundle::BundleAdjuster::AddPointPositionPrior)
-      .def("set_origin_shot", &bundle::BundleAdjuster::SetOriginShot)
-      .def("set_unit_translation_shot",
-           &bundle::BundleAdjuster::SetUnitTranslationShot)
-      .def("add_point_position_shot",
-           &bundle::BundleAdjuster::AddPointPositionShot)
-      .def("add_point_position_world",
-           &bundle::BundleAdjuster::AddPointPositionWorld)
       .def("add_linear_motion", &bundle::BundleAdjuster::AddLinearMotion)
       .def("set_internal_parameters_prior_sd",
            &bundle::BundleAdjuster::SetInternalParametersPriorSD)
@@ -85,32 +74,6 @@ PYBIND11_MODULE(pybundle, m) {
            &bundle::BundleAdjuster::SetLinearSolverType)
       .def("brief_report", &bundle::BundleAdjuster::BriefReport)
       .def("full_report", &bundle::BundleAdjuster::FullReport);
-
-  py::enum_<bundle::PositionConstraintType>(m, "PositionConstraintType")
-      .value("X", bundle::PositionConstraintType::X)
-      .value("Y", bundle::PositionConstraintType::Y)
-      .value("Z", bundle::PositionConstraintType::Z)
-      .value("XY", bundle::PositionConstraintType::XY)
-      .value("XYZ", bundle::PositionConstraintType::XYZ)
-      .export_values();
-
-  py::class_<bundle::Shot>(m, "Shot")
-      .def_property_readonly(
-          "r",
-          [](const bundle::Shot &s) {
-            return s.GetPose()->GetValue().RotationWorldToCameraMin();
-          })
-      .def_property_readonly(
-          "t",
-          [](const bundle::Shot &s) {
-            return s.GetPose()->GetValue().TranslationWorldToCamera();
-          })
-      .def_property_readonly("id",
-                             [](const bundle::Shot &s) { return s.GetID(); })
-      .def_property_readonly(
-          "camera", [](const bundle::Shot &s) { return s.GetCamera(); })
-      .def("get_covariance_inv_param",
-           [](const bundle::Shot &s) { return s.GetPose()->GetCovariance(); });
 
   py::class_<bundle::Reconstruction>(m, "Reconstruction")
       .def(py::init())

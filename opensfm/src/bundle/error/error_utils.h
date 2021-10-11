@@ -82,4 +82,17 @@ void WorldToCameraCoordinatesRig(const T* scale, const T* const rig_instance,
     WorldToLocal(scale, rig_instance, world_point, camera_point);
   }
 }
+
+template <typename T>
+T DiffBetweenAngles(T a, T b) {
+  T d = a - b;
+  if (d > T(M_PI)) {
+    return d - T(2 * M_PI);
+  } else if (d < -T(M_PI)) {
+    return d + T(2 * M_PI);
+  } else {
+    return d;
+  }
+}
+
 }  // namespace bundle

@@ -64,9 +64,8 @@ def _add_gcp_to_bundle(
         ba.add_point(point_id, coordinates, False)
 
         if point.coordinates.has_value:
-            point_type = pybundle.XYZ if point.has_altitude else pybundle.XY
-            ba.add_point_position_world(
-                point_id, point.coordinates.value, 0.1, 0.1, point_type
+            ba.add_point_prior(
+                point_id, point.coordinates.value, np.full((3), 0.1), point.has_altitude
             )
 
         for observation in point.observations:

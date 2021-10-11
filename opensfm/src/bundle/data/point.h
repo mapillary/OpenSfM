@@ -20,6 +20,7 @@ struct Point : public Data<Vec3d> {
   }
 
   std::map<std::string, VecXd> reprojection_errors;
+  bool has_altitude_prior{true};
 
  private:
   void ValueToData(const Vec3d &value, VecXd &data) const final {

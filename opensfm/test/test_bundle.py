@@ -33,7 +33,7 @@ def test_unicode_strings_in_bundle():
 @pytest.fixture()
 def bundle_adjuster():
     ba = pybundle.BundleAdjuster()
-    camera = pygeometry.Camera.create_spherical()
+    camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     ba.add_camera("cam1", camera, camera, True)
     ba.add_rig_camera("rig_cam1", pygeometry.Pose(), pygeometry.Pose(), True)
     return ba
@@ -49,7 +49,7 @@ def test_sigleton(bundle_adjuster):
         {"1": "rig_cam1"},
         False,
     )
-    sa.add_rig_instance_position_prior("1", [1, 0, 0], 1)
+    sa.add_rig_instance_position_prior("1", [1, 0, 0], [1, 1, 1], "")
     sa.add_absolute_up_vector("1", [0, -1, 0], 1)
     sa.add_absolute_pan("1", np.radians(180), 1)
 
@@ -69,7 +69,7 @@ def test_singleton_pan_tilt_roll(bundle_adjuster):
         {"1": "rig_cam1"},
         False,
     )
-    sa.add_rig_instance_position_prior("1", [1, 0, 0], 1)
+    sa.add_rig_instance_position_prior("1", [1, 0, 0], [1, 1, 1], "")
     sa.add_absolute_pan("1", pan, 1)
     sa.add_absolute_tilt("1", tilt, 1)
     sa.add_absolute_roll("1", roll, 1)
@@ -151,8 +151,8 @@ def test_pair(bundle_adjuster):
     sa.add_relative_motion(
         pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
-    sa.add_rig_instance_position_prior("1", [0, 0, 0], 1)
-    sa.add_rig_instance_position_prior("2", [2, 0, 0], 1)
+    sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("2", [2, 0, 0], [1, 1, 1], "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -165,7 +165,7 @@ def test_pair(bundle_adjuster):
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_with_shot_point(bundle_adjuster):
+def test_pair_with_points_priors(bundle_adjuster):
     """Simple two rigs test with a point constraint for anchoring"""
     sa = bundle_adjuster
     sa.add_rig_instance(
@@ -183,6 +183,8 @@ def test_pair_with_shot_point(bundle_adjuster):
         False,
     )
     sa.add_point("p1", [0, 0, 0], False)
+    sa.add_point("p2", [0, 0, 0], False)
+
     sa.add_reconstruction("12", False)
     sa.add_reconstruction_shot("12", 4, "1")
     sa.add_reconstruction_shot("12", 4, "2")
@@ -196,19 +198,26 @@ def test_pair_with_shot_point(bundle_adjuster):
     sa.add_relative_motion(
         pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
-    sa.add_point_position_shot("p1", "1", "12", [1, 0, 0], 1, pybundle.XYZ)
-    sa.add_point_position_shot("p1", "2", "12", [-1, 0, 0], 1, pybundle.XYZ)
-    sa.add_point_position_world("p1", [1, 0, 0], 1, 1, pybundle.XYZ)
+
+    sa.add_point_projection_observation("1", "p1", [0, 0], 1)
+    sa.add_point_projection_observation("2", "p1", [-0.5, 0], 1)
+    sa.add_point_prior("p1", [-0.5, 2, 2], [1, 1, 1], True)
+
+    sa.add_point_projection_observation("2", "p2", [0, 0], 1)
+    sa.add_point_projection_observation("1", "p2", [0.5, 0], 1)
+    sa.add_point_prior("p2", [1.5, 2, 2], [1, 1, 1], True)
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
     s2 = sa.get_rig_instance_pose("2")
     r12 = sa.get_reconstruction("12")
     p1 = sa.get_point("p1")
+    p2 = sa.get_point("p2")
 
-    assert np.allclose(s1.translation, [0.5, 0, 0], atol=1e-2)
-    assert np.allclose(s2.translation, [-1.5, 0, 0], atol=1e-2)
-    assert np.allclose(p1.p, [1, 0, 0], atol=1e-6)
+    assert np.allclose(s1.translation, [0.5, -2, 2], atol=1e-2)
+    assert np.allclose(s2.translation, [-1.5, -2, 2], atol=1e-2)
+    assert np.allclose(p1.p, [-0.5, 2, 2], atol=1e-6)
+    assert np.allclose(p2.p, [1.5, 2, 2], atol=1e-6)
     assert np.allclose(r12.get_scale("1"), 0.5)
     assert np.allclose(r12.get_scale("2"), 0.5)
 
@@ -237,8 +246,8 @@ def test_pair_non_rigid(bundle_adjuster):
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1, 1)
     )
-    sa.add_rig_instance_position_prior("1", [0, 0, 0], 1)
-    sa.add_rig_instance_position_prior("2", [2, 0, 0], 1)
+    sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("2", [2, 0, 0], [1, 1, 1], "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -297,9 +306,9 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     sa.add_relative_motion(
         pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
-    sa.add_rig_instance_position_prior("1", [0, 0, 0], 1)
-    sa.add_rig_instance_position_prior("2", [2, 0, 0], 1)
-    sa.add_rig_instance_position_prior("3", [0, 2, 0], 1)
+    sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("2", [2, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("3", [0, 2, 0], [1, 1, 1], "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -366,10 +375,10 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
             "1234", "3", "1234", "4", [0, 0, 0], [0, -1, 0], 1, 1
         )
     )
-    sa.add_rig_instance_position_prior("1", [0, 0, 0], 1)
-    sa.add_rig_instance_position_prior("2", [2, 0, 0], 1)
-    sa.add_rig_instance_position_prior("3", [4, 2, 0], 1)
-    sa.add_rig_instance_position_prior("4", [4, 4, 0], 1)
+    sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("2", [2, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("3", [4, 2, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("4", [4, 4, 0], [1, 1, 1], "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -435,9 +444,9 @@ def test_four_cams_one_fixed(bundle_adjuster):
     sa.add_relative_motion(
         pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
-    sa.add_rig_instance_position_prior("1", [100, 0, 0], 1)
-    sa.add_rig_instance_position_prior("2", [2, 0, 0], 1)
-    sa.add_rig_instance_position_prior("3", [0, 2, 0], 1)
+    sa.add_rig_instance_position_prior("1", [100, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("2", [2, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("3", [0, 2, 0], [1, 1, 1], "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -480,8 +489,8 @@ def test_linear_motion_prior_position(bundle_adjuster):
     sa.add_reconstruction_shot("123", 1, "2")
     sa.add_reconstruction_shot("123", 1, "3")
     sa.set_scale_sharing("123", True)
-    sa.add_rig_instance_position_prior("1", [0, 0, 0], 1)
-    sa.add_rig_instance_position_prior("3", [2, 0, 0], 1)
+    sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
+    sa.add_rig_instance_position_prior("3", [2, 0, 0], [1, 1, 1], "")
     sa.add_linear_motion("1", "2", "3", 0.5, 0.1, 0.1)
 
     sa.run()

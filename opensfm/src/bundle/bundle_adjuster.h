@@ -5,7 +5,6 @@
 #include <bundle/data/data.h>
 #include <bundle/data/point.h>
 #include <bundle/data/pose.h>
-#include <bundle/data/rig.h>
 #include <bundle/data/shot.h>
 #include <foundation/optional.h>
 #include <geometry/camera.h>
@@ -28,13 +27,6 @@ extern "C" {
 }
 
 namespace bundle {
-enum PositionConstraintType {
-  X = 0x1,
-  Y = 0x2,
-  Z = 0x4,
-  XY = X | Y,
-  XYZ = XY | Z
-};
 
 struct Reconstruction {
   std::string id;
@@ -68,42 +60,6 @@ struct PointProjectionObservation {
   Point *point;
   Shot *shot;
   Camera *camera;
-  double std_deviation;
-};
-
-struct PointRigProjectionObservation {
-  Vec2d coordinates;
-  Point *point;
-  RigShot *rig_shot;
-  Camera *camera;
-  double std_deviation;
-};
-
-// CANDIDATE FOR DELETION
-struct RotationPrior {
-  Shot *shot;
-  double rotation[3];
-  double std_deviation;
-};
-
-// CANDIDATE FOR DELETION
-struct TranslationPrior {
-  Shot *shot;
-  double translation[3];
-  double std_deviation;
-};
-
-// CANDIDATE FOR DELETION
-struct PositionPrior {
-  Shot *shot;
-  Bias *bias;
-  double position[3];
-  double std_deviation;
-};
-
-struct PointPositionPrior {
-  Point *point;
-  double position[3];
   double std_deviation;
 };
 
@@ -190,13 +146,6 @@ struct CommonPosition {
   double std_deviation;
 };
 
-struct AbsolutePosition {
-  std::string shot_id;
-  Vec3d position;
-  double std_deviation;
-  std::string std_deviation_group;
-};
-
 struct HeatmapInterpolator {
   HeatmapInterpolator(const std::vector<double> &flatten_heatmap, size_t width,
                       double resolution);
@@ -239,24 +188,6 @@ struct LinearMotion {
   double orientation_std_deviation;
 };
 
-// CANDIDATE FOR DELETION
-struct PointPositionShot {
-  std::string shot_id;
-  std::string reconstruction_id;
-  std::string point_id;
-  Vec3d position;
-  double std_deviation;
-  PositionConstraintType type;
-};
-
-struct PointPositionWorld {
-  std::string point_id;
-  Vec3d position;
-  double std_deviation_horizontal;
-  double std_deviation_vertical;
-  PositionConstraintType type;
-};
-
 class BundleAdjuster {
  public:
   BundleAdjuster();
@@ -267,9 +198,9 @@ class BundleAdjuster {
   // Basic
   void AddCamera(const std::string &id, const geometry::Camera &camera,
                  const geometry::Camera &prior, bool constant);
-  void AddShot(const std::string &id, const std::string &camera,
-               const Vec3d &rotation, const Vec3d &translation, bool constant);
   void AddPoint(const std::string &id, const Vec3d &position, bool constant);
+  void AddPointPrior(const std::string &id, const Vec3d &position,
+                     const Vec3d &std_deviation, bool has_altitude_prior);
   void SetCameraBias(const std::string &id, const geometry::Similarity &bias);
 
   // Rigs
@@ -282,42 +213,31 @@ class BundleAdjuster {
   void AddRigCamera(const std::string &rig_camera, const geometry::Pose &pose,
                     const geometry::Pose &pose_prior, bool fixed);
   void AddRigInstancePositionPrior(const std::string &instance_id,
-                                   const Vec3d &position, double std_deviation);
+                                   const Vec3d &position,
+                                   const Vec3d &std_deviation,
+                                   const std::string &scale_group);
 
-  // Cluster-based
+  // Cluster-SfM related
   void AddReconstruction(const std::string &id, bool constant);
   void AddReconstructionShot(const std::string &reconstruction_id, double scale,
                              const std::string &shot_id);
   void SetScaleSharing(const std::string &id, bool share);
 
-  // Averaging constraints
-
-  // Point projection
+  // Real bundle adjustment : point projections
   void AddPointProjectionObservation(const std::string &shot,
                                      const std::string &point,
                                      const Vec2d &observation,
                                      double std_deviation);
-  void AddPositionPrior(const std::string &shot_id, double x, double y,
-                        double z, double std_deviation);
-  void AddPointPositionPrior(const std::string &point_id, double x, double y,
-                             double z, double std_deviation);
 
-  void SetOriginShot(const std::string &shot_id);
-  void SetUnitTranslationShot(const std::string &shot_id);
-
-  // Relative motion ones
+  // Relative motion constraints
   void AddRelativeMotion(const RelativeMotion &rm);
   void AddRelativeSimilarity(const RelativeSimilarity &rm);
   void AddRelativeRotation(const RelativeRotation &rr);
 
-  // Absolute motion ones
+  // Absolute motion constraints
   void AddCommonPosition(const std::string &shot_id1,
                          const std::string &shot_id2, double margin,
                          double std_deviation);
-  void AddAbsolutePosition(const std::string &shot_id, const Vec3d &position,
-                           double std_deviation,
-                           const std::string &std_deviation_group);
-
   void AddHeatmap(const std::string &heatmap_id,
                   const std::vector<double> &in_heatmap, size_t in_width,
                   double resolution);
@@ -341,17 +261,6 @@ class BundleAdjuster {
                        const std::string &shot2_id, double alpha,
                        double position_std_deviation,
                        double orientation_std_deviation);
-
-  // Point positions
-  void AddPointPositionShot(const std::string &point_id,
-                            const std::string &shot_id,
-                            const std::string &reconstruction_id,
-                            const Vec3d &position, double std_deviation,
-                            const PositionConstraintType &type);
-  void AddPointPositionWorld(const std::string &point_id, const Vec3d &position,
-                             double std_deviation_horizontal,
-                             double std_deviation_vertical,
-                             const PositionConstraintType &type);
 
   // Minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
@@ -382,7 +291,6 @@ class BundleAdjuster {
   // Getters
   geometry::Camera GetCamera(const std::string &id) const;
   geometry::Similarity GetBias(const std::string &id) const;
-  Shot GetShot(const std::string &id) const;
   Reconstruction GetReconstruction(const std::string &reconstruction_id) const;
   Reconstruction GetShotReconstruction(const std::string &shot_id) const;
   Point GetPoint(const std::string &id) const;
@@ -404,7 +312,6 @@ class BundleAdjuster {
   std::map<std::string, Camera> cameras_;
   std::map<std::string, Bias> bias_;
   std::map<std::string, Shot> shots_;
-  std::map<std::string, RigShot> rig_shots_;
   std::map<std::string, Reconstruction> reconstructions_;
   std::map<std::string, Point> points_;
   std::map<std::string, RigCamera> rig_cameras_;
@@ -417,7 +324,6 @@ class BundleAdjuster {
 
   // reprojection observation
   std::vector<PointProjectionObservation> point_projection_observations_;
-  std::vector<PointRigProjectionObservation> point_rig_projection_observations_;
   std::map<std::string, std::shared_ptr<HeatmapInterpolator>> heatmaps_;
 
   // relative motion between shots
@@ -428,23 +334,13 @@ class BundleAdjuster {
 
   // shots absolute positions
   std::vector<AbsolutePositionHeatmap> absolute_positions_heatmaps_;
-  std::vector<AbsolutePosition> absolute_positions_;
   std::vector<AbsoluteUpVector> absolute_up_vectors_;
   std::vector<AbsoluteAngle> absolute_pans_;
   std::vector<AbsoluteAngle> absolute_tilts_;
   std::vector<AbsoluteAngle> absolute_rolls_;
 
-  std::vector<PositionPrior> position_priors_;
-  std::vector<PointPositionPrior> point_position_priors_;
-
-  Shot *unit_translation_shot_;
-
   // motion priors
   std::vector<LinearMotion> linear_motion_prior_;
-
-  // points absolute constraints
-  std::vector<PointPositionShot> point_positions_shot_;
-  std::vector<PointPositionWorld> point_positions_world_;
 
   // Camera parameters prior
   double focal_prior_sd_;

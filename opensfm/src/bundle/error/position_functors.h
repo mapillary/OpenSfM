@@ -63,47 +63,4 @@ struct ShotRotationFunctor {
   const int rig_instance_index_{FUNCTOR_NOT_SET};
   const int rig_camera_index_{FUNCTOR_NOT_SET};
 };
-
-struct PointPositionShotFunctor {
-  PointPositionShotFunctor() = default;
-  PointPositionShotFunctor(int rig_instance_index, int rig_camera_index,
-                           int scale_index, int point_index)
-      : rig_instance_index_(rig_instance_index),
-        rig_camera_index_(rig_camera_index),
-        scale_index_(scale_index),
-        point_index_(point_index) {}
-
-  template <typename T>
-  Vec3<T> operator()(T const* const* p) const {
-    const T* const rig_instance = p[rig_instance_index_];
-    const T* const rig_camera =
-        rig_camera_index_ != FUNCTOR_NOT_SET ? p[rig_camera_index_] : nullptr;
-    const T* const point = p[point_index_];
-    const T* const scale = p[scale_index_];
-
-    Vec3<T> camera_point = Vec3<T>::Zero();
-    WorldToCameraCoordinatesRig(scale, rig_instance, rig_camera, point,
-                                camera_point.data());
-    return camera_point;
-  }
-
-  const int rig_instance_index_{FUNCTOR_NOT_SET};
-  const int rig_camera_index_{FUNCTOR_NOT_SET};
-  const int scale_index_{FUNCTOR_NOT_SET};
-  const int point_index_{FUNCTOR_NOT_SET};
-};
-
-struct PointPositionWorldFunctor {
-  PointPositionWorldFunctor() = default;
-  explicit PointPositionWorldFunctor(int index) : index_(index) {}
-
-  template <typename T>
-  Vec3<T> operator()(T const* const* p) const {
-    const T* const point = p[index_];
-    Eigen::Map<const Vec3<T> > p_world(point);
-    return p_world;
-  }
-
-  const int index_{FUNCTOR_NOT_SET};
-};
 }  // namespace bundle
