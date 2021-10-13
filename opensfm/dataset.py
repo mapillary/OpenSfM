@@ -681,7 +681,6 @@ class DataSet(DataSetBase):
 
         with BytesIO() as buffer:
             with gzip.GzipFile(fileobj=buffer, mode="w") as fzip:
-                # pyre-fixme[6]: Expected `IO[bytes]` for 2nd param but got `GzipFile`.
                 pickle.dump(matches, fzip)
             with self.io_handler.open(self._matches_file(image), "wb") as fw:
                 fw.write(buffer.getvalue())
