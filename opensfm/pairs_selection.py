@@ -451,8 +451,7 @@ def match_candidates_from_metadata(
     vlad_gps_neighbors = overriden_config["matching_vlad_gps_neighbors"]
     vlad_other_cameras = overriden_config["matching_vlad_other_cameras"]
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
+    data.init_reference()
     reference = data.load_reference()
 
     if not all(map(has_gps_info, exifs.values())):

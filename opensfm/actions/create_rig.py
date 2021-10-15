@@ -32,8 +32,7 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
     assignments = data.load_rig_assignments()
     rig_cameras = data.load_rig_cameras()
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
+    data.init_reference()
 
     base_rotation = np.zeros(3)
 

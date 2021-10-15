@@ -1333,8 +1333,7 @@ def incremental_reconstruction(
 
     images = tracks_manager.get_shot_ids()
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla(images)
+    data.init_reference(images)
 
     remaining_images = set(images)
     gcp = data.load_ground_control_points(data.load_reference())

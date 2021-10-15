@@ -175,9 +175,11 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def invent_reference_lla(
-        self, images: Optional[List[str]] = None
-    ) -> Dict[str, float]:
+    def init_reference(self, images: Optional[List[str]] = None) -> None:
+        pass
+
+    @abstractmethod
+    def reference_exists(self) -> bool:
         pass
 
     @abstractmethod
@@ -185,7 +187,7 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def reference_lla_exists(self) -> bool:
+    def save_reference(self, reference: geo.TopocentricConverter):
         pass
 
     @abstractmethod
@@ -743,66 +745,32 @@ class DataSet(DataSetBase):
     def _reference_lla_path(self) -> str:
         return os.path.join(self.data_path, "reference_lla.json")
 
-    def invent_reference_lla(
-        self, images: Optional[List[str]] = None
-    ) -> Dict[str, float]:
-        lat, lon, alt = 0.0, 0.0, 0.0
-        wlat, wlon, walt = 0.0, 0.0, 0.0
-        if images is None:
-            images = self.images()
-        for image in images:
-            d = self.load_exif(image)
-            if "gps" in d and "latitude" in d["gps"] and "longitude" in d["gps"]:
-                w = 1.0 / max(0.01, d["gps"].get("dop", 15))
-                lat += w * d["gps"]["latitude"]
-                lon += w * d["gps"]["longitude"]
-                wlat += w
-                wlon += w
-                if "altitude" in d["gps"]:
-                    alt += w * d["gps"]["altitude"]
-                    walt += w
+    def init_reference(self, images: Optional[List[str]] = None) -> None:
+        """Initializes the dataset reference if not done already."""
+        if not self.reference_exists():
+            reference = invent_reference_from_gps_and_gcp(self, images)
+            self.save_reference(reference)
 
-        if not wlat and not wlon:
-            for gcp in self.load_ground_control_points(None):
-                lat += gcp.lla["latitude"]
-                lon += gcp.lla["longitude"]
-                wlat += 1
-                wlon += 1
+    def save_reference(self, reference: geo.TopocentricConverter) -> None:
+        reference_lla = {
+            "latitude": reference.lat,
+            "longitude": reference.lon,
+            "altitude": reference.alt,
+        }
 
-                if gcp.has_altitude:
-                    alt += gcp.lla["altitude"]
-                    walt += 1
-
-        if wlat:
-            lat /= wlat
-        if wlon:
-            lon /= wlon
-        if walt:
-            alt /= walt
-        reference = {
-            "latitude": lat,
-            "longitude": lon,
-            "altitude": 0,
-        }  # Set altitude manually.
-        self.save_reference_lla(reference)
-        return reference
-
-    def save_reference_lla(self, reference: Dict[str, float]) -> None:
         with self.io_handler.open_wt(self._reference_lla_path()) as fout:
-            io.json_dump(reference, fout)
-
-    def load_reference_lla(self) -> Dict[str, float]:
-        with self.io_handler.open_rt(self._reference_lla_path()) as fin:
-            return io.json_load(fin)
+            io.json_dump(reference_lla, fout)
 
     def load_reference(self) -> geo.TopocentricConverter:
         """Load reference as a topocentric converter."""
-        lla = self.load_reference_lla()
+        with self.io_handler.open_rt(self._reference_lla_path()) as fin:
+            lla = io.json_load(fin)
+
         return geo.TopocentricConverter(
             lla["latitude"], lla["longitude"], lla["altitude"]
         )
 
-    def reference_lla_exists(self) -> bool:
+    def reference_exists(self) -> bool:
         return self.io_handler.isfile(self._reference_lla_path())
 
     def _camera_models_file(self) -> str:
@@ -1306,3 +1274,43 @@ class UndistortedDataSet(object):
         self.io_handler.mkdir_p(self.data_path)
         with self.io_handler.open_wt(filename) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify=True)
+
+
+def invent_reference_from_gps_and_gcp(
+    data: DataSetBase, images: Optional[List[str]] = None
+) -> geo.TopocentricConverter:
+    lat, lon, alt = 0.0, 0.0, 0.0
+    wlat, wlon, walt = 0.0, 0.0, 0.0
+    if images is None:
+        images = data.images()
+    for image in images:
+        d = data.load_exif(image)
+        if "gps" in d and "latitude" in d["gps"] and "longitude" in d["gps"]:
+            w = 1.0 / max(0.01, d["gps"].get("dop", 15))
+            lat += w * d["gps"]["latitude"]
+            lon += w * d["gps"]["longitude"]
+            wlat += w
+            wlon += w
+            if "altitude" in d["gps"]:
+                alt += w * d["gps"]["altitude"]
+                walt += w
+
+    if not wlat and not wlon:
+        for gcp in data.load_ground_control_points(None):
+            lat += gcp.lla["latitude"]
+            lon += gcp.lla["longitude"]
+            wlat += 1
+            wlon += 1
+
+            if gcp.has_altitude:
+                alt += gcp.lla["altitude"]
+                walt += 1
+
+    if wlat:
+        lat /= wlat
+    if wlon:
+        lon /= wlon
+    if walt:
+        alt /= walt
+
+    return geo.TopocentricConverter(lat, lon, 0)  # Set altitude manually.

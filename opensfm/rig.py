@@ -4,7 +4,6 @@ import logging
 import os
 import random
 import re
-import shutil
 from typing import Dict, Tuple, List, Optional, Set, Iterable
 
 import networkx as nx
@@ -113,8 +112,7 @@ def propose_subset_dataset_from_instances(
     """
     per_rig_camera_group = group_instances(rig_instances)
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
+    data.init_reference()
     reference = data.load_reference()
 
     instances_to_pick = {}
