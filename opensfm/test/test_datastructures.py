@@ -660,6 +660,12 @@ def test_rig_instance_create_add_existing():
         rec.add_rig_instance(rig_instance)
 
 
+def test_rig_instance_remove_shot():
+    rec, _, shot = _create_rig_instance()
+    rec.remove_shot(shot.id)
+    assert len(rec.rig_instances["0"].shots) == 0
+
+
 def test_rig_shot_modify_pose_raise():
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
@@ -1112,7 +1118,7 @@ def test_gcp():
 
 
 def test_add_correspondences_from_tracks_manager():
-    n_shots=3
+    n_shots = 3
     rec = _create_reconstruction(
         n_cameras=1,
         n_shots_cam={"0": n_shots},

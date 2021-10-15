@@ -171,6 +171,10 @@ void Map::RemoveShot(const ShotId& shot_id) {
       lm_obs.first->RemoveObservation(&shot);
     }
     // 3) Remove from shots
+    auto maybe_rig_instance = shot_it->second.GetRigInstance();
+    if (maybe_rig_instance.HasValue()) {
+      maybe_rig_instance.Value()->RemoveShot(shot_it->first);
+    }
     shots_.erase(shot_it);
   } else {
     throw std::runtime_error("Accessing invalid ShotID " + shot_id);
@@ -213,6 +217,10 @@ void Map::RemovePanoShot(const ShotId& shot_id) {
   const auto& shot_it = pano_shots_.find(shot_id);
   if (shot_it != pano_shots_.end()) {
     const auto& shot = shot_it->second;
+    auto maybe_rig_instance = shot_it->second.GetRigInstance();
+    if (maybe_rig_instance.HasValue()) {
+      maybe_rig_instance.Value()->RemoveShot(shot_it->first);
+    }
     pano_shots_.erase(shot_it);
   } else {
     throw std::runtime_error("Accessing invalid ShotID " + shot_id);

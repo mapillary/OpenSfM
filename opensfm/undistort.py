@@ -24,6 +24,7 @@ def undistort_reconstruction(
     data: DataSetBase,
     udata: UndistortedDataSet,
 ) -> Dict[pymap.Shot, List[pymap.Shot]]:
+    all_images = set(data.images())
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
@@ -33,6 +34,11 @@ def undistort_reconstruction(
     logger.debug("Undistorting the reconstruction")
     undistorted_shots = {}
     for shot in reconstruction.shots.values():
+        if shot.id not in all_images:
+            logger.warning(
+                f"Not undistorting {shot.id} as it is missing from the dataset's input images."
+            )
+            continue
         if shot.camera.projection_type == "perspective":
             urec.add_camera(perspective_camera_from_perspective(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
@@ -80,8 +86,8 @@ def undistort_reconstruction_with_images(
     )
     if not skip_images:
         arguments = []
-        for shot in reconstruction.shots.values():
-            arguments.append((shot, undistorted_shots[shot.id], data, udata))
+        for shot_id, subshots in undistorted_shots.items():
+            arguments.append((reconstruction.shots[shot_id], subshots, data, udata))
 
         processes = data.config["processes"]
         parallel_map(undistort_image_and_masks, arguments, processes)

@@ -68,6 +68,8 @@ class RigInstance {
   // Update pose of this instance's RigCamera
   void UpdateRigCameraPose(const map::RigCameraId& rig_camera_id,
                            const geometry::Pose& pose);
+  // Removal
+  void RemoveShot(const map::ShotId& shot_id);
 
  private:
   // Actual instanciation of a rig : each shot gets mapped to some RigCamera

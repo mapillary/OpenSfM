@@ -57,4 +57,14 @@ void RigInstance::UpdateRigCameraPose(const map::RigCameraId& rig_camera_id,
   }
   it_exist->second->pose = pose;
 }
+
+void RigInstance::RemoveShot(const map::ShotId& shot_id) {
+  const auto it_exist = shots_rig_cameras_.find(shot_id);
+  if (it_exist == shots_rig_cameras_.end()) {
+    throw std::runtime_error("Cannot find " + shot_id + " in RigInstance");
+  }
+  shots_rig_cameras_.erase(it_exist);
+  shots_.erase(shot_id);
+}
+
 }  // namespace map

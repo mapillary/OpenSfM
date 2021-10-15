@@ -87,6 +87,15 @@ TEST_F(SharedRigInstanceWithShotsFixture, MakesShotInRig) {
   ASSERT_TRUE(shot_instance1.IsInRig());
 }
 
+TEST_F(SharedRigInstanceWithShotsFixture, RemovesShot) {
+  instance1.RemoveShot(shot_instance1.GetId());
+  ASSERT_EQ(0, instance1.GetShots().size());
+}
+
+TEST_F(SharedRigInstanceWithShotsFixture, ThrowWhenRemovingNonExistingShot) {
+  ASSERT_THROW(instance1.RemoveShot("non-existing"), std::runtime_error);
+}
+
 TEST_F(SharedRigInstanceWithShotsFixture, MakesShotReturnsRigCamera) {
   ASSERT_EQ(rig_camera_id, shot_instance1.GetRigCameraId());
 }
