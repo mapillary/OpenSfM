@@ -5,7 +5,7 @@ import shelve
 from typing import Optional, Dict, Any, List, Tuple, Union
 
 import numpy as np
-from opensfm import tracking, features as oft, types, pysfm, pymap, pygeometry, io
+from opensfm import tracking, features as oft, types, pymap, pygeometry, io, geo
 from opensfm.dataset import DataSet
 
 
@@ -181,7 +181,7 @@ class SyntheticDataSet(DataSet):
         return True
 
     def load_ground_control_points(
-        self,
+        self, reference: Optional[geo.TopocentricConverter]
     ) -> List[pymap.GroundControlPoint]:
         if self.gcps:
             return list(self.gcps.values())

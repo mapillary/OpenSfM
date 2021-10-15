@@ -257,7 +257,7 @@ class DataSetBase(ABC):
 
     @abstractmethod
     def load_ground_control_points(
-        self,
+        self, reference: Optional[geo.TopocentricConverter]
     ) -> List[pymap.GroundControlPoint]:
         pass
 
@@ -763,7 +763,7 @@ class DataSet(DataSetBase):
                     walt += w
 
         if not wlat and not wlon:
-            for gcp in self.load_ground_control_points_impl(None):
+            for gcp in self.load_ground_control_points(None):
                 lat += gcp.lla["latitude"]
                 lon += gcp.lla["longitude"]
                 wlat += 1
@@ -961,17 +961,7 @@ class DataSet(DataSetBase):
     def _gcp_list_file(self) -> str:
         return os.path.join(self.data_path, "gcp_list.txt")
 
-    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
-        """Load ground control points.
-
-        It uses reference_lla to convert the coordinates
-        to topocentric reference frame.
-        """
-
-        reference = self.load_reference()
-        return self.load_ground_control_points_impl(reference)
-
-    def load_ground_control_points_impl(
+    def load_ground_control_points(
         self, reference: Optional[geo.TopocentricConverter]
     ) -> List[pymap.GroundControlPoint]:
         """Load ground control points.

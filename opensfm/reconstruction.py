@@ -1337,7 +1337,7 @@ def incremental_reconstruction(
         data.invent_reference_lla(images)
 
     remaining_images = set(images)
-    gcp = data.load_ground_control_points()
+    gcp = data.load_ground_control_points(data.load_reference())
     common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
