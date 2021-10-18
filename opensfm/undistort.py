@@ -80,7 +80,7 @@ def undistort_reconstruction_with_images(
     data: DataSetBase,
     udata: UndistortedDataSet,
     skip_images: bool = False,
-) -> None:
+) -> Dict[pymap.Shot, List[pymap.Shot]]:
     undistorted_shots = undistort_reconstruction(
         tracks_manager, reconstruction, data, udata
     )
@@ -91,6 +91,7 @@ def undistort_reconstruction_with_images(
 
         processes = data.config["processes"]
         parallel_map(undistort_image_and_masks, arguments, processes)
+    return undistorted_shots
 
 
 def undistort_image_and_masks(arguments) -> None:
