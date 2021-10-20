@@ -327,21 +327,19 @@ def add_shot(
         added_shots = {shot_id}
     else:
         instance_id, _, instance_shots = rig_assignments[shot_id]
-
-        created_shots = {}
-        for shot in instance_shots:
-            camera_id = data.load_exif(shot)["camera"]
-            created_shots[shot] = reconstruction.create_shot(
-                shot, camera_id, pose=pygeometry.Pose(), enforce_rig=False
-            )
-            created_shots[shot].metadata = get_image_metadata(data, shot)
-
         rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
+
         for shot in instance_shots:
             _, rig_camera_id, _ = rig_assignments[shot]
-            rig_instance.add_shot(
-                reconstruction.rig_cameras[rig_camera_id], created_shots[shot]
+            camera_id = data.load_exif(shot)["camera"]
+            created_shot = reconstruction.create_shot(
+                shot,
+                camera_id,
+                pygeometry.Pose(),
+                rig_camera_id,
+                instance_id,
             )
+            created_shot.metadata = get_image_metadata(data, shot)
         rig_instance.update_instance_pose_with_shot(shot_id, pose)
         added_shots = set(instance_shots)
 

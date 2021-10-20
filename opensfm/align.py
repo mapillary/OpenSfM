@@ -64,16 +64,9 @@ def apply_similarity(
         Xp = s * A.dot(point.coordinates) + b
         point.coordinates = Xp.tolist()
 
-    # Align cameras.
-    for shot in reconstruction.shots.values():
-        if shot.is_in_rig():
-            continue
-        apply_similarity_pose(shot.pose, s, A, b)
-
     # Align rig instances
     for rig_instance in reconstruction.rig_instances.values():
-        if all([s.is_in_rig() for s in rig_instance.shots.values()]):
-            apply_similarity_pose(rig_instance.pose, s, A, b)
+        apply_similarity_pose(rig_instance.pose, s, A, b)
 
 
 def compute_reconstruction_similarity(
@@ -136,10 +129,14 @@ def alignment_constraints(
 
     # Get camera center correspondences
     if use_gps and config["bundle_use_gps"]:
-        for shot in reconstruction.shots.values():
-            if shot.metadata.gps_position.has_value:
-                X.append(shot.pose.get_origin())
-                Xp.append(shot.metadata.gps_position.value)
+        for rig_instance in reconstruction.rig_instances.values():
+            gps_average = np.average([
+                shot.metadata.gps_position.value
+                for shot in rig_instance.shots.values()
+                if shot.metadata.gps_position.has_value
+            ], axis=0)
+            X.append(rig_instance.pose.get_origin())
+            Xp.append(gps_average)
 
     return X, Xp
 

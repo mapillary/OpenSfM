@@ -1,4 +1,5 @@
 #include <map/rig.h>
+#include <map/shot.h>
 
 namespace map {
 
@@ -9,6 +10,8 @@ std::set<map::ShotId> RigInstance::GetShotIDs() const {
                  [](auto pair) { return pair.first; });
   return shot_keys;
 }
+
+size_t RigInstance::NumberOfShots() const { return shots_.size(); }
 
 void RigInstance::AddShot(map::RigCamera* rig_camera, map::Shot* shot) {
   const auto it_exist = std::find_if(

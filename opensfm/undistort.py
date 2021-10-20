@@ -290,8 +290,9 @@ def perspective_views_of_a_panorama(
         tf.rotation_matrix(+np.pi / 2, np.array([1, 0, 0])),
     ]
 
-    rig_instance = pymap.RigInstance(str(next(rig_instance_count)))
-    rig_instance.pose = spherical_shot.pose
+    rig_instance = reconstruction.add_rig_instance(
+        pymap.RigInstance(str(next(rig_instance_count)))
+    )
 
     shots = []
     for name, rotation in zip(names, rotations):
@@ -305,12 +306,12 @@ def perspective_views_of_a_panorama(
         shot_id = add_image_format_extension(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
-        shot = reconstruction.create_shot(shot_id, camera.id, enforce_rig=False)
+        shot = reconstruction.create_shot(
+            shot_id, camera.id, pygeometry.Pose(), rig_camera.id, rig_instance.id
+        )
         shot.metadata = spherical_shot.metadata
-        rig_instance.add_shot(rig_camera, shot)
-
         shots.append(shot)
-    reconstruction.add_rig_instance(rig_instance)
+    rig_instance.pose = spherical_shot.pose
 
     return shots
 

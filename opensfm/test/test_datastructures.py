@@ -624,7 +624,11 @@ def _create_rig_instance():
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
     rig_instance = pymap.RigInstance("1")
-    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
+    shot = pymap.Shot(
+        "0",
+        pygeometry.Camera.create_spherical(),
+        pygeometry.Pose(),
+    )
     rig_instance.add_shot(rig_camera, shot)
     return rec, rig_instance, shot
 
@@ -929,9 +933,13 @@ def test_many_observations_delete():
         cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
         cam.id = "cam" + str(cam_id)
         m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        shot_id = str(shot_id)
+        m.create_rig_instance(shot_id)
+        m.create_shot(shot_id, cam_id, cam_id, shot_id, pygeometry.Pose())
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))
@@ -965,9 +973,12 @@ def test_clean_landmarks_with_min_observations():
         cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
         cam.id = "cam" + str(cam_id)
         m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        m.create_rig_instance(str(shot_id))
+        m.create_shot(str(shot_id), cam_id, cam_id, str(shot_id), pygeometry.Pose())
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))

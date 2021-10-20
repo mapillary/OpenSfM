@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <map/rig.h>
+#include <map/shot.h>
 
 class RigCameraFixture : public ::testing::Test {
  public:
@@ -20,10 +21,12 @@ class RigCameraFixture : public ::testing::Test {
 class SharedRigInstanceFixture : public RigCameraFixture {
  public:
   SharedRigInstanceFixture()
-      : instance1("1"),
-        shot_instance1("1", camera, geometry::Pose()),
+      : RigCameraFixture(),
+        instance1("1"),
+        shot_instance1("1", &camera, &instance1, &rig_camera, geometry::Pose()),
         instance2("2"),
-        shot_instance2("2", camera, geometry::Pose()) {
+        shot_instance2("2", &camera, &instance2, &rig_camera,
+                       geometry::Pose()) {
     instance_pose1.SetWorldToCamRotation(Vec3d::Random());
     instance_pose1.SetOrigin(Vec3d::Random());
     instance_pose2.SetWorldToCamRotation(Vec3d::Random());
@@ -61,13 +64,20 @@ TEST_F(SharedRigInstanceFixture, SetPose) {
 }
 
 TEST_F(SharedRigInstanceFixture, AddShot) {
-  instance1.AddShot(&rig_camera, &shot_instance1);
   ASSERT_EQ(1, instance1.GetShots().size());
   ASSERT_EQ(1, instance1.GetRigCameras().size());
 }
 
+TEST_F(SharedRigInstanceFixture, RemovesShot) {
+  instance1.RemoveShot(shot_instance1.GetId());
+  ASSERT_EQ(0, instance1.GetShots().size());
+}
+
+TEST_F(SharedRigInstanceFixture, ThrowWhenRemovingNonExistingShot) {
+  ASSERT_THROW(instance1.RemoveShot("non-existing"), std::runtime_error);
+}
+
 TEST_F(SharedRigInstanceFixture, GetRigCameras) {
-  instance1.AddShot(&rig_camera, &shot_instance1);
   auto added_rig_camera = instance1.GetRigCameras().at(shot_instance1.id_);
   ASSERT_EQ(rig_camera.id, added_rig_camera->id);
   ComparePoses(rig_camera.pose, added_rig_camera->pose);
@@ -78,8 +88,6 @@ class SharedRigInstanceWithShotsFixture : public SharedRigInstanceFixture {
   SharedRigInstanceWithShotsFixture() {
     instance1.SetPose(instance_pose1);
     instance2.SetPose(instance_pose2);
-    instance1.AddShot(&rig_camera, &shot_instance1);
-    instance2.AddShot(&rig_camera, &shot_instance2);
   }
 };
 

@@ -70,6 +70,7 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("update_rig_instance", &map::Map::UpdateRigInstance,
            py::return_value_policy::reference_internal)
+      .def("remove_rig_instance", &map::Map::RemoveRigInstance)
       // Landmark
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
@@ -87,15 +88,17 @@ PYBIND11_MODULE(pymap, m) {
       .def("clean_landmarks_below_min_observations",
            &map::Map::CleanLandmarksBelowMinObservations)
       // Shot
+      .def(
+          "create_shot",
+          py::overload_cast<const map::ShotId &, const map::CameraId &,
+                            const map::RigCameraId &,
+                            const map::RigInstanceId &, const geometry::Pose &>(
+              &map::Map::CreateShot),
+          py::return_value_policy::reference_internal)
       .def("create_shot",
            py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const geometry::Pose &>(&map::Map::CreateShot),
-           py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
-           py::return_value_policy::reference_internal)
-      .def("create_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &>(
-               &map::Map::CreateShot),
-           py::arg("shot_id"), py::arg("camera_id"),
+                             const map::RigCameraId &,
+                             const map::RigInstanceId &>(&map::Map::CreateShot),
            py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot",
@@ -104,13 +107,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("update_shot", &map::Map::UpdateShot,
            py::return_value_policy::reference_internal)
       // Pano Shot
-      .def("create_pano_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const geometry::Pose &>(&map::Map::CreatePanoShot),
-           py::return_value_policy::reference_internal)
-      .def("create_pano_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &>(
-               &map::Map::CreatePanoShot),
+      .def("create_pano_shot", &map::Map::CreatePanoShot,
            py::return_value_policy::reference_internal)
       .def("remove_pano_shot", &map::Map::RemovePanoShot)
       .def("get_pano_shot",
@@ -162,21 +159,11 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Shot::SetCovariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
-      .def("is_in_rig", &map::Shot::IsInRig)
-      .def_property_readonly("rig_instance",
-                             [](const map::Shot &s) {
-                               const auto &instance = s.GetRigInstance();
-                               return py::make_tuple(instance.HasValue(),
-                                                     instance.Value());
-                             })
-      .def_property_readonly("rig_camera",
-                             [](const map::Shot &s) {
-                               const auto &camera = s.GetRigCamera();
-                               return py::make_tuple(camera.HasValue(),
-                                                     camera.Value());
-                             })
+      .def_property_readonly("rig_instance", &map::Shot::GetRigInstance)
+      .def_property_readonly("rig_camera", &map::Shot::GetRigCamera)
       .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
       .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
+      .def("set_rig", &map::Shot::SetRig)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
@@ -196,35 +183,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("project", &map::Shot::Project)
       .def("project_many", &map::Shot::ProjectMany)
       .def("bearing", &map::Shot::Bearing)
-      .def("bearing_many", &map::Shot::BearingMany)
-      // pickle support
-      .def(py::pickle(
-          [](const map::Shot &s) {
-            auto c = s.GetCamera();
-            return py::make_tuple(
-                s.id_, s.GetPose()->CameraToWorld(),
-                py::make_tuple(c->GetParametersTypes(),
-                               c->GetParametersValues(), c->GetProjectionType(),
-                               c->width, c->height, c->id));
-          },
-          [](py::tuple s) {
-            // Create camera
-            auto t = s[3].cast<py::tuple>();
-            geometry::Camera camera = geometry::Camera(
-                t[2].cast<geometry::ProjectionType>(),
-                t[0].cast<std::vector<geometry::Camera::Parameters>>(),
-                t[1].cast<VecXd>());
-            // create unique_ptr
-            auto cam_ptr =
-                std::unique_ptr<geometry::Camera>(new geometry::Camera(camera));
-            camera.width = t[3].cast<int>();
-            camera.height = t[4].cast<int>();
-            camera.id = t[5].cast<std::string>();
-            auto pose = geometry::Pose();
-            pose.SetFromCameraToWorld(s[1].cast<Mat4d>());
-            auto shot = map::Shot(s[0].cast<map::ShotId>(), camera, pose);
-            return shot;
-          }));
+      .def("bearing_many", &map::Shot::BearingMany);
 
   py::class_<map::RigCamera>(m, "RigCamera")
       .def(py::init<>())
@@ -273,6 +232,7 @@ PYBIND11_MODULE(pymap, m) {
                     &map::RigInstance::SetPose,
                     py::return_value_policy::reference_internal)
       .def("add_shot", &map::RigInstance::AddShot)
+      .def("remove_shot", &map::RigInstance::RemoveShot)
       .def("update_instance_pose_with_shot",
            &map::RigInstance::UpdateInstancePoseWithShot)
       .def("update_rig_camera_pose", &map::RigInstance::UpdateRigCameraPose);

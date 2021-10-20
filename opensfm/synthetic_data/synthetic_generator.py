@@ -253,7 +253,9 @@ def add_shots_to_reconstruction(
     for shot_id, position, rotation in zip(shot_ids, positions, rotations):
         pose = pygeometry.Pose(rotation)
         pose.set_origin(position)
-        shot = reconstruction.create_shot(shot_id, camera.id, pose, False)
+        shot = reconstruction.create_shot(
+            shot_id, camera.id, pose, rig_camera_id=None, rig_instance_id=None
+        )
         shot.metadata.sequence_key.value = sequence_key
 
 
@@ -285,6 +287,8 @@ def add_rigs_to_reconstruction(
         for j, s in enumerate(i_shots):
             rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
+        for _, s in enumerate(i_shots):
+            reconstruction.remove_rig_instance(s[0])
 
 
 def create_reconstruction(
