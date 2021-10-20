@@ -305,7 +305,12 @@ void Map::UpdateShotWithRig(const Shot& other_shot) {
   for (const auto& instance_shot : rig_instance->GetShots()) {
     const auto& shot_id = instance_shot.first;
     const auto& shot = instance_shot.second;
-    const auto& camera_id = shot->GetCamera()->id;
+
+    const auto camera = shot->GetCamera();
+    const auto& camera_id = camera->id;
+    if (!HasCamera(camera_id)) {
+      CreateCamera(*camera);
+    }
 
     const auto rig_camera = shot->GetRigCamera();
     const auto& rig_camera_id = rig_camera->id;
