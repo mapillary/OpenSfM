@@ -263,6 +263,12 @@ class DataSetBase(ABC):
     ) -> List[pymap.GroundControlPoint]:
         pass
 
+    @abstractmethod
+    def save_ground_control_points(
+        self, points: List[pymap.GroundControlPoint]
+    ) -> None:
+        pass
+
     def clean_up(self) -> None:
         pass
 
@@ -952,6 +958,14 @@ class DataSet(DataSetBase):
                 pcs = io.read_ground_control_points(fin, reference)
 
         return gcp + pcs
+
+    def save_ground_control_points(
+        self,
+        points: List[pymap.GroundControlPoint],
+        reference: Optional[geo.TopocentricConverter],
+    ) -> None:
+        with self.io_handler.open_wt(self._ground_control_points_file()) as fout:
+            io.write_ground_control_points(points, fout, reference)
 
     def image_as_array(self, image: str) -> np.ndarray:
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")

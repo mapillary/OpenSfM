@@ -840,10 +840,7 @@ def read_gcp_list(
 def read_ground_control_points(
     fileobj: IO, reference: Optional[geo.TopocentricConverter]
 ) -> List[pymap.GroundControlPoint]:
-    """Read ground control points from json file.
-
-    Returns list of types.GroundControlPoint.
-    """
+    """Read ground control points from json file"""
     obj = json_load(fileobj)
 
     points = []
@@ -886,7 +883,7 @@ def read_ground_control_points(
 def write_ground_control_points(
     gcp: List[pymap.GroundControlPoint],
     fileobj: IO,
-    reference: geo.TopocentricConverter,
+    reference: Optional[geo.TopocentricConverter],
 ) -> None:
     """Write ground control points to json file."""
     obj = {"points": []}
@@ -901,7 +898,7 @@ def write_ground_control_points(
             }
             if point.has_altitude:
                 point_obj["position"]["altitude"] = point.lla["altitude"]
-        elif point.coordinates.has_value:
+        elif reference is not None and point.coordinates.has_value:
             lat, lon, alt = reference.to_lla(*point.coordinates.value)
             point_obj["position"] = {
                 "latitude": lat,
