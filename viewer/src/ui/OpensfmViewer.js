@@ -49,7 +49,7 @@ export class OpensfmViewer extends EventEmitter {
 
     const mapOptions = {
       basemapVisible: false,
-      tileServerUrl: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      tileServerUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       basemapOpacity: 1.0,
       basemapAltitude: -1.0,
       basemapTileCount: 121,
@@ -75,7 +75,8 @@ export class OpensfmViewer extends EventEmitter {
       renderMode: RenderMode.Letterbox,
     });
 
-    viewer.attachCustomCameraControls(new OrbitCameraControls());
+    this.customCameraControls = new OrbitCameraControls();
+    viewer.attachCustomCameraControls(this.customCameraControls);
     this._spatial = viewer.getComponent('spatial');
     this._viewer = viewer;
 
@@ -221,20 +222,18 @@ export class OpensfmViewer extends EventEmitter {
       this._onBasemapVisible(event),
     );
     optionController.on('basemapopacity', event =>
-      this._onBasemapOpacity(event)
+      this._onBasemapOpacity(event),
     );
     optionController.on('basemapaltitude', event =>
       this._onBasemapAltitude(event),
     );
     optionController.on('basemaptilecount', event =>
-      this._onBasemapTileCount(event)
+      this._onBasemapTileCount(event),
     );
     optionController.on('basemapzoomlevel', event =>
       this._onBasemapZoomLevel(event),
     );
-    optionController.on('tileserverurl', event =>
-      this._onTileServerUrl(event),
-    );
+    optionController.on('tileserverurl', event => this._onTileServerUrl(event));
 
     optionController.on('reconstructionsselected', event =>
       this._onReconstructionsSelected(event),
