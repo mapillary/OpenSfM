@@ -175,11 +175,23 @@ def run_detection(queue: queue.Queue):
 
 
 def bake_segmentation(
+    image: np.ndarray,
     points: np.ndarray,
     segmentation: Optional[np.ndarray],
     instances: Optional[np.ndarray],
     exif: Dict[str, Any],
 ):
+    exif_height, exif_width, exif_orientation = (
+        exif["height"],
+        exif["width"],
+        exif["orientation"],
+    )
+    height, width = image.shape[:2]
+    if exif["height"] != height or exif["width"] != height:
+        logger.error(
+            f"Image has inconsistent EXIF dimensions ({exif_width}, {exif_height}) and image dimensions ({width}, {height}). Orientation={exif_orientation}"
+        )
+
     panoptic_data = [None, None]
     for i, p_data in enumerate([segmentation, instances]):
         if p_data is None:
@@ -187,8 +199,8 @@ def bake_segmentation(
         new_height, new_width = p_data.shape
         ps = upright.opensfm_to_upright(
             points[:, :2],
-            exif["width"],
-            exif["height"],
+            width,
+            height,
             exif["orientation"],
             new_width=new_width,
             new_height=new_height,
@@ -235,7 +247,7 @@ def detect(
     if data.config["features_bake_segmentation"]:
         exif = data.load_exif(image)
         s_unsorted, i_unsorted = bake_segmentation(
-            p_unmasked, segmentation_array, instances_array, exif
+            image_array, p_unmasked, segmentation_array, instances_array, exif
         )
         p_unsorted = p_unmasked
         f_unsorted = f_unmasked
