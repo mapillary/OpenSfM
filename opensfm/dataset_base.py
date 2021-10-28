@@ -221,9 +221,8 @@ class DataSetBase(ABC):
     def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         pass
 
-    # TODO(pau): switch this to save_profile_log
     @abstractmethod
-    def profile_log(self) -> str:
+    def append_to_profile_log(self, content: str) -> None:
         pass
 
     @abstractmethod

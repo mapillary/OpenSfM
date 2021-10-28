@@ -1,6 +1,5 @@
 import copy
 import logging
-import time
 from functools import partial
 
 from opensfm import exif
@@ -13,8 +12,6 @@ logging.getLogger("exifread").setLevel(logging.WARNING)
 
 def run_dataset(data: DataSetBase):
     """ Extract metadata from images' EXIF tag. """
-
-    start = time.time()
 
     exif_overrides = {}
     if data.exif_overrides_exists():
@@ -49,10 +46,6 @@ def run_dataset(data: DataSetBase):
             for key, value in overrides.items():
                 camera_models[key] = value
     data.save_camera_models(camera_models)
-
-    end = time.time()
-    with data.io_handler.open(data.profile_log(), "a") as fout:
-        fout.write("extract_metadata: {0}\n".format(end - start))
 
 
 def _extract_exif(image, data: DataSetBase):

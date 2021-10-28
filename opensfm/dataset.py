@@ -512,9 +512,11 @@ class DataSet(DataSetBase):
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
 
-    def profile_log(self) -> str:
-        "Filename where to write timings."
-        return os.path.join(self.data_path, "profile.log")
+    def append_to_profile_log(self, content: str) -> None:
+        """Append content to the profile.log file."""
+        path = os.path.join(self.data_path, "profile.log")
+        with self.io_handler.open(path, "a") as fp:
+            fp.write(content)
 
     def _report_path(self) -> str:
         return os.path.join(self.data_path, "reports")
