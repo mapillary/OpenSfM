@@ -16,6 +16,7 @@ from opensfm import (
     types,
     pymap,
     masking,
+    rig,
 )
 from opensfm.dataset_base import DataSetBase
 
@@ -479,18 +480,9 @@ class DataSet(DataSetBase):
         """Return path of rig models file"""
         return os.path.join(self.data_path, "rig_cameras.json")
 
-    def default_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
-        """Return per-camera models default rig cameras (identity pose)."""
-        default_rig_cameras = {}
-        for camera_id in self.load_camera_models():
-            default_rig_cameras[camera_id] = pymap.RigCamera(
-                pygeometry.Pose(), camera_id
-            )
-        return default_rig_cameras
-
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         """Return rig models data"""
-        all_rig_cameras = self.default_rig_cameras()
+        all_rig_cameras = rig.default_rig_cameras(self.load_camera_models())
         if not self.io_handler.exists(self._rig_cameras_file()):
             return all_rig_cameras
         with self.io_handler.open_rt(self._rig_cameras_file()) as fin:
@@ -514,22 +506,6 @@ class DataSet(DataSetBase):
             return []
         with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
             return json.load(fin)
-
-    def load_rig_assignments_per_image(
-        self,
-    ) -> Dict[str, Tuple[str, str, List[str]]]:
-        """Return rig assignments  data"""
-        raw_assignments = self.load_rig_assignments()
-        assignments_per_image = {}
-        for instance_id, instance in enumerate(raw_assignments):
-            instance_shots = [s[0] for s in instance]
-            for (shot_id, rig_camera_id) in instance:
-                assignments_per_image[shot_id] = (
-                    f"{instance_id}",
-                    rig_camera_id,
-                    instance_shots,
-                )
-        return assignments_per_image
 
     def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         """Save rig assignments  data"""

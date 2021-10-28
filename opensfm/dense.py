@@ -7,7 +7,6 @@ from opensfm import io
 from opensfm import log
 from opensfm import pydense
 from opensfm import pymap
-from opensfm import pysfm
 from opensfm import tracking
 from opensfm import types
 from opensfm.context import parallel_map

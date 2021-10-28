@@ -218,12 +218,6 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_rig_assignments_per_image(
-        self,
-    ) -> Dict[str, Tuple[str, str, List[str]]]:
-        pass
-
-    @abstractmethod
     def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         pass
 
