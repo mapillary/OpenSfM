@@ -11,8 +11,7 @@ class CommandBase:
         start = timer()
         self.run_impl(data, args)
         end = timer()
-        with open(data.profile_log(), "a") as fout:
-            fout.write(type(self).name + ": {0}\n".format(end - start))
+        data.append_to_profile_log(f"{type(self).name}: {end - start}\n")
 
     def add_arguments(self, parser):
         parser.add_argument("dataset", help="dataset to process")
