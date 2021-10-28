@@ -7,7 +7,7 @@ from timeit import default_timer as timer
 from typing import Optional, List, Dict, Any, Tuple
 
 import numpy as np
-from opensfm import bow, features, io, log, pygeometry, upright
+from opensfm import bow, features, io, log, pygeometry, upright, masking
 from opensfm.context import parallel_map
 from opensfm.dataset import DataSetBase
 
@@ -255,7 +255,7 @@ def detect(
     # Load segmentation, make a mask from it mask and apply it
     else:
         s_unsorted, i_unsorted = None, None
-        fmask = data.load_features_mask(image, p_unmasked)
+        fmask = masking.load_features_mask(data, image, p_unmasked)
         p_unsorted = p_unmasked[fmask]
         f_unsorted = f_unmasked[fmask]
         c_unsorted = c_unmasked[fmask]
