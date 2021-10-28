@@ -130,13 +130,14 @@ def alignment_constraints(
     # Get camera center correspondences
     if use_gps and config["bundle_use_gps"]:
         for rig_instance in reconstruction.rig_instances.values():
-            gps_average = np.average([
+            gpses = [
                 shot.metadata.gps_position.value
                 for shot in rig_instance.shots.values()
                 if shot.metadata.gps_position.has_value
-            ], axis=0)
-            X.append(rig_instance.pose.get_origin())
-            Xp.append(gps_average)
+            ]
+            if len(gpses) > 0:
+                X.append(rig_instance.pose.get_origin())
+                Xp.append(np.average(gpses, axis=0))
 
     return X, Xp
 

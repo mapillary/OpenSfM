@@ -276,9 +276,6 @@ def exif_to_metadata(
         metadata.gps_accuracy.value = exif["gps"].get("dop", 15.0)
         if metadata.gps_accuracy.value == 0.0:
             metadata.gps_accuracy.value = 15.0
-    else:
-        metadata.gps_position.value = [0.0, 0.0, 0.0]
-        metadata.gps_accuracy.value = 999999.0
 
     metadata.orientation.value = exif.get("orientation", 1)
 
