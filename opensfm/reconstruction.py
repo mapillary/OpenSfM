@@ -19,6 +19,7 @@ from opensfm import (
     pygeometry,
     pymap,
     pysfm,
+    rig,
     tracking,
     types,
 )
@@ -546,7 +547,7 @@ def bootstrap_reconstruction(
         return None, report
 
     rig_camera_priors = data.load_rig_cameras()
-    rig_assignments = data.load_rig_assignments_per_image()
+    rig_assignments = rig.rig_assignments_per_image(data.load_rig_assignments())
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
@@ -624,7 +625,7 @@ def resect(
         True on success.
     """
 
-    rig_assignments = data.load_rig_assignments_per_image()
+    rig_assignments = rig.rig_assignments_per_image(data.load_rig_assignments())
     camera = reconstruction.cameras[data.load_exif(shot_id)["camera"]]
 
     bs, Xs, ids = [], [], []
