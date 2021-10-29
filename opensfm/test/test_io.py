@@ -3,8 +3,8 @@ import os.path
 from io import StringIO
 
 import numpy as np
-from opensfm import geo, io
-from opensfm.test import data_generation
+from opensfm import pygeometry, geo, io, types
+from opensfm.test import data_generation, utils
 
 
 filename = os.path.join(
@@ -197,3 +197,25 @@ def test_camera_from_to_vector():
         camera = io.camera_from_vector("cam1", w, h, projection_type, params)
         params_out = io.camera_to_vector(camera)
         assert params == params_out
+
+
+# specific test for I/O consistency with panoshots
+# ynoutary : hopefully, candidate for deletion soon
+def test_panoshots_consistency():
+    rec_before = types.Reconstruction()
+
+    camera1 = pygeometry.Camera.create_spherical()
+    camera1.id = "camera1"
+    rec_before.add_camera(camera1)
+
+    rec_before.create_shot("shot1", "camera1")
+    rec_before.create_shot("shot2", "camera1")
+    rec_before.create_pano_shot("shot1", "camera1")
+    rec_before.create_pano_shot("shot2", "camera1")
+    rec_before.create_pano_shot("shot4", "camera1")
+    rec_before.create_pano_shot("shot3", "camera1")
+
+    json_data = io.reconstructions_to_json([rec_before])
+    rec_after = io.reconstructions_from_json(json_data)[0]
+
+    utils.assert_reconstructions_equal(rec_before, rec_after)
