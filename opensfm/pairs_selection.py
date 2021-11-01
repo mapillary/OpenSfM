@@ -58,28 +58,14 @@ def get_gps_opk_point(
     """Return GPS-based representative point."""
 
     opk = exif["opk"]
-
-    # photogrammetry
-    # Omega (ω), the rotation around the Χ axis. (East)
-    # Phi (φ), the rotation around the Y axis. (North)
-    # Kappa (κ), the rotation around the Z axis. (UP)
     omega, phi, kappa = (
         math.radians(opk["omega"]),
         math.radians(opk["phi"]),
         math.radians(opk["kappa"]),
     )
-    Rw = geometry.rotation_from_angle_axis(np.array([-omega, 0.0, 0.0]))
-    Rp = geometry.rotation_from_angle_axis(np.array([0.0, -phi, 0.0]))
-    Rk = geometry.rotation_from_angle_axis(np.array([0.0, 0.0, -kappa]))
 
-    # OpenSfM
-    # The z-axis points forward
-    # The y-axis points down
-    # The x-axis points to the right
-    Rc = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
-    R_camera = Rc.dot(Rk).dot(Rp).dot(Rw)
+    R_camera = geometry.rotation_from_opk(omega, phi, kappa)
     z_axis = R_camera[2]
-
     origin = get_gps_point(exif, reference)
 
     return origin[0], z_axis / (sign(z_axis[2]) * z_axis[2]) * DEFAULT_Z
