@@ -1,5 +1,6 @@
 from opensfm import io, reconstruction, types
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
+
 
 def run_dataset(data: DataSetBase, input, output):
     recs_base = data.load_reconstruction(input)

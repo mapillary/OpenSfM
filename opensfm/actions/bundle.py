@@ -1,5 +1,5 @@
 import opensfm.reconstruction as orec
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 def run_dataset(dataset: DataSetBase, input, output):

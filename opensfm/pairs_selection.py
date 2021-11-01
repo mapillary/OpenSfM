@@ -8,7 +8,7 @@ from typing import Tuple, List, Set, Dict, Iterable, Any
 import numpy as np
 import scipy.spatial as spatial
 from opensfm import bow, context, feature_loader, vlad, geo, geometry
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 

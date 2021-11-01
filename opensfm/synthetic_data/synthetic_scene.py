@@ -427,6 +427,7 @@ class SyntheticInputData:
         projection_max_depth: float,
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
+        imu_noise: float,
         gcp_noise: Tuple[float, float],
         causal_gps_noise: bool,
         gcps_count: Optional[int] = None,
@@ -436,7 +437,11 @@ class SyntheticInputData:
     ):
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
-            reconstruction, reference, gps_noise, causal_gps_noise=causal_gps_noise
+            reconstruction,
+            reference,
+            gps_noise,
+            imu_noise,
+            causal_gps_noise=causal_gps_noise,
         )
 
         if generate_projections:

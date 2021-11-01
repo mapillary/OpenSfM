@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from opensfm import rig, reconstruction as orec, pygeometry, types
+from opensfm import rig, reconstruction_helpers as helpers, pygeometry, types
 from opensfm.dataset import DataSet, DataSetBase
 
 
@@ -42,9 +42,11 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
         for image, camera_id in instance:
             rig_camera = rig_cameras[camera_id]
             rig_pose = pygeometry.Pose(base_rotation)
-            rig_pose.set_origin(orec.get_image_metadata(data, image).gps_position.value)
+            rig_pose.set_origin(
+                helpers.get_image_metadata(data, image).gps_position.value
+            )
             d = data.load_exif(image)
             shot = reconstruction.create_shot(image, d["camera"])
             shot.pose = rig_camera.pose.compose(rig_pose)
-            shot.metadata = orec.get_image_metadata(data, image)
+            shot.metadata = helpers.get_image_metadata(data, image)
     return [reconstruction]

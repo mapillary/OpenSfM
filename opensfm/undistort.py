@@ -13,7 +13,8 @@ from opensfm import (
     types,
 )
 from opensfm.context import parallel_map
-from opensfm.dataset import DataSetBase, UndistortedDataSet
+from opensfm.dataset import UndistortedDataSet
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 

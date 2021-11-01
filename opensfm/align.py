@@ -254,6 +254,8 @@ def compute_orientation_prior_similarity(
         return None
 
     p = estimate_ground_plane(reconstruction, config)
+    if p is None:
+        return None
     Rplane = multiview.plane_horizontalling_rotation(p)
     if Rplane is None:
         return None
@@ -355,7 +357,7 @@ def set_gps_bias(
 
 def estimate_ground_plane(
     reconstruction: types.Reconstruction, config: Dict[str, Any]
-) -> np.ndarray:
+) -> Optional[np.ndarray]:
     """Estimate ground plane orientation.
 
     It assumes cameras are all at a similar height and uses the
@@ -387,7 +389,12 @@ def estimate_ground_plane(
     ground_points = np.array(ground_points)
     ground_points -= ground_points.mean(axis=0)
 
-    plane = multiview.fit_plane(ground_points, np.array(onplane), np.array(verticals))
+    try:
+        plane = multiview.fit_plane(
+            ground_points, np.array(onplane), np.array(verticals)
+        )
+    except ValueError:
+        return None
     return plane
 
 

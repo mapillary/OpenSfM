@@ -1,6 +1,7 @@
 """Incremental reconstruction pipeline"""
 
 import datetime
+import enum
 import logging
 import math
 from collections import defaultdict
@@ -11,7 +12,6 @@ from typing import Dict, Any, List, Tuple, Set, Optional
 import cv2
 import numpy as np
 from opensfm import (
-    exif as oexif,
     log,
     matching,
     multiview,
@@ -22,13 +22,19 @@ from opensfm import (
     rig,
     tracking,
     types,
+    reconstruction_helpers as helpers,
 )
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import current_memory_usage, parallel_map
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 logger = logging.getLogger(__name__)
+
+
+class ReconstructionAlgorithm(str, enum.Enum):
+    INCREMENTAL = "incremental"
+    TRIANGULATION = "triangulation"
 
 
 def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Camera):
@@ -259,50 +265,6 @@ def _compute_pair_reconstructability(args: TPairArguments) -> Tuple[str, str, fl
     return (im1, im2, r)
 
 
-def exif_to_metadata(
-    exif: Dict[str, Any], use_altitude: bool, reference: types.TopocentricConverter
-) -> pymap.ShotMeasurements:
-    """Construct a metadata object from raw EXIF tags (as a dict)."""
-    metadata = pymap.ShotMeasurements()
-    if "gps" in exif and "latitude" in exif["gps"] and "longitude" in exif["gps"]:
-        lat = exif["gps"]["latitude"]
-        lon = exif["gps"]["longitude"]
-        if use_altitude:
-            alt = min([oexif.maximum_altitude, exif["gps"].get("altitude", 2.0)])
-        else:
-            alt = 2.0  # Arbitrary value used to align the reconstruction
-        x, y, z = reference.to_topocentric(lat, lon, alt)
-        metadata.gps_position.value = [x, y, z]
-        metadata.gps_accuracy.value = exif["gps"].get("dop", 15.0)
-        if metadata.gps_accuracy.value == 0.0:
-            metadata.gps_accuracy.value = 15.0
-
-    metadata.orientation.value = exif.get("orientation", 1)
-
-    if "accelerometer" in exif:
-        metadata.accelerometer.value = exif["accelerometer"]
-
-    if "compass" in exif:
-        metadata.compass_angle.value = exif["compass"]["angle"]
-        if "accuracy" in exif["compass"]:
-            metadata.compass_accuracy.value = exif["compass"]["accuracy"]
-
-    if "capture_time" in exif:
-        metadata.capture_time.value = exif["capture_time"]
-
-    if "skey" in exif:
-        metadata.sequence_key.value = exif["skey"]
-
-    return metadata
-
-
-def get_image_metadata(data: DataSetBase, image: str) -> pymap.ShotMeasurements:
-    """Get image metadata as a ShotMetadata object."""
-    exif = data.load_exif(image)
-    reference = data.load_reference()
-    return exif_to_metadata(exif, data.config["use_altitude_tag"], reference)
-
-
 def add_shot(
     data: DataSetBase,
     reconstruction: types.Reconstruction,
@@ -321,7 +283,7 @@ def add_shot(
     if shot_id not in rig_assignments:
         camera_id = data.load_exif(shot_id)["camera"]
         shot = reconstruction.create_shot(shot_id, camera_id, pose)
-        shot.metadata = get_image_metadata(data, shot_id)
+        shot.metadata = helpers.get_image_metadata(data, shot_id)
         added_shots = {shot_id}
     else:
         instance_id, _, instance_shots = rig_assignments[shot_id]
@@ -337,7 +299,7 @@ def add_shot(
                 rig_camera_id,
                 instance_id,
             )
-            created_shot.metadata = get_image_metadata(data, shot)
+            created_shot.metadata = helpers.get_image_metadata(data, shot)
         rig_instance.update_instance_pose_with_shot(shot_id, pose)
         added_shots = set(instance_shots)
 
@@ -938,14 +900,16 @@ class TrackTriangulator:
             if valid_triangulation:
                 reprojected_bs = X - os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
-                inliers = np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
+                inliers = np.nonzero(
+                    np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
+                )[0]
 
-                if sum(inliers) > sum(best_inliers):
+                if len(inliers) > len(best_inliers):
                     best_inliers = inliers
                     best_point = X.tolist()
 
                     pout = 0.99
-                    inliers_ratio = float(sum(best_inliers)) / len(ids)
+                    inliers_ratio = float(len(best_inliers)) / len(ids)
                     if inliers_ratio == 1.0:
                         break
                     optimal_iter = math.log(1.0 - pout) / math.log(
@@ -956,9 +920,8 @@ class TrackTriangulator:
 
         if len(best_inliers) > 1:
             self.reconstruction.create_point(track, best_point)
-            for i, succeed in enumerate(best_inliers):
-                if succeed:
-                    self._add_track_to_reconstruction(track, ids[i])
+            for i in best_inliers:
+                self._add_track_to_reconstruction(track, ids[i])
 
     def triangulate(
         self, track: str, reproj_threshold: float, min_ray_angle_degrees: float
@@ -1442,6 +1405,73 @@ def grow_reconstruction(
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)
     return reconstruction, report
+
+
+def triangulation_reconstruction(
+    data: DataSetBase, tracks_manager: pymap.TracksManager
+) -> Tuple[Dict[str, Any], List[types.Reconstruction]]:
+    """Run the triangulation reconstruction pipeline."""
+    logger.info("Starting triangulation reconstruction")
+    report = {}
+    chrono = Chronometer()
+
+    images = tracks_manager.get_shot_ids()
+    data.init_reference(images)
+
+    camera_priors = data.load_camera_models()
+    rig_camera_priors = data.load_rig_cameras()
+    gcp = data.load_ground_control_points(data.load_reference())
+
+    reconstruction = helpers.reconstruction_from_metadata(data, images)
+
+    config = data.config
+    config_override = config.copy()
+    config_override["triangulation_type"] = "ROBUST"
+    config_override["bundle_max_iterations"] = 10
+
+    report["steps"] = []
+    outer_iterations = 3
+    inner_iterations = 5
+    for i in range(outer_iterations):
+        rrep = retriangulate(tracks_manager, reconstruction, config_override)
+        triangulated_points = rrep["num_points_after"]
+        logger.info(
+            f"Triangulation SfM. Outer iteration {i}, triangulated {triangulated_points} points."
+        )
+
+        for j in range(inner_iterations):
+            if config_override["save_partial_reconstructions"]:
+                paint_reconstruction(data, tracks_manager, reconstruction)
+                data.save_reconstruction(
+                    [reconstruction], f"reconstruction.{i*inner_iterations+j}.json"
+                )
+
+            step = {}
+            logger.info(f"Triangulation SfM. Inner iteration {j}, running bundle ...")
+            align_reconstruction(reconstruction, gcp, config_override)
+            b1rep = bundle(
+                reconstruction, camera_priors, rig_camera_priors, None, config_override
+            )
+            remove_outliers(reconstruction, config_override)
+            step["bundle"] = b1rep
+            step["retriangulation"] = rrep
+            report["steps"].append(step)
+
+    logger.info("Triangulation SfM done.")
+    logger.info("-------------------------------------------------------")
+    chrono.lap("compute_reconstructions")
+    report["wall_times"] = dict(chrono.lap_times())
+
+    align_result = align_reconstruction(reconstruction, gcp, config, bias_override=True)
+    if not align_result and config["bundle_compensate_gps_bias"]:
+        overidden_bias_config = config.copy()
+        overidden_bias_config["bundle_compensate_gps_bias"] = False
+        config = overidden_bias_config
+
+    bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
+    remove_outliers(reconstruction, config_override)
+    paint_reconstruction(data, tracks_manager, reconstruction)
+    return report, [reconstruction]
 
 
 def incremental_reconstruction(

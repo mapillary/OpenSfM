@@ -8,6 +8,7 @@ from collections import defaultdict
 import numpy as np
 import opensfm.reconstruction as orec
 from opensfm import dataset, log, multiview, pygeometry
+from opensfm import reconstruction_helpers as helpers
 from opensfm import transformations as tf
 from opensfm import types
 from opensfm.align import apply_similarity
@@ -413,7 +414,7 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         t = -R.dot(T[:, 3])
         dst_reconstruction.add_camera(camera)
         shot = dst_reconstruction.create_shot(im, camera.id, pygeometry.Pose(R, t))
-        shot.metadata = orec.get_image_metadata(data, im)
+        shot.metadata = helpers.get_image_metadata(data, im)
         return shot
     else:
         logger.info(f"Not enough inliers to resect image {im}")

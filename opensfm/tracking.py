@@ -4,7 +4,7 @@ import typing as t
 import networkx as nx
 import numpy as np
 from opensfm import pymap
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 from opensfm.unionfind import UnionFind
 
 

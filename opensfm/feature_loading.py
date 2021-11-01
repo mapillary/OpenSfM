@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Any
 
 import numpy as np
 from opensfm import features as ft, masking
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,9 @@ class FeatureLoader(object):
             return smask
 
         else:
-            return masking.load_features_mask(data, image, all_features_data.points[:, :2])
+            return masking.load_features_mask(
+                data, image, all_features_data.points[:, :2]
+            )
 
     @lru_cache(1000)
     def load_points_colors_segmentations_instances(
