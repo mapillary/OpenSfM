@@ -353,24 +353,19 @@ def _two_view_reconstruction_inliers(
 
 
 def two_view_reconstruction_plane_based(
-    p1: np.ndarray,
-    p2: np.ndarray,
-    camera1: pygeometry.Camera,
-    camera2: pygeometry.Camera,
+    b1: np.ndarray,
+    b2: np.ndarray,
     threshold: float,
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], List[int]]:
     """Reconstruct two views from point correspondences lying on a plane.
 
     Args:
-        p1, p2: lists points in the images
-        camera1, camera2: Camera models
+        b1, b2: lists bearings in the images
         threshold: reprojection error threshold
 
     Returns:
         rotation, translation and inlier list
     """
-    b1 = camera1.pixel_bearing_many(p1)
-    b2 = camera2.pixel_bearing_many(p2)
     x1 = multiview.euclidean(b1)
     x2 = multiview.euclidean(b2)
 
@@ -394,41 +389,45 @@ def two_view_reconstruction_plane_based(
     return cv2.Rodrigues(R)[0].ravel(), t, inliers
 
 
-def two_view_reconstruction(
-    p1: np.ndarray,
-    p2: np.ndarray,
-    camera1: pygeometry.Camera,
-    camera2: pygeometry.Camera,
+def two_view_reconstruction_and_refinement(
+    b1: np.ndarray,
+    b2: np.ndarray,
+    R: np.ndarray,
+    t: np.ndarray,
     threshold: float,
     iterations: int,
+    transposed: bool,
 ) -> Tuple[np.ndarray, np.ndarray, List[int]]:
-    """Reconstruct two views using the 5-point method.
+    """Reconstruct two views using provided rotation and translation.
 
     Args:
-        p1, p2: lists points in the images
-        camera1, camera2: Camera models
+        b1, b2: lists bearings in the images
+        R, t: rotation & translation
         threshold: reprojection error threshold
+        iterations: number of iteration for refinement
+        transposed: use transposed R, t instead
 
     Returns:
         rotation, translation and inlier list
     """
-    b1 = camera1.pixel_bearing_many(p1)
-    b2 = camera2.pixel_bearing_many(p2)
+    if transposed:
+        t_curr = -R.T.dot(t)
+        R_curr = R.T
+    else:
+        t_curr = t.copy()
+        R_curr = R.copy()
 
-    T = multiview.relative_pose_ransac(b1, b2, threshold, 1000, 0.999)
-    R = T[:, :3]
-    t = T[:, 3]
-    inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
+    inliers = _two_view_reconstruction_inliers(b1, b2, R_curr, t_curr, threshold)
 
     if len(inliers) > 5:
         T = multiview.relative_pose_optimize_nonlinear(
-            b1[inliers], b2[inliers], t, R, iterations
+            b1[inliers], b2[inliers], t_curr, R_curr, iterations
         )
-        R = T[:, :3]
-        t = T[:, 3]
-        inliers = _two_view_reconstruction_inliers(b1, b2, R, t, threshold)
+        R_curr = T[:, :3]
+        t_curr = T[:, 3]
+        inliers = _two_view_reconstruction_inliers(b1, b2, R_curr, t_curr, threshold)
 
-    return cv2.Rodrigues(R.T)[0].ravel(), -R.T.dot(t), inliers
+    return cv2.Rodrigues(R_curr.T)[0].ravel(), -R_curr.T.dot(t_curr), inliers
 
 
 def _two_view_rotation_inliers(
@@ -465,6 +464,79 @@ def two_view_reconstruction_rotation_only(
     return cv2.Rodrigues(R.T)[0].ravel(), inliers
 
 
+def two_view_reconstruction_5pt(
+    b1: np.ndarray,
+    b2: np.ndarray,
+    R: np.ndarray,
+    t: np.ndarray,
+    threshold: float,
+    iterations: int,
+    check_reversal: bool = False,
+    reversal_ratio: float = 1.0,
+):
+    """Run 5-point reconstruction and refinement, given computed relative rotation and translation.
+
+    Optionally, the method will perform reconstruction and refinement for both given and transposed
+    rotation and translation.
+
+    Args:
+        p1, p2: lists points in the images
+        camera1, camera2: Camera models
+        threshold: reprojection error threshold
+        iterations: number of step for the non-linear refinement of the relative pose
+        check_reversal: whether to check for Necker reversal ambiguity
+        reversal_ratio: ratio of triangulated point between normal and reversed
+                        configuration to consider a pair as being ambiguous
+
+    Returns:
+        rotation, translation and inlier list
+    """
+
+    configurations = [False, True] if check_reversal else [False]
+
+    # Refine both normal and transposed relative motion
+    results_5pt = []
+    for transposed in configurations:
+        R_5p, t_5p, inliers_5p = two_view_reconstruction_and_refinement(
+            b1,
+            b2,
+            R,
+            t,
+            threshold,
+            iterations,
+            transposed,
+        )
+
+        valid_curr_5pt = R_5p is not None and t_5p is not None
+        if len(inliers_5p) <= 5 or not valid_curr_5pt:
+            continue
+
+        logger.info(
+            f"Two-view 5-points reconstruction inliers (transposed={transposed}): {len(inliers_5p)} / {len(b1)}"
+        )
+        results_5pt.append((R_5p, t_5p, inliers_5p))
+
+    # Use relative motion if one version stands out
+    if len(results_5pt) == 1:
+        R_5p, t_5p, inliers_5p = results_5pt[0]
+    elif len(results_5pt) == 2:
+        inliers1, inliers2 = results_5pt[0][2], results_5pt[1][2]
+        len1, len2 = len(inliers1), len(inliers2)
+        ratio = min(len1, len2) / max(len1, len2)
+        if ratio > reversal_ratio:
+            logger.warning(
+                f"Un-decidable Necker configuration (ratio={ratio}), skipping."
+            )
+            R_5p, t_5p, inliers_5p = None, None, []
+        else:
+            index = 0 if len1 > len2 else 1
+            R_5p, t_5p, inliers_5p = results_5pt[index]
+    else:
+        R_5p, t_5p, inliers_5p = None, None, []
+
+    return R_5p, t_5p, inliers_5p
+
+
 def two_view_reconstruction_general(
     p1: np.ndarray,
     p2: np.ndarray,
@@ -472,6 +544,8 @@ def two_view_reconstruction_general(
     camera2: pygeometry.Camera,
     threshold: float,
     iterations: int,
+    check_reversal: bool = False,
+    reversal_ratio: float = 1.0,
 ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], List[int], Dict[str, Any]]:
     """Reconstruct two views from point correspondences.
 
@@ -482,67 +556,74 @@ def two_view_reconstruction_general(
         p1, p2: lists points in the images
         camera1, camera2: Camera models
         threshold: reprojection error threshold
+        iterations: number of step for the non-linear refinement of the relative pose
+        check_reversal: whether to check for Necker reversal ambiguity
+        reversal_ratio: ratio of triangulated point between normal and reversed
+                        configuration to consider a pair as being ambiguous
 
     Returns:
         rotation, translation and inlier list
     """
-    R_5p, t_5p, inliers_5p = two_view_reconstruction(
-        p1, p2, camera1, camera2, threshold, iterations
-    )
 
+    b1 = camera1.pixel_bearing_many(p1)
+    b2 = camera2.pixel_bearing_many(p2)
+
+    # Get 5-point relative motion
+    T_robust = multiview.relative_pose_ransac(b1, b2, threshold, 1000, 0.999)
+    R_robust = T_robust[:, :3]
+    t_robust = T_robust[:, 3]
+    R_5p, t_5p, inliers_5p = two_view_reconstruction_5pt(
+        b1,
+        b2,
+        R_robust,
+        t_robust,
+        threshold,
+        iterations,
+        check_reversal,
+        reversal_ratio,
+    )
+    valid_5pt = R_5p is not None and t_5p is not None
+
+    # Compute plane-based relative-motion
     R_plane, t_plane, inliers_plane = two_view_reconstruction_plane_based(
-        p1, p2, camera1, camera2, threshold
+        b1,
+        b2,
+        threshold,
     )
+    valid_plane = R_plane is not None and t_plane is not None
 
-    report = {
+    report: Dict[str, Any] = {
         "5_point_inliers": len(inliers_5p),
         "plane_based_inliers": len(inliers_plane),
     }
 
-    if len(inliers_5p) > len(inliers_plane):
-        # pyre-fixme [6]: Expected `int` for 2nd positional
+    if valid_5pt and len(inliers_5p) > len(inliers_plane):
         report["method"] = "5_point"
-        return R_5p, t_5p, inliers_5p, report
-    else:
-        # pyre-fixme [6]: Expected `int` for 2nd positional
+        R, t, inliers = R_5p, t_5p, inliers_5p
+    elif valid_plane:
         report["method"] = "plane_based"
-        return R_plane, t_plane, inliers_plane, report
+        R, t, inliers = R_plane, t_plane, inliers_plane
+    else:
+        report["decision"] = "Could not find initial motion"
+        logger.info(report["decision"])
+        R, t, inliers = None, None, []
+    return R, t, inliers, report
 
 
-def bootstrap_reconstruction(
+def reconstruction_from_relative_pose(
     data: DataSetBase,
     tracks_manager: pymap.TracksManager,
     im1: str,
     im2: str,
-    p1: np.ndarray,
-    p2: np.ndarray,
+    R: np.ndarray,
+    t: np.ndarray,
 ) -> Tuple[Optional[types.Reconstruction], Dict[str, Any]]:
-    """Start a reconstruction using two shots."""
-    logger.info("Starting reconstruction with {} and {}".format(im1, im2))
-    report: Dict[str, Any] = {
-        "image_pair": (im1, im2),
-        "common_tracks": len(p1),
-    }
+    """Create a reconstruction from 'im1' and 'im2' using the provided rotation 'R' and translation 't'."""
+    report = {}
+
+    min_inliers = data.config["five_point_algo_min_inliers"]
 
     camera_priors = data.load_camera_models()
-    camera1 = camera_priors[data.load_exif(im1)["camera"]]
-    camera2 = camera_priors[data.load_exif(im2)["camera"]]
-
-    threshold = data.config["five_point_algo_threshold"]
-    min_inliers = data.config["five_point_algo_min_inliers"]
-    iterations = data.config["five_point_refine_rec_iterations"]
-    R, t, inliers, report["two_view_reconstruction"] = two_view_reconstruction_general(
-        p1, p2, camera1, camera2, threshold, iterations
-    )
-
-    logger.info(
-        "Two-view reconstruction inliers: {} / {}".format(len(inliers), len(p1))
-    )
-    if len(inliers) <= 5:
-        report["decision"] = "Could not find initial motion"
-        logger.info(report["decision"])
-        return None, report
-
     rig_camera_priors = data.load_rig_cameras()
     rig_assignments = rig.rig_assignments_per_image(data.load_rig_assignments())
 
@@ -588,6 +669,50 @@ def bootstrap_reconstruction(
     report["decision"] = "Success"
     report["memory_usage"] = current_memory_usage()
     return reconstruction, report
+
+
+def bootstrap_reconstruction(
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    im1: str,
+    im2: str,
+    p1: np.ndarray,
+    p2: np.ndarray,
+) -> Tuple[Optional[types.Reconstruction], Dict[str, Any]]:
+    """Start a reconstruction using two shots."""
+    logger.info("Starting reconstruction with {} and {}".format(im1, im2))
+    report: Dict[str, Any] = {
+        "image_pair": (im1, im2),
+        "common_tracks": len(p1),
+    }
+
+    camera_priors = data.load_camera_models()
+    camera1 = camera_priors[data.load_exif(im1)["camera"]]
+    camera2 = camera_priors[data.load_exif(im2)["camera"]]
+
+    threshold = data.config["five_point_algo_threshold"]
+    iterations = data.config["five_point_refine_rec_iterations"]
+    check_reversal = data.config["five_point_reversal_check"]
+    reversal_ratio = data.config["five_point_reversal_ratio"]
+
+    (
+        R,
+        t,
+        inliers,
+        report["two_view_reconstruction"],
+    ) = two_view_reconstruction_general(
+        p1, p2, camera1, camera2, threshold, iterations, check_reversal, reversal_ratio
+    )
+    valid_rt = R is not None and t is not None
+    if not valid_rt:
+        return None, report
+
+    rec, rec_report = reconstruction_from_relative_pose(
+        data, tracks_manager, im1, im2, R, t  # pyre-fixme [6]
+    )
+    report.update(rec_report)
+
+    return rec, report
 
 
 def reconstructed_points_for_images(
