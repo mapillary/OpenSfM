@@ -4,7 +4,7 @@ from typing import List, Tuple, Iterable, Dict, Optional
 import numpy as np
 from opensfm import bow
 from opensfm import feature_loader
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 def unnormalized_vlad(features: np.ndarray, centers: np.ndarray) -> np.ndarray:

@@ -603,7 +603,7 @@ def test_bundle_alignment_prior():
 
     assert np.allclose(shot.pose.translation, np.zeros(3))
     # up vector in camera coordinates is (0, -1, 0)
-    assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0])
+    assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0], atol=1e-7)
 
 
 def test_heatmaps_position(bundle_adjuster):

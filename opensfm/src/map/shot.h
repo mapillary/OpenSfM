@@ -5,6 +5,7 @@
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/observation.h>
+#include <map/rig.h>
 
 #include <Eigen/Eigen>
 #include <iostream>
@@ -12,8 +13,6 @@
 
 namespace map {
 class Map;
-class RigInstance;
-struct RigCamera;
 
 struct ShotMesh {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -33,6 +32,8 @@ struct ShotMeasurements {
   foundation::OptionalValue<double> compass_accuracy_;
   foundation::OptionalValue<double> compass_angle_;
   foundation::OptionalValue<Vec3d> accelerometer_;
+  foundation::OptionalValue<double> opk_accuracy_;
+  foundation::OptionalValue<Vec3d> opk_angles_;
   foundation::OptionalValue<int> orientation_;
   foundation::OptionalValue<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);
@@ -52,22 +53,21 @@ class Shot {
 
   // Shot construction
   Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
+       RigInstance* rig_instance, RigCamera* rig_camera,
        const geometry::Pose& pose);
-  Shot(const ShotId& shot_id, const geometry::Camera& cam,
+  Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
+       RigInstance* rig_instance, RigCamera* rig_camera);
+  Shot(const ShotId& shot_id, const geometry::Camera& shot_camera,
        const geometry::Pose& pose);
   ShotId GetId() const { return id_; }
 
   // Rig
   bool IsInRig() const;
-  void SetRig(RigInstance* rig_instance, const RigCamera* rig_camera);
-  foundation::OptionalValue<RigInstance*> GetRigInstance() const {
-    return rig_instance_;
-  }
-  foundation::OptionalValue<const RigCamera*> GetRigCamera() const {
-    return rig_camera_;
-  }
-  RigInstanceId GetRigInstanceId() const;
-  RigCameraId GetRigCameraId() const;
+  void SetRig(RigInstance* rig_instance, RigCamera* rig_camera);
+  RigInstance* GetRigInstance() const { return rig_instance_; }
+  const RigCamera* GetRigCamera() const { return rig_camera_; }
+  const RigInstanceId& GetRigInstanceId() const;
+  const RigCameraId& GetRigCameraId() const;
 
   // Pose
   void SetPose(const geometry::Pose& pose);
@@ -153,9 +153,11 @@ class Shot {
   mutable std::unique_ptr<geometry::Pose> pose_;
   foundation::OptionalValue<MatXd> covariance_;
 
-  // Optional rig data
-  foundation::OptionalValue<RigInstance*> rig_instance_;
-  foundation::OptionalValue<const RigCamera*> rig_camera_;
+  // Rig data (can optionally belong to the shot)
+  foundation::OptionalValue<RigInstance> own_rig_instance_;
+  foundation::OptionalValue<RigCamera> own_rig_camera_;
+  RigInstance* rig_instance_;
+  RigCamera* rig_camera_;
 
   // Camera pointer (can optionaly belong to the shot)
   foundation::OptionalValue<geometry::Camera> own_camera_;

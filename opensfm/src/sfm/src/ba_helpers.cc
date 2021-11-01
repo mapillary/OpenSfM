@@ -189,9 +189,11 @@ py::tuple BAHelpers::BundleLocal(
       const auto is_interior = !is_boundary;
 
       if (is_interior) {
-        if (config["bundle_use_gps"].cast<bool>()) {
-          average_position += shot.GetShotMeasurements().gps_position_.Value();
-          average_std += shot.GetShotMeasurements().gps_accuracy_.Value();
+        const auto& measurements = shot.GetShotMeasurements();
+        if (config["bundle_use_gps"].cast<bool>() &&
+            measurements.gps_position_.HasValue()) {
+          average_position += measurements.gps_position_.Value();
+          average_std += measurements.gps_accuracy_.Value();
           ++gps_count;
         }
       } else {

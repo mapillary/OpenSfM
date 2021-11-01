@@ -40,11 +40,13 @@ class Map {
   // Shot Methods
 
   // Creation
-  Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id);
   Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id,
+                   const RigCameraId& rig_camera_id,
+                   const RigInstanceId& instance_id,
                    const geometry::Pose& pose);
-  Shot& CreateShot(const ShotId& shot_id, const geometry::Camera* const cam,
-                   const geometry::Pose& pose = geometry::Pose());
+  Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id,
+                   const RigCameraId& rig_camera_id,
+                   const RigInstanceId& instance_id);
 
   // Getters
   const Shot& GetShot(const ShotId& shot_id) const;
@@ -63,10 +65,9 @@ class Map {
   // PanoShots
 
   // Creation
-  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&,
-                       const geometry::Pose& pose);
-  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&);
-  Shot& CreatePanoShot(const ShotId& shot_id, const geometry::Camera* const cam,
+  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
+                       const RigCameraId& rig_camera_id,
+                       const RigInstanceId& instance_id,
                        const geometry::Pose& pose);
 
   // Getters
@@ -89,11 +90,10 @@ class Map {
 
   // Creation
   RigCamera& CreateRigCamera(const map::RigCamera& rig_camera);
-  RigInstance& CreateRigInstance(
-      const map::RigInstanceId& instance_id,
-      const std::map<map::ShotId, map::RigCameraId>& instance_shots);
+  RigInstance& CreateRigInstance(const map::RigInstanceId& instance_id);
 
   // Update
+  void RemoveRigInstance(const map::RigInstanceId& instance_id);
   RigInstance& UpdateRigInstance(const RigInstance& other_rig_instance);
 
   // Getters

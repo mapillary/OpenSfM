@@ -78,6 +78,9 @@ class Reconstruction(object):
         for rig_instance in values.values():
             self.add_rig_instance(rig_instance)
 
+    def remove_rig_instance(self, rig_instance_id: str) -> None:
+        self.map.remove_rig_instance(rig_instance_id)
+
     rig_instances = property(get_rig_instances, set_rig_instances)
 
     def get_shots(self) -> pymap.ShotView:
@@ -126,7 +129,10 @@ class Reconstruction(object):
 
         :param camera: The camera.
         """
-        return self.map.create_camera(camera)
+        if camera.id not in self.cameras:
+            return self.map.create_camera(camera)
+        else:
+            return self.get_camera(camera.id)
 
     def get_camera(self, id: str) -> pygeometry.Camera:
         """Return a camera by id.
@@ -141,7 +147,10 @@ class Reconstruction(object):
 
         :param rig_camera: The rig camera.
         """
-        return self.map.create_rig_camera(rig_camera)
+        if rig_camera.id not in self.rig_cameras:
+            return self.map.create_rig_camera(rig_camera)
+        else:
+            return self.rig_cameras.get(rig_camera.id)
 
     def add_rig_instance(self, rig_instance: pymap.RigInstance) -> pymap.RigInstance:
         """Creates a copy of the passed rig instance
@@ -158,7 +167,7 @@ class Reconstruction(object):
             raise RuntimeError("Shots already exist in another instance")
 
         if rig_instance.id not in self.rig_instances:
-            self.map.create_rig_instance(rig_instance.id, rig_instance.rig_camera_ids)
+            self.map.create_rig_instance(rig_instance.id)
         return self.map.update_rig_instance(rig_instance)
 
     # Shot
@@ -167,23 +176,34 @@ class Reconstruction(object):
         shot_id: str,
         camera_id: str,
         pose: Optional[pygeometry.Pose] = None,
-        enforce_rig: bool = True,
+        rig_camera_id: Optional[str] = None,
+        rig_instance_id: Optional[str] = None,
     ) -> pymap.Shot:
-        if pose is None:
-            pose = pygeometry.Pose()
-        created_shot = self.map.create_shot(shot_id, camera_id, pose)
+        passed_rig_camera_id = rig_camera_id if rig_camera_id else camera_id
+        passed_rig_instance_id = rig_instance_id if rig_instance_id else shot_id
 
-        if enforce_rig:
-            instance_id = f"{shot_id}"
-            rig_instance = self.add_rig_instance(pymap.RigInstance(instance_id))
-            if camera_id not in self.rig_cameras:
-                rig_camera = self.add_rig_camera(
-                    pymap.RigCamera(pygeometry.Pose(), camera_id)
-                )
-            else:
-                rig_camera = self.rig_cameras[camera_id]
-            rig_instance.add_shot(rig_camera, created_shot)
-            rig_instance.update_instance_pose_with_shot(shot_id, pose)
+        if (not rig_camera_id) and (camera_id not in self.rig_cameras):
+            self.add_rig_camera(pymap.RigCamera(pygeometry.Pose(), camera_id))
+        if passed_rig_camera_id not in self.rig_cameras:
+            raise RuntimeError(
+                f"Rig Camera {passed_rig_camera_id} doesn't exist in reconstruction"
+            )
+
+        if (not rig_instance_id) and (shot_id not in self.rig_instances):
+            self.add_rig_instance(pymap.RigInstance(shot_id))
+        if passed_rig_instance_id not in self.rig_instances:
+            raise RuntimeError(
+                f"Rig Instance {passed_rig_instance_id} doesn't exist in reconstruction"
+            )
+
+        if pose is None:
+            created_shot = self.map.create_shot(
+                shot_id, camera_id, passed_rig_camera_id, passed_rig_instance_id
+            )
+        else:
+            created_shot = self.map.create_shot(
+                shot_id, camera_id, passed_rig_camera_id, passed_rig_instance_id, pose
+            )
 
         return created_shot
 
@@ -195,8 +215,18 @@ class Reconstruction(object):
 
         if shot.camera.id not in self.cameras:
             self.add_camera(shot.camera)
+        if shot.rig_instance_id not in self.rig_instances:
+            self.map.create_rig_instance(shot.rig_instance_id)
+        if shot.rig_camera_id not in self.rig_cameras:
+            self.map.create_rig_camera(shot.rig_camera)
         if shot.id not in self.shots:
-            self.map.create_shot(shot.id, shot.camera.id, shot.pose)
+            self.map.create_shot(
+                shot.id,
+                shot.camera.id,
+                shot.rig_camera_id,
+                shot.rig_instance_id,
+                shot.pose,
+            )
         ret = self.map.update_shot(shot)
         return ret
 
@@ -216,7 +246,19 @@ class Reconstruction(object):
     ) -> pymap.Shot:
         if pose is None:
             pose = pygeometry.Pose()
-        return self.map.create_pano_shot(shot_id, camera_id, pose)
+
+        rig_camera_id = f"panoshot_{camera_id}"
+        if rig_camera_id not in self.rig_cameras:
+            self.add_rig_camera(pymap.RigCamera(pygeometry.Pose(), rig_camera_id))
+        rig_instance_id = f"panoshot_{shot_id}"
+        if rig_instance_id not in self.rig_instances:
+            self.add_rig_instance(pymap.RigInstance(rig_instance_id))
+
+        created_shot = self.map.create_pano_shot(
+            shot_id, camera_id, rig_camera_id, rig_instance_id, pose
+        )
+
+        return created_shot
 
     def add_pano_shot(self, pshot: pymap.Shot) -> pymap.Shot:
         if pshot.camera.id not in self.cameras:

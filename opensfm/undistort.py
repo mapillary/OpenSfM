@@ -13,7 +13,8 @@ from opensfm import (
     types,
 )
 from opensfm.context import parallel_map
-from opensfm.dataset import DataSetBase, UndistortedDataSet
+from opensfm.dataset import UndistortedDataSet
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def undistort_reconstruction(
     data: DataSetBase,
     udata: UndistortedDataSet,
 ) -> Dict[pymap.Shot, List[pymap.Shot]]:
+    all_images = set(data.images())
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     urec.points = reconstruction.points
@@ -33,6 +35,11 @@ def undistort_reconstruction(
     logger.debug("Undistorting the reconstruction")
     undistorted_shots = {}
     for shot in reconstruction.shots.values():
+        if shot.id not in all_images:
+            logger.warning(
+                f"Not undistorting {shot.id} as it is missing from the dataset's input images."
+            )
+            continue
         if shot.camera.projection_type == "perspective":
             urec.add_camera(perspective_camera_from_perspective(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
@@ -74,17 +81,18 @@ def undistort_reconstruction_with_images(
     data: DataSetBase,
     udata: UndistortedDataSet,
     skip_images: bool = False,
-) -> None:
+) -> Dict[pymap.Shot, List[pymap.Shot]]:
     undistorted_shots = undistort_reconstruction(
         tracks_manager, reconstruction, data, udata
     )
     if not skip_images:
         arguments = []
-        for shot in reconstruction.shots.values():
-            arguments.append((shot, undistorted_shots[shot.id], data, udata))
+        for shot_id, subshots in undistorted_shots.items():
+            arguments.append((reconstruction.shots[shot_id], subshots, data, udata))
 
         processes = data.config["processes"]
         parallel_map(undistort_image_and_masks, arguments, processes)
+    return undistorted_shots
 
 
 def undistort_image_and_masks(arguments) -> None:
@@ -283,8 +291,9 @@ def perspective_views_of_a_panorama(
         tf.rotation_matrix(+np.pi / 2, np.array([1, 0, 0])),
     ]
 
-    rig_instance = pymap.RigInstance(str(next(rig_instance_count)))
-    rig_instance.pose = spherical_shot.pose
+    rig_instance = reconstruction.add_rig_instance(
+        pymap.RigInstance(str(next(rig_instance_count)))
+    )
 
     shots = []
     for name, rotation in zip(names, rotations):
@@ -298,12 +307,12 @@ def perspective_views_of_a_panorama(
         shot_id = add_image_format_extension(
             f"{spherical_shot.id}_perspective_view_{name}", image_format
         )
-        shot = reconstruction.create_shot(shot_id, camera.id, enforce_rig=False)
+        shot = reconstruction.create_shot(
+            shot_id, camera.id, pygeometry.Pose(), rig_camera.id, rig_instance.id
+        )
         shot.metadata = spherical_shot.metadata
-        rig_instance.add_shot(rig_camera, shot)
-
         shots.append(shot)
-    reconstruction.add_rig_instance(rig_instance)
+    rig_instance.pose = spherical_shot.pose
 
     return shots
 

@@ -16,7 +16,7 @@ def run_dataset(data: DataSet):
     meta_data = MetaDataSet(data.data_path)
 
     meta_data.remove_submodels()
-    data.invent_reference_lla()
+    data.init_reference()
     _create_image_list(data, meta_data)
 
     if meta_data.image_groups_exists():

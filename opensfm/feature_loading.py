@@ -3,8 +3,8 @@ from functools import lru_cache
 from typing import Optional, Tuple, Any
 
 import numpy as np
-from opensfm import features as ft
-from opensfm.dataset import DataSetBase
+from opensfm import features as ft, masking
+from opensfm.dataset_base import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -47,15 +47,17 @@ class FeatureLoader(object):
             # combine with 'classic' mask if any
             mask_image = data.load_mask(image)
             if mask_image is not None:
-                mask = data.load_features_mask(
-                    image, all_features_data.points[:, :2], mask_image
+                mask = masking.load_features_mask(
+                    data, image, all_features_data.points[:, :2], mask_image
                 )
                 smask &= mask
 
             return smask
 
         else:
-            return data.load_features_mask(image, all_features_data.points[:, :2])
+            return masking.load_features_mask(
+                data, image, all_features_data.points[:, :2]
+            )
 
     @lru_cache(1000)
     def load_points_colors_segmentations_instances(

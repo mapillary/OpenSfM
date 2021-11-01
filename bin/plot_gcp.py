@@ -74,7 +74,7 @@ def main():
 
     data = dataset.DataSet(args.dataset)
     reconstruction = data.load_reconstruction()[0]
-    gcps = data.load_ground_control_points()
+    gcps = data.load_ground_control_points(reconstruction.reference)
 
     with io.open_wt(data.data_path + '/gcp.ply') as fout:
         fout.write(gcp_to_ply(gcps, reconstruction))

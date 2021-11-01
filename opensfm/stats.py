@@ -80,7 +80,7 @@ def gcp_errors(
 ) -> Dict[str, Any]:
     all_errors = []
 
-    gcp = data.load_ground_control_points()
+    gcp = data.load_ground_control_points(data.load_reference())
     if not gcp:
         return {}
 
@@ -198,7 +198,7 @@ def reconstruction_statistics(
         for shot in rec.shots.values():
             gps_count += shot.metadata.gps_position.has_value
     stats["has_gps"] = gps_count > 2
-    stats["has_gcp"] = True if data.load_ground_control_points() else False
+    stats["has_gcp"] = True if data.load_ground_control_points(None) else False
 
     stats["initial_points_count"] = tracks_manager.num_tracks()
     stats["initial_shots_count"] = len(data.images())

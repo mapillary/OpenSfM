@@ -108,7 +108,9 @@ class SyntheticCubeScene(SyntheticScene):
             shot_id = "shot%04d" % i
             camera_id = "camera%04d" % i
             pose = camera_pose(position, lookat, up)
-            self.reconstruction.create_shot(shot_id, camera_id, pose, False)
+            self.reconstruction.create_shot(
+                shot_id, camera_id, pose, rig_camera_id=None, rig_instance_id=None
+            )
 
         points = np.random.rand(num_points, 3) - [0.5, 0.5, 0.5]
         for i, p in enumerate(points):
@@ -122,7 +124,13 @@ class SyntheticCubeScene(SyntheticScene):
         # since we do not want to modify the reference
         reconstruction.cameras = self.cameras
         for shot in self.reconstruction.shots.values():
-            reconstruction.create_shot(shot.id, shot.camera.id, shot.pose, False)
+            reconstruction.create_shot(
+                shot.id,
+                shot.camera.id,
+                shot.pose,
+                rig_camera_id=None,
+                rig_instance_id=None,
+            )
         for point in self.reconstruction.points.values():
             pt = reconstruction.create_point(point.id, point.coordinates)
             pt.color = point.color
@@ -419,6 +427,7 @@ class SyntheticInputData:
         projection_max_depth: float,
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
+        imu_noise: float,
         gcp_noise: Tuple[float, float],
         causal_gps_noise: bool,
         gcps_count: Optional[int] = None,
@@ -428,7 +437,11 @@ class SyntheticInputData:
     ):
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
-            reconstruction, reference, gps_noise, causal_gps_noise=causal_gps_noise
+            reconstruction,
+            reference,
+            gps_noise,
+            imu_noise,
+            causal_gps_noise=causal_gps_noise,
         )
 
         if generate_projections:

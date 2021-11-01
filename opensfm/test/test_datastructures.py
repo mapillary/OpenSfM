@@ -318,6 +318,8 @@ def test_shot_measurement_setter_and_getter():
     _help_measurement_test(m1, "gps_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
+    _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "opk_angles", np.random.rand(3))
     _help_measurement_test(m1, "accelerometer", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
@@ -329,6 +331,8 @@ def _helper_populate_metadata(m):
     m.gps_accuracy.value = np.random.rand(1)
     m.compass_accuracy.value = np.random.rand(1)
     m.compass_angle.value = np.random.rand(1)
+    m.opk_accuracy.value = np.random.rand(1)
+    m.opk_angles.value = np.random.rand(3)
     m.accelerometer.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
@@ -362,15 +366,12 @@ def test_shot_create():
 def test_shot_create_existing():
     # Given some created shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    rec.create_shot("shot0", "0")
 
-    n_shots = 10
-    # When re-adding the same shot
-    for _ in range(n_shots):
-        # It should throw
-        with pytest.raises(RuntimeError):
-            shot1 == rec.create_shot("shot0", "0")
-            shot1 == rec.create_shot("shot0", "1")
+    # When re-adding the same shot, it should throw
+    with pytest.raises(RuntimeError):
+        rec.create_shot("shot0", "0")
+        rec.create_shot("shot0", "1")
 
 
 def test_shot_create_more():
@@ -624,7 +625,11 @@ def _create_rig_instance():
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
     rig_instance = pymap.RigInstance("1")
-    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
+    shot = pymap.Shot(
+        "0",
+        pygeometry.Camera.create_spherical(),
+        pygeometry.Pose(),
+    )
     rig_instance.add_shot(rig_camera, shot)
     return rec, rig_instance, shot
 
@@ -658,6 +663,12 @@ def test_rig_instance_create_add_existing():
     rec, rig_instance, _ = _create_rig_instance()
     with pytest.raises(RuntimeError):
         rec.add_rig_instance(rig_instance)
+
+
+def test_rig_instance_remove_shot():
+    rec, _, shot = _create_rig_instance()
+    rec.remove_shot(shot.id)
+    assert len(rec.rig_instances["0"].shots) == 0
 
 
 def test_rig_shot_modify_pose_raise():
@@ -923,9 +934,13 @@ def test_many_observations_delete():
         cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
         cam.id = "cam" + str(cam_id)
         m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        shot_id = str(shot_id)
+        m.create_rig_instance(shot_id)
+        m.create_shot(shot_id, cam_id, cam_id, shot_id, pygeometry.Pose())
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))
@@ -959,9 +974,12 @@ def test_clean_landmarks_with_min_observations():
         cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
         cam.id = "cam" + str(cam_id)
         m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        m.create_rig_instance(str(shot_id))
+        m.create_shot(str(shot_id), cam_id, cam_id, str(shot_id), pygeometry.Pose())
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))
@@ -1112,7 +1130,7 @@ def test_gcp():
 
 
 def test_add_correspondences_from_tracks_manager():
-    n_shots=3
+    n_shots = 3
     rec = _create_reconstruction(
         n_cameras=1,
         n_shots_cam={"0": n_shots},
