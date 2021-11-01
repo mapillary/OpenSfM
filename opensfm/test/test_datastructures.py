@@ -318,6 +318,8 @@ def test_shot_measurement_setter_and_getter():
     _help_measurement_test(m1, "gps_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
+    _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "opk_angles", np.random.rand(3))
     _help_measurement_test(m1, "accelerometer", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
@@ -329,6 +331,8 @@ def _helper_populate_metadata(m):
     m.gps_accuracy.value = np.random.rand(1)
     m.compass_accuracy.value = np.random.rand(1)
     m.compass_angle.value = np.random.rand(1)
+    m.opk_accuracy.value = np.random.rand(1)
+    m.opk_angles.value = np.random.rand(3)
     m.accelerometer.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
@@ -362,15 +366,12 @@ def test_shot_create():
 def test_shot_create_existing():
     # Given some created shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    rec.create_shot("shot0", "0")
 
-    n_shots = 10
-    # When re-adding the same shot
-    for _ in range(n_shots):
-        # It should throw
-        with pytest.raises(RuntimeError):
-            shot1 == rec.create_shot("shot0", "0")
-            shot1 == rec.create_shot("shot0", "1")
+    # When re-adding the same shot, it should throw
+    with pytest.raises(RuntimeError):
+        rec.create_shot("shot0", "0")
+        rec.create_shot("shot0", "1")
 
 
 def test_shot_create_more():
