@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any, Tuple
 import numpy as np
 from opensfm import bow, features, io, log, pygeometry, upright, masking
 from opensfm.context import parallel_map
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 

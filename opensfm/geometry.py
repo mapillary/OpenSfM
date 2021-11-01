@@ -10,7 +10,7 @@ def rotation_from_angle_axis(angle_axis: np.ndarray) -> np.ndarray:
 
 
 def rotation_from_ptr(pan: float, tilt: float, roll: float) -> np.ndarray:
-    """Camera rotation matrix from pan, tilt and roll."""
+    """World-to-camera rotation matrix from pan, tilt and roll."""
     R1 = rotation_from_angle_axis(np.array([0.0, 0.0, roll]))
     R2 = rotation_from_angle_axis(np.array([tilt + np.pi / 2, 0.0, 0.0]))
     R3 = rotation_from_angle_axis(np.array([0.0, 0.0, pan]))
@@ -65,3 +65,45 @@ def ptr_from_rotation_v2(rotation_matrix: np.ndarray) -> Tuple[float, float, flo
     T[:3, :3] = rotation_matrix
     pan, tilt, roll = transformations.euler_from_matrix(T, "szxz")
     return pan, tilt - np.pi / 2, roll
+
+
+def rotation_from_opk(omega: float, phi: float, kappa: float) -> np.ndarray:
+    """World-to-camera rotation matrix from pan, tilt and roll."""
+
+    # Omega (ω), the rotation around the Χ axis. (East)
+    # Phi (φ), the rotation around the Y axis. (North)
+    # Kappa (κ), the rotation around the Z axis. (UP)
+    Rw = rotation_from_angle_axis(np.array([-omega, 0.0, 0.0]))
+    Rp = rotation_from_angle_axis(np.array([0.0, -phi, 0.0]))
+    Rk = rotation_from_angle_axis(np.array([0.0, 0.0, -kappa]))
+
+    # OpenSfM
+    # The z-axis points forward
+    # The y-axis points down
+    # The x-axis points to the right
+    Rc = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+    return Rc.dot(Rk).dot(Rp).dot(Rw)
+
+
+def opk_from_rotation(
+    rotation_matrix: np.ndarray,
+) -> Tuple[float, float, float]:
+    """Omega, phi, kappa from camera rotation matrix"""
+    Rc = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+    R = rotation_matrix.T.dot(Rc)
+    omega = omega_from_rotation(R)
+    phi = phi_from_rotation(R)
+    kappa = kappa_from_rotation(R)
+    return omega, phi, kappa
+
+
+def omega_from_rotation(rotation_matrix: np.ndarray) -> float:
+    return np.arctan2(-rotation_matrix[1, 2], rotation_matrix[2, 2])
+
+
+def phi_from_rotation(rotation_matrix: np.ndarray) -> float:
+    return np.arcsin(rotation_matrix[0, 2])
+
+
+def kappa_from_rotation(rotation_matrix: np.ndarray) -> float:
+    return np.arctan2(-rotation_matrix[0, 1], rotation_matrix[0, 0])

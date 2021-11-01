@@ -1,9 +1,10 @@
 from opensfm import io
 from opensfm import reconstruction
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
+
 
 def run_dataset(data: DataSetBase, input: str, output: str):
-    """ Reconstruct the from a prior reconstruction. """
+    """Reconstruct the from a prior reconstruction."""
 
     tracks_manager = data.load_tracks_manager()
     rec_prior = data.load_reconstruction(input)

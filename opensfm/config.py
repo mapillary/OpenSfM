@@ -88,6 +88,8 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 five_point_refine_match_iterations: 10  # Number of LM iterations to run when refining relative pose during matching
 five_point_refine_rec_iterations: 1000  # Number of LM iterations to run when refining relative pose during reconstruction
+five_point_reversal_check: False        # Check for Necker reversal ambiguities. Useful for long focal length with long distance capture (aerial manned)
+five_point_reversal_ratio: 0.95         # Ratio of triangulated points non-reversed/reversed when checking for Necker reversal ambiguities
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)

@@ -213,12 +213,14 @@ def rig_instance_camera_per_shot(obj: Dict[str, Any]) -> Dict[str, Tuple[str, st
     """
     Given JSON root data, return (rig_instance_id, rig_camera_id) per shot.
     """
+    panoshots = set(obj["pano_shots"].keys()) if "pano_shots" in obj else {}
     rig_shots = {}
     if "rig_instances" in obj:
         rig_shots = {
             s_key: (i_key, c_key)
             for i_key, ri in obj["rig_instances"].items()
             for s_key, c_key in ri["rig_camera_ids"].items()
+            if s_key not in panoshots
         }
     return rig_shots
 

@@ -32,6 +32,8 @@ struct ShotMeasurements {
   foundation::OptionalValue<double> compass_accuracy_;
   foundation::OptionalValue<double> compass_angle_;
   foundation::OptionalValue<Vec3d> accelerometer_;
+  foundation::OptionalValue<double> opk_accuracy_;
+  foundation::OptionalValue<Vec3d> opk_angles_;
   foundation::OptionalValue<int> orientation_;
   foundation::OptionalValue<std::string> sequence_key_;
   void Set(const ShotMeasurements& other);

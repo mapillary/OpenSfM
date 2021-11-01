@@ -18,7 +18,8 @@ void RigInstance::AddShot(map::RigCamera* rig_camera, map::Shot* shot) {
       shots_rig_cameras_.begin(), shots_rig_cameras_.end(),
       [&rig_camera](const auto& p) { return p.second->id == rig_camera->id; });
   if (it_exist != shots_rig_cameras_.end()) {
-    throw std::runtime_error(rig_camera->id + " already exist in RigInstance");
+    throw std::runtime_error(rig_camera->id + " already exist in RigInstance " +
+                             id + " (Shot " + it_exist->first + " )");
   }
 
   if (rig_camera->relative_type == RigCamera::RelativeType::VARIABLE) {
