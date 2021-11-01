@@ -43,7 +43,7 @@ There is a main toolbox on the top and one or more panes to interact with images
 The number of panes depends on the contents of the sequence_database.json file.
 This file defines one or more image sequences. Each sequence will open in a new window.
 The example dataset at ``data/berlin`` contains a single sequence in
-`sequence_database.json <https://github.com/mapillary/OpenSfM/blob/master/data/berlin/sequence_database.json>`_
+`sequence_database.json <https://github.com/mapillary/OpenSfM/blob/main/data/berlin/sequence_database.json>`_
 
 Main toolbox
 ~~~~~~~~~~~~
@@ -171,4 +171,3 @@ the SfM reconstruction with the CAD models.
 This is highly experimental at the moment. Check out the --cad argument and the files in
 `cad_viewer <https://github.com/mapillary/OpenSfM/blob/feat_annotation_ui/annotation_gui_gcp/cad_viewer>`_
 for more information and/or get in touch.
-

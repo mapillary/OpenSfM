@@ -1,7 +1,11 @@
 import logging
 import os
-import resource
+try:
+    import resource
+except ModuleNotFoundError:
+    pass # Windows
 import sys
+import ctypes
 from typing import Optional
 
 import cv2
@@ -56,23 +60,61 @@ def parallel_map(func, args, num_proc, max_batch_size=1):
 
 
 # Memory usage
-if sys.platform == "darwin":
-    rusage_unit = 1
+
+if sys.platform == 'win32':
+    class MEMORYSTATUSEX(ctypes.Structure):
+        _fields_ = [
+            ("dwLength", ctypes.c_ulong),
+            ("dwMemoryLoad", ctypes.c_ulong),
+            ("ullTotalPhys", ctypes.c_ulonglong),
+            ("ullAvailPhys", ctypes.c_ulonglong),
+            ("ullTotalPageFile", ctypes.c_ulonglong),
+            ("ullAvailPageFile", ctypes.c_ulonglong),
+            ("ullTotalVirtual", ctypes.c_ulonglong),
+            ("ullAvailVirtual", ctypes.c_ulonglong),
+            ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
+        ]
+
+        def __init__(self):
+            # have to initialize this to the size of MEMORYSTATUSEX
+            self.dwLength = ctypes.sizeof(self)
+            super(MEMORYSTATUSEX, self).__init__()
+
+    def memory_available() -> Optional[int]:
+        """Available memory in MB.
+
+        Only works on Windows
+        """
+        stat = MEMORYSTATUSEX()
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+        return stat.ullAvailPhys / 1024 / 1024
+
+    def current_memory_usage():
+        stat = MEMORYSTATUSEX()
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+        return (stat.ullTotalPhys - stat.ullAvailPhys) / 1024
 else:
-    rusage_unit = 1024
+    if sys.platform == "darwin":
+        rusage_unit = 1
+    else:
+        rusage_unit = 1024
 
 
-def memory_available() -> Optional[int]:
-    """Available memory in MB.
+    def memory_available() -> Optional[int]:
+        """Available memory in MB.
 
-    Only works on linux and returns None otherwise.
-    """
-    with os.popen("free -t -m") as fp:
-        lines = fp.readlines()
-    if not lines:
-        return None
-    available_mem = int(lines[1].split()[6])
-    return available_mem
+        Only works on linux and returns None otherwise.
+        """
+        with os.popen("free -t -m") as fp:
+            lines = fp.readlines()
+        if not lines:
+            return None
+        available_mem = int(lines[1].split()[6])
+        return available_mem
+
+
+    def current_memory_usage():
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit
 
 
 def processes_that_fit_in_memory(desired: int, per_process: int) -> int:
@@ -83,7 +125,3 @@ def processes_that_fit_in_memory(desired: int, per_process: int) -> int:
         return min(desired, fittable)
     else:
         return desired
-
-
-def current_memory_usage():
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit

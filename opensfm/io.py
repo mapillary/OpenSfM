@@ -132,6 +132,8 @@ def shot_in_reconstruction_from_json(
     reconstruction: types.Reconstruction,
     key: str,
     obj: Dict[str, Any],
+    rig_instance_id: Optional[str] = None,
+    rig_camera_id: Optional[str] = None,
     is_pano_shot: bool = False,
 ) -> pymap.Shot:
     """
@@ -142,7 +144,9 @@ def shot_in_reconstruction_from_json(
     if is_pano_shot:
         shot = reconstruction.create_pano_shot(key, obj["camera"], pose)
     else:
-        shot = reconstruction.create_shot(key, obj["camera"], pose)
+        shot = reconstruction.create_shot(
+            key, obj["camera"], pose, rig_camera_id, rig_instance_id
+        )
     assign_shot_attributes(obj, shot)
     return shot
 
@@ -192,12 +196,11 @@ def rig_cameras_from_json(obj: Dict[str, Any]) -> Dict[str, pymap.RigCamera]:
 
 
 def rig_instance_from_json(
-    reconstruction: types.Reconstruction, key: str, obj: Dict[str, Any]
+    reconstruction: types.Reconstruction, instance_id: str, obj: Dict[str, Any]
 ) -> None:
     """
     Read any rig instance from a json shot object
     """
-    instance_id = int(key)
     reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
 
     pose = pygeometry.Pose()
@@ -205,10 +208,21 @@ def rig_instance_from_json(
     pose.translation = obj["translation"]
     reconstruction.rig_instances[instance_id].pose = pose
 
-    for shot_id, rig_camera_id in obj["rig_camera_ids"].items():
-        reconstruction.rig_instances[instance_id].add_shot(
-            reconstruction.rig_cameras[rig_camera_id], reconstruction.shots[shot_id]
-        )
+
+def rig_instance_camera_per_shot(obj: Dict[str, Any]) -> Dict[str, Tuple[str, str]]:
+    """
+    Given JSON root data, return (rig_instance_id, rig_camera_id) per shot.
+    """
+    panoshots = set(obj["pano_shots"].keys()) if "pano_shots" in obj else {}
+    rig_shots = {}
+    if "rig_instances" in obj:
+        rig_shots = {
+            s_key: (i_key, c_key)
+            for i_key, ri in obj["rig_instances"].items()
+            for s_key, c_key in ri["rig_camera_ids"].items()
+            if s_key not in panoshots
+        }
+    return rig_shots
 
 
 def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
@@ -233,14 +247,22 @@ def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
         for key, value in obj["rig_cameras"].items():
             reconstruction.add_rig_camera(rig_camera_from_json(key, value))
 
-    # Extract shots
-    for key, value in obj["shots"].items():
-        shot_in_reconstruction_from_json(reconstruction, key, value)
-
     # Extract rig instances from shots
     if "rig_instances" in obj:
         for key, value in obj["rig_instances"].items():
             rig_instance_from_json(reconstruction, key, value)
+
+    # Extract shots
+    rig_shots = rig_instance_camera_per_shot(obj)
+    for key, value in obj["shots"].items():
+        shot_in_reconstruction_from_json(
+            reconstruction,
+            key,
+            value,
+            rig_camera_id=rig_shots[key][1] if key in rig_shots else None,
+            rig_instance_id=rig_shots[key][0] if key in rig_shots else None,
+            is_pano_shot=False,
+        )
 
     # Extract points
     if "points" in obj:
@@ -250,8 +272,9 @@ def reconstruction_from_json(obj: Dict[str, Any]) -> types.Reconstruction:
     # Extract pano_shots
     if "pano_shots" in obj:
         for key, value in obj["pano_shots"].items():
-            is_pano_shot = True
-            shot_in_reconstruction_from_json(reconstruction, key, value, is_pano_shot)
+            shot_in_reconstruction_from_json(
+                reconstruction, key, value, is_pano_shot=True
+            )
 
     # Extract reference topocentric frame
     if "reference_lla" in obj:
@@ -423,7 +446,7 @@ def rig_instance_to_json(rig_instance: pymap.RigInstance) -> Dict[str, Any]:
     return {
         "translation": list(rig_instance.pose.translation),
         "rotation": list(rig_instance.pose.rotation),
-        "rig_camera_ids": rig_instance.camera_ids,
+        "rig_camera_ids": rig_instance.rig_camera_ids,
     }
 
 
@@ -819,10 +842,7 @@ def read_gcp_list(
 def read_ground_control_points(
     fileobj: IO, reference: Optional[geo.TopocentricConverter]
 ) -> List[pymap.GroundControlPoint]:
-    """Read ground control points from json file.
-
-    Returns list of types.GroundControlPoint.
-    """
+    """Read ground control points from json file"""
     obj = json_load(fileobj)
 
     points = []
@@ -865,7 +885,7 @@ def read_ground_control_points(
 def write_ground_control_points(
     gcp: List[pymap.GroundControlPoint],
     fileobj: IO,
-    reference: geo.TopocentricConverter,
+    reference: Optional[geo.TopocentricConverter],
 ) -> None:
     """Write ground control points to json file."""
     obj = {"points": []}
@@ -880,7 +900,7 @@ def write_ground_control_points(
             }
             if point.has_altitude:
                 point_obj["position"]["altitude"] = point.lla["altitude"]
-        elif point.coordinates.has_value:
+        elif reference is not None and point.coordinates.has_value:
             lat, lon, alt = reference.to_lla(*point.coordinates.value)
             point_obj["position"] = {
                 "latitude": lat,

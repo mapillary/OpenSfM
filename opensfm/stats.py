@@ -80,7 +80,7 @@ def gcp_errors(
 ) -> Dict[str, Any]:
     all_errors = []
 
-    gcp = data.load_ground_control_points()
+    gcp = data.load_ground_control_points(data.load_reference())
     if not gcp:
         return {}
 
@@ -198,7 +198,7 @@ def reconstruction_statistics(
         for shot in rec.shots.values():
             gps_count += shot.metadata.gps_position.has_value
     stats["has_gps"] = gps_count > 2
-    stats["has_gcp"] = True if data.load_ground_control_points() else False
+    stats["has_gcp"] = True if data.load_ground_control_points(None) else False
 
     stats["initial_points_count"] = tracks_manager.num_tracks()
     stats["initial_shots_count"] = len(data.images())
@@ -396,7 +396,12 @@ def rig_statistics(
 ) -> Dict[str, Any]:
     stats = {}
     permutation = np.argsort([-len(r.shots) for r in reconstructions])
-    for rig_camera_id, rig_camera in data.load_rig_cameras().items():
+    rig_cameras = data.load_rig_cameras()
+    cameras = data.load_camera_models()
+    for rig_camera_id, rig_camera in rig_cameras.items():
+        # we skip per-camera rig camera for now
+        if rig_camera_id in cameras:
+            continue
         stats[rig_camera_id] = {
             "initial_values": {
                 "rotation": list(rig_camera.pose.rotation),
@@ -407,6 +412,8 @@ def rig_statistics(
     for idx in permutation:
         rec = reconstructions[idx]
         for rig_camera in rec.rig_cameras.values():
+            if rig_camera.id not in stats:
+                continue
             if "optimized_values" in stats[rig_camera.id]:
                 continue
             stats[rig_camera.id]["optimized_values"] = {
@@ -414,7 +421,9 @@ def rig_statistics(
                 "translation": list(rig_camera.pose.translation),
             }
 
-    for rig_camera_id in data.load_rig_cameras():
+    for rig_camera_id in rig_cameras:
+        if rig_camera.id not in stats:
+            continue
         if "optimized_values" not in stats[rig_camera_id]:
             del stats[rig_camera_id]
 

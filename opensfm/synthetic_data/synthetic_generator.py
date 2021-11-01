@@ -1,4 +1,5 @@
 import logging
+import math
 import time
 from collections import defaultdict
 from typing import Callable, Tuple, List, Dict, Any, Optional, Union
@@ -15,6 +16,7 @@ from opensfm import (
     types,
     pymap,
     features as oft,
+    geometry,
 )
 
 
@@ -158,6 +160,7 @@ def generate_exifs(
     reconstruction: types.Reconstruction,
     reference: geo.TopocentricConverter,
     gps_noise: Union[Dict[str, float], float],
+    imu_noise: float,
     causal_gps_noise: bool = False,
 ) -> Dict[str, Any]:
     """Generate fake exif metadata from the reconstruction."""
@@ -207,7 +210,7 @@ def generate_exifs(
             shot = reconstruction.shots[shot_name]
             exif = exifs[shot_name]
 
-            pose = shot.pose.get_origin()
+            origin = shot.pose.get_origin()
 
             if causal_gps_noise:
                 gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
@@ -215,17 +218,27 @@ def generate_exifs(
                 gps_noise = _gps_dop(shot)
                 gps_perturbation = [gps_noise, gps_noise, 0]
 
-            pose = np.array([pose])
-            perturb_points(pose, gps_perturbation)
-            pose = pose[0]
+            origin = np.array([origin])
+            perturb_points(origin, gps_perturbation)
+            origin = origin[0]
             _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
-            lat, lon, alt = reference.to_lla(*pose)
+            lat, lon, alt = reference.to_lla(*origin)
 
             exif["gps"] = {}
             exif["gps"]["latitude"] = lat
             exif["gps"]["longitude"] = lon
             exif["gps"]["altitude"] = alt
             exif["gps"]["dop"] = _gps_dop(shot)
+
+            omega, phi, kappa = geometry.opk_from_rotation(
+                shot.pose.get_rotation_matrix()
+            )
+            opk_noise = np.random.normal(0.0, np.full((3), imu_noise), (3))
+            exif["opk"] = {}
+            exif["opk"]["omega"] = math.degrees(omega) + opk_noise[0]
+            exif["opk"]["phi"] = math.degrees(phi) + opk_noise[1]
+            exif["opk"]["kappa"] = math.degrees(kappa) + opk_noise[2]
+
             exif["compass"] = {"angle": comp}
 
     return exifs
@@ -253,7 +266,9 @@ def add_shots_to_reconstruction(
     for shot_id, position, rotation in zip(shot_ids, positions, rotations):
         pose = pygeometry.Pose(rotation)
         pose.set_origin(position)
-        shot = reconstruction.create_shot(shot_id, camera.id, pose)
+        shot = reconstruction.create_shot(
+            shot_id, camera.id, pose, rig_camera_id=None, rig_instance_id=None
+        )
         shot.metadata.sequence_key.value = sequence_key
 
 
@@ -281,10 +296,12 @@ def add_rigs_to_reconstruction(
             rec_rig_cameras.append(reconstruction.rig_cameras[rig_camera.id])
 
     for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
-        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(i))
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(str(i)))
         for j, s in enumerate(i_shots):
             rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
+        for _, s in enumerate(i_shots):
+            reconstruction.remove_rig_instance(s[0])
 
 
 def create_reconstruction(
@@ -332,7 +349,8 @@ def create_reconstruction(
 def generate_track_data(
     reconstruction: types.Reconstruction,
     maximum_depth: float,
-    noise: float,
+    projection_noise: float,
+    gcp_noise: Tuple[float, float],
     gcps_count: Optional[int],
     gcp_shift: Optional[np.ndarray],
     on_disk_features_filename: Optional[str],
@@ -384,7 +402,9 @@ def generate_track_data(
         center = shot.pose.get_origin()
         z_axis = shot.pose.get_rotation_matrix()[2]
         is_panorama = pygeometry.Camera.is_panorama(shot.camera.projection_type)
-        perturbation = float(noise) / float(max(shot.camera.width, shot.camera.height))
+        perturbation = float(projection_noise) / float(
+            max(shot.camera.width, shot.camera.height)
+        )
         sigmas = np.array([perturbation, perturbation])
 
         # pre-generate random perturbations
@@ -441,11 +461,17 @@ def generate_track_data(
             all_track_ids[i]
             for i in np.random.randint(len(all_track_ids) - 1, size=gcps_count)
         ]
-        for gcp_id in gcps_ids:
+
+        sigmas_gcp = np.random.normal(
+            0.0,
+            np.array([gcp_noise[0], gcp_noise[0], gcp_noise[1]]),
+            (len(gcps_ids), 3),
+        )
+        for i, gcp_id in enumerate(gcps_ids):
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
-            gcp.coordinates.value = point.coordinates + gcp_shift
+            gcp.coordinates.value = point.coordinates + gcp_shift + sigmas_gcp[i]
             lat, lon, alt = reconstruction.reference.to_lla(*gcp.coordinates.value)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             gcp.has_altitude = True

@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 from opensfm import pygeometry
 from opensfm import pymap
-from opensfm import pysfm
 from opensfm import types
 from opensfm.test.utils import (
     assert_metadata_equal,
@@ -319,6 +318,8 @@ def test_shot_measurement_setter_and_getter():
     _help_measurement_test(m1, "gps_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
+    _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "opk_angles", np.random.rand(3))
     _help_measurement_test(m1, "accelerometer", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
@@ -330,6 +331,8 @@ def _helper_populate_metadata(m):
     m.gps_accuracy.value = np.random.rand(1)
     m.compass_accuracy.value = np.random.rand(1)
     m.compass_angle.value = np.random.rand(1)
+    m.opk_accuracy.value = np.random.rand(1)
+    m.opk_angles.value = np.random.rand(3)
     m.accelerometer.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
@@ -363,15 +366,12 @@ def test_shot_create():
 def test_shot_create_existing():
     # Given some created shot
     rec = _create_reconstruction(2)
-    shot1 = rec.create_shot("shot0", "0")
+    rec.create_shot("shot0", "0")
 
-    n_shots = 10
-    # When re-adding the same shot
-    for _ in range(n_shots):
-        # It should throw
-        with pytest.raises(RuntimeError):
-            shot1 == rec.create_shot("shot0", "0")
-            shot1 == rec.create_shot("shot0", "1")
+    # When re-adding the same shot, it should throw
+    with pytest.raises(RuntimeError):
+        rec.create_shot("shot0", "0")
+        rec.create_shot("shot0", "1")
 
 
 def test_shot_create_more():
@@ -615,14 +615,21 @@ def test_pano_shot_create_remove_create():
 def _create_rig_camera():
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
+    rig_camera.pose = pygeometry.Pose(
+        np.array([0.1, 0.2, 0.3]), np.array([0.1, 0.2, 0.3])
+    )
     return rig_camera
 
 
 def _create_rig_instance():
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
-    rig_instance = pymap.RigInstance(1)
-    shot = pymap.Shot("0", pygeometry.Camera.create_spherical(), pygeometry.Pose())
+    rig_instance = pymap.RigInstance("1")
+    shot = pymap.Shot(
+        "0",
+        pygeometry.Camera.create_spherical(),
+        pygeometry.Pose(),
+    )
     rig_instance.add_shot(rig_camera, shot)
     return rec, rig_instance, shot
 
@@ -630,7 +637,10 @@ def _create_rig_instance():
 def test_rig_camera_create():
     rec = _create_reconstruction(1, {"0": 2})
     rec.add_rig_camera(_create_rig_camera())
-    assert list(rec.rig_cameras.keys()) == ["rig_camera"]
+
+    # we should have default-per-camera rig and the created rig camera
+    assert "0" in rec.rig_cameras.keys()
+    assert "rig_camera" in rec.rig_cameras.keys()
 
 
 def test_rig_instance():
@@ -638,19 +648,39 @@ def test_rig_instance():
     assert list(rig_instance.keys()) == ["0"]
 
 
-def test_rig_instance_create():
+def test_rig_instance_create_default():
+    # one default rig instance per shot
     rec, rig_instance, _ = _create_rig_instance()
-    rec.add_rig_instance(rig_instance)
 
-    assert len(rec.rig_instances) == 1
-    assert dict(rec.rig_instances[1].camera_ids.items()) == {"0": "rig_camera"}
-    assert list(rec.rig_instances[1].shots.keys()) == ["0"]
+    assert len(rec.rig_instances) == 2
+    assert dict(rec.rig_instances["0"].camera_ids.items()) == {"0": "0"}
+    assert list(rec.rig_instances["0"].shots.keys()) == ["0"]
+    assert dict(rec.rig_instances["1"].camera_ids.items()) == {"1": "0"}
+    assert list(rec.rig_instances["1"].shots.keys()) == ["1"]
 
 
-def test_rig_shot_modify_pose():
+def test_rig_instance_create_add_existing():
+    rec, rig_instance, _ = _create_rig_instance()
+    with pytest.raises(RuntimeError):
+        rec.add_rig_instance(rig_instance)
+
+
+def test_rig_instance_remove_shot():
+    rec, _, shot = _create_rig_instance()
+    rec.remove_shot(shot.id)
+    assert len(rec.rig_instances["0"].shots) == 0
+
+
+def test_rig_shot_modify_pose_raise():
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
         shot.pose.set_origin(np.array([1, 2, 3]))
+
+
+def test_rig_shot_modify_pose_succeed():
+    _, rig_instance, shot = _create_rig_instance()
+    next(iter(rig_instance.rig_cameras.values())).pose = pygeometry.Pose()
+    shot.pose.set_origin(np.array([1, 2, 3]))
 
 
 def test_rig_shot_set_pose():
@@ -904,9 +934,13 @@ def test_many_observations_delete():
         cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
         cam.id = "cam" + str(cam_id)
         m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        m.create_shot(str(shot_id), "cam" + str(int(np.random.rand(1) * 10 % n_cams)))
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        shot_id = str(shot_id)
+        m.create_rig_instance(shot_id)
+        m.create_shot(shot_id, cam_id, cam_id, shot_id, pygeometry.Pose())
 
     for point_id in range(n_landmarks):
         m.create_landmark(str(point_id), np.random.rand(3))
@@ -929,6 +963,44 @@ def test_many_observations_delete():
 
     # and when we clear all the observations
     m.clear_observations_and_landmarks()
+
+
+def test_clean_landmarks_with_min_observations():
+    m = pymap.Map()
+    n_cams = 2
+    n_shots = 2
+    n_landmarks = 10
+    for cam_id in range(n_cams):
+        cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
+        cam.id = "cam" + str(cam_id)
+        m.create_camera(cam)
+        m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
+
+    for shot_id in range(n_shots):
+        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        m.create_rig_instance(str(shot_id))
+        m.create_shot(str(shot_id), cam_id, cam_id, str(shot_id), pygeometry.Pose())
+
+    for point_id in range(n_landmarks):
+        m.create_landmark(str(point_id), np.random.rand(3))
+
+    for point_id in range(int(n_landmarks / 2)):
+        for shot in m.get_shots().values():
+            # create a new observation
+            obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, point_id)
+            m.add_observation(shot, m.get_landmark(str(point_id)), obs)
+
+    for point_id in range(int(n_landmarks / 2), n_landmarks):
+        shot = m.get_shot("0")
+        # create a new observation
+        obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, point_id)
+        m.add_observation(shot, m.get_landmark(str(point_id)), obs)
+
+    m.clean_landmarks_below_min_observations(n_shots)
+
+    assert len(m.get_landmarks()) == int(n_landmarks / 2)
+    m.clean_landmarks_below_min_observations(n_shots + 1)
+    assert len(m.get_landmarks()) == 0
 
 
 def test_camera_deepcopy():
@@ -1055,3 +1127,33 @@ def test_gcp():
     for pt in gcp:
         assert pt.observations[0].shot_id == "p1"
         assert pt.observations[1].shot_id == "p2"
+
+
+def test_add_correspondences_from_tracks_manager():
+    n_shots = 3
+    rec = _create_reconstruction(
+        n_cameras=1,
+        n_shots_cam={"0": n_shots},
+        n_points=10,
+    )
+    # create tracks manager
+    tm = pymap.TracksManager()
+    # add observations for 3 tracks
+    # One shot and one landmark are not in the reconstruction
+    for track_id in ["0", "1", "100"]:
+        for shot_id in range(n_shots + 1):
+            obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, 100)
+            tm.add_observation(str(shot_id), track_id, obs)
+
+    # add a shot that is NOT in the tracks manager
+    rec.create_shot(str(n_shots + 5), next(iter(rec.cameras)))
+
+    rec.add_correspondences_from_tracks_manager(tm)
+
+    # make sure to have the observations for []
+    assert "100" not in rec.points
+
+    for track_id in ["0", "1"]:
+        pt = rec.points[track_id]
+        observations = pt.get_observations()
+        assert len(observations) == n_shots

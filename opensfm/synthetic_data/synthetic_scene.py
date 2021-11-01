@@ -108,7 +108,9 @@ class SyntheticCubeScene(SyntheticScene):
             shot_id = "shot%04d" % i
             camera_id = "camera%04d" % i
             pose = camera_pose(position, lookat, up)
-            self.reconstruction.create_shot(shot_id, camera_id, pose)
+            self.reconstruction.create_shot(
+                shot_id, camera_id, pose, rig_camera_id=None, rig_instance_id=None
+            )
 
         points = np.random.rand(num_points, 3) - [0.5, 0.5, 0.5]
         for i, p in enumerate(points):
@@ -122,7 +124,13 @@ class SyntheticCubeScene(SyntheticScene):
         # since we do not want to modify the reference
         reconstruction.cameras = self.cameras
         for shot in self.reconstruction.shots.values():
-            reconstruction.create_shot(shot.id, shot.camera.id, shot.pose)
+            reconstruction.create_shot(
+                shot.id,
+                shot.camera.id,
+                shot.pose,
+                rig_camera_id=None,
+                rig_instance_id=None,
+            )
         for point in self.reconstruction.points.values():
             pt = reconstruction.create_point(point.id, point.coordinates)
             pt.color = point.color
@@ -279,8 +287,20 @@ class SyntheticStreetScene(SyntheticScene):
         self.shot_positions.append(positions)
 
         shift = 0 if len(self.shot_ids) == 0 else len(self.shot_ids[-1])
-        self.shot_ids.append([f"Shot {shift+i:04d}" for i in range(len(positions))])
+        new_shot_ids = [f"Shot {shift+i:04d}" for i in range(len(positions))]
+        self.shot_ids.append(new_shot_ids)
         self.cameras.append(camera)
+
+        rig_camera = pymap.RigCamera(pygeometry.Pose(), camera.id)
+        self.rig_cameras.append([rig_camera])
+
+        rig_instances = []
+        for shot_id in new_shot_ids:
+            rig_instances.append([(shot_id, camera.id)])
+        self.rig_instances.append(rig_instances)
+        self.instances_positions.append(positions)
+        self.instances_rotations.append(rotations)
+
         return self
 
     def add_rig_camera_sequence(
@@ -407,6 +427,8 @@ class SyntheticInputData:
         projection_max_depth: float,
         projection_noise: float,
         gps_noise: Union[Dict[str, float], float],
+        imu_noise: float,
+        gcp_noise: Tuple[float, float],
         causal_gps_noise: bool,
         gcps_count: Optional[int] = None,
         gcps_shift: Optional[np.ndarray] = None,
@@ -415,7 +437,11 @@ class SyntheticInputData:
     ):
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
-            reconstruction, reference, gps_noise, causal_gps_noise=causal_gps_noise
+            reconstruction,
+            reference,
+            gps_noise,
+            imu_noise,
+            causal_gps_noise=causal_gps_noise,
         )
 
         if generate_projections:
@@ -423,6 +449,7 @@ class SyntheticInputData:
                 reconstruction,
                 projection_max_depth,
                 projection_noise,
+                gcp_noise,
                 gcps_count,
                 gcps_shift,
                 on_disk_features_filename,
@@ -433,7 +460,9 @@ class SyntheticInputData:
 
 
 def compare(
-    reference: types.Reconstruction, reconstruction: types.Reconstruction
+    reference: types.Reconstruction,
+    gcps: Dict[str, pymap.GroundControlPoint],
+    reconstruction: types.Reconstruction,
 ) -> Dict[str, float]:
     """Compare a reconstruction with reference groundtruth."""
     completeness = sm.completeness_errors(reference, reconstruction)
@@ -442,6 +471,7 @@ def compare(
     absolute_rotation = sm.rotation_errors(reference, reconstruction)
     absolute_points = sm.points_errors(reference, reconstruction)
     absolute_gps = sm.gps_errors(reconstruction)
+    absolute_gcp = sm.gcp_errors(reconstruction, gcps)
 
     aligned = sm.aligned_to_reference(reference, reconstruction)
     aligned_position = sm.position_errors(reference, aligned)
@@ -460,6 +490,12 @@ def compare(
         "absolute_points_mad": sm.mad(absolute_points),
         "absolute_gps_rmse": sm.rmse(absolute_gps),
         "absolute_gps_mad": sm.mad(absolute_gps),
+        "absolute_gcp_rmse_horizontal": sm.rmse(absolute_gcp[:, :2])
+        if len(absolute_gcp.shape) > 1
+        else 0.0,
+        "absolute_gcp_rmse_vertical": sm.rmse(absolute_gcp[:, 2])
+        if len(absolute_gcp.shape) > 1
+        else 0.0,
         "aligned_position_rmse": sm.rmse(aligned_position),
         "aligned_position_mad": sm.mad(aligned_position),
         "aligned_rotation_rmse": sm.rmse(aligned_rotation),

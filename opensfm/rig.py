@@ -4,14 +4,15 @@ import logging
 import os
 import random
 import re
-import shutil
-from typing import Dict, Tuple, List, Optional, Set, Iterable
+from typing import Dict, Tuple, List, Optional, Set, Iterable, TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
 import scipy.spatial as spatial
-from opensfm import actions, pygeometry, pymap, types
-from opensfm.dataset import DataSet
+from opensfm import reconstruction as orec, actions, pygeometry, pymap, types
+
+if TYPE_CHECKING:
+    from opensfm.dataset import DataSet
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,30 @@ TRigInstance = List[TRigImage]
 
 INCOMPLETE_INSTANCE_GROUP = "INCOMPLETE_INSTANCE_GROUP"
 INCOMPLETE_INSTANCE_ID = "INCOMPLETE_INSTANCE_ID"
+
+
+def default_rig_cameras(camera_ids: Iterable[str]) -> Dict[str, pymap.RigCamera]:
+    """Return per-camera models default rig cameras (identity pose)."""
+    default_rig_cameras = {}
+    for camera_id in camera_ids:
+        default_rig_cameras[camera_id] = pymap.RigCamera(pygeometry.Pose(), camera_id)
+    return default_rig_cameras
+
+
+def rig_assignments_per_image(
+    rig_assignments: List[List[Tuple[str, str]]],
+) -> Dict[str, Tuple[str, str, List[str]]]:
+    """Return rig assignments data for each image."""
+    assignments_per_image = {}
+    for instance_id, instance in enumerate(rig_assignments):
+        instance_shots = [s[0] for s in instance]
+        for (shot_id, rig_camera_id) in instance:
+            assignments_per_image[shot_id] = (
+                f"{instance_id}",
+                rig_camera_id,
+                instance_shots,
+            )
+    return assignments_per_image
 
 
 def find_image_rig(
@@ -73,14 +98,18 @@ def create_instances_with_patterns(
 
         cameras_group = {c for _, c in cameras}
         for _, c in cameras:
-            if c in groups_per_camera and cameras_group != groups_per_camera[c]:
+            size_new = len(cameras_group)
+            override = c in groups_per_camera and size_new >= len(groups_per_camera[c])
+            is_new = c not in groups_per_camera
+            if is_new or override:
+                groups_per_camera[c] = cameras_group
+            else:
                 logger.warning(
                     (
                         f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}."
                         f"This rig camera is probably part of an incomplete instance : {cameras_group}"
                     )
                 )
-            groups_per_camera[c] = cameras_group
         per_complete_instance_id[instance_id] = cameras
 
     return per_complete_instance_id, single_shots
@@ -99,8 +128,8 @@ def group_instances(
 
 
 def propose_subset_dataset_from_instances(
-    data: DataSet, rig_instances: Dict[str, TRigInstance], name: str
-) -> Iterable[Tuple[DataSet, List[List[Tuple[str, str]]]]]:
+    data: "DataSet", rig_instances: Dict[str, TRigInstance], name: str
+) -> Iterable[Tuple["DataSet", List[List[Tuple[str, str]]]]]:
     """Given a list of images grouped by rigs instances, infitely propose random
         subset of images and create a dataset subset with the provided name from them.
 
@@ -109,8 +138,7 @@ def propose_subset_dataset_from_instances(
     """
     per_rig_camera_group = group_instances(rig_instances)
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
+    data.init_reference()
     reference = data.load_reference()
 
     instances_to_pick = {}
@@ -133,7 +161,7 @@ def propose_subset_dataset_from_instances(
         for i, gps in gpses:
             distances, neighbors = tree.query(gps, k=nn)
             for d, n in zip(distances, neighbors):
-                if i == n:
+                if i == n or n >= len(gpses):
                     continue
                 instances_graph.add_edge(i, n, weight=d)
         all_components = sorted(
@@ -142,6 +170,8 @@ def propose_subset_dataset_from_instances(
             reverse=True,
         )
         logger.info(f"Found {len(all_components)} connected components")
+        if len(all_components) < 1:
+            continue
 
         # keep the biggest one
         biggest_component = all_components[0]
@@ -264,7 +294,7 @@ def create_rig_cameras_from_reconstruction(
     return rig_cameras
 
 
-def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
+def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns):
     """Create rig data (`rig_cameras.json` and `rig_assignments.json`) by performing
     pattern matching to group images belonging to the same instances, followed
     by a bit of ad-hoc SfM to find some initial relative poses.
@@ -303,7 +333,9 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
         actions.detect_features.run_dataset(subset_data)
         actions.match_features.run_dataset(subset_data)
         actions.create_tracks.run_dataset(subset_data)
-        actions.reconstruct.run_dataset(subset_data)
+        actions.reconstruct.run_dataset(
+            subset_data, orec.ReconstructionAlgorithm.INCREMENTAL
+        )
 
         reconstructions = subset_data.load_reconstruction()
         if len(reconstructions) == 0:

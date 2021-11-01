@@ -332,6 +332,7 @@ PYBIND11_MODULE(pygeometry, m) {
             pose.SetFromCameraToWorld(p[0].cast<Mat4d>());
             return pose;
           }))
+      .def("is_identity", &geometry::Pose::IsIdentity)
       .def(
           "__copy__", [](const geometry::Pose& p) { return p; },
           py::return_value_policy::copy)

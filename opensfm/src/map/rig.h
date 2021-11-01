@@ -1,15 +1,17 @@
 #pragma once
 
+#include <foundation/optional.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
 #include <map/defines.h>
-#include <map/shot.h>
 
 #include <exception>
 #include <set>
 #include <unordered_map>
 
 namespace map {
+class Shot;
+
 struct RigCamera {
   enum RelativeType {
     // All instances of this rig camera have their relatives poses being held
@@ -38,6 +40,7 @@ class RigInstance {
  public:
   map::RigInstanceId id;
 
+  RigInstance() = default;
   explicit RigInstance(const RigInstanceId instance_id) : id(instance_id) {}
 
   // Getters
@@ -52,6 +55,7 @@ class RigInstance {
     return shots_rig_cameras_;
   }
   std::set<map::ShotId> GetShotIDs() const;
+  size_t NumberOfShots() const;
 
   // Pose
   const geometry::Pose& GetPose() const { return pose_; }
@@ -68,6 +72,8 @@ class RigInstance {
   // Update pose of this instance's RigCamera
   void UpdateRigCameraPose(const map::RigCameraId& rig_camera_id,
                            const geometry::Pose& pose);
+  // Removal
+  void RemoveShot(const map::ShotId& shot_id);
 
  private:
   // Actual instanciation of a rig : each shot gets mapped to some RigCamera

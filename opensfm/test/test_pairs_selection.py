@@ -1,7 +1,8 @@
 import os.path
 
+import numpy as np
 import pytest
-from opensfm import commands, dataset, feature_loader, pairs_selection
+from opensfm import commands, dataset, feature_loader, pairs_selection, geo
 from opensfm.test import data_generation
 
 
@@ -82,6 +83,7 @@ def create_match_candidates_config(**kwargs):
         "matching_order_neighbors": 0,
         "matching_bow_neighbors": 0,
         "matching_vlad_neighbors": 0,
+        "matching_graph_rounds": 0,
     }
 
     for key, value in kwargs.items():
@@ -118,3 +120,61 @@ def test_match_candidates_from_metadata_time(lund_path):
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
+
+
+def test_match_candidates_from_metadata_graph(lund_path):
+    config = create_match_candidates_config(matching_graph_rounds=50)
+    data_generation.save_config(config, lund_path)
+    data = dataset.DataSet(lund_path)
+    match_candidates_from_metadata(data)
+
+
+def test_get_gps_point():
+    reference = geo.TopocentricConverter(0, 0, 0)
+    exifs = {}
+    exifs["gps"] = {
+        "latitude": 0.0001,
+        "longitude": 0.0001,
+        "altitude": 100.0,
+    }
+    origin, direction = pairs_selection.get_gps_point(exifs, reference)
+    assert np.allclose(origin, [[11.131, 11.057, 0.0]], atol=1e-3)
+    assert np.allclose(direction, [[0, 0, 1]])
+
+
+def test_get_gps_opk_point():
+    reference = geo.TopocentricConverter(0, 0, 0)
+    exifs = {}
+    exifs["gps"] = {
+        "latitude": 0.0001,
+        "longitude": 0.0001,
+        "altitude": 100.0,
+    }
+    exifs["opk"] = {
+        "omega": 45,
+        "phi": 0,
+        "kappa": 45,
+    }
+    origin, direction = pairs_selection.get_gps_opk_point(exifs, reference)
+    assert np.allclose(origin, [[11.131, 11.057, 0.0]], atol=1e-3)
+    assert np.allclose(direction, [[0.0, 1.0, -1.0]])
+
+
+def test_find_best_altitude_convergent():
+    origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
+    directions = {
+        "0": np.array([-1.0, 0.0, -1.0]),
+        "1": np.array([1.0, 0.0, -1.0]),
+    }
+    altitude = pairs_selection.find_best_altitude(origins, directions)
+    assert np.allclose([altitude], [2.0], atol=1e-2)
+
+
+def test_find_best_altitude_divergent():
+    origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
+    directions = {
+        "0": np.array([1.0, 0.0, -1.0]),
+        "1": np.array([-1.0, 0.0, -1.0]),
+    }
+    altitude = pairs_selection.find_best_altitude(origins, directions)
+    assert np.allclose([altitude], pairs_selection.DEFAULT_Z, atol=1e-2)

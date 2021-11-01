@@ -76,6 +76,7 @@ matching_vlad_neighbors: 0            # Number of images to match selected by VL
 matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
 matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
 matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
+matching_graph_rounds: 0              # Number of rounds to run when running triangulation-based pair selection
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
 matching_use_segmentation: no         # Use segmentation information (if available) to improve matching
 
@@ -87,6 +88,8 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 five_point_refine_match_iterations: 10  # Number of LM iterations to run when refining relative pose during matching
 five_point_refine_rec_iterations: 1000  # Number of LM iterations to run when refining relative pose during reconstruction
+five_point_reversal_check: False        # Check for Necker reversal ambiguities. Useful for long focal length with long distance capture (aerial manned)
+five_point_reversal_ratio: 0.95         # Ratio of triangulated points non-reversed/reversed when checking for Necker reversal ambiguities
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
@@ -106,8 +109,10 @@ radial_distortion_k1_sd: 0.01   # The standard deviation of the first radial dis
 radial_distortion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
-tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
-tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+tangential_distortion_p1_sd: 0.01  # The standard deviation of the first tangential distortion parameter
+tangential_distortion_p2_sd: 0.01  # The standard deviation of the second tangential distortion parameter
+gcp_horizontal_sd: 0.01            # The default horizontal standard deviation of the GCPs (in meters)
+gcp_vertical_sd: 0.1               # The default vertical standard deviation of the GCPs (in meters)
 rig_translation_sd: 0.1            # The standard deviation of the rig translation
 rig_rotation_sd: 0.1               # The standard deviation of the rig rotation
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)

@@ -13,7 +13,7 @@ from opensfm import (
     pyfeatures,
     pygeometry,
 )
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def match_images(
     config_override: Dict[str, Any],
     ref_images: List[str],
     cand_images: List[str],
-):
+) -> Tuple[Dict[Tuple[str, str], List[Tuple[int, int]]], Dict[str, Any]]:
     """Perform pair matchings between two sets of images.
 
     It will do matching for each pair (i, j), i being in
@@ -63,7 +63,7 @@ def match_images_with_pairs(
     config_override: Dict[str, Any],
     exifs: Dict[str, Any],
     pairs: List[Tuple[str, str]],
-):
+) -> Dict[Tuple[str, str], List[Tuple[int, int]]]:
     """Perform pair matchings given pairs."""
     cameras = data.load_camera_models()
     args = list(match_arguments(pairs, data, config_override, cameras, exifs))
@@ -98,7 +98,7 @@ def log_projection_types(
     pairs: List[Tuple[str, str]],
     exifs: Dict[str, Any],
     cameras: Dict[str, pygeometry.Camera],
-):
+) -> str:
     if not pairs:
         return ""
 
@@ -183,7 +183,7 @@ def match_unwrap_args(
         DataSetBase,
         Dict[str, Any],
     ]
-):
+) -> Tuple[str, str, np.ndarray]:
     """Wrapper for parallel processing of pair matching.
 
     Compute all pair matchings of a given image and save them.

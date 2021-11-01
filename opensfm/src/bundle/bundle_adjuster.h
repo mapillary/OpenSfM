@@ -3,8 +3,8 @@
 #include <bundle/data/bias.h>
 #include <bundle/data/camera.h>
 #include <bundle/data/data.h>
+#include <bundle/data/point.h>
 #include <bundle/data/pose.h>
-#include <bundle/data/rig.h>
 #include <bundle/data/shot.h>
 #include <foundation/optional.h>
 #include <geometry/camera.h>
@@ -27,23 +27,6 @@ extern "C" {
 }
 
 namespace bundle {
-enum PositionConstraintType {
-  X = 0x1,
-  Y = 0x2,
-  Z = 0x4,
-  XY = X | Y,
-  XYZ = XY | Z
-};
-
-struct Point {
-  std::string id;
-  Eigen::Matrix<double, 3, 1> parameters;
-  bool constant;
-  std::map<std::string, VecXd> reprojection_errors;
-
-  Vec3d GetPoint() const { return parameters; }
-  void SetPoint(const Vec3d &p) { parameters = p; }
-};
 
 struct Reconstruction {
   std::string id;
@@ -77,39 +60,6 @@ struct PointProjectionObservation {
   Point *point;
   Shot *shot;
   Camera *camera;
-  double std_deviation;
-};
-
-struct PointRigProjectionObservation {
-  Vec2d coordinates;
-  Point *point;
-  RigShot *rig_shot;
-  Camera *camera;
-  double std_deviation;
-};
-
-struct RotationPrior {
-  Shot *shot;
-  double rotation[3];
-  double std_deviation;
-};
-
-struct TranslationPrior {
-  Shot *shot;
-  double translation[3];
-  double std_deviation;
-};
-
-struct PositionPrior {
-  Shot *shot;
-  Bias *bias;
-  double position[3];
-  double std_deviation;
-};
-
-struct PointPositionPrior {
-  Point *point;
-  double position[3];
   double std_deviation;
 };
 
@@ -171,37 +121,6 @@ struct RelativeSimilarity : public RelativeMotion {
   double scale;
 };
 
-struct RelativeSimilarityCovariance {
-  static const int Size = Pose::Parameter::NUM_PARAMS + 1;
-  std::vector<Vec3d> points;
-  Eigen::Matrix<double, Size, Size> covariance;
-
-  void AddPoint(const Vec3d &v) { points.push_back(v); }
-
-  void Compute() {
-    covariance.setZero();
-    for (const auto &p : points) {
-      const auto &x = p[0];
-      const auto &y = p[1];
-      const auto &z = p[2];
-      Eigen::Matrix<double, 3, Pose::Parameter::NUM_PARAMS + 1> local_jacobian;
-      local_jacobian.block(0, Pose::Parameter::TX, 3, 3) =
-          Eigen::Matrix<double, 3, 3>::Identity();
-      local_jacobian.block(0, Pose::Parameter::RX, 3, 3) << 0, z, -y, -z, 0, x,
-          y, -x, 0;
-      local_jacobian.block(0, Pose::Parameter::NUM_PARAMS, 3, 1) << x, y, z;
-      covariance += local_jacobian.transpose() * local_jacobian;
-    }
-    if (covariance.determinant() < 1e-20) {
-      covariance.setIdentity();
-    } else {
-      covariance = covariance.inverse();
-    }
-  }
-
-  Eigen::Matrix<double, Size, Size> GetCovariance() const { return covariance; }
-};
-
 struct RelativeRotation {
   RelativeRotation(const std::string &shot_i, const std::string &shot_j,
                    const Vec3d &r) {
@@ -221,17 +140,10 @@ struct RelativeRotation {
 };
 
 struct CommonPosition {
-  Shot *shot1;
-  Shot *shot2;
+  std::string shot_i;
+  std::string shot_j;
   double margin;
   double std_deviation;
-};
-
-struct AbsolutePosition {
-  Shot *shot;
-  Vec3d position;
-  double std_deviation;
-  std::string std_deviation_group;
 };
 
 struct HeatmapInterpolator {
@@ -246,7 +158,7 @@ struct HeatmapInterpolator {
 };
 
 struct AbsolutePositionHeatmap {
-  Shot *shot;
+  std::string shot_id;
   std::shared_ptr<HeatmapInterpolator> heatmap;
   double x_offset;
   double y_offset;
@@ -256,40 +168,24 @@ struct AbsolutePositionHeatmap {
 };
 
 struct AbsoluteUpVector {
-  Shot *shot;
+  std::string shot_id;
   Vec3d up_vector;
   double std_deviation;
 };
 
 struct AbsoluteAngle {
-  Shot *shot;
+  std::string shot_id;
   double angle;
   double std_deviation;
 };
 
 struct LinearMotion {
-  Shot *shot0;
-  Shot *shot1;
-  Shot *shot2;
+  std::string shot0;
+  std::string shot1;
+  std::string shot2;
   double alpha;
   double position_std_deviation;
   double orientation_std_deviation;
-};
-
-struct PointPositionShot {
-  std::string shot_id;
-  std::string reconstruction_id;
-  std::string point_id;
-  Vec3d position;
-  double std_deviation;
-  PositionConstraintType type;
-};
-
-struct PointPositionWorld {
-  std::string point_id;
-  Vec3d position;
-  double std_deviation;
-  PositionConstraintType type;
 };
 
 class BundleAdjuster {
@@ -302,9 +198,9 @@ class BundleAdjuster {
   // Basic
   void AddCamera(const std::string &id, const geometry::Camera &camera,
                  const geometry::Camera &prior, bool constant);
-  void AddShot(const std::string &id, const std::string &camera,
-               const Vec3d &rotation, const Vec3d &translation, bool constant);
   void AddPoint(const std::string &id, const Vec3d &position, bool constant);
+  void AddPointPrior(const std::string &id, const Vec3d &position,
+                     const Vec3d &std_deviation, bool has_altitude_prior);
   void SetCameraBias(const std::string &id, const geometry::Similarity &bias);
 
   // Rigs
@@ -316,47 +212,32 @@ class BundleAdjuster {
       bool fixed);
   void AddRigCamera(const std::string &rig_camera, const geometry::Pose &pose,
                     const geometry::Pose &pose_prior, bool fixed);
-  void AddRigPositionPrior(const std::string &instance_id,
-                           const Vec3d &position, double std_deviation);
+  void AddRigInstancePositionPrior(const std::string &instance_id,
+                                   const Vec3d &position,
+                                   const Vec3d &std_deviation,
+                                   const std::string &scale_group);
 
-  // Cluster-based
+  // Cluster-SfM related
   void AddReconstruction(const std::string &id, bool constant);
   void AddReconstructionShot(const std::string &reconstruction_id, double scale,
                              const std::string &shot_id);
   void SetScaleSharing(const std::string &id, bool share);
 
-  // Averaging constraints
-
-  // Point projection
+  // Real bundle adjustment : point projections
   void AddPointProjectionObservation(const std::string &shot,
                                      const std::string &point,
                                      const Vec2d &observation,
                                      double std_deviation);
-  void AddRotationPrior(const std::string &shot_id, double rx, double ry,
-                        double rz, double std_deviation);
-  void AddTranslationPrior(const std::string &shot_id, double tx, double ty,
-                           double tz, double std_deviation);
-  void AddPositionPrior(const std::string &shot_id, double x, double y,
-                        double z, double std_deviation);
-  void AddPointPositionPrior(const std::string &point_id, double x, double y,
-                             double z, double std_deviation);
 
-  void SetOriginShot(const std::string &shot_id);
-  void SetUnitTranslationShot(const std::string &shot_id);
-
-  // Relative motion ones
+  // Relative motion constraints
   void AddRelativeMotion(const RelativeMotion &rm);
   void AddRelativeSimilarity(const RelativeSimilarity &rm);
   void AddRelativeRotation(const RelativeRotation &rr);
 
-  // Absolute motion ones
+  // Absolute motion constraints
   void AddCommonPosition(const std::string &shot_id1,
                          const std::string &shot_id2, double margin,
                          double std_deviation);
-  void AddAbsolutePosition(const std::string &shot_id, const Vec3d &position,
-                           double std_deviation,
-                           const std::string &std_deviation_group);
-
   void AddHeatmap(const std::string &heatmap_id,
                   const std::vector<double> &in_heatmap, size_t in_width,
                   double resolution);
@@ -380,16 +261,6 @@ class BundleAdjuster {
                        const std::string &shot2_id, double alpha,
                        double position_std_deviation,
                        double orientation_std_deviation);
-
-  // Point positions
-  void AddPointPositionShot(const std::string &point_id,
-                            const std::string &shot_id,
-                            const std::string &reconstruction_id,
-                            const Vec3d &position, double std_deviation,
-                            const PositionConstraintType &type);
-  void AddPointPositionWorld(const std::string &point_id, const Vec3d &position,
-                             double std_deviation,
-                             const PositionConstraintType &type);
 
   // Minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
@@ -420,11 +291,13 @@ class BundleAdjuster {
   // Getters
   geometry::Camera GetCamera(const std::string &id) const;
   geometry::Similarity GetBias(const std::string &id) const;
-  Shot GetShot(const std::string &id) const;
-  Reconstruction GetReconstruction(const std::string &id) const;
+  Reconstruction GetReconstruction(const std::string &reconstruction_id) const;
+  Reconstruction GetShotReconstruction(const std::string &shot_id) const;
   Point GetPoint(const std::string &id) const;
   RigCamera GetRigCamera(const std::string &rig_camera_id) const;
   RigInstance GetRigInstance(const std::string &instance_id) const;
+  std::map<std::string, RigCamera> GetRigCameras() const;
+  std::map<std::string, RigInstance> GetRigInstances() const;
 
   // Minimization details
   std::string BriefReport() const;
@@ -439,19 +312,18 @@ class BundleAdjuster {
   std::map<std::string, Camera> cameras_;
   std::map<std::string, Bias> bias_;
   std::map<std::string, Shot> shots_;
-  std::map<std::string, RigShot> rig_shots_;
   std::map<std::string, Reconstruction> reconstructions_;
   std::map<std::string, Point> points_;
   std::map<std::string, RigCamera> rig_cameras_;
   std::map<std::string, RigInstance> rig_instances_;
 
+  std::unordered_map<std::string, std::string> shot_to_reconstruction_;
   bool use_analytic_{false};
 
   // minimization constraints
 
   // reprojection observation
   std::vector<PointProjectionObservation> point_projection_observations_;
-  std::vector<PointRigProjectionObservation> point_rig_projection_observations_;
   std::map<std::string, std::shared_ptr<HeatmapInterpolator>> heatmaps_;
 
   // relative motion between shots
@@ -462,25 +334,13 @@ class BundleAdjuster {
 
   // shots absolute positions
   std::vector<AbsolutePositionHeatmap> absolute_positions_heatmaps_;
-  std::vector<AbsolutePosition> absolute_positions_;
   std::vector<AbsoluteUpVector> absolute_up_vectors_;
   std::vector<AbsoluteAngle> absolute_pans_;
   std::vector<AbsoluteAngle> absolute_tilts_;
   std::vector<AbsoluteAngle> absolute_rolls_;
 
-  std::vector<RotationPrior> rotation_priors_;
-  std::vector<TranslationPrior> translation_priors_;
-  std::vector<PositionPrior> position_priors_;
-  std::vector<PointPositionPrior> point_position_priors_;
-
-  Shot *unit_translation_shot_;
-
   // motion priors
   std::vector<LinearMotion> linear_motion_prior_;
-
-  // points absolute constraints
-  std::vector<PointPositionShot> point_positions_shot_;
-  std::vector<PointPositionWorld> point_positions_world_;
 
   // Camera parameters prior
   double focal_prior_sd_;

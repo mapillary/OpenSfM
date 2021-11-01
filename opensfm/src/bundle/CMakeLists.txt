@@ -4,7 +4,6 @@ set(BUNDLE_FILES
     data/camera.h
     data/data.h
     data/pose.h
-    data/rig.h
     data/shot.h
     error/error_utils.h
     error/motion_prior_errors.h

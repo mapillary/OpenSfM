@@ -222,8 +222,8 @@ def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
         )
     )
 
-    lla = dataset.DataSet(path_dataset).load_reference_lla()
-    ref_latlon = np.array([lla["latitude"], lla["longitude"]])
+    ref = dataset.DataSet(path_dataset).load_reference()
+    ref_latlon = np.array([ref.lat, ref.lon])
     cad_latlons = np.array([latlon_from_meta(path) for path in cad_files])
     distances = np.linalg.norm(cad_latlons - ref_latlon, axis=1)
 

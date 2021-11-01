@@ -1,4 +1,5 @@
 #include <map/rig.h>
+#include <map/shot.h>
 
 namespace map {
 
@@ -10,12 +11,15 @@ std::set<map::ShotId> RigInstance::GetShotIDs() const {
   return shot_keys;
 }
 
+size_t RigInstance::NumberOfShots() const { return shots_.size(); }
+
 void RigInstance::AddShot(map::RigCamera* rig_camera, map::Shot* shot) {
   const auto it_exist = std::find_if(
       shots_rig_cameras_.begin(), shots_rig_cameras_.end(),
       [&rig_camera](const auto& p) { return p.second->id == rig_camera->id; });
   if (it_exist != shots_rig_cameras_.end()) {
-    throw std::runtime_error(rig_camera->id + " already exist in RigInstance");
+    throw std::runtime_error(rig_camera->id + " already exist in RigInstance " +
+                             id + " (Shot " + it_exist->first + " )");
   }
 
   if (rig_camera->relative_type == RigCamera::RelativeType::VARIABLE) {
@@ -57,4 +61,14 @@ void RigInstance::UpdateRigCameraPose(const map::RigCameraId& rig_camera_id,
   }
   it_exist->second->pose = pose;
 }
+
+void RigInstance::RemoveShot(const map::ShotId& shot_id) {
+  const auto it_exist = shots_rig_cameras_.find(shot_id);
+  if (it_exist == shots_rig_cameras_.end()) {
+    throw std::runtime_error("Cannot find " + shot_id + " in RigInstance");
+  }
+  shots_rig_cameras_.erase(it_exist);
+  shots_.erase(shot_id);
+}
+
 }  // namespace map

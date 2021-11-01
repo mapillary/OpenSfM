@@ -35,6 +35,9 @@ class BAHelpers {
           rig_camera_priors,
       const py::dict& config);
 
+  static void BundleToMap(const bundle::BundleAdjuster& bundle_adjuster,
+                          map::Map& output_map, bool update_cameras);
+
   static std::pair<std::unordered_set<map::ShotId>,
                    std::unordered_set<map::ShotId>>
   ShotNeighborhoodIds(map::Map& map, const map::ShotId& central_shot_id,
@@ -56,7 +59,8 @@ class BAHelpers {
   static void AddGCPToBundle(
       bundle::BundleAdjuster& ba,
       const AlignedVector<map::GroundControlPoint>& gcp,
-      const std::unordered_map<map::ShotId, map::Shot>& shots);
+      const std::unordered_map<map::ShotId, map::Shot>& shots,
+      const double& horizontal_sigma, const double& vertical_sigma);
   static bool TriangulateGCP(
       const map::GroundControlPoint& point,
       const std::unordered_map<map::ShotId, map::Shot>& shots,

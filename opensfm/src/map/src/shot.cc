@@ -5,41 +5,66 @@
 #include <algorithm>
 #include <numeric>
 #include <stdexcept>
+namespace {
+bool IsSingleShotRig(const map::RigInstance* rig_instance,
+                     const map::RigCamera* rig_camera) {
+  const bool has_identity_rig_camera = rig_camera->pose.IsIdentity();
+  const bool is_single_shot_instance = rig_instance->NumberOfShots() == 1;
+  return has_identity_rig_camera && is_single_shot_instance;
+}
+}  // namespace
+
 namespace map {
 
 Shot::Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
+           RigInstance* rig_instance, RigCamera* rig_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       pose_(std::make_unique<geometry::Pose>(pose)),
-      shot_camera_(shot_camera) {}
+      rig_instance_(rig_instance),
+      rig_camera_(rig_camera),
+      shot_camera_(shot_camera) {
+  rig_instance_->AddShot(rig_camera_, this);
+  rig_instance_->UpdateInstancePoseWithShot(shot_id, pose);
+}
+
+Shot::Shot(const ShotId& shot_id, const geometry::Camera* const shot_camera,
+           RigInstance* rig_instance, RigCamera* rig_camera)
+    : id_(shot_id),
+      pose_(std::make_unique<geometry::Pose>(geometry::Pose())),
+      rig_instance_(rig_instance),
+      rig_camera_(rig_camera),
+      shot_camera_(shot_camera) {
+  rig_instance_->AddShot(rig_camera_, this);
+}
 
 Shot::Shot(const ShotId& shot_id, const geometry::Camera& shot_camera,
            const geometry::Pose& pose)
     : id_(shot_id),
       pose_(std::make_unique<geometry::Pose>(pose)),
+      own_rig_instance_(map::RigInstance(shot_id)),
+      own_rig_camera_(map::RigCamera(geometry::Pose(), shot_id)),
+      rig_instance_(&own_rig_instance_.Value()),
+      rig_camera_(&own_rig_camera_.Value()),
       own_camera_(shot_camera),
-      shot_camera_(&own_camera_.Value()) {}
+      shot_camera_(&own_camera_.Value()) {
+  rig_instance_->AddShot(rig_camera_, this);
+  rig_instance_->SetPose(pose);
+}
 
-void Shot::SetRig(const RigInstance* rig_instance,
-                  const RigCamera* rig_camera) {
-  rig_instance_.SetValue(rig_instance);
-  rig_camera_.SetValue(rig_camera);
+bool Shot::IsInRig() const { return true; }
+
+void Shot::SetRig(RigInstance* rig_instance, RigCamera* rig_camera) {
+  rig_instance_ = rig_instance;
+  rig_camera_ = rig_camera;
   pose_ = std::make_unique<geometry::PoseImmutable>(*pose_);
 }
 
-RigInstanceId Shot::GetRigInstanceId() const {
-  if (!IsInRig()) {
-    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
-  }
-  return rig_instance_.Value()->id;
+const RigInstanceId& Shot::GetRigInstanceId() const {
+  return rig_instance_->id;
 }
 
-RigCameraId Shot::GetRigCameraId() const {
-  if (!IsInRig()) {
-    throw std::runtime_error("Shot " + id_ + " is not in a Rig.");
-  }
-  return rig_camera_.Value()->id;
-}
+const RigCameraId& Shot::GetRigCameraId() const { return rig_camera_->id; }
 
 void ShotMeasurements::Set(const ShotMeasurements& other) {
   if (other.capture_time_.HasValue()) {
@@ -56,6 +81,16 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
     gps_accuracy_.SetValue(other.gps_accuracy_.Value());
   } else {
     gps_accuracy_.Reset();
+  }
+  if (other.opk_angles_.HasValue()) {
+    opk_angles_.SetValue(other.opk_angles_.Value());
+  } else {
+    opk_angles_.Reset();
+  }
+  if (other.opk_accuracy_.HasValue()) {
+    opk_accuracy_.SetValue(other.opk_accuracy_.Value());
+  } else {
+    opk_accuracy_.Reset();
   }
   if (other.compass_accuracy_.HasValue()) {
     compass_accuracy_.SetValue(other.compass_accuracy_.Value());
@@ -95,30 +130,34 @@ void Shot::RemoveLandmarkObservation(const FeatureId id) {
 }
 
 void Shot::SetPose(const geometry::Pose& pose) {
-  if (IsInRig()) {
+  if (!IsSingleShotRig(rig_instance_, rig_camera_)) {
     throw std::runtime_error(
         "Can't set the pose of Shot belonging to a RigInstance");
+  } else {
+    rig_instance_->SetPose(pose);
   }
   *pose_ = pose;
 }
 
 geometry::Pose Shot::GetPoseInRig() const {
   // pose(shot) = pose(rig_camera)*pose(instance)
-  const auto& pose_instance = rig_instance_.Value()->GetPose();
-  const auto& rig_camera_pose = rig_camera_.Value()->pose;
+  const auto& pose_instance = rig_instance_->GetPose();
+  const auto& rig_camera_pose = rig_camera_->pose;
   return rig_camera_pose.Compose(pose_instance);
 }
 
 const geometry::Pose* const Shot::GetPose() const {
-  if (IsInRig()) {
-    *pose_ = GetPoseInRig();
+  *pose_ = GetPoseInRig();
+  if (IsSingleShotRig(rig_instance_, rig_camera_)) {
+    return &rig_instance_->GetPose();
   }
   return pose_.get();
 }
 
 geometry::Pose* const Shot::GetPose() {
-  if (IsInRig()) {
-    *pose_ = GetPoseInRig();
+  *pose_ = GetPoseInRig();
+  if (IsSingleShotRig(rig_instance_, rig_camera_)) {
+    return &rig_instance_->GetPose();
   }
   return pose_.get();
 }

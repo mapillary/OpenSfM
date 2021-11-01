@@ -16,3 +16,4 @@ Sphinx==3.4.3
 six
 xmltodict==0.10.2
 wheel
+opencv-python==4.5.1.48 ; sys_platform == "win32"

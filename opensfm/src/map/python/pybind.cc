@@ -59,9 +59,9 @@ PYBIND11_MODULE(pymap, m) {
            py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
       // Bias
-      .def("set_bias",&map::Map::SetBias,
+      .def("set_bias", &map::Map::SetBias,
            py::return_value_policy::reference_internal)
-      .def("get_bias",&map::Map::GetBias,
+      .def("get_bias", &map::Map::GetBias,
            py::return_value_policy::reference_internal)
       // Rigs
       .def("create_rig_camera", &map::Map::CreateRigCamera,
@@ -70,6 +70,7 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("update_rig_instance", &map::Map::UpdateRigInstance,
            py::return_value_policy::reference_internal)
+      .def("remove_rig_instance", &map::Map::RemoveRigInstance)
       // Landmark
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
@@ -84,16 +85,20 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
+      .def("clean_landmarks_below_min_observations",
+           &map::Map::CleanLandmarksBelowMinObservations)
       // Shot
+      .def(
+          "create_shot",
+          py::overload_cast<const map::ShotId &, const map::CameraId &,
+                            const map::RigCameraId &,
+                            const map::RigInstanceId &, const geometry::Pose &>(
+              &map::Map::CreateShot),
+          py::return_value_policy::reference_internal)
       .def("create_shot",
            py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const geometry::Pose &>(&map::Map::CreateShot),
-           py::arg("shot_id"), py::arg("camera_id"), py::arg("pose"),
-           py::return_value_policy::reference_internal)
-      .def("create_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &>(
-               &map::Map::CreateShot),
-           py::arg("shot_id"), py::arg("camera_id"),
+                             const map::RigCameraId &,
+                             const map::RigInstanceId &>(&map::Map::CreateShot),
            py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot",
@@ -102,13 +107,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("update_shot", &map::Map::UpdateShot,
            py::return_value_policy::reference_internal)
       // Pano Shot
-      .def("create_pano_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const geometry::Pose &>(&map::Map::CreatePanoShot),
-           py::return_value_policy::reference_internal)
-      .def("create_pano_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &>(
-               &map::Map::CreatePanoShot),
+      .def("create_pano_shot", &map::Map::CreatePanoShot,
            py::return_value_policy::reference_internal)
       .def("remove_pano_shot", &map::Map::RemovePanoShot)
       .def("get_pano_shot",
@@ -160,9 +159,11 @@ PYBIND11_MODULE(pymap, m) {
                     &map::Shot::SetCovariance)
       .def_readwrite("merge_cc", &map::Shot::merge_cc)
       .def_readwrite("scale", &map::Shot::scale)
-      .def("is_in_rig", &map::Shot::IsInRig)
+      .def_property_readonly("rig_instance", &map::Shot::GetRigInstance)
+      .def_property_readonly("rig_camera", &map::Shot::GetRigCamera)
       .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
       .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
+      .def("set_rig", &map::Shot::SetRig)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
       .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
@@ -182,41 +183,22 @@ PYBIND11_MODULE(pymap, m) {
       .def("project", &map::Shot::Project)
       .def("project_many", &map::Shot::ProjectMany)
       .def("bearing", &map::Shot::Bearing)
-      .def("bearing_many", &map::Shot::BearingMany)
-      // pickle support
-      .def(py::pickle(
-          [](const map::Shot &s) {
-            auto c = s.GetCamera();
-            return py::make_tuple(
-                s.id_, s.GetPose()->CameraToWorld(),
-                py::make_tuple(c->GetParametersTypes(),
-                               c->GetParametersValues(), c->GetProjectionType(),
-                               c->width, c->height, c->id));
-          },
-          [](py::tuple s) {
-            // Create camera
-            auto t = s[3].cast<py::tuple>();
-            geometry::Camera camera = geometry::Camera(
-                t[2].cast<geometry::ProjectionType>(),
-                t[0].cast<std::vector<geometry::Camera::Parameters>>(),
-                t[1].cast<VecXd>());
-            // create unique_ptr
-            auto cam_ptr =
-                std::unique_ptr<geometry::Camera>(new geometry::Camera(camera));
-            camera.width = t[3].cast<int>();
-            camera.height = t[4].cast<int>();
-            camera.id = t[5].cast<std::string>();
-            auto pose = geometry::Pose();
-            pose.SetFromCameraToWorld(s[1].cast<Mat4d>());
-            auto shot = map::Shot(s[0].cast<map::ShotId>(), camera, pose);
-            return shot;
-          }));
+      .def("bearing_many", &map::Shot::BearingMany);
 
   py::class_<map::RigCamera>(m, "RigCamera")
       .def(py::init<>())
       .def(py::init<const geometry::Pose &, const map::RigCameraId &>())
       .def_readwrite("id", &map::RigCamera::id)
-      .def_readwrite("pose", &map::RigCamera::pose);
+      .def_readwrite("pose", &map::RigCamera::pose)
+      // pickle support
+      .def(py::pickle(
+          [](const map::RigCamera &rc) {
+            return py::make_tuple(rc.pose, rc.id);
+          },
+          [](py::tuple s) {
+            return map::RigCamera(s[0].cast<geometry::Pose>(),
+                                  s[1].cast<map::RigCameraId>());
+          }));
 
   py::class_<map::RigInstance>(m, "RigInstance")
       .def(py::init<map::RigInstanceId>())
@@ -228,7 +210,7 @@ PYBIND11_MODULE(pymap, m) {
           "rig_cameras", py::overload_cast<>(&map::RigInstance::GetRigCameras),
           py::return_value_policy::reference_internal)
       .def_property_readonly(
-          "camera_ids",
+          "rig_camera_ids",
           [](const map::RigInstance &ri) {
             std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
             for (const auto &rig_camera : ri.GetRigCameras()) {
@@ -236,11 +218,21 @@ PYBIND11_MODULE(pymap, m) {
             }
             return rig_camera_ids;
           })
+      .def_property_readonly("camera_ids",
+                             [](const map::RigInstance &ri) {
+                               std::map<map::ShotId, map::CameraId> camera_ids;
+                               for (const auto &shot : ri.GetShots()) {
+                                 camera_ids[shot.first] =
+                                     shot.second->GetCamera()->id;
+                               }
+                               return camera_ids;
+                             })
       .def("keys", &map::RigInstance::GetShotIDs)
       .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
                     &map::RigInstance::SetPose,
                     py::return_value_policy::reference_internal)
       .def("add_shot", &map::RigInstance::AddShot)
+      .def("remove_shot", &map::RigInstance::RemoveShot)
       .def("update_instance_pose_with_shot",
            &map::RigInstance::UpdateInstancePoseWithShot)
       .def("update_rig_camera_pose", &map::RigInstance::UpdateRigCameraPose);
@@ -260,6 +252,8 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("compass_angle", &map::ShotMeasurements::compass_angle_)
       .def_readwrite("compass_accuracy",
                      &map::ShotMeasurements::compass_accuracy_)
+      .def_readwrite("opk_angles", &map::ShotMeasurements::opk_angles_)
+      .def_readwrite("opk_accuracy", &map::ShotMeasurements::opk_accuracy_)
       .def_readwrite("sequence_key", &map::ShotMeasurements::sequence_key_)
       .def_property("attributes", &map::ShotMeasurements::GetAttributes,
                     &map::ShotMeasurements::SetAttributes)
@@ -268,7 +262,8 @@ PYBIND11_MODULE(pymap, m) {
             return py::make_tuple(
                 s.gps_accuracy_, s.gps_position_, s.orientation_,
                 s.capture_time_, s.accelerometer_, s.compass_angle_,
-                s.compass_accuracy_, s.sequence_key_, s.GetAttributes());
+                s.compass_accuracy_, s.opk_angles_, s.opk_accuracy_,
+                s.sequence_key_, s.GetAttributes());
           },
           [](py::tuple s) {
             map::ShotMeasurements sm;
@@ -278,9 +273,11 @@ PYBIND11_MODULE(pymap, m) {
             sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
             sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
-            sm.compass_accuracy_ = s[5].cast<decltype(sm.compass_angle_)>();
-            sm.sequence_key_ = s[6].cast<decltype(sm.sequence_key_)>();
-            sm.GetMutableAttributes() = s[7].cast<decltype(sm.attributes_)>();
+            sm.compass_accuracy_ = s[6].cast<decltype(sm.compass_accuracy_)>();
+            sm.opk_angles_ = s[7].cast<decltype(sm.opk_angles_)>();
+            sm.opk_accuracy_ = s[8].cast<decltype(sm.opk_accuracy_)>();
+            sm.sequence_key_ = s[9].cast<decltype(sm.sequence_key_)>();
+            sm.GetMutableAttributes() = s[10].cast<decltype(sm.attributes_)>();
             return sm;
           }))
       .def(

@@ -22,9 +22,9 @@ def test_perspective_views_of_a_panorama():
 
     assert len(urec.rig_cameras) == 6
     assert len(urec.rig_instances) == 1
-    assert len(urec.rig_instances[0].shots) == 6
+    assert len(urec.rig_instances["0"].shots) == 6
     front_found = False
-    for shot in urec.rig_instances[0].shots.values():
+    for shot in urec.rig_instances["0"].shots.values():
         assert np.allclose(shot.pose.get_origin(), spherical_shot.pose.get_origin())
         if shot.rig_camera_id == "front":
             front_found = True
