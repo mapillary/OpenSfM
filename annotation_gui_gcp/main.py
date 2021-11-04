@@ -12,7 +12,7 @@ from flask import Flask
 from opensfm import dataset, io
 
 
-def parse_args():
+def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", help="dataset")
     parser.add_argument(
@@ -49,7 +49,7 @@ def parse_args():
         type=int,
         default=5000,
     )
-    return parser.parse_args()
+    return parser
 
 
 def file_sanity_check(root, seq_dict, fname):
@@ -233,7 +233,8 @@ def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
 
 def init_ui():
     app = Flask(__name__)
-    args = parse_args()
+    parser = get_parser()
+    args = parser.parse_args()
     path = args.dataset
     rig_groups = load_rig_assignments(Path(args.dataset))
     groups = group_images(args)
