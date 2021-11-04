@@ -54,11 +54,15 @@ def undistort_reconstruction(
             subshots = perspective_views_of_a_panorama(
                 shot, subshot_width, urec, image_format, rig_instance_count
             )
+        else:
+            logger.warning(
+                f"Not undistorting {shot.id} with unknown camera type."
+            )
+            continue
 
         for subshot in subshots:
             if tracks_manager:
                 add_subshot_tracks(tracks_manager, utracks_manager, shot, subshot)
-        # pyre-fixme[61]: `subshots` may not be initialized here.
         undistorted_shots[shot.id] = subshots
 
     udata.save_undistorted_reconstruction([urec])

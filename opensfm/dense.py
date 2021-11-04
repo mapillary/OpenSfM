@@ -288,7 +288,7 @@ def add_views_to_depth_estimator(data: UndistortedDataSet, neighbors, de):
         width = min(original_width, int(data.config["depthmap_resolution"]))
         height = width * original_height // original_width
         image = scale_down_image(gray_image, width, height)
-        mask = scale_down_image(mask, width, height, cv2.INTER_NEAREST)
+        mask = scale_image(mask, image.shape[1], image.shape[0], cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
@@ -342,7 +342,7 @@ def add_views_to_depth_pruner(data: UndistortedDataSet, neighbors, dp):
         labels = load_segmentation_labels(data, shot)
         height, width = depth.shape
         image = scale_down_image(color_image, width, height)
-        labels = scale_down_image(labels, width, height, cv2.INTER_NEAREST)
+        labels = scale_image(labels, image.shape[1], image.shape[0], cv2.INTER_NEAREST)
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
@@ -432,10 +432,18 @@ def distance_between_shots(shot, other):
     return np.sqrt(np.sum(d ** 2))
 
 
-def scale_down_image(image, width, height, interpolation=cv2.INTER_AREA):
+def scale_image(
+    image: np.ndarray, width: int, height: int, interpolation: int
+) -> np.ndarray:
+    return cv2.resize(image, (width, height), interpolation=interpolation)
+
+
+def scale_down_image(
+    image: np.ndarray, width: int, height: int, interpolation=cv2.INTER_AREA
+) -> np.ndarray:
     width = min(width, image.shape[1])
     height = min(height, image.shape[0])
-    return cv2.resize(image, (width, height), interpolation=interpolation)
+    return scale_image(image, width, height, interpolation)
 
 
 def depthmap_to_ply(shot, depth, image):

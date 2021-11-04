@@ -15,11 +15,9 @@ class ToolsView(WebView):
         elif data["event"] == "addCP":
             self.main_ui.add_gcp()
         elif data["event"] == "save":
-            p_default_gcp = self.main_ui.path + "/ground_control_points.json"
-            self.main_ui.save_gcps(p_default_gcp)
+            self.main_ui.save_gcps()
         elif data["event"] == "load":
-            p_default_gcp = self.main_ui.path + "/ground_control_points.json"
-            self.main_ui.load_gcps(p_default_gcp)
+            self.main_ui.load_gcps()
         elif data["event"] == "flex":
             self.main_ui.analyze_flex()
         elif data["event"] == "rigid":

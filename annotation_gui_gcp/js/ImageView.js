@@ -6,6 +6,8 @@ const image = new Image();
 let currentPointID = null;
 let currentImageID;
 let currentImageScale;
+const RedirectCache = {};
+let maxImageSize = 1024;
 window.addEventListener('DOMContentLoaded', onDOMLoaded);
 
 function onDOMLoaded() {
@@ -16,13 +18,17 @@ function onDOMLoaded() {
 }
 
 function changeImage(image_key) {
+    preloadNeigbors(image_key);
     image.onload = function () {
         resizeCanvas();
         displayImage(image_key);
         drawMeasurements();
     };
-    const max_sz = Math.min(context.canvas.width, context.canvas.height);
-    image.src = window.location.href + '/image/' + max_sz + '/' + image_key;
+    let url = `${window.location.href}/image/${maxImageSize}/${image_key}`;
+    if (url in RedirectCache){
+        url = RedirectCache[url]
+    }
+    image.src = url;
 }
 
 function displayImage(image_key) {
@@ -50,8 +56,6 @@ function displayImage(image_key) {
 
 function onImageSelect() {
     const opt = imageListBox.options[imageListBox.options.selectedIndex];
-    console.log("selected", opt.value);
-
     changeImage(opt.value);
 }
 
@@ -77,6 +81,36 @@ function populateImageList(points) {
     // imageListBox.size = Math.min(20, imageListBox.options.length);
     imageListBox.value = currentImageID;
     redrawWindow();
+}
+
+function preloadImage(key){
+    const url = `${window.location.href}/image/${maxImageSize}/${key}`;
+    if (!(url in RedirectCache)){
+        const req = new XMLHttpRequest();
+        req.onload = function () {
+            RedirectCache[url] = req.responseURL;
+        };
+        req.open("GET", url, true);
+        req.send();
+    }
+}
+
+function preloadNeigbors(image_key){
+    // Preloads the neighbors of this image so that navigation is snappy
+    let image_index;
+    for (let i = 0; i < imageListBox.options.length; i++) {
+        if (image_key == imageListBox.options[i].value){
+            image_index = i;
+            break;
+        }
+    }
+    for (let i = 0; i < imageListBox.options.length; i++) {
+        const image_key = imageListBox.options[i].value;
+        if (Math.abs(i - image_index) < 10){
+            preloadImage(image_key);
+        }
+    }
+
 }
 
 function populateMeasurements(points) {

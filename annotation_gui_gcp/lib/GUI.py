@@ -5,11 +5,11 @@ import sys
 import time
 from collections import defaultdict
 
+import flask
 from annotation_gui_gcp.lib.views.cad_view import CADView
 from annotation_gui_gcp.lib.views.image_view import ImageView
 from annotation_gui_gcp.lib.views.tools_view import ToolsView
 from opensfm import dataset
-import flask
 
 
 class Gui:
@@ -34,15 +34,13 @@ class Gui:
         self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(cad_paths)
 
-        p_default_gcp = self.path + "/ground_control_points.json"
-        if os.path.exists(p_default_gcp):
-            self.load_gcps(p_default_gcp)
+        self.load_gcps()
 
         self.load_analysis_results(self.ix_a, self.ix_b)
 
     def get_reconstruction_options(self):
-        p_recs = self.path + "/reconstruction.json"
-        if not os.path.exists(p_recs):
+        p_recs = self.path + "/reconstruction.json" if self.path else None
+        if p_recs is None or not os.path.exists(p_recs):
             return ["NONE", "NONE"]
         data = dataset.DataSet(self.path)
         recs = data.load_reconstruction()
@@ -148,8 +146,6 @@ class Gui:
                     self.shot_std[shot] = float(std)
 
     def load_gcps(self, filename=None):
-        if filename is None:
-            return
         self.gcp_manager.load_from_file(filename)
         for view in self.sequence_views + self.cad_views:
             view.display_points()
@@ -188,13 +184,7 @@ class Gui:
                 view.highlight_gcp_reprojection(self.curr_point, zoom=False)
 
     def save_gcps(self, filename=None):
-        if filename is None:
-            return
-        else:
-            self.gcp_manager.write_to_file(filename)
-            parent = os.path.dirname(filename)
-            dirname = os.path.basename(parent)
-            self.gcp_manager.write_to_file(os.path.join(parent, dirname + ".json"))
+        self.gcp_manager.write_to_file(filename)
 
     def go_to_current_gcp(self):
         """
