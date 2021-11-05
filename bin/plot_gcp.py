@@ -47,7 +47,7 @@ def gcp_to_ply(gcps, reconstruction):
 
         c = 255, 0, 0
         s = "{} {} {} {} {} {}".format(
-            p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2]))
+            p.value[0], p.value[1], p.value[2], int(c[0]), int(c[1]), int(c[2]))
         vertices.append(s)
 
     header = [
@@ -96,7 +96,7 @@ def main():
             image = data.load_image(observation.shot_id)
             shot = reconstruction.shots[observation.shot_id]
 
-            reprojected = shot.project(coordinates)
+            reprojected = shot.project(coordinates.value)
             annotated = observation.projection
             rpixel = pix_coords(reprojected, image)
             apixel = pix_coords(annotated, image)
