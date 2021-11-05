@@ -48,8 +48,11 @@ def _add_gcp_to_bundle(
     ba: pybundle.BundleAdjuster,
     gcp: List[pymap.GroundControlPoint],
     shots: Dict[str, pymap.Shot],
+    gcp_horizontal_sd: float,
+    gcp_vertical_sd: float,
 ):
     """Add Ground Control Points constraints to the bundle problem."""
+    gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
     for point in gcp:
         point_id = "gcp-" + point.id
 
@@ -72,7 +75,7 @@ def _add_gcp_to_bundle(
 
         if point.coordinates.has_value:
             ba.add_point_prior(
-                point_id, point.coordinates.value, np.full((3), 0.1), point.has_altitude
+                point_id, point.coordinates.value, gcp_sd, point.has_altitude
             )
 
         for observation in point.observations:
@@ -83,7 +86,6 @@ def _add_gcp_to_bundle(
                     observation.shot_id,
                     point_id,
                     observation.projection,
-                    # pyre-fixme[6]: Expected `ndarray` for 4th param but got `float`.
                     scale,
                 )
 
