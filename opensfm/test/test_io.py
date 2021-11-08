@@ -82,11 +82,10 @@ def test_read_gcp_list():
 13.400502446 52.519251158 16.7021233002 766.0 1133.1 01.jpg
     """
     fp = StringIO(text)
-    reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
     images = ["01.jpg", "02.jpg"]
     exif = {i: {"width": 3000, "height": 2000} for i in images}
 
-    points = io.read_gcp_list(fp, reference, exif)
+    points = io.read_gcp_list(fp, exif)
     assert len(points) == 2
 
     a, b = (len(point.observations) for point in points)
@@ -141,18 +140,16 @@ def test_read_write_ground_control_points():
         assert np.allclose(p2.lla["altitude"], 16.7021233002)
         assert len(p2.observations) == 1
 
-    reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
-
     # Read json
     fp = StringIO(text)
-    points = io.read_ground_control_points(fp, reference)
+    points = io.read_ground_control_points(fp)
     check_points(points)
 
     # Write json and re-read
     fwrite = StringIO()
-    io.write_ground_control_points(points, fwrite, reference)
+    io.write_ground_control_points(points, fwrite)
     freread = StringIO(fwrite.getvalue())
-    points_reread = io.read_ground_control_points(freread, reference)
+    points_reread = io.read_ground_control_points(freread)
     check_points(points_reread)
 
 

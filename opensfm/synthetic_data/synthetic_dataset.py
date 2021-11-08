@@ -180,9 +180,7 @@ class SyntheticDataSet(DataSet):
     def reference_exists(self) -> bool:
         return True
 
-    def load_ground_control_points(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
+    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
         if self.gcps:
             return list(self.gcps.values())
         else:

@@ -13,7 +13,7 @@ def run_dataset(data: DataSetBase, input, output):
 
     images = data.images()
     remaining_images = set(images) - set(rec_base.shots)
-    gcp = data.load_ground_control_points(rec_base.reference)
+    gcp = data.load_ground_control_points()
     report = {}
     rec_report = {}
     report["extend_reconstruction"] = [rec_report]

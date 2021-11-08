@@ -738,7 +738,6 @@ def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
 def _read_gcp_list_lines(
     lines: Iterable[str],
     projection,
-    reference: Optional[geo.TopocentricConverter],
     exif: Dict[str, Dict[str, Any]],
 ) -> List[pymap.GroundControlPoint]:
     points = {}
@@ -818,9 +817,7 @@ def _valid_gcp_line(line: str) -> bool:
     return stripped != "" and stripped[0] != "#"
 
 
-def read_gcp_list(
-    fileobj, reference: Optional[geo.TopocentricConverter], exif: Dict[str, Any]
-) -> List[pymap.GroundControlPoint]:
+def read_gcp_list(fileobj, exif: Dict[str, Any]) -> List[pymap.GroundControlPoint]:
     """Read a ground control points from a gcp_list.txt file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
@@ -829,13 +826,11 @@ def read_gcp_list(
     all_lines = fileobj.readlines()
     lines = iter(filter(_valid_gcp_line, all_lines))
     projection = _parse_projection(next(lines))
-    points = _read_gcp_list_lines(lines, projection, reference, exif)
+    points = _read_gcp_list_lines(lines, projection, exif)
     return points
 
 
-def read_ground_control_points(
-    fileobj: IO, reference: Optional[geo.TopocentricConverter]
-) -> List[pymap.GroundControlPoint]:
+def read_ground_control_points(fileobj: IO) -> List[pymap.GroundControlPoint]:
     """Read ground control points from json file"""
     obj = json_load(fileobj)
 
@@ -871,7 +866,6 @@ def read_ground_control_points(
 def write_ground_control_points(
     gcp: List[pymap.GroundControlPoint],
     fileobj: IO,
-    reference: Optional[geo.TopocentricConverter],
 ) -> None:
     """Write ground control points to json file."""
     obj = {"points": []}

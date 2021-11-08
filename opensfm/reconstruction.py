@@ -1424,7 +1424,7 @@ def triangulation_reconstruction(
 
     camera_priors = data.load_camera_models()
     rig_camera_priors = data.load_rig_cameras()
-    gcp = data.load_ground_control_points(data.load_reference())
+    gcp = data.load_ground_control_points()
 
     reconstruction = helpers.reconstruction_from_metadata(data, images)
 
@@ -1491,7 +1491,7 @@ def incremental_reconstruction(
     data.init_reference(images)
 
     remaining_images = set(images)
-    gcp = data.load_ground_control_points(data.load_reference())
+    gcp = data.load_ground_control_points()
     common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)

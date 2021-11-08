@@ -604,7 +604,7 @@ def align(
     camera_models = data.load_camera_models()
     tracks_manager = data.load_tracks_manager()
     fix_3d_annotations_in_gcp_file(data)
-    gcps = data.load_ground_control_points(data.load_reference())
+    gcps = data.load_ground_control_points()
 
     fn_resplit = f"reconstruction_gcp_ba_resplit_{rec_a}x{rec_b}.json"
     fn_rigid = f"reconstruction_gcp_rigid_{rec_a}x{rec_b}.json"
