@@ -156,8 +156,9 @@ class SyntheticStreetScene(SyntheticScene):
     rig_cameras: List[List[pymap.RigCamera]]
     width: float
 
-    def __init__(self, generator: Optional[Callable]):
+    def __init__(self, generator: Optional[Callable], reference: Optional[geo.TopocentricConverter] = None):
         self.generator = generator
+        self.reference = reference
         self.wall_points = None
         self.floor_points = None
         self.shot_ids = []
@@ -210,11 +211,11 @@ class SyntheticStreetScene(SyntheticScene):
         self.width = width
         return self
 
-    def perturb_walls(self, walls_pertubation: float) -> "SyntheticStreetScene":
+    def perturb_walls(self, walls_pertubation: List[float]) -> "SyntheticStreetScene":
         sg.perturb_points(self.wall_points, walls_pertubation)  # pyre-fixme [6]
         return self
 
-    def perturb_floor(self, floor_pertubation: float) -> "SyntheticStreetScene":
+    def perturb_floor(self, floor_pertubation: List[float]) -> "SyntheticStreetScene":
         sg.perturb_points(self.floor_points, floor_pertubation)  # pyre-fixme [6]
         return self
 
@@ -405,6 +406,7 @@ class SyntheticStreetScene(SyntheticScene):
             #  param but got `List[np.ndarray]`.
             self.instances_rotations,
             self.rig_cameras,
+            self.reference,
         )
 
 

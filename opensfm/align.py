@@ -441,5 +441,6 @@ def triangulate_all_gcp(
         )
         if x is not None:
             triangulated.append(x)
-            measured.append(point.coordinates.value)
+            point_enu = reconstruction.reference.to_topocentric(*point.lla_vec)
+            measured.append(point_enu)
     return triangulated, measured

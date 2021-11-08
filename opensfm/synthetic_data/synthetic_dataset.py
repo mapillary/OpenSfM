@@ -73,7 +73,7 @@ class SyntheticDataSet(DataSet):
         self.features = features
         self.tracks_manager = tracks_manager
         self.image_list = list(reconstruction.shots.keys())
-        self.reference = geo.TopocentricConverter(47.0, 6.0, 0.0)
+        self.reference = reconstruction.reference
         self.matches = None
         self.config["use_altitude_tag"] = True
         self.config["align_method"] = "naive"
@@ -180,9 +180,7 @@ class SyntheticDataSet(DataSet):
     def reference_exists(self) -> bool:
         return True
 
-    def load_ground_control_points(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
+    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
         if self.gcps:
             return list(self.gcps.values())
         else:

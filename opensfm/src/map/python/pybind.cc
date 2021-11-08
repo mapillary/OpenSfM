@@ -581,9 +581,10 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
-      .def_readwrite("coordinates", &map::GroundControlPoint::coordinates_)
       .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
       .def_readwrite("lla", &map::GroundControlPoint::lla_)
+      .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
+                    &map::GroundControlPoint::SetLla)
       .def_property("observations", &map::GroundControlPoint::GetObservations,
                     &map::GroundControlPoint::SetObservations)
       .def("add_observation", &map::GroundControlPoint::AddObservation);

@@ -46,10 +46,14 @@ def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Came
 
 def _add_gcp_to_bundle(
     ba: pybundle.BundleAdjuster,
+    reference: types.TopocentricConverter,
     gcp: List[pymap.GroundControlPoint],
     shots: Dict[str, pymap.Shot],
+    gcp_horizontal_sd: float,
+    gcp_vertical_sd: float,
 ):
     """Add Ground Control Points constraints to the bundle problem."""
+    gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
     for point in gcp:
         point_id = "gcp-" + point.id
 
@@ -60,8 +64,8 @@ def _add_gcp_to_bundle(
             min_ray_angle_degrees=0.1,
         )
         if coordinates is None:
-            if point.coordinates.has_value:
-                coordinates = point.coordinates.value
+            if point.lla:
+                coordinates = reference.to_topocentric(*point.lla_vec)
             else:
                 logger.warning(
                     "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
@@ -70,9 +74,10 @@ def _add_gcp_to_bundle(
 
         ba.add_point(point_id, coordinates, False)
 
-        if point.coordinates.has_value:
+        if point.lla:
+            point_enu = reference.to_topocentric(*point.lla_vec)
             ba.add_point_prior(
-                point_id, point.coordinates.value, np.full((3), 0.1), point.has_altitude
+                point_id, point_enu, gcp_sd, point.has_altitude
             )
 
         for observation in point.observations:
@@ -83,7 +88,6 @@ def _add_gcp_to_bundle(
                     observation.shot_id,
                     point_id,
                     observation.projection,
-                    # pyre-fixme[6]: Expected `ndarray` for 4th param but got `float`.
                     scale,
                 )
 
@@ -1420,7 +1424,7 @@ def triangulation_reconstruction(
 
     camera_priors = data.load_camera_models()
     rig_camera_priors = data.load_rig_cameras()
-    gcp = data.load_ground_control_points(data.load_reference())
+    gcp = data.load_ground_control_points()
 
     reconstruction = helpers.reconstruction_from_metadata(data, images)
 
@@ -1487,7 +1491,7 @@ def incremental_reconstruction(
     data.init_reference(images)
 
     remaining_images = set(images)
-    gcp = data.load_ground_control_points(data.load_reference())
+    gcp = data.load_ground_control_points()
     common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)

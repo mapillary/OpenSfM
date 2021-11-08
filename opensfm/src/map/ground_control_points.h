@@ -21,16 +21,29 @@ struct GroundControlPoint {
 
      Attributes:
          lla: latitue, longitude and altitude
-         coordinates: x, y, z coordinates in topocentric reference frame
          has_altitude: true if z coordinate is known
          observations: list of observations of the point on images
      */
   GroundControlPoint() = default;
   LandmarkId id_ = "";
-  foundation::OptionalValue<Vec3d> coordinates_;
   bool has_altitude_ = false;
   AlignedVector<GroundControlPointObservation> observations_;
   std::map<std::string, double> lla_;
+
+  Vec3d GetLlaVec3d() const {
+    return {
+      lla_.at("latitude"),
+      lla_.at("longitude"),
+      has_altitude_ ? lla_.at("altitude") : 0.0,
+    };
+  }
+
+  void SetLla(double lat, double lon, double alt) {
+    lla_.insert_or_assign("latitude", lat);
+    lla_.insert_or_assign("longitude", lon);
+    lla_.insert_or_assign("altitude", alt);
+    has_altitude_ = true;
+  }
 
   void SetObservations(
       const AlignedVector<GroundControlPointObservation>& obs) {

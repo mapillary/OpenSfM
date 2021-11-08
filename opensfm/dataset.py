@@ -558,37 +558,28 @@ class DataSet(DataSetBase):
     def _gcp_list_file(self) -> str:
         return os.path.join(self.data_path, "gcp_list.txt")
 
-    def load_ground_control_points(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
-        """Load ground control points.
-
-        It might use reference to convert the coordinates
-        to topocentric reference frame.
-        If reference is None, it won't initialize topocentric data,
-        thus allowing loading raw data only.
-        """
+    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
+        """Load ground control points."""
         exif = {image: self.load_exif(image) for image in self.images()}
 
         gcp = []
         if self.io_handler.isfile(self._gcp_list_file()):
             with self.io_handler.open_rt(self._gcp_list_file()) as fin:
-                gcp = io.read_gcp_list(fin, reference, exif)
+                gcp = io.read_gcp_list(fin, exif)
 
         pcs = []
         if self.io_handler.isfile(self._ground_control_points_file()):
             with self.io_handler.open_rt(self._ground_control_points_file()) as fin:
-                pcs = io.read_ground_control_points(fin, reference)
+                pcs = io.read_ground_control_points(fin)
 
         return gcp + pcs
 
     def save_ground_control_points(
         self,
         points: List[pymap.GroundControlPoint],
-        reference: Optional[geo.TopocentricConverter],
     ) -> None:
         with self.io_handler.open_wt(self._ground_control_points_file()) as fout:
-            io.write_ground_control_points(points, fout, reference)
+            io.write_ground_control_points(points, fout)
 
     def image_as_array(self, image: str) -> np.ndarray:
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")
@@ -933,7 +924,7 @@ def invent_reference_from_gps_and_gcp(
                 walt += w
 
     if not wlat and not wlon:
-        for gcp in data.load_ground_control_points(None):
+        for gcp in data.load_ground_control_points():
             lat += gcp.lla["latitude"]
             lon += gcp.lla["longitude"]
             wlat += 1
