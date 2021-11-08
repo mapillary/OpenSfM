@@ -48,10 +48,10 @@ def synthetic_rig_scene():
 
     relative_positions = [[0, 0, 0.2], [0, 0, -0.2], [-0.2, 0, 0], [0.2, 0, 0]]
     relative_rotations = [
-        [0, 0, 0],
-        [0, 3.1415927, 0],
-        [0, 1.5707963, 0],
-        [0, -1.5707963, 0],
+        [0.0, 0.0, 0.0],
+        [0.0, 3.1415927, 0.0],
+        [0.0, 1.5707963, 0.0],
+        [0.0, -1.5707963, 0.0],
     ]
     camera_front = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
     camera_back = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)

@@ -210,11 +210,11 @@ class SyntheticStreetScene(SyntheticScene):
         self.width = width
         return self
 
-    def perturb_walls(self, walls_pertubation: float) -> "SyntheticStreetScene":
+    def perturb_walls(self, walls_pertubation: List[float]) -> "SyntheticStreetScene":
         sg.perturb_points(self.wall_points, walls_pertubation)  # pyre-fixme [6]
         return self
 
-    def perturb_floor(self, floor_pertubation: float) -> "SyntheticStreetScene":
+    def perturb_floor(self, floor_pertubation: List[float]) -> "SyntheticStreetScene":
         sg.perturb_points(self.floor_points, floor_pertubation)  # pyre-fixme [6]
         return self
 
