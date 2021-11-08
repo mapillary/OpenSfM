@@ -156,8 +156,9 @@ class SyntheticStreetScene(SyntheticScene):
     rig_cameras: List[List[pymap.RigCamera]]
     width: float
 
-    def __init__(self, generator: Optional[Callable]):
+    def __init__(self, generator: Optional[Callable], reference: Optional[geo.TopocentricConverter] = None):
         self.generator = generator
+        self.reference = reference
         self.wall_points = None
         self.floor_points = None
         self.shot_ids = []
@@ -405,6 +406,7 @@ class SyntheticStreetScene(SyntheticScene):
             #  param but got `List[np.ndarray]`.
             self.instances_rotations,
             self.rig_cameras,
+            self.reference,
         )
 
 

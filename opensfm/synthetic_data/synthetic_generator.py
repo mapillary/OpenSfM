@@ -315,8 +315,11 @@ def create_reconstruction(
     rig_positions: Optional[List[List[np.ndarray]]] = None,
     rig_rotations: Optional[List[List[np.ndarray]]] = None,
     rig_cameras: Optional[List[List[pymap.RigCamera]]] = None,
+    reference: Optional[geo.TopocentricConverter] = None,
 ):
     reconstruction = types.Reconstruction()
+    if reference is not None:
+        reconstruction.reference = reference
     for point, color in zip(points, colors):
         add_points_to_reconstruction(point, color, reconstruction)
 
@@ -471,8 +474,8 @@ def generate_track_data(
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
-            gcp.coordinates.value = point.coordinates + gcp_shift + sigmas_gcp[i]
-            lat, lon, alt = reconstruction.reference.to_lla(*gcp.coordinates.value)
+            enu = point.coordinates + gcp_shift + sigmas_gcp[i]
+            lat, lon, alt = reconstruction.reference.to_lla(*enu)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             gcp.has_altitude = True
             for shot_id, obs in tracks_manager.get_track_observations(gcp_id).items():

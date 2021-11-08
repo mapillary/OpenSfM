@@ -46,6 +46,7 @@ def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Came
 
 def _add_gcp_to_bundle(
     ba: pybundle.BundleAdjuster,
+    reference: types.TopocentricConverter,
     gcp: List[pymap.GroundControlPoint],
     shots: Dict[str, pymap.Shot],
     gcp_horizontal_sd: float,
@@ -63,8 +64,8 @@ def _add_gcp_to_bundle(
             min_ray_angle_degrees=0.1,
         )
         if coordinates is None:
-            if point.coordinates.has_value:
-                coordinates = point.coordinates.value
+            if point.lla:
+                coordinates = reference.to_topocentric(*point.lla_vec)
             else:
                 logger.warning(
                     "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
@@ -73,9 +74,10 @@ def _add_gcp_to_bundle(
 
         ba.add_point(point_id, coordinates, False)
 
-        if point.coordinates.has_value:
+        if point.lla:
+            point_enu = reference.to_topocentric(*point.lla_vec)
             ba.add_point_prior(
-                point_id, point.coordinates.value, gcp_sd, point.has_altitude
+                point_id, point_enu, gcp_sd, point.has_altitude
             )
 
         for observation in point.observations:

@@ -767,12 +767,6 @@ def _read_gcp_list_lines(
             point.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             point.has_altitude = has_altitude
 
-            if reference:
-                x, y, z = reference.to_topocentric(lat, lon, alt)
-                point.coordinates.value = np.array([x, y, z])
-            else:
-                point.coordinates.reset()
-
             points[key] = point
 
         # Convert 2D coordinates
@@ -853,14 +847,6 @@ def read_ground_control_points(
         if lla:
             point.lla = lla
             point.has_altitude = "altitude" in point.lla
-            if reference:
-                point.coordinates.value = reference.to_topocentric(
-                    point.lla["latitude"],
-                    point.lla["longitude"],
-                    point.lla.get("altitude", 0),
-                )
-            else:
-                point.coordinates.reset()
 
         observations = []
         observing_images = set()
@@ -900,14 +886,6 @@ def write_ground_control_points(
             }
             if point.has_altitude:
                 point_obj["position"]["altitude"] = point.lla["altitude"]
-        elif reference is not None and point.coordinates.has_value:
-            lat, lon, alt = reference.to_lla(*point.coordinates.value)
-            point_obj["position"] = {
-                "latitude": lat,
-                "longitude": lon,
-            }
-            if point.has_altitude:
-                point_obj["position"]["altitude"] = alt
 
         point_obj["observations"] = []
         for observation in point.observations:

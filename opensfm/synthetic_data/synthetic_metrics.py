@@ -45,14 +45,15 @@ def gcp_errors(
 ) -> np.ndarray:
     errors = []
     for gcp in gcps.values():
-        if not gcp.coordinates.has_value:
+        if not gcp.lla:
             continue
 
         triangulated = multiview.triangulate_gcp(gcp, candidate.shots, 1.0, 0.1)
         if triangulated is None:
             continue
 
-        errors.append(triangulated - gcp.coordinates.value)
+        gcp_enu = candidate.reference.to_topocentric(*gcp.lla_vec)
+        errors.append(triangulated - gcp_enu)
     return np.array(errors)
 
 
