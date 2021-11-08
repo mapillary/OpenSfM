@@ -9,7 +9,7 @@ from typing import Dict, Tuple, List, Optional, Set, Iterable, TYPE_CHECKING
 import networkx as nx
 import numpy as np
 import scipy.spatial as spatial
-from opensfm import actions, pygeometry, pymap, types
+from opensfm import reconstruction as orec, actions, pygeometry, pymap, types
 
 if TYPE_CHECKING:
     from opensfm.dataset import DataSet
@@ -31,9 +31,7 @@ def default_rig_cameras(camera_ids: Iterable[str]) -> Dict[str, pymap.RigCamera]
     """Return per-camera models default rig cameras (identity pose)."""
     default_rig_cameras = {}
     for camera_id in camera_ids:
-        default_rig_cameras[camera_id] = pymap.RigCamera(
-            pygeometry.Pose(), camera_id
-        )
+        default_rig_cameras[camera_id] = pymap.RigCamera(pygeometry.Pose(), camera_id)
     return default_rig_cameras
 
 
@@ -335,7 +333,9 @@ def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns):
         actions.detect_features.run_dataset(subset_data)
         actions.match_features.run_dataset(subset_data)
         actions.create_tracks.run_dataset(subset_data)
-        actions.reconstruct.run_dataset(subset_data)
+        actions.reconstruct.run_dataset(
+            subset_data, orec.ReconstructionAlgorithm.INCREMENTAL
+        )
 
         reconstructions = subset_data.load_reconstruction()
         if len(reconstructions) == 0:

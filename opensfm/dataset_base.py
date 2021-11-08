@@ -234,9 +234,7 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_ground_control_points(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
+    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
         pass
 
     @abstractmethod

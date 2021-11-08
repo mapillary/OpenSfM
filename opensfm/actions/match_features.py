@@ -2,7 +2,7 @@ from timeit import default_timer as timer
 
 from opensfm import io
 from opensfm import matching
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 def run_dataset(data: DataSetBase):

@@ -31,7 +31,7 @@ def test_reconstruction_incremental(
     assert errors["ratio_cameras"] == 1.0
     assert 0.7 < errors["ratio_points"] < 1.0
 
-    assert 0 < errors["aligned_position_rmse"] < 0.022
+    assert 0 < errors["aligned_position_rmse"] < 0.03
     assert 0 < errors["aligned_rotation_rmse"] < 0.002
     assert 0 < errors["aligned_points_rmse"] < 0.1
 
@@ -39,13 +39,13 @@ def test_reconstruction_incremental(
     assert 4.0 < errors["absolute_gps_rmse"] < 7.0
 
     # Sanity check that GCP error is similar to the generated gcp_noise
-    assert 0.01 < errors["absolute_gcp_rmse_horizontal"] < 0.02
-    assert 0.08 < errors["absolute_gcp_rmse_vertical"] < 0.12
+    assert 0.01 < errors["absolute_gcp_rmse_horizontal"] < 0.03
+    assert 0.08 < errors["absolute_gcp_rmse_vertical"] < 0.18
 
     # Check that the GPS bias (only translation) is recovered
     translation = reconstructed_scene[0].biases["1"].translation
-    assert 9.9 < translation[0] < 10.11
-    assert 99.9 < translation[2] < 100.11
+    assert 9.9 < translation[0] < 10.31
+    assert 99.9 < translation[2] < 100.2
 
 
 def test_reconstruction_incremental_rig(

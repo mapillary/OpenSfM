@@ -130,13 +130,14 @@ def alignment_constraints(
     # Get camera center correspondences
     if use_gps and config["bundle_use_gps"]:
         for rig_instance in reconstruction.rig_instances.values():
-            gps_average = np.average([
+            gpses = [
                 shot.metadata.gps_position.value
                 for shot in rig_instance.shots.values()
                 if shot.metadata.gps_position.has_value
-            ], axis=0)
-            X.append(rig_instance.pose.get_origin())
-            Xp.append(gps_average)
+            ]
+            if len(gpses) > 0:
+                X.append(rig_instance.pose.get_origin())
+                Xp.append(np.average(gpses, axis=0))
 
     return X, Xp
 
@@ -253,6 +254,8 @@ def compute_orientation_prior_similarity(
         return None
 
     p = estimate_ground_plane(reconstruction, config)
+    if p is None:
+        return None
     Rplane = multiview.plane_horizontalling_rotation(p)
     if Rplane is None:
         return None
@@ -354,7 +357,7 @@ def set_gps_bias(
 
 def estimate_ground_plane(
     reconstruction: types.Reconstruction, config: Dict[str, Any]
-) -> np.ndarray:
+) -> Optional[np.ndarray]:
     """Estimate ground plane orientation.
 
     It assumes cameras are all at a similar height and uses the
@@ -386,7 +389,12 @@ def estimate_ground_plane(
     ground_points = np.array(ground_points)
     ground_points -= ground_points.mean(axis=0)
 
-    plane = multiview.fit_plane(ground_points, np.array(onplane), np.array(verticals))
+    try:
+        plane = multiview.fit_plane(
+            ground_points, np.array(onplane), np.array(verticals)
+        )
+    except ValueError:
+        return None
     return plane
 
 
@@ -433,5 +441,6 @@ def triangulate_all_gcp(
         )
         if x is not None:
             triangulated.append(x)
-            measured.append(point.coordinates.value)
+            point_enu = reconstruction.reference.to_topocentric(*point.lla_vec)
+            measured.append(point_enu)
     return triangulated, measured

@@ -82,6 +82,16 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
   } else {
     gps_accuracy_.Reset();
   }
+  if (other.opk_angles_.HasValue()) {
+    opk_angles_.SetValue(other.opk_angles_.Value());
+  } else {
+    opk_angles_.Reset();
+  }
+  if (other.opk_accuracy_.HasValue()) {
+    opk_accuracy_.SetValue(other.opk_accuracy_.Value());
+  } else {
+    opk_accuracy_.Reset();
+  }
   if (other.compass_accuracy_.HasValue()) {
     compass_accuracy_.SetValue(other.compass_accuracy_.Value());
   } else {

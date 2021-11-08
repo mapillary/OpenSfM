@@ -6,7 +6,7 @@ from typing import Tuple
 import exifread
 import xmltodict as x2d
 from opensfm import pygeometry
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 from opensfm.sensors import sensor_data
 
 logger = logging.getLogger(__name__)

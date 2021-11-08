@@ -80,13 +80,14 @@ def gcp_errors(
 ) -> Dict[str, Any]:
     all_errors = []
 
-    gcp = data.load_ground_control_points(data.load_reference())
-    if not gcp:
+    reference = data.load_reference()
+    gcps = data.load_ground_control_points()
+    if not gcps:
         return {}
 
     all_errors = []
-    for gcp in gcp:
-        if not gcp.coordinates.has_value:
+    for gcp in gcps:
+        if not gcp.lla:
             continue
 
         for rec in reconstructions:
@@ -99,7 +100,8 @@ def gcp_errors(
         # pyre-fixme[61]: `triangulated` may not be initialized here.
         if triangulated is None:
             continue
-        all_errors.append(triangulated - gcp.coordinates.value)
+        gcp_enu = reference.to_topocentric(*gcp.lla_vec)
+        all_errors.append(triangulated - gcp_enu)
 
     return _gps_gcp_errors_stats(np.array(all_errors))
 
@@ -198,7 +200,7 @@ def reconstruction_statistics(
         for shot in rec.shots.values():
             gps_count += shot.metadata.gps_position.has_value
     stats["has_gps"] = gps_count > 2
-    stats["has_gcp"] = True if data.load_ground_control_points(None) else False
+    stats["has_gcp"] = True if data.load_ground_control_points() else False
 
     stats["initial_points_count"] = tracks_manager.num_tracks()
     stats["initial_shots_count"] = len(data.images())

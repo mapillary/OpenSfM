@@ -27,6 +27,8 @@ class GroundControlPointManager:
             self.gcp_reprojections = {}
 
     def load_from_file(self, file_path):
+        if file_path is None:
+            file_path = self.path + "/ground_control_points.json"
         self.points = OrderedDict()
         self.latlons = {}
         with open(file_path, "r") as f:
@@ -37,14 +39,16 @@ class GroundControlPointManager:
             if latlon:
                 self.latlons[point["id"]] = latlon
 
-    def write_to_file(self, filename):
+    def write_to_file(self, file_path):
+        if file_path is None:
+            file_path = self.path + "/ground_control_points.json"
         output_points = []
         for point_id in self.points:
             out_point = {"id": point_id, "observations": self.points[point_id]}
             if out_point["id"] in self.latlons:
                 out_point["position"] = self.latlons[point_id]
             output_points.append(out_point)
-        with open(filename, "wt") as fp:
+        with open(file_path, "wt") as fp:
             json.dump({"points": output_points}, fp, indent=4, sort_keys=True)
 
     def get_visible_points_coords(self, main_image):

@@ -27,23 +27,25 @@ def null_scene() -> types.Reconstruction:
 @pytest.fixture(scope="module")
 def scene_synthetic() -> synthetic_scene.SyntheticInputData:
     np.random.seed(42)
-    data = synthetic_examples.synthetic_circle_scene()
+    reference = geo.TopocentricConverter(47.0, 6.0, 0)
+    data = synthetic_examples.synthetic_circle_scene(reference)
 
     maximum_depth = 40
     projection_noise = 1.0
     gps_noise = 5.0
+    imu_noise = 0.1
     gcp_noise = (0.01, 0.1)
 
     gcps_count = 10
     gcps_shift = [10.0, 0.0, 100.0]
 
-    reference = geo.TopocentricConverter(47.0, 6.0, 0)
     return synthetic_scene.SyntheticInputData(
         data.get_reconstruction(),
         reference,
         maximum_depth,
         projection_noise,
         gps_noise,
+        imu_noise,
         gcp_noise,
         False,
         gcps_count,
@@ -59,7 +61,7 @@ def scene_synthetic_cube():
     reference = geo.TopocentricConverter(47.0, 6.0, 0)
     reconstruction = data.get_reconstruction()
     input_data = synthetic_scene.SyntheticInputData(
-        reconstruction, reference, 40, 0.0, 0.0, (0.0, 0.0), False
+        reconstruction, reference, 40, 0.0, 0.0, 0.0, (0.0, 0.0), False
     )
     return reconstruction, input_data.tracks_manager
 
@@ -67,22 +69,53 @@ def scene_synthetic_cube():
 @pytest.fixture(scope="module")
 def scene_synthetic_rig() -> synthetic_scene.SyntheticInputData:
     np.random.seed(42)
-    data = synthetic_examples.synthetic_rig_scene()
+    reference = geo.TopocentricConverter(47.0, 6.0, 0)
+    data = synthetic_examples.synthetic_rig_scene(reference)
 
     maximum_depth = 40
     projection_noise = 1.0
     gps_noise = 0.1
+    imu_noise = 0.1
     gcp_noise = (0.0, 0.0)
 
-    reference = geo.TopocentricConverter(47.0, 6.0, 0)
     return synthetic_scene.SyntheticInputData(
         data.get_reconstruction(),
         reference,
         maximum_depth,
         projection_noise,
         gps_noise,
+        imu_noise,
         gcp_noise,
         False,
+    )
+
+
+@pytest.fixture(scope="module")
+def scene_synthetic_triangulation() -> synthetic_scene.SyntheticInputData:
+    np.random.seed(42)
+    reference = geo.TopocentricConverter(47.0, 6.0, 0)
+    data = synthetic_examples.synthetic_circle_scene(reference)
+
+    maximum_depth = 40
+    projection_noise = 1.0
+    gps_noise = 0.1
+    imu_noise = 1.0
+    gcp_noise = (0.0, 0.0)
+
+    gcps_count = 10
+    gcps_shift = [10.0, 0.0, 100.0]
+
+    return synthetic_scene.SyntheticInputData(
+        data.get_reconstruction(),
+        reference,
+        maximum_depth,
+        projection_noise,
+        gps_noise,
+        imu_noise,
+        gcp_noise,
+        False,
+        gcps_count,
+        gcps_shift,
     )
 
 
@@ -94,7 +127,7 @@ def pairs_and_poses():
     reconstruction = data.get_reconstruction()
     reference = geo.TopocentricConverter(0, 0, 0)
     input_data = synthetic_scene.SyntheticInputData(
-        reconstruction, reference, 40, 0.0, 0.0, (0.0, 0.0), False
+        reconstruction, reference, 40, 0.0, 0.0, 0.0, (0.0, 0.0), False
     )
     features, tracks_manager = input_data.features, input_data.tracks_manager
 
