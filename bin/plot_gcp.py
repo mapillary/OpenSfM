@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+from typing import List
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,6 +12,8 @@ import opensfm.reconstruction as orec
 from opensfm import features
 from opensfm import io
 from opensfm import dataset
+from opensfm import pymap
+from opensfm import types
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +33,13 @@ def pix_coords(x, image):
         np.array([[x[0], x[1]]]), image.shape[1], image.shape[0])[0]
 
 
-def gcp_to_ply(gcps, reconstruction):
+def gcp_to_ply(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
     """Export GCP position as a PLY string."""
     vertices = []
 
     for gcp in gcps:
-        if gcp.coordinates.has_value:
-            p = gcp.coordinates
+        if gcp.lla:
+            p = reconstruction.reference.to_topocentric(*gcp.lla_vec)
         else:
             p = orec.triangulate_gcp(gcp, reconstruction.shots)
 
@@ -82,8 +85,8 @@ def main():
     for gcp in gcps:
         plt.suptitle("GCP '{}'".format(gcp.id))
 
-        if gcp.coordinates.has_value:
-            coordinates = gcp.coordinates
+        if gcp.lla:
+            coordinates = reconstruction.reference.to_topocentric(*gcp.lla_vec)
         else:
             coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
 

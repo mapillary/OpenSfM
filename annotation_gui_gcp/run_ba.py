@@ -4,10 +4,11 @@ import logging
 import os
 import sys
 from collections import defaultdict
+from typing import List
 
 import numpy as np
 import opensfm.reconstruction as orec
-from opensfm import dataset, log, multiview, pygeometry
+from opensfm import dataset, log, multiview, pygeometry, pymap
 from opensfm import reconstruction_helpers as helpers
 from opensfm import transformations as tf
 from opensfm import types
@@ -80,11 +81,11 @@ def resplit_reconstruction(merged, original_reconstructions):
     return split
 
 
-def gcp_geopositional_error(gcps, reconstruction):
+def gcp_geopositional_error(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
     coords_reconstruction = triangulate_gcps(gcps, reconstruction)
     out = {}
     for ix, gcp in enumerate(gcps):
-        expected = gcp.coordinates.value if gcp.coordinates.has_value else None
+        expected = reconstruction.reference.to_lla(*gcp.lla_vec) if gcp.lla else None
         triangulated = (
             coords_reconstruction[ix] if coords_reconstruction[ix] is not None else None
         )
@@ -113,7 +114,7 @@ def gcp_geopositional_error(gcps, reconstruction):
     return out
 
 
-def triangulate_gcps(gcps, reconstruction):
+def triangulate_gcps(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
     coords = []
     for gcp in gcps:
         res = multiview.triangulate_gcp(
@@ -126,7 +127,7 @@ def triangulate_gcps(gcps, reconstruction):
     return coords
 
 
-def reproject_gcps(gcps, reconstruction, reproj_threshold):
+def reproject_gcps(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction, reproj_threshold):
     output = {}
     for gcp in gcps:
         point = multiview.triangulate_gcp(
@@ -205,7 +206,13 @@ def find_alignment(points0, points1):
     return s, A, b
 
 
-def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
+def add_gcp_to_bundle(
+    ba: orec.pybundle.BundleAdjuster,
+    reference: types.TopocentricConverter,
+    gcp: List[pymap.GroundControlPoint],
+    gcp_std,
+    shots,
+):
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
         point_id = "gcp-" + point.id
@@ -217,12 +224,13 @@ def add_gcp_to_bundle(ba, gcp, gcp_std, shots):
             min_ray_angle_degrees=0.1,
         )
         if coordinates is None:
-            if point.coordinates.has_value:
+            if point.lla:
+                enu = reference.to_topocentric(*point.lla_vec)
                 logger.warning(
                     f"Could not triangulate GCP '{point.id}'."
-                    f"Using {point.coordinates.value} (derived from lat,lon)"
+                    f"Using {enu} (derived from lat,lon)"
                 )
-                coordinates = point.coordinates.value
+                coordinates = enu
             else:
                 logger.warning(
                     "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
@@ -261,8 +269,7 @@ def bundle_with_fixed_images(
 
     for point in reconstruction.points.values():
         ba.add_point(point.id, point.coordinates, False)
-        x, y, z = point.coordinates
-        ba.add_point_position_prior(point.id, x, y, z, 100.0)
+        ba.add_point_prior(point.id, point.coordinates, np.array([100.0, 100.0, 100.0]), False)
 
     for shot_id in reconstruction.shots:
         shot = reconstruction.get_shot(shot_id)
@@ -270,7 +277,7 @@ def bundle_with_fixed_images(
             obs = shot.get_landmark_observation(point)
             ba.add_point_projection_observation(shot.id, point.id, obs.point, obs.scale)
 
-    add_gcp_to_bundle(ba, gcp, gcp_std, reconstruction.shots)
+    add_gcp_to_bundle(ba, reconstruction.reference, gcp, gcp_std, reconstruction.shots)
 
     ba.set_point_projection_loss_function(
         config["loss_function"], config["loss_function_threshold"]
