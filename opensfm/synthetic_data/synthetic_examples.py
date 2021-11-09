@@ -20,7 +20,6 @@ def synthetic_circle_scene(reference: Optional[geo.TopocentricConverter] = None)
     camera = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
     scene.add_camera_sequence(
         camera,
-        0,
         scene_length,
         camera_height,
         camera_interval,
@@ -71,7 +70,6 @@ def synthetic_rig_scene(reference: Optional[geo.TopocentricConverter] = None):
         cameras,
         relative_positions,
         relative_rotations,
-        0,
         scene_length,
         camera_height,
         camera_interval,

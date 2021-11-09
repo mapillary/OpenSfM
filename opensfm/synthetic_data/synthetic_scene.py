@@ -6,7 +6,7 @@ import numpy as np
 import opensfm.synthetic_data.synthetic_dataset as sd
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry, types, pymap, pysfm, geo
+from opensfm import pygeometry, types, pymap, geo
 
 
 def get_camera(
@@ -147,8 +147,6 @@ class SyntheticStreetScene(SyntheticScene):
     wall_points: Optional[np.ndarray]
     floor_points: Optional[np.ndarray]
     shot_ids: List[List[str]]
-    shot_positions: List[np.ndarray]
-    shot_rotations: List[np.ndarray]
     cameras: List[pygeometry.Camera]
     instances_positions: List[np.ndarray]
     instances_rotations: List[np.ndarray]
@@ -162,8 +160,6 @@ class SyntheticStreetScene(SyntheticScene):
         self.wall_points = None
         self.floor_points = None
         self.shot_ids = []
-        self.shot_positions = []
-        self.shot_rotations = []
         self.cameras = []
         self.instances_positions = []
         self.instances_rotations = []
@@ -179,8 +175,6 @@ class SyntheticStreetScene(SyntheticScene):
         combined_scene.floor_points = np.concatenate(
             (self.floor_points, other_scene.floor_points)
         )
-        combined_scene.shot_positions = self.shot_positions + other_scene.shot_positions
-        combined_scene.shot_rotations = self.shot_rotations + other_scene.shot_rotations
         combined_scene.cameras = self.cameras + other_scene.cameras
         combined_scene.instances_positions = (
             self.instances_positions + other_scene.instances_positions
@@ -237,7 +231,7 @@ class SyntheticStreetScene(SyntheticScene):
             -0.5 * np.linalg.norm(self.floor_points[:, :2], axis=1) ** 2 / radius ** 2
         )
 
-        for positions in self.shot_positions + self.instances_positions:
+        for positions in self.instances_positions:
             for position in positions:
                 position[2] += height * np.exp(
                     -0.5
@@ -255,7 +249,7 @@ class SyntheticStreetScene(SyntheticScene):
             np.linalg.norm(self.floor_points[:, :2], axis=1) / radius
         )
 
-        for positions in self.shot_positions + self.instances_positions:
+        for positions in self.instances_positions:
             for position in positions:
                 position[2] += height * np.sin(
                     math.sqrt(position[0] ** 2 + position[1] ** 2) / radius
@@ -264,18 +258,20 @@ class SyntheticStreetScene(SyntheticScene):
     def add_camera_sequence(
         self,
         camera: pygeometry.Camera,
-        start: float,
         length: float,
         height: float,
         interval: float,
         position_noise: List[float],
         rotation_noise: float,
         positions_shift: Optional[List[float]] = None,
+        end: Optional[float] = None,
     ):
         default_noise_interval = 0.25 * interval
+        actual_end = length if end is None else end
+
         positions, rotations = sg.generate_cameras(
             sg.samples_generator_interval(
-                start, length, interval, default_noise_interval
+                length, actual_end, interval, default_noise_interval
             ),
             self.generator,  # pyre-fixme [6]
             height,
@@ -284,8 +280,6 @@ class SyntheticStreetScene(SyntheticScene):
         sg.perturb_rotations(rotations, rotation_noise)
         if positions_shift:
             positions += np.array(positions_shift)
-        self.shot_rotations.append(rotations)
-        self.shot_positions.append(positions)
 
         shift = 0 if len(self.shot_ids) == 0 else len(self.shot_ids[-1])
         new_shot_ids = [f"Shot {shift+i:04d}" for i in range(len(positions))]
@@ -309,18 +303,19 @@ class SyntheticStreetScene(SyntheticScene):
         cameras: List[pygeometry.Camera],
         relative_positions: List[List[float]],
         relative_rotations: List[List[float]],
-        start: float,
         length: float,
         height: float,
         interval: float,
         position_noise: List[float],
         rotation_noise: float,
+        end: Optional[float] = None,
     ):
         default_noise_interval = 0.25 * interval
+        actual_end = length if end is None else end
 
         instances_positions, instances_rotations = sg.generate_cameras(
             sg.samples_generator_interval(
-                start, length, interval, default_noise_interval
+                length, actual_end, interval, default_noise_interval
             ),
             self.generator,  # pyre-fixme [6]
             height,
@@ -344,8 +339,6 @@ class SyntheticStreetScene(SyntheticScene):
                 rotations.append(composed.rotation)
                 positions.append(composed.get_origin())
 
-            self.shot_rotations.append(np.array(rotations))
-            self.shot_positions.append(np.array(positions))
             shift = sum(len(s) for s in shots_ids_per_camera)
             shots_ids_per_camera.append(
                 [f"Shot {shift+i:04d}" for i in range(len(positions))]
@@ -390,12 +383,6 @@ class SyntheticStreetScene(SyntheticScene):
             [floor_color, wall_color],
             self.cameras,
             self.shot_ids,
-            # pyre-fixme[6]: Expected `List[List[np.ndarray]]` for 5th param but got
-            #  `List[np.ndarray]`.
-            self.shot_positions,
-            # pyre-fixme[6]: Expected `List[List[np.ndarray]]` for 6th param but got
-            #  `List[np.ndarray]`.
-            self.shot_rotations,
             # pyre-fixme[6]: Expected `List[List[List[str]]]` for 7th param but got
             #  `List[List[List[Tuple[str, str]]]]`.
             self.rig_instances,
