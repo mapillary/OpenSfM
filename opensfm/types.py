@@ -7,6 +7,9 @@ from opensfm import pymap
 from opensfm.geo import TopocentricConverter
 
 
+PANOSHOT_RIG_PREFIX = "panoshot_"
+
+
 class ShotMesh(object):
     """Triangular mesh of points visible in a shot
 
@@ -247,10 +250,10 @@ class Reconstruction(object):
         if pose is None:
             pose = pygeometry.Pose()
 
-        rig_camera_id = f"panoshot_{camera_id}"
+        rig_camera_id = f"{PANOSHOT_RIG_PREFIX}{camera_id}"
         if rig_camera_id not in self.rig_cameras:
             self.add_rig_camera(pymap.RigCamera(pygeometry.Pose(), rig_camera_id))
-        rig_instance_id = f"panoshot_{shot_id}"
+        rig_instance_id = f"{PANOSHOT_RIG_PREFIX}{shot_id}"
         if rig_instance_id not in self.rig_instances:
             self.add_rig_instance(pymap.RigInstance(rig_instance_id))
 
