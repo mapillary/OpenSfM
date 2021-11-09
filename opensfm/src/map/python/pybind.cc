@@ -166,8 +166,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("set_rig", &map::Shot::SetRig)
       .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
-      .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks,
-           py::return_value_policy::reference_internal)
+      .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks)
       .def("remove_observation", &map::Shot::RemoveLandmarkObservation)
       .def_property("metadata",
                     py::overload_cast<>(&map::Shot::GetShotMeasurements),
