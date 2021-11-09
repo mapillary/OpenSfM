@@ -24721,6 +24721,13 @@
         "Sensor res. (width)": 6038.0, 
         "Sensor": "35.8 x 23.8 mm", 
         "Sensor res. (height)": 4025.0
+    },  
+    "Teracube Teracube One": {
+        "Sensor height (mm)": 3.54, 
+        "Sensor width (mm)": 4.71, 
+        "Sensor res. (width)": 4032.0, 
+        "Sensor": "1/2.8\" (~ 4.71 x 3.54 mm)", 
+        "Sensor res. (height)": 3024.0
     }, 
     "Toshiba PDR 2300": {
         "Sensor height (mm)": 4.0, 
