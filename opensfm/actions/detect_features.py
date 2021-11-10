@@ -187,7 +187,7 @@ def bake_segmentation(
         exif["orientation"],
     )
     height, width = image.shape[:2]
-    if exif["height"] != height or exif["width"] != height:
+    if exif_height != height or exif_width != width:
         logger.error(
             f"Image has inconsistent EXIF dimensions ({exif_width}, {exif_height}) and image dimensions ({width}, {height}). Orientation={exif_orientation}"
         )
