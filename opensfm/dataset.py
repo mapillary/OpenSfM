@@ -19,6 +19,7 @@ from opensfm import (
     rig,
 )
 from opensfm.dataset_base import DataSetBase
+from PIL.PngImagePlugin import PngImageFile
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +163,22 @@ class DataSet(DataSetBase):
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if self.io_handler.isfile(segmentation_file):
-            segmentation = self.io_handler.imread(segmentation_file, grayscale=True)
+            with self.io_handler.open(segmentation_file, "rb") as fp:
+                with PngImageFile(fp) as png_image:
+                    # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                    data = np.array(png_image)
+                    if data.ndim == 2:
+                        return data
+                    elif data.ndim == 3:
+                        return data[:, :, 0]
+
+                        # TODO we can optionally return also the instances and scores:
+                        # instances = (
+                        #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                        # )
+                        # scores = data[:, :, 3].astype(np.float32) / 256.0
+                    else:
+                        raise IndexError
         else:
             segmentation = None
         return segmentation
@@ -730,9 +746,23 @@ class UndistortedDataSet(object):
 
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
-        return self.io_handler.imread(
-            self._undistorted_segmentation_file(image), grayscale=True
-        )
+        segmentation_file = self._undistorted_segmentation_file(image)
+        with self.io_handler.open(segmentation_file, "rb") as fp:
+            with PngImageFile(fp) as png_image:
+                # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                data = np.array(png_image)
+                if data.ndim == 2:
+                    return data
+                elif data.ndim == 3:
+                    return data[:, :, 0]
+
+                    # TODO we can optionally return also the instances and scores:
+                    # instances = (
+                    #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                    # )
+                    # scores = data[:, :, 3].astype(np.float32) / 256.0
+                else:
+                    raise IndexError
 
     def save_undistorted_segmentation(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image segmentation."""
