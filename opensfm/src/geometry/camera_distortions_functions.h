@@ -5,6 +5,7 @@
 #include <geometry/functions.h>
 
 #include <array>
+#include <stdexcept>
 
 namespace geometry {
 /* Parameter is : k1 */
@@ -484,6 +485,206 @@ struct Disto62 : Functor<2, 8, 2> {
                                       const T& p1, const T& p2) {
     return Vec2<T>(T(2.0) * p1 * x * y + p2 * (r2 + T(2.0) * x * x),
                    T(2.0) * p2 * x * y + p1 * (r2 + T(2.0) * y * y));
+  }
+};
+
+/* Parameters are : k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3 */
+struct Disto624 : Functor<2, 12, 2> {
+  enum { K1 = 0, K2 = 1, K3 = 2, K4 = 3, K5 = 4, K6 = 5, P1 = 6, P2 = 7, S0 = 8, S1 = 9, S2 = 10, S3 = 11 };
+
+  template <class T>
+  static void Forward(const T* point, const T* k, T* distorted) {
+    const auto r2 = SquaredNorm(point);
+
+    // Radial
+    const auto distortion_radial =
+        Disto62::RadialDistortion(r2, k[static_cast<int>(K1)], k[static_cast<int>(K2)],
+                                  k[static_cast<int>(K3)], k[static_cast<int>(K4)],
+                                  k[static_cast<int>(K5)], k[static_cast<int>(K6)]);
+
+    // Tangential
+    const auto distortion_tangential =
+        Disto62::TangentialDistortion(r2, point[0], point[1], k[static_cast<int>(P1)],
+                                      k[static_cast<int>(P2)]);
+
+    // Thin prism
+    const auto distortion_thin_prism =
+        ThinPrismDistortion(r2,
+                            k[static_cast<int>(S0)],
+                            k[static_cast<int>(S1)],
+                            k[static_cast<int>(S2)],
+                            k[static_cast<int>(S3)]);
+
+    distorted[0] = point[0] * distortion_radial + distortion_tangential[0] + distortion_thin_prism[0];
+    distorted[1] = point[1] * distortion_radial + distortion_tangential[1] + distortion_thin_prism[1];
+  }
+
+  template <class T, bool DERIV_PARAMS>
+  static void ForwardDerivatives(const T* point, const T* k, T* distorted,
+                                 T* jacobian) {
+    constexpr int stride = Stride<DERIV_PARAMS>();
+    const auto& k1 = k[static_cast<int>(K1)];
+    const auto& k2 = k[static_cast<int>(K2)];
+    const auto& k3 = k[static_cast<int>(K3)];
+    const auto& k4 = k[static_cast<int>(K4)];
+    const auto& k5 = k[static_cast<int>(K5)];
+    const auto& k6 = k[static_cast<int>(K6)];
+    const auto& p1 = k[static_cast<int>(P1)];
+    const auto& p2 = k[static_cast<int>(P2)];
+    const auto& s0 = k[static_cast<int>(S0)];
+    const auto& s1 = k[static_cast<int>(S1)];
+    const auto& s2 = k[static_cast<int>(S2)];
+    const auto& s3 = k[static_cast<int>(S3)];
+    const auto& x = point[0];
+    const auto& y = point[1];
+
+    const auto x2 = x * x;
+    const auto y2 = y * y;
+    const auto r2 = x2 + y2;
+    const auto r2_2 = r2 * r2;
+    const auto r2_3 = r2_2 * r2;
+    const auto r2_4 = r2_3 * r2;
+    const auto r2_5 = r2_4 * r2;
+
+    // Compute tangential distortion separatedly
+    const auto dx_dxt = T(2.0) * y * p1 + T(6.0) * p2 * x;
+    const auto dx_dyt = T(2.0) * x * p1 + T(2.0) * p2 * y;
+    const auto dy_dxt = dx_dyt;  // == dx_dyt
+    const auto dy_dyt = T(2.0) * x * p2 + T(6.0) * p1 * y;
+    // Compute thin prism distortion separately as well
+    const auto dx_dx_tp = s0 * T(2.0) * x + s1 * T(4.0) * x * r2;
+    const auto dx_dy_tp = s0 * T(2.0) * y + s1 * T(4.0) * y * r2;
+    const auto dy_dx_tp = s2 * T(2.0) * x + s3 * T(4.0) * x * r2;
+    const auto dy_dy_tp = s2 * T(2.0) * y + s3 * T(4.0) * y * r2;
+    // Computing the deriv. of the rad dist. p(x,y):
+    // For x: d x * p(x,y)/ dx = p(x,y) + x * dp(x,y)/dy
+    // and simplify dp(x,y)/dx = dp/dr * dr/dx
+    const auto p = Disto62::RadialDistortion(r2, k1, k2, k3, k4, k5, k6);
+    const auto dr_dx = T(2.0) * x;  // dr/dx = (x^2 + y^2)' = 2x
+    const auto dr_dy = T(2.0) * y;  // dr/dy = (x^2 + y^2)' = 2y
+    const auto dp_dr = k1 + T(2.0) * k2 * r2 + T(3.0) * k3 * r2_2 +
+                       T(4.0) * k4 * r2_3 + T(5.0) * k5 * r2_4 +
+                       T(6.0) * k6 * r2_5;
+    jacobian[0] = p + x * dp_dr * dr_dx + dx_dxt + dx_dx_tp;
+    jacobian[1] = x * dp_dr * dr_dy + dx_dyt + dx_dy_tp;
+    jacobian[stride + 0] = y * dp_dr * dr_dx + dy_dxt + dy_dx_tp;
+    jacobian[stride + 1] = p + y * dp_dr * dr_dy + dy_dyt + dy_dy_tp;
+
+    if (DERIV_PARAMS) {
+      const auto r2_6 = r2_5 * r2;
+      // K1 - K6
+      jacobian[2] = x * r2;
+      jacobian[3] = x * r2_2;
+      jacobian[4] = x * r2_3;
+      jacobian[5] = x * r2_4;
+      jacobian[6] = x * r2_5;
+      jacobian[7] = x * r2_6;
+      // P1 - P2
+      jacobian[8] = T(2.0) * x * y;
+      jacobian[9] = T(3.0) * x2 + y2;
+      // S0 - S3
+      jacobian[10] = r2;
+      jacobian[11] = r2_2;
+      jacobian[12] = 0.0;
+      jacobian[13] = 0.0;
+      // K1 - K6
+      jacobian[stride + 2] = y * r2;
+      jacobian[stride + 3] = y * r2_2;
+      jacobian[stride + 4] = y * r2_3;
+      jacobian[stride + 5] = y * r2_4;
+      jacobian[stride + 6] = y * r2_5;
+      jacobian[stride + 7] = y * r2_6;
+      // P1 - P2
+      jacobian[stride + 8] = T(3.0) * y2 + x2;
+      jacobian[stride + 9] = jacobian[8];
+      // S0 - S3
+      jacobian[stride + 10] = 0.0;
+      jacobian[stride + 11] = 0.0;
+      jacobian[stride + 12] = r2;
+      jacobian[stride + 13] = r2_2;
+    }
+
+    Forward(point, k, distorted);
+  }
+
+  template <class T>
+  static void Backward(const T* point, const T* k, T* undistorted) {
+    /* Beware if you use Backward together with autodiff. You'll need to remove
+     * the line below, otherwise, derivatives won't be propagated */
+    const T rd = sqrt(SquaredNorm(point));
+    if (rd < T(std::numeric_limits<double>::epsilon())) {
+      undistorted[0] = point[0];
+      undistorted[1] = point[1];
+    }
+    Eigen::Map<const Vec2<T>> mapped_point(point);
+    // Compute undistorted radius
+    DistoEval<T> eval_function{mapped_point,
+                               k[static_cast<int>(K1)],
+                               k[static_cast<int>(K2)],
+                               k[static_cast<int>(K3)],
+                               k[static_cast<int>(K4)],
+                               k[static_cast<int>(K5)],
+                               k[static_cast<int>(K6)],
+                               k[static_cast<int>(P1)],
+                               k[static_cast<int>(P2)],
+                               k[static_cast<int>(S0)],
+                               k[static_cast<int>(S1)],
+                               k[static_cast<int>(S2)],
+                               k[static_cast<int>(S3)]};
+    Eigen::Map<Vec2<T>> mapped_undistorted(undistorted);
+    mapped_undistorted =
+        foundation::NewtonRaphson<DistoEval<T>, 2, 2,
+                                  foundation::ManualDiff<DistoEval<T>, 2, 2>>(
+            eval_function, mapped_point, iterations);
+  }
+
+  static constexpr int iterations = 10;
+  template <class T>
+  struct DistoEval {
+    const Vec2<T>& point_distorted;
+    const T& k1;
+    const T& k2;
+    const T& k3;
+    const T& k4;
+    const T& k5;
+    const T& k6;
+    const T& p1;
+    const T& p2;
+    const T& s0;
+    const T& s1;
+    const T& s2;
+    const T& s3;
+    Vec2<T> operator()(const Vec2<T>& point) const {
+      const T r2 = point.squaredNorm();
+      const auto distortion_radial =
+          Disto62::RadialDistortion(r2, k1, k2, k3, k4, k5, k6);
+
+      const auto distortion_tangential =
+          Disto62::TangentialDistortion(r2, point[0], point[1], p1, p2);
+
+      const auto distortion_thin_prism =
+          ThinPrismDistortion(r2, s0, s1, s2, s3);
+
+      return point * distortion_radial + distortion_tangential + distortion_thin_prism -
+             point_distorted;
+    }
+
+    Mat2<T> derivative(const Vec2<T>& point) const {
+      Mat2<T> jacobian;
+      std::array<double, 2> dummy;
+      std::array<double, 12> ks{k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3};
+      Disto624::ForwardDerivatives<T, false>(point.data(), ks.data(),
+                                             dummy.data(), jacobian.data());
+      return jacobian;
+    }
+  };
+
+  template <class T>
+  static Vec2<T> ThinPrismDistortion(const T& r2,
+                                     const T& s0, const T& s1,
+                                     const T& s2, const T& s3) {
+    return Vec2<T>(s0 * r2 + s1 * r2 * r2,
+                   s2 * r2 + s3 * r2 * r2);
   }
 };
 
