@@ -39,9 +39,9 @@ struct GroundControlPoint {
   }
 
   void SetLla(double lat, double lon, double alt) {
-    lla_.insert_or_assign("latitude", lat);
-    lla_.insert_or_assign("longitude", lon);
-    lla_.insert_or_assign("altitude", alt);
+    lla_["latitude"] = lat;
+    lla_["longitude"] = lon;
+    lla_["altitude"] = alt;
     has_altitude_ = true;
   }
 

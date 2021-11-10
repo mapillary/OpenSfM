@@ -1,10 +1,12 @@
 from typing import Optional
 
-from opensfm import geo
 import opensfm.synthetic_data.synthetic_scene as ss
+from opensfm import geo
 
 
-def synthetic_circle_scene(reference: Optional[geo.TopocentricConverter] = None):
+def synthetic_circle_scene(
+    reference: Optional[geo.TopocentricConverter] = None, with_panoshot: bool = False
+):
     scene_length = 60
     points_count = 5000
     generator = ss.get_scene_generator("circle", scene_length)
@@ -13,14 +15,14 @@ def synthetic_circle_scene(reference: Optional[geo.TopocentricConverter] = None)
         [0.2, 0.2, 0.01]
     )
 
+    # regular sequence
     camera_height = 1.5
     camera_interval = 3
     position_perturbation = [0.2, 0.2, 0.01]
     rotation_perturbation = 0.2
-    camera = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
+    camera1 = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
     scene.add_camera_sequence(
-        camera,
-        0,
+        camera1,
         scene_length,
         camera_height,
         camera_interval,
@@ -28,6 +30,30 @@ def synthetic_circle_scene(reference: Optional[geo.TopocentricConverter] = None)
         rotation_perturbation,
         None,
     )
+
+    # panoshot sequence
+    if with_panoshot:
+        panoshot_size = 1e-6
+        panoshot_count = 6
+        panoshot_interval = panoshot_size / panoshot_count
+        position_perturbation = [
+            panoshot_interval,
+            panoshot_interval,
+            panoshot_interval,
+        ]
+        rotation_perturbation = 3.14
+        camera2 = ss.get_camera("perspective", "2", 0.5, -0.1, 0.01)
+        scene.add_camera_sequence(
+            camera2,
+            1.0,
+            camera_height,
+            panoshot_interval,
+            position_perturbation,
+            rotation_perturbation,
+            None,
+            panoshot_size,
+        )
+
     return scene
 
 
@@ -71,7 +97,6 @@ def synthetic_rig_scene(reference: Optional[geo.TopocentricConverter] = None):
         cameras,
         relative_positions,
         relative_rotations,
-        0,
         scene_length,
         camera_height,
         camera_interval,
