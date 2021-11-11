@@ -69,6 +69,26 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
                 obj.get("p2", 0.0),
             ],
         )
+    elif pt == "fisheye624":
+        camera = pygeometry.Camera.create_fisheye624(
+            obj["focal_x"],
+            obj["focal_y"] / obj["focal_x"],
+            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
+            [
+                obj.get("k1", 0.0),
+                obj.get("k2", 0.0),
+                obj.get("k3", 0.0),
+                obj.get("k4", 0.0),
+                obj.get("k5", 0.0),
+                obj.get("k6", 0.0),
+                obj.get("p1", 0.0),
+                obj.get("p2", 0.0),
+                obj.get("s0", 0.0),
+                obj.get("s1", 0.0),
+                obj.get("s2", 0.0),
+                obj.get("s3", 0.0),
+            ],
+        )
     elif pt == "radial":
         camera = pygeometry.Camera.create_radial(
             obj["focal_x"],
@@ -372,6 +392,28 @@ def camera_to_json(camera) -> Dict[str, Any]:
             "p1": camera.p1,
             "p2": camera.p2,
         }
+    elif camera.projection_type == "fisheye624":
+        return {
+            "projection_type": camera.projection_type,
+            "width": camera.width,
+            "height": camera.height,
+            "focal_x": camera.focal,
+            "focal_y": camera.focal * camera.aspect_ratio,
+            "c_x": camera.principal_point[0],
+            "c_y": camera.principal_point[1],
+            "k1": camera.k1,
+            "k2": camera.k2,
+            "k3": camera.k3,
+            "k4": camera.k4,
+            "k5": camera.k5,
+            "k6": camera.k6,
+            "p1": camera.p1,
+            "p2": camera.p2,
+            "s0": camera.s0,
+            "s1": camera.s1,
+            "s2": camera.s2,
+            "s3": camera.s3,
+        }
     elif camera.projection_type == "simple_radial":
         return {
             "projection_type": camera.projection_type,
@@ -640,6 +682,11 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_fisheye62(
             fx, fy / fx, [cx, cy], [k1, k2, k3, k4, k5, k6, p1, p2]
         )
+    elif projection_type == "fisheye624":
+        fx, fy, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3 = parameters
+        camera = pygeometry.Camera.create_fisheye624(
+            fx, fy / fx, [cx, cy], [k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3]
+        )
     elif projection_type == "radial":
         fx, fy, cx, cy, k1, k2 = parameters
         camera = pygeometry.Camera.create_radial(fx, fy / fx, [cx, cy], [k1, k2])
@@ -702,6 +749,25 @@ def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
             camera.k6,
             camera.p1,
             camera.p2,
+        ]
+    elif camera.projection_type == "fisheye624":
+        parameters = [
+            camera.focal,
+            camera.focal * camera.aspect_ratio,
+            camera.principal_point[0],
+            camera.principal_point[1],
+            camera.k1,
+            camera.k2,
+            camera.k3,
+            camera.k4,
+            camera.k5,
+            camera.k6,
+            camera.p1,
+            camera.p2,
+            camera.s0,
+            camera.s1,
+            camera.s2,
+            camera.s3,
         ]
     elif camera.projection_type == "radial":
         parameters = [
