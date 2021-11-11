@@ -244,6 +244,32 @@ def test_fisheye62_camera():
     assert cam_cpp.aspect_ratio == c.aspect_ratio
 
 
+def test_fisheye624_camera():
+    rec = types.Reconstruction()
+    focal = 0.6
+    aspect_ratio = 0.7
+    ppoint = [0.51, 0.52]
+    dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]  # [k1-k6, p1, p2, s0-s3]
+    cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
+    cam_cpp.width = 800
+    cam_cpp.height = 600
+    cam_cpp.id = "cam"
+    c = rec.add_camera(cam_cpp)
+    _check_common_cam_properties(cam_cpp, c)
+
+    # The specific parameters
+    assert cam_cpp.k1 == c.k1 and cam_cpp.k2 == c.k2
+    assert cam_cpp.k3 == c.k3 and cam_cpp.k4 == c.k4
+    assert cam_cpp.k5 == c.k5 and cam_cpp.k6 == c.k6
+    assert cam_cpp.p1 == c.p1 and cam_cpp.p2 == c.p2
+    assert cam_cpp.s0 == c.s0 and cam_cpp.s1 == c.s1
+    assert cam_cpp.s2 == c.s2 and cam_cpp.s3 == c.s3
+    assert len(dist) == len(c.distortion)
+    assert np.allclose(cam_cpp.distortion, c.distortion)
+    assert cam_cpp.focal == c.focal
+    assert cam_cpp.aspect_ratio == c.aspect_ratio
+
+
 def test_dual_camera():
     rec = types.Reconstruction()
     focal = 0.6

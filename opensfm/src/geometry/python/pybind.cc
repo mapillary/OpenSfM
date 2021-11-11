@@ -18,6 +18,7 @@ PYBIND11_MODULE(pygeometry, m) {
       .value("FISHEYE", geometry::ProjectionType::FISHEYE)
       .value("FISHEYE_OPENCV", geometry::ProjectionType::FISHEYE_OPENCV)
       .value("FISHEYE62", geometry::ProjectionType::FISHEYE62)
+      .value("FISHEYE624", geometry::ProjectionType::FISHEYE624)
       .value("DUAL", geometry::ProjectionType::DUAL)
       .value("SPHERICAL", geometry::ProjectionType::SPHERICAL)
       .value("RADIAL", geometry::ProjectionType::RADIAL)
@@ -35,6 +36,10 @@ PYBIND11_MODULE(pygeometry, m) {
       .value("k6", geometry::Camera::Parameters::K6)
       .value("p1", geometry::Camera::Parameters::P1)
       .value("p2", geometry::Camera::Parameters::P2)
+      .value("s0", geometry::Camera::Parameters::S0)
+      .value("s1", geometry::Camera::Parameters::S1)
+      .value("s2", geometry::Camera::Parameters::S2)
+      .value("s3", geometry::Camera::Parameters::S3)
       .value("cx", geometry::Camera::Parameters::Cx)
       .value("cy", geometry::Camera::Parameters::Cy)
       .value("transition", geometry::Camera::Parameters::Transition)
@@ -49,6 +54,7 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_static("create_fisheye_opencv",
                   &geometry::Camera::CreateFisheyeOpencvCamera)
       .def_static("create_fisheye62", &geometry::Camera::CreateFisheye62Camera)
+      .def_static("create_fisheye624", &geometry::Camera::CreateFisheye624Camera)
       .def_static("create_dual", &geometry::Camera::CreateDualCamera)
       .def_static("create_spherical", &geometry::Camera::CreateSphericalCamera)
       .def_static("create_radial", &geometry::Camera::CreateRadialCamera)
@@ -136,7 +142,11 @@ PYBIND11_MODULE(pygeometry, m) {
                                       geometry::Camera::Parameters::K5,
                                       geometry::Camera::Parameters::K6,
                                       geometry::Camera::Parameters::P1,
-                                      geometry::Camera::Parameters::P2};
+                                      geometry::Camera::Parameters::P2,
+                                      geometry::Camera::Parameters::S0,
+                                      geometry::Camera::Parameters::S1,
+                                      geometry::Camera::Parameters::S2,
+                                      geometry::Camera::Parameters::S3};
             for (const auto type : disto_types) {
               auto find_param = values_map.find(type);
               if (find_param != values_map.end()) {
@@ -157,7 +167,7 @@ PYBIND11_MODULE(pygeometry, m) {
               if (type_int >=
                       static_cast<int>(geometry::Camera::Parameters::K1) &&
                   type_int <=
-                      static_cast<int>(geometry::Camera::Parameters::P2)) {
+                      static_cast<int>(geometry::Camera::Parameters::S3)) {
                 p.SetParameterValue(types[i], distortion(count++));
               }
             }
@@ -222,6 +232,26 @@ PYBIND11_MODULE(pygeometry, m) {
           "p2",
           [](const geometry::Camera& c) {
             return c.GetParameterValue(geometry::Camera::Parameters::P2);
+          })
+      .def_property_readonly(
+          "s0",
+          [](const geometry::Camera& c) {
+            return c.GetParameterValue(geometry::Camera::Parameters::S0);
+          })
+      .def_property_readonly(
+          "s1",
+          [](const geometry::Camera& c) {
+            return c.GetParameterValue(geometry::Camera::Parameters::S1);
+          })
+      .def_property_readonly(
+          "s2",
+          [](const geometry::Camera& c) {
+            return c.GetParameterValue(geometry::Camera::Parameters::S2);
+          })
+      .def_property_readonly(
+          "s3",
+          [](const geometry::Camera& c) {
+            return c.GetParameterValue(geometry::Camera::Parameters::S3);
           })
       .def(py::pickle(
           [](const geometry::Camera& p) {
