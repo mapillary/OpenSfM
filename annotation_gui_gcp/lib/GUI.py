@@ -56,6 +56,10 @@ class Gui:
         options.append("None (3d-to-2d)")
         return options
 
+    def sync_to_client(self) -> None:
+        for view in self.sequence_views + self.cad_views + [self.tools_view]:
+            view.sync_to_client()
+
     def create_ui(self, cad_paths):
         subpane_routes = []
         has_views_that_need_tracking = len(cad_paths) > 0
@@ -163,7 +167,6 @@ class Gui:
             self.sticky_zoom.set(True)
 
     def populate_gcp_list(self):
-        # self.tools_view.sync_to_client()
         pass
 
     def remove_gcp(self):

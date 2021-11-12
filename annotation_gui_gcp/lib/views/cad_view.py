@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Dict, Any
 
 import rasterio
 from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
@@ -46,14 +47,12 @@ class CADView(WebView):
     def get_model(self):
         return send_file(self.cad_path, mimetype="application/octet-stream")
 
-    def process_client_message(self, data):
+    def process_client_message(self, data: Dict[str, Any]) -> None:
         event = data["event"]
         if event == "add_or_update_point_observation":
             self.add_remove_update_point_observation(point_coordinates=data["xyz"])
         elif event == "remove_point_observation":
             self.add_remove_update_point_observation(None)
-        elif event in ("sync", "init"):
-            return
         else:
             raise ValueError(f"Unknown event {event}")
 
@@ -85,8 +84,7 @@ class CADView(WebView):
         self.main_ui.populate_gcp_list()
 
     def display_points(self):
-        # Update the client with the new data
-        self.sync_to_client()
+        pass
 
     def refocus(self, lat, lon):
         x, y, z = self.latlon_to_xyz(lat, lon)

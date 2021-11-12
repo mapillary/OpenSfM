@@ -1,3 +1,5 @@
+from typing import Dict, Any
+
 from annotation_gui_gcp.lib.views.web_view import WebView
 
 
@@ -52,19 +54,12 @@ class ImageView(WebView):
         self.main_ui.populate_gcp_list()
 
     def display_points(self):
-        self.sync_to_client()
         pass
 
     def highlight_gcp_reprojection(self, *args, **kwargs):
-        # Data sent along with the rest of the state in sync_to_client.
-        # This extra call might be redundant
-        # self.sync_to_client()
         pass
 
     def populate_image_list(self, *args, **kwargs):
-        # Data sent along with the rest of the state in sync_to_client.
-        # This extra call might be redundant
-        # self.sync_to_client()
         pass
 
     def sync_to_client(self):
@@ -92,11 +87,13 @@ class ImageView(WebView):
 
         self.send_sse_message(data)
 
-    def process_client_message(self, data):
+    def process_client_message(self, data: Dict[str, Any]) -> None:
         command = data["event"]
-        print(data)
-        if command == "init":
-            return
+        if command not in (
+            "add_or_update_point_observation",
+            "remove_point_observation",
+        ):
+            raise ValueError(f"Unknown commmand {command}")
 
         if data["point_id"] != self.main_ui.curr_point:
             print(data["point_id"], self.main_ui.curr_point)
@@ -107,9 +104,7 @@ class ImageView(WebView):
             self.add_remove_update_point_observation(
                 image_id=data["image_id"], point_coordinates=data["xy"]
             )
-        elif command == "remove_point_observation":
+        else:  # == "remove_point_observation":
             self.add_remove_update_point_observation(
                 image_id=data["image_id"], point_coordinates=None
             )
-        else:
-            raise ValueError
