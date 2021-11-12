@@ -3,7 +3,7 @@ import logging
 import math
 from collections import defaultdict
 from itertools import combinations
-from typing import Tuple, List, Set, Dict, Iterable, Any
+from typing import Optional, Tuple, List, Set, Dict, Iterable, Any
 
 import numpy as np
 import scipy.spatial as spatial
@@ -362,7 +362,6 @@ def match_candidates_with_vlad(
         histograms,
     )
 
-    vlad.instance.clear_cache()
     return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
 
 
@@ -694,17 +693,33 @@ def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.nd
     return histograms
 
 
+def vlad_histogram_unwrap_args(
+    args: Tuple[DataSetBase, str]
+) -> Optional[Tuple[str, np.ndarray]]:
+    """Helper function for multithreaded VLAD computation.
+
+    Returns the image and its descriptor.
+    """
+    data, image = args
+    vlad_descriptor = vlad.instance.vlad_histogram(data, image)
+    if vlad_descriptor is not None:
+        return image, vlad_descriptor
+    return None
+
+
 def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, np.ndarray]:
     """Construct VLAD histograms from the image features.
 
     Returns a dictionary of VLAD vectors for the images.
     """
-    vlads = {}
-    for im in images:
-        im_vlad = vlad.instance.vlad_histogram(data, im)
-        if im_vlad is not None:
-            vlads[im] = im_vlad
-    return vlads
+    batch_size = 4
+    vlads = context.parallel_map(
+        vlad_histogram_unwrap_args,
+        [(data, image) for image in images],
+        data.config["processes"],
+        batch_size,
+    )
+    return {v[0]: v[1] for v in vlads if v}
 
 
 def pairs_from_neighbors(

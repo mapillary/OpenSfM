@@ -1,11 +1,10 @@
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include <features/akaze_bind.h>
 #include <features/hahog.h>
 #include <features/matching.h>
 #include <foundation/python_types.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 PYBIND11_MODULE(pyfeatures, m) {
   py::enum_<DESCRIPTOR_TYPE>(m, "AkazeDescriptorType")
@@ -55,4 +54,6 @@ PYBIND11_MODULE(pyfeatures, m) {
         py::arg("use_adaptive_suppression") = false);
 
   m.def("match_using_words", features::match_using_words);
+  m.def("compute_vlad_descriptor", features::compute_vlad_descriptor,
+        py::call_guard<py::gil_scoped_release>());
 }
