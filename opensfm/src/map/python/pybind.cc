@@ -179,6 +179,8 @@ PYBIND11_MODULE(pymap, m) {
                              py::return_value_policy::reference_internal)
       .def("get_landmark_observation", &map::Shot::GetLandmarkObservation,
            py::return_value_policy::reference_internal)
+      .def("get_observation_landmark", &map::Shot::GetObservationLandmark,
+           py::return_value_policy::reference_internal)
       .def("project", &map::Shot::Project)
       .def("project_many", &map::Shot::ProjectMany)
       .def("bearing", &map::Shot::Bearing)

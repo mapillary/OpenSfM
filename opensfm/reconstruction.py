@@ -813,6 +813,15 @@ def resect_reconstruction(
     threshold: float,
     min_inliers: int,
 ) -> Tuple[bool, np.ndarray, List[Tuple[str, str]]]:
+    """Compute a similarity transform `similarity` such as :
+
+    reconstruction2 = T . reconstruction1
+
+    between two reconstruction 'reconstruction1' and 'reconstruction2'.
+
+    Their respective tracks managers are used to find common tracks that
+    are further used to compute the 3D similarity transform T using RANSAC.
+    """
 
     common_tracks = compute_common_tracks(
         reconstruction1, reconstruction2, tracks_manager1, tracks_manager2
@@ -1139,7 +1148,9 @@ def align_two_reconstruction(
     common_tracks: List[Tuple[str, str]],
     threshold: float,
 ) -> Tuple[bool, Optional[np.ndarray], List[int]]:
-    """Estimate similarity transform between two reconstructions."""
+    """Estimate similarity transform T between two,
+    reconstructions r1 and r2 such as r2 = T . r1
+    """
     t1, t2 = r1.points, r2.points
 
     if len(common_tracks) > 6:
