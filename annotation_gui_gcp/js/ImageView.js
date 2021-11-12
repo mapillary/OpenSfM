@@ -8,6 +8,7 @@ let currentImageID;
 let currentImageScale;
 const RedirectCache = {};
 let maxImageSize = 1024;
+const preloadLock = new Set()
 window.addEventListener('DOMContentLoaded', onDOMLoaded);
 
 function onDOMLoaded() {
@@ -18,8 +19,8 @@ function onDOMLoaded() {
 }
 
 function changeImage(image_key) {
-    preloadNeigbors(image_key);
     image.onload = function () {
+        preloadNeigbors(image_key);
         resizeCanvas();
         displayImage(image_key);
         drawMeasurements();
@@ -85,9 +86,11 @@ function populateImageList(points) {
 
 function preloadImage(key){
     const url = `${window.location.href}/image/${maxImageSize}/${key}`;
-    if (!(url in RedirectCache)){
+    if (!(url in RedirectCache) && !(preloadLock.has(url))){
+        preloadLock.add(url);
         const req = new XMLHttpRequest();
         req.onload = function () {
+            preloadLock.delete(url);
             RedirectCache[url] = req.responseURL;
         };
         req.open("GET", url, true);
@@ -96,7 +99,7 @@ function preloadImage(key){
 }
 
 function preloadNeigbors(image_key){
-    // Preloads the neighbors of this image so that navigation is snappy
+    // Find the index of the current image
     let image_index;
     for (let i = 0; i < imageListBox.options.length; i++) {
         if (image_key == imageListBox.options[i].value){
@@ -104,13 +107,13 @@ function preloadNeigbors(image_key){
             break;
         }
     }
+    // Preload the neighbors
     for (let i = 0; i < imageListBox.options.length; i++) {
         const image_key = imageListBox.options[i].value;
-        if (Math.abs(i - image_index) < 10){
+        if (i != image_index && Math.abs(i - image_index) < 10){
             preloadImage(image_key);
         }
     }
-
 }
 
 function populateMeasurements(points) {
