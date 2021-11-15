@@ -1,4 +1,5 @@
 import copy
+import sys
 
 import cv2
 import numpy as np
@@ -247,3 +248,70 @@ def test_pixel_to_normalized_conversion():
     )
     assert np.allclose(px_coord, px_coord_comp1)
     assert np.allclose(px_coord, px_coord_comp2)
+
+
+def test_shot_view_ref_count():
+    """Test that accessing shots via shot views maintains the map alive."""
+    rec = types.Reconstruction()
+    camera1 = pygeometry.Camera.create_spherical()
+    camera1.id = "camera1"
+    rec.add_camera(camera1)
+    rec.create_shot("shot1", "camera1", pygeometry.Pose())
+    rec.create_shot("shot2", "camera1", pygeometry.Pose())
+
+    # The reconstruction has ref count = 2
+    count = sys.getrefcount(rec)
+    assert count == 2
+
+    # The map has a bigger ref count because all the views are referencing it
+    count = sys.getrefcount(rec.map)
+    assert count == 9
+
+    # The shot_view starts with ref count = 2
+    base_count = sys.getrefcount(rec.shot_view)
+    assert base_count == 2
+
+    # The getting a shot raises shot_view's ref count
+    shot = rec.shot_view["shot1"]
+    count = sys.getrefcount(rec.shot_view)
+    assert count == 3
+
+    # Creating an iterator also raises shot_view's ref count
+    vals = rec.shot_view.values()
+    count = sys.getrefcount(rec.shot_view)
+    assert count == 4
+
+    # Deleting the shot decreases the ref count
+    del shot
+    count = sys.getrefcount(rec.shot_view)
+    assert count == 3
+
+    # Deleting the iterator also decreases the ref count
+    del vals
+    count = sys.getrefcount(rec.shot_view)
+    assert count == 2
+
+
+def _return_shot() -> pymap.Shot:
+    """Create a reconstruction and return a shot from it.
+
+    After leaving this function, the reconstruction object will no-longer
+    exist but the shot should keep alive the Map object it belongs to.
+    """
+    rec = types.Reconstruction()
+    camera1 = pygeometry.Camera.create_spherical()
+    camera1.id = "camera1"
+    rec.add_camera(camera1)
+    rec.create_shot("shot1", "camera1", pygeometry.Pose())
+    return rec.shots["shot1"]
+
+
+def test_return_shot_from_local_reconstruction():
+    """Test that one can create a reconstruciton and return shots from it.
+
+    Without proper ref counting in the python bindings, this crashes as the
+    map object is destroyed before returning the shot.
+    """
+    shot = _return_shot()
+    assert shot.id == "shot1"
+    assert shot.camera.id == "camera1"
