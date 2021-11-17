@@ -1,6 +1,11 @@
 from typing import Dict, Any
 
-from annotation_gui_gcp.lib.views.web_view import WebView
+from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+
+
+def point_color(point_id: str) -> str:
+    hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
+    return hex_color
 
 
 class ImageView(WebView):
@@ -78,12 +83,11 @@ class ImageView(WebView):
         data = {
             "points": all_points_this_view,
             "selected_point": self.main_ui.curr_point,
+            "colors": {
+                point_id: point_color(point_id)
+                for point_id in self.main_ui.gcp_manager.points
+            },
         }
-
-        # for point_id, coords in visible_points_coords.items():
-        #     hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
-        #     color = ImageColor.getrgb(hex_color)
-        #     data["annotations"][point_id] = {"coordinates": coords, "color": color}
 
         self.send_sse_message(data)
 

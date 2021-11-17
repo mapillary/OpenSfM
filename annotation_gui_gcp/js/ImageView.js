@@ -9,6 +9,7 @@ let currentImageScale;
 const RedirectCache = {};
 let maxImageSize = 1024;
 const preloadLock = new Set()
+let pointColors = {};
 window.addEventListener('DOMContentLoaded', onDOMLoaded);
 
 function onDOMLoaded() {
@@ -136,6 +137,7 @@ function populateMeasurements(points) {
 }
 
 function onSyncHandler(data) {
+    pointColors = data["colors"];
     populateImageList(data["points"]);
     populateMeasurements(data["points"]);
     currentPointID = data["selected_point"];
@@ -179,23 +181,30 @@ class Measurement {
         this.norm_y = y;
         this.id = id;
         this.image_id = image_id;
-        this.radius_px = 10;
+        this.norm_radius = 0.004;
     }
 }
 
-function drawOneMeasurement(measurement) {
-    // Draw measurement
-    const normalizer = Math.max(image.width, image.height);
-    const x = (image.width / 2 + measurement.norm_x * normalizer) * currentImageScale;
-    const y = (image.height / 2 + measurement.norm_y * normalizer) * currentImageScale;
-    const radius_px = measurement.radius_px * currentImageScale;
+function drawCircle(x, y, radius_px, color){
     context.beginPath();
     context.arc(x, y, radius_px, 0, 2 * Math.PI, false);
     // context.fillStyle = 'red';
     // context.fill();
     context.lineWidth = Math.max(1, Math.min(10, radius_px / 10));
-    context.strokeStyle = '#000';
+    context.strokeStyle = color;
     context.stroke();
+}
+
+function drawOneMeasurement(measurement) {
+    // Draw measurement
+    const color = pointColors[measurement.id];
+    const normalizer = Math.max(image.width, image.height);
+    const x = (image.width / 2 + measurement.norm_x * normalizer) * currentImageScale;
+    const y = (image.height / 2 + measurement.norm_y * normalizer) * currentImageScale;
+    const radius_px = measurement.norm_radius * normalizer * currentImageScale;
+
+    drawCircle(x, y, radius_px, color);
+    drawCircle(x, y, radius_px * 2, color);
 
     context.font = "20px Arial";
     const markerText = measurement.id;
@@ -226,7 +235,7 @@ function add_or_update_point_observation(measurement) {
     const data = {
         event: "add_or_update_point_observation",
         point_id: measurement.id,
-        radius_px: measurement.radius_px,
+        norm_radius: measurement.norm_radius,
         xy: [measurement.norm_x, measurement.norm_y],
         image_id: measurement.image_id,
     };
