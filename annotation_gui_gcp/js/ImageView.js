@@ -38,6 +38,8 @@ function displayImage(image_key) {
     context.fillStyle = "#FFF";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
+    if (!currentImageID){return;}
+
     // Scale image to fit and draw
     const w = image.width;
     const h = image.height;
@@ -60,14 +62,14 @@ function onImageSelect() {
     changeImage(opt.value);
 }
 
-function populateImageList(points) {
+function populateImageList(images) {
     const L = imageListBox.options.length - 1;
     for (let i = L; i >= 0; i--) {
         imageListBox.remove(i);
     }
 
-    let index = 1;
-    for (let image_id in points) {
+    let index = 0;
+    for (let image_id in images) {
         const opt = document.createElement("option");
         opt.text = index;
         opt.value = image_id;
@@ -75,12 +77,17 @@ function populateImageList(points) {
 
         if (opt.value == currentImageID) {
             opt.style.fontWeight = "bold";
+            imageListBox.selectedIndex = index;;
         }
         index +=1;
     }
 
-    // imageListBox.size = Math.min(20, imageListBox.options.length);
-    imageListBox.value = currentImageID;
+    if (imageListBox.selectedIndex == -1){
+        currentImageID = null;
+    }
+    else{
+        preloadNeigbors(currentImageID);
+    }
     redrawWindow();
 }
 

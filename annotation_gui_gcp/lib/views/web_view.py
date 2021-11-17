@@ -35,6 +35,7 @@ class WebView(abc.ABC):
         self.eventQueue = Queue()
         self.latlons = main_ui.image_manager.load_latlons()
         self.register_routes(route_prefix)
+        self.route_prefix = route_prefix
 
     @abc.abstractclassmethod
     def sync_to_client(self):
