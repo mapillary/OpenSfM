@@ -22657,6 +22657,13 @@
         "Sensor": "20.7 x 13.8 mm", 
         "Sensor res. (height)": 1506.0
     }, 
+    "Skydio 2": {
+        "Sensor height (mm)": 7.564,
+        "Sensor width (mm)": 5.476,
+        "Sensor res. (width)": 4056,
+        "Sensor": "7.564 x 5.476 mm",
+        "Sensor res. (height)": 3040
+    },
     "Sony A77 II": {
         "Sensor height (mm)": 15.6, 
         "Sensor width (mm)": 23.5, 
