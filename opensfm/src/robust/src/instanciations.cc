@@ -100,4 +100,21 @@ ScoreInfo<AbsolutePoseKnownRotation::Type> RANSACAbsolutePoseKnownRotation(
                                                   parameters, ransac_type);
 }
 
+ScoreInfo<Similarity::Type> RANSACSimilarity(
+    const Eigen::Matrix<double, -1, 3>& points1,
+    const Eigen::Matrix<double, -1, 3>& points2, double threshold,
+    const RobustEstimatorParams& parameters, const RansacType& ransac_type) {
+  if ((points1.cols() != points2.cols()) ||
+      (points1.rows() != points2.rows())) {
+    throw std::runtime_error("Features matrices have different sizes.");
+  }
+
+  std::vector<Similarity::Data> samples(points1.rows());
+  for (int i = 0; i < points1.rows(); ++i) {
+    samples[i].first = points1.row(i);
+    samples[i].second = points2.row(i);
+  }
+  return RunEstimation<Similarity>(samples, threshold, parameters, ransac_type);
+}
+
 }  // namespace robust
