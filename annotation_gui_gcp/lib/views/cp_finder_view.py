@@ -20,10 +20,10 @@ class ControlPointFinderView(ImageView):
         for v in self.main_ui.sequence_views:
             images_in_existing_views.extend(v.image_list)
 
-        images_this_point = [
-            obs["shot_id"]
-            for obs in self.main_ui.gcp_manager.points.get(self.main_ui.curr_point, [])
-        ]
+        point = self.main_ui.gcp_manager.points.get(self.main_ui.curr_point)
+        images_this_point = (
+            [obs.image_id for obs in point.observations] if point else []
+        )
 
         # First list those images that are not in any other view
         images_this_point_unaccounted_for = [

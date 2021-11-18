@@ -35,7 +35,7 @@ class ToolsView(WebView):
         Sends all the data required to initialize or sync the tools view
         """
         data = {
-            "points": self.main_ui.gcp_manager.points,
+            "points": self.main_ui.gcp_manager.points_to_json(),
             "selected_point": self.main_ui.curr_point,
         }
         self.send_sse_message(data)
