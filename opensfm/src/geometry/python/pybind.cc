@@ -385,5 +385,6 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_property("scale", &geometry::Similarity::Scale,
                     &geometry::Similarity::SetScale)
       .def("transform", &geometry::Similarity::Transform)
+      .def("inverse", &geometry::Similarity::Inverse)
       .def("get_rotation_matrix", &geometry::Similarity::RotationMatrix);
 }

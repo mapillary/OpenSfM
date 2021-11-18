@@ -23,6 +23,11 @@ class Similarity {
     return scale_ * RotationMatrix() * point + Translation();
   }
 
+  Similarity Inverse() const {
+    return Similarity(Rt_.RotationCameraToWorldMin(),
+                      1.0 / scale_ * Rt_.GetOrigin(), 1.0 / scale_);
+  }
+
   bool IsValid() const { return Rt_.IsValid() && std::isfinite(scale_); }
 
  private:
