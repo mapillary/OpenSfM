@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from opensfm import dataset, undistort
 from opensfm.dataset import DataSet
@@ -6,10 +7,10 @@ from opensfm.dataset import DataSet
 
 def run_dataset(
     data: DataSet,
-    reconstruction: str,
-    reconstruction_index: int,
-    tracks: str,
-    output: str,
+    reconstruction: Optional[str] = None,
+    reconstruction_index: int = 0,
+    tracks: Optional[str] = None,
+    output: str = "undistorted",
     skip_images: bool = False,
 ) -> None:
     """Export reconstruction to NVM_V3 format from VisualSfM
