@@ -28,14 +28,14 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_brown(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
-            [
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
+            np.array([
                 obj.get("k1", 0.0),
                 obj.get("k2", 0.0),
                 obj.get("k3", 0.0),
                 obj.get("p1", 0.0),
                 obj.get("p2", 0.0),
-            ],
+            ]),
         )
     elif pt == "fisheye":
         camera = pygeometry.Camera.create_fisheye(
@@ -45,20 +45,20 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_fisheye_opencv(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
-            [
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
+            np.array([
                 obj.get("k1", 0.0),
                 obj.get("k2", 0.0),
                 obj.get("k3", 0.0),
                 obj.get("k4", 0.0),
-            ],
+            ]),
         )
     elif pt == "fisheye62":
         camera = pygeometry.Camera.create_fisheye62(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
-            [
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
+            np.array([
                 obj.get("k1", 0.0),
                 obj.get("k2", 0.0),
                 obj.get("k3", 0.0),
@@ -67,14 +67,14 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
                 obj.get("k6", 0.0),
                 obj.get("p1", 0.0),
                 obj.get("p2", 0.0),
-            ],
+            ]),
         )
     elif pt == "fisheye624":
         camera = pygeometry.Camera.create_fisheye624(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
-            [
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
+            np.array([
                 obj.get("k1", 0.0),
                 obj.get("k2", 0.0),
                 obj.get("k3", 0.0),
@@ -87,23 +87,23 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
                 obj.get("s1", 0.0),
                 obj.get("s2", 0.0),
                 obj.get("s3", 0.0),
-            ],
+            ]),
         )
     elif pt == "radial":
         camera = pygeometry.Camera.create_radial(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
-            [
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
+            np.array([
                 obj.get("k1", 0.0),
                 obj.get("k2", 0.0),
-            ],
+            ]),
         )
     elif pt == "simple_radial":
         camera = pygeometry.Camera.create_simple_radial(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            [obj.get("c_x", 0.0), obj.get("c_y", 0.0)],
+            np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
             obj.get("k1", 0.0),
         )
     elif pt == "dual":
@@ -461,7 +461,7 @@ def shot_to_json(shot: pymap.Shot) -> Dict[str, Any]:
     """
     Write shot to a json object
     """
-    obj = {
+    obj: Dict[str, Any] = {
         "rotation": list(shot.pose.rotation),
         "translation": list(shot.pose.translation),
         "camera": shot.camera.id,
@@ -667,7 +667,7 @@ def camera_from_vector(
     elif projection_type == "brown":
         fx, fy, cx, cy, k1, k2, p1, p2, k3 = parameters
         camera = pygeometry.Camera.create_brown(
-            fx, fy / fx, [cx, cy], [k1, k2, k3, p1, p2]
+            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2, k3, p1, p2])
         )
     elif projection_type == "fisheye":
         focal, k1, k2 = parameters
@@ -675,24 +675,24 @@ def camera_from_vector(
     elif projection_type == "fisheye_opencv":
         fx, fy, cx, cy, k1, k2, k3, k4 = parameters
         camera = pygeometry.Camera.create_fisheye_opencv(
-            fx, fy / fx, [cx, cy], [k1, k2, k3, k4]
+            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2, k3, k4])
         )
     elif projection_type == "fisheye62":
         fx, fy, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2 = parameters
         camera = pygeometry.Camera.create_fisheye62(
-            fx, fy / fx, [cx, cy], [k1, k2, k3, k4, k5, k6, p1, p2]
+            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2, k3, k4, k5, k6, p1, p2])
         )
     elif projection_type == "fisheye624":
         fx, fy, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3 = parameters
         camera = pygeometry.Camera.create_fisheye624(
-            fx, fy / fx, [cx, cy], [k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3]
+            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3])
         )
     elif projection_type == "radial":
         fx, fy, cx, cy, k1, k2 = parameters
-        camera = pygeometry.Camera.create_radial(fx, fy / fx, [cx, cy], [k1, k2])
+        camera = pygeometry.Camera.create_radial(fx, fy / fx, np.array([cx, cy]), np.array([k1, k2]))
     elif projection_type == "simple_radial":
         fx, fy, cx, cy, k1 = parameters
-        camera = pygeometry.Camera.create_simple_radial(fx, fy / fx, [cx, cy], k1)
+        camera = pygeometry.Camera.create_simple_radial(fx, fy / fx, np.array([cx, cy]), k1)
     elif projection_type == "dual":
         focal, k1, k2, transition = parameters
         camera = pygeometry.Camera.create_dual(transition, focal, k1, k2)

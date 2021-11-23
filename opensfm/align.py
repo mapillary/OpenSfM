@@ -46,7 +46,7 @@ def apply_similarity_pose(
     Rp = R.dot(A.T)
     tp = -Rp.dot(b) + s * t
     pose.set_rotation_matrix(Rp)
-    pose.translation = list(tp)
+    pose.translation = tp
 
 
 def apply_similarity(

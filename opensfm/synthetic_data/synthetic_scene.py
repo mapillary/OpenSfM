@@ -12,13 +12,15 @@ from opensfm import pygeometry, types, pymap, geo
 def get_camera(
     type: str, id: str, focal: float, k1: float, k2: float
 ) -> pygeometry.Camera:
-    camera = None
+    camera: Optional[pygeometry.Camera] = None
     if type == "perspective":
         camera = pygeometry.Camera.create_perspective(focal, k1, k2)
-    if type == "fisheye":
+    elif type == "fisheye":
         camera = pygeometry.Camera.create_fisheye(focal, k1, k2)
-    if type == "spherical":
+    elif type == "spherical":
         camera = pygeometry.Camera.create_spherical()
+    else:
+        raise RuntimeError(f"Invalid camera type {type}")
 
     camera.id = id
 
@@ -68,7 +70,7 @@ def camera_pose(
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
     pose = pygeometry.Pose()
-    pose.set_rotation_matrix([ex, ey, ez])
+    pose.set_rotation_matrix(np.array([ex, ey, ez]))
     pose.set_origin(position)
     return pose
 
@@ -116,7 +118,7 @@ class SyntheticCubeScene(SyntheticScene):
         for i, p in enumerate(points):
             point_id = "point" + str(i)
             pt = self.reconstruction.create_point(point_id, p)
-            pt.color = [100, 100, 20]
+            pt.color = np.array([100, 100, 20])
 
     def get_reconstruction(self) -> types.Reconstruction:
         reconstruction = types.Reconstruction()

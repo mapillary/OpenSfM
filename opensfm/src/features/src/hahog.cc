@@ -11,7 +11,7 @@ extern "C" {
 
 namespace features {
 
-py::object hahog(foundation::pyarray_f image, float peak_threshold,
+py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
                  float edge_threshold, int target_num_features,
                  bool use_adaptive_suppression) {
   if (!image.size()) {
@@ -110,10 +110,10 @@ py::object hahog(foundation::pyarray_f image, float peak_threshold,
     // t_orient)/CLOCKS_PER_SEC << "\n";
   }
 
-  py::list retn;
-  retn.append(foundation::py_array_from_data(&points[0], numFeatures, 4));
-  retn.append(foundation::py_array_from_data(&desc[0], numFeatures, dimension));
-  return std::move(retn);
+  return py::make_tuple(
+    foundation::py_array_from_data(points.data(), numFeatures, 4),
+    foundation::py_array_from_data(desc.data(), numFeatures, dimension)
+  );
 }
 
 }  // namespace features

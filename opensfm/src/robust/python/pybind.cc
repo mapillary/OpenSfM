@@ -17,6 +17,12 @@ void AddScoreType(py::module& m, const std::string& name) {
 }
 
 PYBIND11_MODULE(pyrobust, m) {
+  AddScoreType<Line::Type>(m, "Line");
+  AddScoreType<Eigen::Matrix3d>(m, "Matrix3d");
+  AddScoreType<Eigen::Matrix4d>(m, "Matrix4d");
+  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "Matrix34d");
+  AddScoreType<Eigen::Vector3d>(m, "Vector3d");
+
   py::class_<RobustEstimatorParams>(m, "RobustEstimatorParams")
       .def(py::init())
       .def_readwrite("iterations", &RobustEstimatorParams::iterations)
@@ -47,9 +53,4 @@ PYBIND11_MODULE(pyrobust, m) {
       .value("MSAC", RansacType::MSAC)
       .value("LMedS", RansacType::LMedS)
       .export_values();
-  AddScoreType<Line::Type>(m, "Line");
-  AddScoreType<Eigen::Matrix3d>(m, "Matrix3d");
-  AddScoreType<Eigen::Matrix4d>(m, "Matrix4d");
-  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "Matrix34d");
-  AddScoreType<Eigen::Vector3d>(m, "Vector3d");
 }
