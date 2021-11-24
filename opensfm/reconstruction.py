@@ -907,7 +907,7 @@ class TrackTriangulator:
             bs_t = [bs[i], bs[j]]
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                os_t, bs_t, thresholds, np.radians(min_ray_angle_degrees)
+                np.asarray(os_t), np.asarray(bs_t), thresholds, np.radians(min_ray_angle_degrees)
             )
 
             if valid_triangulation:
@@ -953,7 +953,7 @@ class TrackTriangulator:
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                os, bs, thresholds, np.radians(min_ray_angle_degrees)
+                np.asarray(os), np.asarray(bs), thresholds, np.radians(min_ray_angle_degrees)
             )
             if valid_triangulation:
                 self.reconstruction.create_point(track, X.tolist())
@@ -975,7 +975,7 @@ class TrackTriangulator:
 
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
-                Rts, bs, reproj_threshold, np.radians(min_ray_angle_degrees)
+                np.asarray(Rts), np.asarray(bs), reproj_threshold, np.radians(min_ray_angle_degrees)
             )
             if e:
                 self.reconstruction.create_point(track, X.tolist())

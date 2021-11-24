@@ -14,6 +14,11 @@ PYBIND11_MODULE(pyfeatures, m) {
       .value("MSURF", MSURF)
       .value("MLDB_UPRIGHT", MLDB_UPRIGHT)
       .value("MLDB", MLDB);
+  py::enum_<DIFFUSIVITY_TYPE>(m, "AkazeDiffusivityType")
+      .value("PM_G1", PM_G1)
+      .value("PM_G2", PM_G2)
+      .value("WEICKERT", WEICKERT)
+      .value("CHARBONNIER", CHARBONNIER);
 
   py::class_<AKAZEOptions>(m, "AKAZEOptions")
       .def(py::init())

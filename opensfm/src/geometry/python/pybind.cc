@@ -305,13 +305,16 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("relative_pose_refinement", geometry::RelativePoseRefinement);
 
   py::class_<geometry::Pose>(m, "Pose")
+      .def(py::init<const Mat3d&>())
       .def(py::init<const Mat3d&, const Vec3d&>(),
-           py::arg("rotation") = Mat3d::Identity(),
-           py::arg("translation") = Vec3d::Zero())
+           py::arg("rotation"),
+           py::arg("translation"))
       .def(py::init<const Vec3d&, const Vec3d&>(),
-           py::arg("rotation") = Vec3d::Zero(),
-           py::arg("translation") = Vec3d::Zero())
-      .def(py::init<const Vec3d&>())
+            py::arg("rotation"),
+            py::arg("translation"))
+      .def(py::init<const Vec3d&>(),
+            py::arg("rotation"))
+      .def(py::init())
       .def("get_cam_to_world", &geometry::Pose::CameraToWorld)
       .def("get_world_to_cam", &geometry::Pose::WorldToCamera)
       // C++11

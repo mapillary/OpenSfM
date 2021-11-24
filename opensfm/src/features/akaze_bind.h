@@ -5,6 +5,6 @@
 
 namespace features {
 
-py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options);
+py::tuple akaze(foundation::pyarray_uint8 image, AKAZEOptions options);
 
 }

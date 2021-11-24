@@ -4,6 +4,7 @@ from codecs import encode, decode
 from typing import Tuple
 
 import exifread
+import numpy as np
 import xmltodict as x2d
 from opensfm import pygeometry
 from opensfm.dataset_base import DataSetBase
@@ -625,8 +626,8 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_brown(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"], calib["k3"], calib["p1"], calib["p2"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"], calib["k3"], calib["p1"], calib["p2"]]),
         )
     elif calib_pt == "fisheye":
         camera = pygeometry.Camera.create_fisheye(
@@ -636,57 +637,61 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_fisheye_opencv(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"], calib["k3"], calib["k4"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"], calib["k3"], calib["k4"]]),
         )
     elif calib_pt == "fisheye62":
         camera = pygeometry.Camera.create_fisheye62(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [
-                calib["k1"],
-                calib["k2"],
-                calib["k3"],
-                calib["k4"],
-                calib["k5"],
-                calib["k6"],
-                calib["p1"],
-                calib["p2"],
-            ],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array(
+                [
+                    calib["k1"],
+                    calib["k2"],
+                    calib["k3"],
+                    calib["k4"],
+                    calib["k5"],
+                    calib["k6"],
+                    calib["p1"],
+                    calib["p2"],
+                ]
+            ),
         )
     elif calib_pt == "fisheye624":
         camera = pygeometry.Camera.create_fisheye624(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [
-                calib["k1"],
-                calib["k2"],
-                calib["k3"],
-                calib["k4"],
-                calib["k5"],
-                calib["k6"],
-                calib["p1"],
-                calib["p2"],
-                calib["s0"],
-                calib["s1"],
-                calib["s2"],
-                calib["s3"],
-            ],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array(
+                [
+                    calib["k1"],
+                    calib["k2"],
+                    calib["k3"],
+                    calib["k4"],
+                    calib["k5"],
+                    calib["k6"],
+                    calib["p1"],
+                    calib["p2"],
+                    calib["s0"],
+                    calib["s1"],
+                    calib["s2"],
+                    calib["s3"],
+                ]
+            ),
         )
     elif calib_pt == "radial":
         camera = pygeometry.Camera.create_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"]]),
         )
     elif calib_pt == "simple_radial":
         camera = pygeometry.Camera.create_simple_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
+            np.array([calib["c_x"], calib["c_y"]]),
             calib["k1"],
         )
     elif calib_pt == "dual":

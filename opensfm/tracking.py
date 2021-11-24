@@ -84,7 +84,7 @@ def create_tracks_manager(
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug("Good tracks: {}".format(len(tracks)))
 
-    NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE  # pyre-fixme [16]
+    NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE
     tracks_manager = pymap.TracksManager()
     for track_id, track in enumerate(tracks):
         for image, featureid in track:
@@ -96,7 +96,6 @@ def create_tracks_manager(
                 segmentations[image][featureid] if image in segmentations else NO_VALUE,
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
-            # pyre-fixme [19]
             obs = pymap.Observation(
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
             )

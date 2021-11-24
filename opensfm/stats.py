@@ -783,7 +783,7 @@ def save_heatmap(
             shot = reconstructions[i].get_shot(shot_id)
             w = shot.camera.width
             h = shot.camera.height
-            center = [w / 2.0, h / 2.0]
+            center = np.array([w / 2.0, h / 2.0])
             normalizer = max(shot.camera.width, shot.camera.height)
 
             buckets_x, buckets_y = _heatmap_buckets(shot.camera)
@@ -882,7 +882,7 @@ def save_residual_grids(
             shot = reconstructions[i].get_shot(shot_id)
             w = shot.camera.width
             h = shot.camera.height
-            center = [w / 2.0, h / 2.0]
+            center = np.array([w / 2.0, h / 2.0])
             normalizer = max(shot.camera.width, shot.camera.height)
 
             buckets_x, buckets_y = _grid_buckets(shot.camera)

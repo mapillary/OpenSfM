@@ -44,204 +44,54 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
           }));
 }
 PYBIND11_MODULE(pymap, m) {
+  py::module::import("opensfm.pygeometry");
+  py::module::import("opensfm.pygeo");
+
+  // Some initial defintions to resolve cyclic dependencies
+  // Landmark <> Shot
+  py::class_<map::Shot> shotCls(m, "Shot");
+  // Landmark/Shot/...View <> Map
+  py::class_<map::Map> mapCls(m, "Map");
+
+  DeclareShotMeasurement<int>(m, "Int");
+  DeclareShotMeasurement<double>(m, "Double");
+  DeclareShotMeasurement<Vec3d>(m, "Vec3d");
+  DeclareShotMeasurement<std::string>(m, "String");
+
   py::enum_<map::Map::ErrorType>(m, "ErrorType")
       .value("Pixel", map::Map::Pixel)
       .value("Normalized", map::Map::Normalized)
       .value("Angular", map::Map::Angular)
       .export_values();
 
-  py::class_<map::Map>(m, "Map")
-      .def(py::init())
-      // Camera
-      .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
-           py::return_value_policy::reference_internal)
-      .def("get_camera",
-           py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
-           py::return_value_policy::reference_internal)
-      // Bias
-      .def("set_bias", &map::Map::SetBias,
-           py::return_value_policy::reference_internal)
-      .def("get_bias", &map::Map::GetBias,
-           py::return_value_policy::reference_internal)
-      // Rigs
-      .def("create_rig_camera", &map::Map::CreateRigCamera,
-           py::return_value_policy::reference_internal)
-      .def("create_rig_instance", &map::Map::CreateRigInstance,
-           py::return_value_policy::reference_internal)
-      .def("update_rig_instance", &map::Map::UpdateRigInstance,
-           py::return_value_policy::reference_internal)
-      .def("remove_rig_instance", &map::Map::RemoveRigInstance)
-      // Landmark
-      .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
-           py::arg("global_position"),
-           py::return_value_policy::reference_internal)
-      .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
-                                  map::Map::RemoveLandmark)
-      .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
-                                  map::Map::RemoveLandmark)
-      .def("has_landmark", &map::Map::HasLandmark)
-      .def("get_landmark",
-           py::overload_cast<const map::LandmarkId &>(&map::Map::GetLandmark),
-           py::return_value_policy::reference_internal)
-      .def("clear_observations_and_landmarks",
-           &map::Map::ClearObservationsAndLandmarks)
-      .def("clean_landmarks_below_min_observations",
-           &map::Map::CleanLandmarksBelowMinObservations)
-      // Shot
-      .def(
-          "create_shot",
-          py::overload_cast<const map::ShotId &, const map::CameraId &,
-                            const map::RigCameraId &,
-                            const map::RigInstanceId &, const geometry::Pose &>(
-              &map::Map::CreateShot),
-          py::return_value_policy::reference_internal)
-      .def("create_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const map::RigCameraId &,
-                             const map::RigInstanceId &>(&map::Map::CreateShot),
-           py::return_value_policy::reference_internal)
-      .def("remove_shot", &map::Map::RemoveShot)
-      .def("get_shot",
-           py::overload_cast<const map::ShotId &>(&map::Map::GetShot),
-           py::return_value_policy::reference_internal)
-      .def("update_shot", &map::Map::UpdateShot,
-           py::return_value_policy::reference_internal)
-      // Pano Shot
-      .def("create_pano_shot", &map::Map::CreatePanoShot,
-           py::return_value_policy::reference_internal)
-      .def("remove_pano_shot", &map::Map::RemovePanoShot)
-      .def("get_pano_shot",
-           py::overload_cast<const map::ShotId &>(&map::Map::GetPanoShot),
-           py::return_value_policy::reference_internal)
-      .def("update_pano_shot", &map::Map::UpdatePanoShot,
-           py::return_value_policy::reference_internal)
-      // Observation
-      .def("add_observation",
-           (void (map::Map::*)(map::Shot *const, map::Landmark *const,
-                               const map::Observation &)) &
-               map::Map::AddObservation,
-           py::arg("shot"), py::arg("landmark"), py::arg("observation"))
-      .def("add_observation",
-           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &,
-                               const map::Observation &)) &
-               map::Map::AddObservation,
-           py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
-      .def("remove_observation",
-           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
-               map::Map::RemoveObservation,
-           py::arg("shot"), py::arg("landmark"))
-      // Getters
-      .def("get_shots", &map::Map::GetShotView)
-      .def("get_pano_shots", &map::Map::GetPanoShotView)
-      .def("get_cameras", &map::Map::GetCameraView)
-      .def("get_biases", &map::Map::GetBiasView)
-      .def("get_camera_view", &map::Map::GetCameraView)
-      .def("get_landmarks", &map::Map::GetLandmarkView)
-      .def("get_landmark_view", &map::Map::GetLandmarkView)
-      .def("set_reference", &map::Map::SetTopocentricConverter)
-      // Reference
-      .def("get_reference",
-           [](const map::Map &map) {
-             py::module::import("opensfm.pygeo");
-             return map.GetTopocentricConverter();
-           })
-      // Tracks manager x Reconstruction intersection
-      .def("compute_reprojection_errors", &map::Map::ComputeReprojectionErrors)
-      .def("get_valid_observations", &map::Map::GetValidObservations)
-      .def("to_tracks_manager", &map::Map::ToTracksManager);
+  py::class_<map::Observation>(m, "Observation")
+      .def(py::init<double, double, double, int, int, int, int, int, int>(),
+           py::arg("x"), py::arg("y"), py::arg("s"), py::arg("r"), py::arg("g"),
+           py::arg("b"), py::arg("feature"),
+           py::arg("segmentation") = map::Observation::NO_SEMANTIC_VALUE,
+           py::arg("instance") = map::Observation::NO_SEMANTIC_VALUE)
+      .def_readwrite("point", &map::Observation::point)
+      .def_readwrite("scale", &map::Observation::scale)
+      .def_readwrite("id", &map::Observation::feature_id)
+      .def_readwrite("color", &map::Observation::color)
+      .def_readwrite("segmentation", &map::Observation::segmentation_id)
+      .def_readwrite("instance", &map::Observation::instance_id)
+      .def_readonly_static("NO_SEMANTIC_VALUE",
+                           &map::Observation::NO_SEMANTIC_VALUE);
 
-  py::class_<map::Shot>(m, "Shot")
-      .def(py::init<const map::ShotId &, const geometry::Camera &,
-                    const geometry::Pose &>())
-      .def_readonly("id", &map::Shot::id_)
-      .def_readwrite("mesh", &map::Shot::mesh)
-      .def_property("covariance", &map::Shot::GetCovariance,
-                    &map::Shot::SetCovariance)
-      .def_readwrite("merge_cc", &map::Shot::merge_cc)
-      .def_readwrite("scale", &map::Shot::scale)
-      .def_property_readonly("rig_instance", &map::Shot::GetRigInstance)
-      .def_property_readonly("rig_camera", &map::Shot::GetRigCamera)
-      .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
-      .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
-      .def("set_rig", &map::Shot::SetRig)
-      .def("get_observation", &map::Shot::GetObservation,
+  py::class_<map::Landmark>(m, "Landmark")
+      .def(py::init<const map::LandmarkId &, const Vec3d &>())
+      .def_readonly("id", &map::Landmark::id_)
+      .def_property("coordinates", &map::Landmark::GetGlobalPos,
+                    &map::Landmark::SetGlobalPos)
+      .def("get_observations", &map::Landmark::GetObservations,
            py::return_value_policy::reference_internal)
-      .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks)
-      .def("remove_observation", &map::Shot::RemoveLandmarkObservation)
-      .def_property("metadata",
-                    py::overload_cast<>(&map::Shot::GetShotMeasurements),
-                    &map::Shot::SetShotMeasurements,
-                    py::return_value_policy::reference_internal)
-      .def_property("pose", py::overload_cast<>(&map::Shot::GetPose),
-                    &map::Shot::SetPose,
-                    py::return_value_policy::reference_internal)
-      .def_property_readonly("camera", &map::Shot::GetCamera,
-                             py::return_value_policy::reference_internal)
-      .def("get_landmark_observation", &map::Shot::GetLandmarkObservation,
-           py::return_value_policy::reference_internal)
-      .def("get_observation_landmark", &map::Shot::GetObservationLandmark,
-           py::return_value_policy::reference_internal)
-      .def("project", &map::Shot::Project)
-      .def("project_many", &map::Shot::ProjectMany)
-      .def("bearing", &map::Shot::Bearing)
-      .def("bearing_many", &map::Shot::BearingMany);
-
-  py::class_<map::RigCamera>(m, "RigCamera")
-      .def(py::init<>())
-      .def(py::init<const geometry::Pose &, const map::RigCameraId &>())
-      .def_readwrite("id", &map::RigCamera::id)
-      .def_readwrite("pose", &map::RigCamera::pose)
-      // pickle support
-      .def(py::pickle(
-          [](const map::RigCamera &rc) {
-            return py::make_tuple(rc.pose, rc.id);
-          },
-          [](py::tuple s) {
-            return map::RigCamera(s[0].cast<geometry::Pose>(),
-                                  s[1].cast<map::RigCameraId>());
-          }));
-
-  py::class_<map::RigInstance>(m, "RigInstance")
-      .def(py::init<map::RigInstanceId>())
-      .def_readwrite("id", &map::RigInstance::id)
-      .def_property_readonly("shots",
-                             py::overload_cast<>(&map::RigInstance::GetShots),
-                             py::return_value_policy::reference_internal)
-      .def_property_readonly(
-          "rig_cameras", py::overload_cast<>(&map::RigInstance::GetRigCameras),
-          py::return_value_policy::reference_internal)
-      .def_property_readonly(
-          "rig_camera_ids",
-          [](const map::RigInstance &ri) {
-            std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
-            for (const auto &rig_camera : ri.GetRigCameras()) {
-              rig_camera_ids[rig_camera.first] = rig_camera.second->id;
-            }
-            return rig_camera_ids;
-          })
-      .def_property_readonly("camera_ids",
-                             [](const map::RigInstance &ri) {
-                               std::map<map::ShotId, map::CameraId> camera_ids;
-                               for (const auto &shot : ri.GetShots()) {
-                                 camera_ids[shot.first] =
-                                     shot.second->GetCamera()->id;
-                               }
-                               return camera_ids;
-                             })
-      .def("keys", &map::RigInstance::GetShotIDs)
-      .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
-                    &map::RigInstance::SetPose,
-                    py::return_value_policy::reference_internal)
-      .def("add_shot", &map::RigInstance::AddShot)
-      .def("remove_shot", &map::RigInstance::RemoveShot)
-      .def("update_instance_pose_with_shot",
-           &map::RigInstance::UpdateInstancePoseWithShot)
-      .def("update_rig_camera_pose", &map::RigInstance::UpdateRigCameraPose);
-
-  DeclareShotMeasurement<int>(m, "Int");
-  DeclareShotMeasurement<double>(m, "Double");
-  DeclareShotMeasurement<Vec3d>(m, "Vec3d");
-  DeclareShotMeasurement<std::string>(m, "String");
+      .def("number_of_observations", &map::Landmark::NumberOfObservations)
+      .def_property("reprojection_errors",
+                    &map::Landmark::GetReprojectionErrors,
+                    &map::Landmark::SetReprojectionErrors)
+      .def_property("color", &map::Landmark::GetColor,
+                    &map::Landmark::SetColor);
 
   py::class_<map::ShotMeasurements>(m, "ShotMeasurements")
       .def(py::init<>())
@@ -297,19 +147,144 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("vertices", &map::ShotMesh::GetVertices,
                     &map::ShotMesh::SetVertices);
 
-  py::class_<map::Landmark>(m, "Landmark")
-      .def(py::init<const map::LandmarkId &, const Vec3d &>())
-      .def_readonly("id", &map::Landmark::id_)
-      .def_property("coordinates", &map::Landmark::GetGlobalPos,
-                    &map::Landmark::SetGlobalPos)
-      .def("get_observations", &map::Landmark::GetObservations,
+  py::class_<map::RigCamera>(m, "RigCamera")
+      .def(py::init<>())
+      .def(py::init<const geometry::Pose &, const map::RigCameraId &>())
+      .def_readwrite("id", &map::RigCamera::id)
+      .def_readwrite("pose", &map::RigCamera::pose)
+      // pickle support
+      .def(py::pickle(
+          [](const map::RigCamera &rc) {
+            return py::make_tuple(rc.pose, rc.id);
+          },
+          [](py::tuple s) {
+            return map::RigCamera(s[0].cast<geometry::Pose>(),
+                                  s[1].cast<map::RigCameraId>());
+          }));
+
+  py::class_<map::RigInstance>(m, "RigInstance")
+      .def(py::init<map::RigInstanceId>())
+      .def_readwrite("id", &map::RigInstance::id)
+      .def_property_readonly("shots",
+                             py::overload_cast<>(&map::RigInstance::GetShots),
+                             py::return_value_policy::reference_internal)
+      .def_property_readonly(
+          "rig_cameras", py::overload_cast<>(&map::RigInstance::GetRigCameras),
+          py::return_value_policy::reference_internal)
+      .def_property_readonly(
+          "rig_camera_ids",
+          [](const map::RigInstance &ri) {
+            std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
+            for (const auto &rig_camera : ri.GetRigCameras()) {
+              rig_camera_ids[rig_camera.first] = rig_camera.second->id;
+            }
+            return rig_camera_ids;
+          })
+      .def_property_readonly("camera_ids",
+                             [](const map::RigInstance &ri) {
+                               std::map<map::ShotId, map::CameraId> camera_ids;
+                               for (const auto &shot : ri.GetShots()) {
+                                 camera_ids[shot.first] =
+                                     shot.second->GetCamera()->id;
+                               }
+                               return camera_ids;
+                             })
+      .def("keys", &map::RigInstance::GetShotIDs)
+      .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
+                    &map::RigInstance::SetPose,
+                    py::return_value_policy::reference_internal)
+      .def("add_shot", &map::RigInstance::AddShot)
+      .def("remove_shot", &map::RigInstance::RemoveShot)
+      .def("update_instance_pose_with_shot",
+           &map::RigInstance::UpdateInstancePoseWithShot)
+      .def("update_rig_camera_pose", &map::RigInstance::UpdateRigCameraPose);
+
+  shotCls
+      .def(py::init<const map::ShotId &, const geometry::Camera &,
+                    const geometry::Pose &>())
+      .def_readonly("id", &map::Shot::id_)
+      .def_readwrite("mesh", &map::Shot::mesh)
+      .def_property("covariance", &map::Shot::GetCovariance,
+                    &map::Shot::SetCovariance)
+      .def_readwrite("merge_cc", &map::Shot::merge_cc)
+      .def_readwrite("scale", &map::Shot::scale)
+      .def_property_readonly("rig_instance", &map::Shot::GetRigInstance)
+      .def_property_readonly("rig_camera", &map::Shot::GetRigCamera)
+      .def_property_readonly("rig_instance_id", &map::Shot::GetRigInstanceId)
+      .def_property_readonly("rig_camera_id", &map::Shot::GetRigCameraId)
+      .def("set_rig", &map::Shot::SetRig)
+      .def("get_observation", &map::Shot::GetObservation,
            py::return_value_policy::reference_internal)
-      .def("number_of_observations", &map::Landmark::NumberOfObservations)
-      .def_property("reprojection_errors",
-                    &map::Landmark::GetReprojectionErrors,
-                    &map::Landmark::SetReprojectionErrors)
-      .def_property("color", &map::Landmark::GetColor,
-                    &map::Landmark::SetColor);
+      .def("get_valid_landmarks", &map::Shot::ComputeValidLandmarks)
+      .def("remove_observation", &map::Shot::RemoveLandmarkObservation)
+      .def_property("metadata",
+                    py::overload_cast<>(&map::Shot::GetShotMeasurements),
+                    &map::Shot::SetShotMeasurements,
+                    py::return_value_policy::reference_internal)
+      .def_property("pose", py::overload_cast<>(&map::Shot::GetPose),
+                    &map::Shot::SetPose,
+                    py::return_value_policy::reference_internal)
+      .def_property_readonly("camera", &map::Shot::GetCamera,
+                             py::return_value_policy::reference_internal)
+      .def("get_landmark_observation", &map::Shot::GetLandmarkObservation,
+           py::return_value_policy::reference_internal)
+      .def("get_observation_landmark", &map::Shot::GetObservationLandmark,
+           py::return_value_policy::reference_internal)
+      .def("project", &map::Shot::Project)
+      .def("project_many", &map::Shot::ProjectMany)
+      .def("bearing", &map::Shot::Bearing)
+      .def("bearing_many", &map::Shot::BearingMany);
+
+  py::class_<map::GroundControlPointObservation>(
+      m, "GroundControlPointObservation")
+      .def(py::init())
+      .def(py::init<const map::ShotId &, const Vec2d &>())
+      .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
+      .def_readwrite("projection",
+                     &map::GroundControlPointObservation::projection_);
+
+  py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
+      .def(py::init())
+      .def_readwrite("id", &map::GroundControlPoint::id_)
+      .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
+      .def_readwrite("lla", &map::GroundControlPoint::lla_)
+      .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
+                    &map::GroundControlPoint::SetLla)
+      .def_property("observations", &map::GroundControlPoint::GetObservations,
+                    &map::GroundControlPoint::SetObservations)
+      .def("add_observation", &map::GroundControlPoint::AddObservation);
+
+  py::class_<map::TracksManager>(m, "TracksManager")
+      .def(py::init())
+      .def_static("instanciate_from_file",
+                  &map::TracksManager::InstanciateFromFile,
+                  py::call_guard<py::gil_scoped_release>())
+      .def_static("instanciate_from_string",
+                  &map::TracksManager::InstanciateFromString,
+                  py::call_guard<py::gil_scoped_release>())
+      .def_static("merge_tracks_manager",
+                  &map::TracksManager::MergeTracksManager)
+      .def("add_observation", &map::TracksManager::AddObservation)
+      .def("remove_observation", &map::TracksManager::RemoveObservation)
+      .def("num_shots", &map::TracksManager::NumShots)
+      .def("num_tracks", &map::TracksManager::NumTracks)
+      .def("get_shot_ids", &map::TracksManager::GetShotIds)
+      .def("get_track_ids", &map::TracksManager::GetTrackIds)
+      .def("get_observation", &map::TracksManager::GetObservation)
+      .def("get_shot_observations", &map::TracksManager::GetShotObservations)
+      .def("get_track_observations", &map::TracksManager::GetTrackObservations)
+      .def("construct_sub_tracks_manager",
+           &map::TracksManager::ConstructSubTracksManager)
+      .def("write_to_file", &map::TracksManager::WriteToFile)
+      .def("as_string", &map::TracksManager::AsString)
+      .def("get_all_common_observations",
+           &map::TracksManager::GetAllCommonObservations,
+           py::call_guard<py::gil_scoped_release>())
+      .def("get_all_pairs_connectivity",
+           &map::TracksManager::GetAllPairsConnectivity,
+           py::arg("shots") = std::vector<map::ShotId>(),
+           py::arg("tracks") = std::vector<map::TrackId>(),
+           py::call_guard<py::gil_scoped_release>());
 
   py::class_<map::PanoShotView>(m, "PanoShotView")
       .def(py::init<map::Map &>(),
@@ -578,69 +553,103 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::RigInstanceView::HasRigInstance);
 
-  py::class_<map::GroundControlPointObservation>(
-      m, "GroundControlPointObservation")
+  mapCls
       .def(py::init())
-      .def(py::init<const map::ShotId &, const Vec2d &>())
-      .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
-      .def_readwrite("projection",
-                     &map::GroundControlPointObservation::projection_);
-
-  py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
-      .def(py::init())
-      .def_readwrite("id", &map::GroundControlPoint::id_)
-      .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
-      .def_readwrite("lla", &map::GroundControlPoint::lla_)
-      .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
-                    &map::GroundControlPoint::SetLla)
-      .def_property("observations", &map::GroundControlPoint::GetObservations,
-                    &map::GroundControlPoint::SetObservations)
-      .def("add_observation", &map::GroundControlPoint::AddObservation);
-
-  py::class_<map::Observation>(m, "Observation")
-      .def(py::init<double, double, double, int, int, int, int, int, int>(),
-           py::arg("x"), py::arg("y"), py::arg("s"), py::arg("r"), py::arg("g"),
-           py::arg("b"), py::arg("feature"),
-           py::arg("segmentation") = map::Observation::NO_SEMANTIC_VALUE,
-           py::arg("instance") = map::Observation::NO_SEMANTIC_VALUE)
-      .def_readwrite("point", &map::Observation::point)
-      .def_readwrite("scale", &map::Observation::scale)
-      .def_readwrite("id", &map::Observation::feature_id)
-      .def_readwrite("color", &map::Observation::color)
-      .def_readwrite("segmentation", &map::Observation::segmentation_id)
-      .def_readwrite("instance", &map::Observation::instance_id)
-      .def_readonly_static("NO_SEMANTIC_VALUE",
-                           &map::Observation::NO_SEMANTIC_VALUE);
-
-  py::class_<map::TracksManager>(m, "TracksManager")
-      .def(py::init())
-      .def_static("instanciate_from_file",
-                  &map::TracksManager::InstanciateFromFile,
-                  py::call_guard<py::gil_scoped_release>())
-      .def_static("instanciate_from_string",
-                  &map::TracksManager::InstanciateFromString,
-                  py::call_guard<py::gil_scoped_release>())
-      .def_static("merge_tracks_manager",
-                  &map::TracksManager::MergeTracksManager)
-      .def("add_observation", &map::TracksManager::AddObservation)
-      .def("remove_observation", &map::TracksManager::RemoveObservation)
-      .def("num_shots", &map::TracksManager::NumShots)
-      .def("num_tracks", &map::TracksManager::NumTracks)
-      .def("get_shot_ids", &map::TracksManager::GetShotIds)
-      .def("get_track_ids", &map::TracksManager::GetTrackIds)
-      .def("get_observation", &map::TracksManager::GetObservation)
-      .def("get_shot_observations", &map::TracksManager::GetShotObservations)
-      .def("get_track_observations", &map::TracksManager::GetTrackObservations)
-      .def("construct_sub_tracks_manager",
-           &map::TracksManager::ConstructSubTracksManager)
-      .def("write_to_file", &map::TracksManager::WriteToFile)
-      .def("as_string", &map::TracksManager::AsString)
-      .def("get_all_common_observations",
-           &map::TracksManager::GetAllCommonObservations,
-           py::call_guard<py::gil_scoped_release>())
-      .def("get_all_pairs_connectivity",
-           &map::TracksManager::GetAllPairsConnectivity,
-           py::arg("shots") = std::vector<map::ShotId>(),
-           py::arg("tracks") = std::vector<map::TrackId>(),
-           py::call_guard<py::gil_scoped_release>());
+      // Camera
+      .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
+           py::return_value_policy::reference_internal)
+      .def("get_camera",
+           py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
+           py::return_value_policy::reference_internal)
+      // Bias
+      .def("set_bias", &map::Map::SetBias,
+           py::return_value_policy::reference_internal)
+      .def("get_bias", &map::Map::GetBias,
+           py::return_value_policy::reference_internal)
+      // Rigs
+      .def("create_rig_camera", &map::Map::CreateRigCamera,
+           py::return_value_policy::reference_internal)
+      .def("create_rig_instance", &map::Map::CreateRigInstance,
+           py::return_value_policy::reference_internal)
+      .def("update_rig_instance", &map::Map::UpdateRigInstance,
+           py::return_value_policy::reference_internal)
+      .def("remove_rig_instance", &map::Map::RemoveRigInstance)
+      // Landmark
+      .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
+           py::arg("global_position"),
+           py::return_value_policy::reference_internal)
+      .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
+                                  map::Map::RemoveLandmark)
+      .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
+                                  map::Map::RemoveLandmark)
+      .def("has_landmark", &map::Map::HasLandmark)
+      .def("get_landmark",
+           py::overload_cast<const map::LandmarkId &>(&map::Map::GetLandmark),
+           py::return_value_policy::reference_internal)
+      .def("clear_observations_and_landmarks",
+           &map::Map::ClearObservationsAndLandmarks)
+      .def("clean_landmarks_below_min_observations",
+           &map::Map::CleanLandmarksBelowMinObservations)
+      // Shot
+      .def(
+          "create_shot",
+          py::overload_cast<const map::ShotId &, const map::CameraId &,
+                            const map::RigCameraId &,
+                            const map::RigInstanceId &, const geometry::Pose &>(
+              &map::Map::CreateShot),
+          py::return_value_policy::reference_internal)
+      .def("create_shot",
+           py::overload_cast<const map::ShotId &, const map::CameraId &,
+                             const map::RigCameraId &,
+                             const map::RigInstanceId &>(&map::Map::CreateShot),
+           py::return_value_policy::reference_internal)
+      .def("remove_shot", &map::Map::RemoveShot)
+      .def("get_shot",
+           py::overload_cast<const map::ShotId &>(&map::Map::GetShot),
+           py::return_value_policy::reference_internal)
+      .def("update_shot", &map::Map::UpdateShot,
+           py::return_value_policy::reference_internal)
+      // Pano Shot
+      .def("create_pano_shot", &map::Map::CreatePanoShot,
+           py::return_value_policy::reference_internal)
+      .def("remove_pano_shot", &map::Map::RemovePanoShot)
+      .def("get_pano_shot",
+           py::overload_cast<const map::ShotId &>(&map::Map::GetPanoShot),
+           py::return_value_policy::reference_internal)
+      .def("update_pano_shot", &map::Map::UpdatePanoShot,
+           py::return_value_policy::reference_internal)
+      // Observation
+      .def("add_observation",
+           (void (map::Map::*)(map::Shot *const, map::Landmark *const,
+                               const map::Observation &)) &
+               map::Map::AddObservation,
+           py::arg("shot"), py::arg("landmark"), py::arg("observation"))
+      .def("add_observation",
+           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &,
+                               const map::Observation &)) &
+               map::Map::AddObservation,
+           py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
+      .def("remove_observation",
+           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
+               map::Map::RemoveObservation,
+           py::arg("shot"), py::arg("landmark"))
+      // Getters
+      .def("get_shots", &map::Map::GetShotView)
+      .def("get_pano_shots", &map::Map::GetPanoShotView)
+      .def("get_cameras", &map::Map::GetCameraView)
+      .def("get_biases", &map::Map::GetBiasView)
+      .def("get_camera_view", &map::Map::GetCameraView)
+      .def("get_landmarks", &map::Map::GetLandmarkView)
+      .def("get_landmark_view", &map::Map::GetLandmarkView)
+      .def("set_reference", &map::Map::SetTopocentricConverter)
+      // Reference
+      .def("get_reference",
+           [](const map::Map &map) {
+             py::module::import("opensfm.pygeo");
+             return map.GetTopocentricConverter();
+           })
+      // Tracks manager x Reconstruction intersection
+      .def("compute_reprojection_errors", &map::Map::ComputeReprojectionErrors)
+      .def("get_valid_observations", &map::Map::GetValidObservations)
+      .def("to_tracks_manager", &map::Map::ToTracksManager);
 }

@@ -702,7 +702,7 @@ def triangulate_gcp(
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-            os, bs, thresholds, np.radians(min_ray_angle_degrees)
+            np.asarray(os), np.asarray(bs), thresholds, np.radians(min_ray_angle_degrees)
         )
         if valid_triangulation:
             return X
