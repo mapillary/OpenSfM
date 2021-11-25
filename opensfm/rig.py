@@ -78,13 +78,12 @@ def create_instances_with_patterns(
     per_instance_id: Dict[str, TRigInstance] = {}
     for image in images:
         rig_camera_id, instance_member_id = find_image_rig(image, rig_patterns)
-        if not rig_camera_id and not instance_member_id:
+        if not rig_camera_id or not instance_member_id:
             instance_member_id = INCOMPLETE_INSTANCE_GROUP
             rig_camera_id = INCOMPLETE_INSTANCE_ID
         if instance_member_id not in per_instance_id:
-            # pyre-fixme [6]
             per_instance_id[instance_member_id] = []
-        # pyre-fixme [6]
+
         per_instance_id[instance_member_id].append((image, rig_camera_id))
 
     per_complete_instance_id: Dict[str, TRigInstance] = {}

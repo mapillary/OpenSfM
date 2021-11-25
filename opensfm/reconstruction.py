@@ -669,12 +669,12 @@ def bootstrap_reconstruction(
     ) = two_view_reconstruction_general(
         p1, p2, camera1, camera2, threshold, iterations, check_reversal, reversal_ratio
     )
-    valid_rt = R is not None and t is not None
-    if not valid_rt:
+
+    if R is None or t is None:
         return None, report
 
     rec, rec_report = reconstruction_from_relative_pose(
-        data, tracks_manager, im1, im2, R, t  # pyre-fixme [6]
+        data, tracks_manager, im1, im2, R, t
     )
     report.update(rec_report)
 
@@ -740,7 +740,7 @@ def resect(
     ninliers = int(sum(inliers))
 
     logger.info("{} resection inliers: {} / {}".format(shot_id, ninliers, len(bs)))
-    report = {
+    report: Dict[str, Any] = {
         "num_common_points": len(bs),
         "num_inliers": ninliers,
     }
@@ -762,7 +762,6 @@ def resect(
                 add_observation_to_reconstruction(
                     tracks_manager, reconstruction, shot_id, ids[i]
                 )
-        # pyre-fixme [6]: Expected `int` for 2nd positional
         report["shots"] = list(new_shots)
         return True, new_shots, report
     else:
@@ -829,11 +828,10 @@ def resect_reconstruction(
     worked, similarity, inliers = align_two_reconstruction(
         reconstruction1, reconstruction2, common_tracks, threshold
     )
-    if not worked:
+    if not worked or similarity is None:
         return False, np.ones((4, 4)), []
 
     inliers = [common_tracks[inliers[i]] for i in range(len(inliers))]
-    # pyre-fixme [7]: Expected `Tuple[bool, np.ndarray, List[Tuple[str, str]]]`
     return True, similarity, inliers
 
 
