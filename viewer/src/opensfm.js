@@ -25,6 +25,7 @@ export {EarthRenderer} from './renderer/EarthRenderer.js';
 export {FileLoader} from './ui/FileLoader.js';
 export {FileSelecter} from './ui/FileSelecter.js';
 export {OpensfmViewer} from './ui/OpensfmViewer.js';
+export {OrbitCameraControls} from './ui/OrbitCameraControls.js';
 
 export {CancelledError} from './util/Error.js';
 export {EventEmitter} from './util/EventEmitter.js';

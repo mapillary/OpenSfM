@@ -3,12 +3,13 @@
 #include <geo/geo.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
+#include <geometry/similarity.h>
 #include <map/dataviews.h>
 #include <map/defines.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
-#include <sfm/tracks_manager.h>
+#include <map/tracks_manager.h>
 
 #include <Eigen/Core>
 #include <map>
@@ -39,11 +40,13 @@ class Map {
   // Shot Methods
 
   // Creation
-  Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id);
   Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id,
+                   const RigCameraId& rig_camera_id,
+                   const RigInstanceId& instance_id,
                    const geometry::Pose& pose);
-  Shot& CreateShot(const ShotId& shot_id, const geometry::Camera* const cam,
-                   const geometry::Pose& pose = geometry::Pose());
+  Shot& CreateShot(const ShotId& shot_id, const CameraId& camera_id,
+                   const RigCameraId& rig_camera_id,
+                   const RigInstanceId& instance_id);
 
   // Getters
   const Shot& GetShot(const ShotId& shot_id) const;
@@ -62,10 +65,9 @@ class Map {
   // PanoShots
 
   // Creation
-  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&,
-                       const geometry::Pose& pose);
-  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId&);
-  Shot& CreatePanoShot(const ShotId& shot_id, const geometry::Camera* const cam,
+  Shot& CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
+                       const RigCameraId& rig_camera_id,
+                       const RigInstanceId& instance_id,
                        const geometry::Pose& pose);
 
   // Getters
@@ -88,11 +90,10 @@ class Map {
 
   // Creation
   RigCamera& CreateRigCamera(const map::RigCamera& rig_camera);
-  RigInstance& CreateRigInstance(
-      const map::RigInstanceId& instance_id,
-      const std::map<map::ShotId, map::RigCameraId>& instance_shots);
+  RigInstance& CreateRigInstance(const map::RigInstanceId& instance_id);
 
   // Update
+  void RemoveRigInstance(const map::RigInstanceId& instance_id);
   RigInstance& UpdateRigInstance(const RigInstance& other_rig_instance);
 
   // Getters
@@ -149,12 +150,29 @@ class Map {
                       const Observation& obs);
   void RemoveObservation(const ShotId& shot_id, const LandmarkId& lm_id);
   void ClearObservationsAndLandmarks();
+  void CleanLandmarksBelowMinObservations(const size_t min_observations);
 
   // Map information and access methods
   size_t NumberOfShots() const { return shots_.size(); }
   size_t NumberOfPanoShots() const { return pano_shots_.size(); }
   size_t NumberOfLandmarks() const { return landmarks_.size(); }
   size_t NumberOfCameras() const { return cameras_.size(); }
+  size_t NumberOfBiases() const { return bias_.size(); }
+
+  // Bias
+  BiasView GetBiasView() { return BiasView(*this); }
+  geometry::Similarity& GetBias(const CameraId& camera_id);
+  void SetBias(const CameraId& camera_id,
+               const geometry::Similarity& transform);
+  bool HasBias(const CameraId& cam_id) const {
+    return bias_.find(cam_id) != bias_.end();
+  }
+  const std::unordered_map<CameraId, geometry::Similarity>& GetBiases() const {
+    return bias_;
+  }
+  std::unordered_map<CameraId, geometry::Similarity>& GetBiases() {
+    return bias_;
+  }
 
   // TopocentricConverter
   const geo::TopocentricConverter& GetTopocentricConverter() const {
@@ -177,7 +195,10 @@ class Map {
   GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
+  void UpdateShotWithRig(const Shot& other_shot);
+
   std::unordered_map<CameraId, geometry::Camera> cameras_;
+  std::unordered_map<CameraId, geometry::Similarity> bias_;
   std::unordered_map<ShotId, Shot> shots_;
   std::unordered_map<ShotId, Shot> pano_shots_;
   std::unordered_map<LandmarkId, Landmark> landmarks_;
@@ -185,11 +206,6 @@ class Map {
   std::unordered_map<RigCameraId, RigCamera> rig_cameras_;
 
   geo::TopocentricConverter topo_conv_;
-
-  LandmarkUniqueId landmark_unique_id_ = 0;
-  ShotUniqueId shot_unique_id_ = 0;
-  ShotUniqueId pano_shot_unique_id_ = 0;
-  CameraUniqueId camera_unique_id_ = 0;
 };
 
 }  // namespace map

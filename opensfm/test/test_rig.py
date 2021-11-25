@@ -87,20 +87,20 @@ def test_compute_relative_pose() -> None:
     rec.add_camera(camera4)
 
     # First rig instance
-    rec.create_shot("shot1", "camera1", pygeometry.Pose([0, 0, 0], [-2, -2, 0]))
-    rec.create_shot("shot2", "camera2", pygeometry.Pose([0, 0, 0], [-3, -3, 0]))
-    rec.create_shot("shot3", "camera3", pygeometry.Pose([0, 0, 0], [-1, -3, 0]))
-    rec.create_shot("shot4", "camera4", pygeometry.Pose([0, 0, 0], [-2, -4, 0]))
+    rec.create_shot("shot1", "camera1", pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -2, 0])))
+    rec.create_shot("shot2", "camera2", pygeometry.Pose(np.array([0, 0, 0]), np.array([-3, -3, 0])))
+    rec.create_shot("shot3", "camera3", pygeometry.Pose(np.array([0, 0, 0]), np.array([-1, -3, 0])))
+    rec.create_shot("shot4", "camera4", pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -4, 0])))
 
     # Second rig instance (rotated by pi/2 around Z)
-    pose_instance = pygeometry.Pose([0, 0, -1.5707963])
-    pose_instance.set_origin([-6, 0, 0])
+    pose_instance = pygeometry.Pose(np.array([0, 0, -1.5707963]))
+    pose_instance.set_origin(np.array([-6, 0, 0]))
     rec.create_shot("shot5", "camera1", pose_instance)
-    pose_instance.set_origin([-7, 1, 0])
+    pose_instance.set_origin(np.array([-7, 1, 0]))
     rec.create_shot("shot6", "camera2", pose_instance)
-    pose_instance.set_origin([-7, -1, 0])
+    pose_instance.set_origin(np.array([-7, -1, 0]))
     rec.create_shot("shot7", "camera3", pose_instance)
-    pose_instance.set_origin([-8, 0, 0])
+    pose_instance.set_origin(np.array([-8, 0, 0]))
     rec.create_shot("shot8", "camera4", pose_instance)
 
     pose_instances = [

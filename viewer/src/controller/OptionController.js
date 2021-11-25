@@ -35,6 +35,13 @@ export class OptionController {
       reconstructionsSelected: 'reconstructionsselected',
       thumbnailVisible: 'thumbnailvisible',
       statsVisible: 'statsvisible',
+
+      basemapVisible: 'basemapvisible',
+      basemapOpacity: 'basemapopacity',
+      basemapAltitude: 'basemapaltitude',
+      basemapTileCount: 'basemaptilecount',
+      basemapZoomLevel: 'basemapzoomlevel',
+      tileServerUrl: 'tileserverurl',
     };
     const emitter = new EventEmitter();
     const internalOptions = {config, emitter, eventTypes};

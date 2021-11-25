@@ -4,6 +4,8 @@
 
 #include <Eigen/Dense>
 
+#include "bundle/data/shot.h"
+
 namespace geometry {
 bool operator==(const geometry::Pose& p1, const geometry::Pose& p2) {
   const double eps = 1e-15;
@@ -146,41 +148,27 @@ TEST_F(BACameraWithPriorFixture, ReturnSigmaData) {
   ASSERT_TRUE(expected.isApprox(ba_camera.GetSigmaData()));
 }
 
-class BAShotFixture : public BACameraWithPriorFixtureBase,
-                      public BAPoseWithPriorFixtureBase,
-                      public ::testing::Test {
- public:
-  BAShotFixture() : id("shot_id"), shot(id, &ba_camera, pose) {}
-  std::string id;
-  bundle::Shot shot;
-};
-
-TEST_F(BAShotFixture, ReturnsPose) {
-  ASSERT_EQ(pose, shot.GetPose()->GetValue());
-}
-
-TEST_F(BAShotFixture, ReturnsCamera) {
-  ASSERT_EQ(&ba_camera, shot.GetCamera());
-}
-
 class BARigShotFixture : public BACameraWithPriorFixtureBase,
                          public BAPoseWithPriorFixtureBase,
                          public ::testing::Test {
  public:
   BARigShotFixture()
-      : id("rig_shot_id"), rig_shot(id, &ba_camera, &ba_pose, &ba_pose) {}
+      : id("rig_shot_id"),
+        instance(id, pose, {{id, ba_camera.GetID()}}),
+        shot(id, &ba_camera, &ba_pose, &instance) {}
   std::string id;
-  bundle::RigShot rig_shot;
+  bundle::RigInstance instance;
+  bundle::Shot shot;
 };
 
 TEST_F(BARigShotFixture, ReturnsCamera) {
-  ASSERT_EQ(&ba_camera, rig_shot.GetCamera());
+  ASSERT_EQ(&ba_camera, shot.GetCamera());
 }
 
 TEST_F(BARigShotFixture, ReturnsRigCamera) {
-  ASSERT_EQ(&ba_pose, rig_shot.GetRigCamera());
+  ASSERT_EQ(&ba_pose, shot.GetRigCamera());
 }
 
 TEST_F(BARigShotFixture, ReturnsRigInstance) {
-  ASSERT_EQ(&ba_pose, rig_shot.GetRigInstance());
+  ASSERT_EQ(&instance, shot.GetRigInstance());
 }

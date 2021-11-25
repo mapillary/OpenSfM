@@ -14,6 +14,7 @@ export const FolderName = Object.freeze({
   INFO: 'info',
   IO: 'io',
   SPATIAL: 'spatial',
+  MAP: 'map'
 });
 
 export class DatController {
@@ -30,6 +31,7 @@ export class DatController {
 
     this._folders = new Map();
     this._folders.set(FolderName.SPATIAL, this._createSpatialFolder(gui));
+    this._folders.set(FolderName.MAP, this._createMapFolder(gui));
     this._folders.set(FolderName.INFO, this._createInfoFolder(gui));
     this._folders.set(FolderName.IO, this._createIOFolder(gui));
 
@@ -58,6 +60,20 @@ export class DatController {
       .onChange(v => this._onChange(name, v));
   }
 
+  _addTextOption(name, folder) {
+    const controller = folder
+      .add(this._config, name)
+      .listen()
+      .onFinishChange(v => this._onChange(name, v));
+
+    // Prevents keydown from bubbling up when we attempt to type text
+    // into this control
+    controller.domElement.addEventListener(
+      'keydown', event => {
+        event.stopPropagation();
+      });
+  }
+
   _addCameraControlOption(folder) {
     const ccm = CameraControlMode;
     const ccms = [ccm.ORBIT, ccm.STREET, ccm.EARTH];
@@ -82,9 +98,9 @@ export class DatController {
       .onChange(m => this._onChange('cameraVisualizationMode', cvm[m]));
   }
 
-  _addNumericOption(name, folder) {
+  _addNumericOption(name, folder, lo = 0, hi = 1) {
     folder
-      .add(this._config, name, 0, 1)
+      .add(this._config, name, lo, hi)
       .listen()
       .onChange(v => this._onChange(name, v));
   }
@@ -139,6 +155,18 @@ export class DatController {
     return folder;
   }
 
+  _createMapFolder(gui) {
+    const folder = gui.addFolder('Map');
+    folder.open();
+    this._addBooleanOption('basemapVisible', folder);
+    this._addNumericOption('basemapOpacity', folder);
+    this._addNumericOption('basemapAltitude', folder, -100, 100);
+    this._addNumericOption('basemapTileCount', folder, 1, 200);
+    this._addNumericOption('basemapZoomLevel', folder, 10, 20);
+    this._addTextOption('tileServerUrl', folder);
+    return folder;
+  }ß
+
   _onChange(name, value) {
     const emitter = this._emitter;
     const types = this._eventTypes;
@@ -149,6 +177,7 @@ export class DatController {
       case 'cellsVisible':
       case 'commandsVisible':
       case 'gridVisible':
+      case 'basemapVisible':
       case 'imagesVisible':
       case 'pointsVisible':
       case 'statsVisible':
@@ -170,6 +199,31 @@ export class DatController {
         const size = value;
         type = types[name];
         emitter.fire(type, {size, type});
+        break;
+      case 'basemapOpacity':
+        const opacity = value;
+        type = types[name];
+        emitter.fire(type, {opacity, type});
+        break;
+      case 'basemapAltitude':
+        const altitude = value;
+        type = types[name];
+        emitter.fire(type, {altitude, type});
+        break;
+      case 'basemapTileCount':
+        const tileCount = value;
+        type = types[name];
+        emitter.fire(type, {tileCount, type});
+        break;
+      case 'basemapZoomLevel':
+        const zoomLevel = value;
+        type = types[name];
+        emitter.fire(type, {zoomLevel, type});
+        break;
+      case 'tileServerUrl':
+        const tileServerUrl = value;
+        type = types[name];
+        emitter.fire(type, {type, tileServerUrl});
         break;
       default:
         break;

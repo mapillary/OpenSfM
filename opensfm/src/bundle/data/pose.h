@@ -3,6 +3,8 @@
 #include <bundle/data/data.h>
 #include <geometry/pose.h>
 
+#include "foundation/optional.h"
+
 namespace bundle {
 
 struct Pose : public Data<geometry::Pose> {

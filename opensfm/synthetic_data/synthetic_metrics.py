@@ -1,9 +1,9 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import cv2
 import numpy as np
 import opensfm.transformations as tf
-from opensfm import align, types
+from opensfm import align, types, pymap, multiview
 
 
 def points_errors(
@@ -33,9 +33,27 @@ def completeness_errors(
 def gps_errors(candidate: types.Reconstruction) -> np.ndarray:
     errors = []
     for shot in candidate.shots.values():
-        pose1 = shot.metadata.gps_position.value
+        bias = candidate.biases[shot.camera.id]
+        pose1 = bias.transform(shot.metadata.gps_position.value)
         pose2 = shot.pose.get_origin()
         errors.append(pose1 - pose2)
+    return np.array(errors)
+
+
+def gcp_errors(
+    candidate: types.Reconstruction, gcps: Dict[str, pymap.GroundControlPoint]
+) -> np.ndarray:
+    errors = []
+    for gcp in gcps.values():
+        if not gcp.lla:
+            continue
+
+        triangulated = multiview.triangulate_gcp(gcp, candidate.shots, 1.0, 0.1)
+        if triangulated is None:
+            continue
+
+        gcp_enu = candidate.reference.to_topocentric(*gcp.lla_vec)
+        errors.append(triangulated - gcp_enu)
     return np.array(errors)
 
 

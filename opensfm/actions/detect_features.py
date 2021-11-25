@@ -7,18 +7,32 @@ from timeit import default_timer as timer
 from typing import Optional, List, Dict, Any, Tuple
 
 import numpy as np
-from opensfm import bow, features, io, log, pygeometry, upright
+from opensfm import bow, features, io, log, pygeometry, upright, masking
 from opensfm.context import parallel_map
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 
 
 def run_dataset(data: DataSetBase):
-    """ Compute features for all images. """
+    """Compute features for all images."""
 
     start = timer()
-    process_queue = queue.Queue()
+
+    default_queue_size = 10
+    max_queue_size = 200
+    mem_available = log.memory_available()
+    if mem_available:
+        expected_mb = mem_available / 2
+        expected_images = min(
+            max_queue_size, int(expected_mb / average_image_size(data))
+        )
+        logger.info(f"Capping memory usage to ~ {expected_mb} MB")
+    else:
+        expected_images = default_queue_size
+    logger.info(f"Expecting to process {expected_images} images.")
+
+    process_queue = queue.Queue(expected_images)
     arguments: List[Tuple[str, Any]] = []
 
     all_images = data.images()
@@ -55,6 +69,13 @@ def run_dataset(data: DataSetBase):
 
     end = timer()
     write_report(data, end - start)
+
+
+def average_image_size(data: DataSetBase) -> float:
+    average_size_mb = 0
+    for camera in data.load_camera_models().values():
+        average_size_mb += camera.width * camera.height * 4 / 1024 / 1024
+    return average_size_mb / max(1, len(data.load_camera_models()))
 
 
 def write_report(data: DataSetBase, wall_time: float):
@@ -123,8 +144,9 @@ def read_images(
     counter: Counter,
     expected: int,
 ):
+    full_queue_timeout = 120
     for image in images:
-        logger.info(f"Reading data for image {image}")
+        logger.info(f"Reading data for image {image} (queue-size={queue.qsize()}")
         image_array = data.load_image(image)
         if data.config["features_bake_segmentation"]:
             segmentation_array = data.load_segmentation(image)
@@ -132,7 +154,7 @@ def read_images(
         else:
             segmentation_array, instances_array = None, None
         args = image, image_array, segmentation_array, instances_array, data
-        queue.put(args)
+        queue.put(args, block=True, timeout=full_queue_timeout)
         counter.increment()
         if counter.value() == expected:
             logger.info("Finished reading images")
@@ -147,14 +169,29 @@ def run_detection(queue: queue.Queue):
             break
         image, image_array, segmentation_array, instances_array, data = args
         detect(image, image_array, segmentation_array, instances_array, data)
+        del image_array
+        del segmentation_array
+        del instances_array
 
 
 def bake_segmentation(
+    image: np.ndarray,
     points: np.ndarray,
     segmentation: Optional[np.ndarray],
     instances: Optional[np.ndarray],
     exif: Dict[str, Any],
 ):
+    exif_height, exif_width, exif_orientation = (
+        exif["height"],
+        exif["width"],
+        exif["orientation"],
+    )
+    height, width = image.shape[:2]
+    if exif_height != height or exif_width != width:
+        logger.error(
+            f"Image has inconsistent EXIF dimensions ({exif_width}, {exif_height}) and image dimensions ({width}, {height}). Orientation={exif_orientation}"
+        )
+
     panoptic_data = [None, None]
     for i, p_data in enumerate([segmentation, instances]):
         if p_data is None:
@@ -162,8 +199,8 @@ def bake_segmentation(
         new_height, new_width = p_data.shape
         ps = upright.opensfm_to_upright(
             points[:, :2],
-            exif["width"],
-            exif["height"],
+            width,
+            height,
             exif["orientation"],
             new_width=new_width,
             new_height=new_height,
@@ -210,7 +247,7 @@ def detect(
     if data.config["features_bake_segmentation"]:
         exif = data.load_exif(image)
         s_unsorted, i_unsorted = bake_segmentation(
-            p_unmasked, segmentation_array, instances_array, exif
+            image_array, p_unmasked, segmentation_array, instances_array, exif
         )
         p_unsorted = p_unmasked
         f_unsorted = f_unmasked
@@ -218,7 +255,7 @@ def detect(
     # Load segmentation, make a mask from it mask and apply it
     else:
         s_unsorted, i_unsorted = None, None
-        fmask = data.load_features_mask(image, p_unmasked)
+        fmask = masking.load_features_mask(data, image, p_unmasked)
         p_unsorted = p_unmasked[fmask]
         f_unsorted = f_unmasked[fmask]
         c_unsorted = c_unmasked[fmask]
@@ -231,9 +268,11 @@ def detect(
     p_sorted = p_unsorted[order, :]
     f_sorted = f_unsorted[order, :]
     c_sorted = c_unsorted[order, :]
-    if s_unsorted is not None and i_unsorted is not None:
+    if s_unsorted is not None:
         semantic_data = features.SemanticData(
-            s_unsorted[order], i_unsorted[order], data.segmentation_labels()
+            s_unsorted[order],
+            i_unsorted[order] if i_unsorted is not None else None,
+            data.segmentation_labels(),
         )
     else:
         semantic_data = None

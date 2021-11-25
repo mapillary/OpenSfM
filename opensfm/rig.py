@@ -1,12 +1,18 @@
 """Tool for handling rigs"""
 
 import logging
+import os
+import random
 import re
-from typing import Dict, Tuple, List, Optional, Set
+from typing import Dict, Tuple, List, Optional, Set, Iterable, TYPE_CHECKING
 
+import networkx as nx
 import numpy as np
-from opensfm import actions, pygeometry, pymap, types
-from opensfm.dataset import DataSet
+import scipy.spatial as spatial
+from opensfm import reconstruction as orec, actions, pygeometry, pymap, types
+
+if TYPE_CHECKING:
+    from opensfm.dataset import DataSet
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +25,30 @@ TRigInstance = List[TRigImage]
 
 INCOMPLETE_INSTANCE_GROUP = "INCOMPLETE_INSTANCE_GROUP"
 INCOMPLETE_INSTANCE_ID = "INCOMPLETE_INSTANCE_ID"
+
+
+def default_rig_cameras(camera_ids: Iterable[str]) -> Dict[str, pymap.RigCamera]:
+    """Return per-camera models default rig cameras (identity pose)."""
+    default_rig_cameras = {}
+    for camera_id in camera_ids:
+        default_rig_cameras[camera_id] = pymap.RigCamera(pygeometry.Pose(), camera_id)
+    return default_rig_cameras
+
+
+def rig_assignments_per_image(
+    rig_assignments: List[List[Tuple[str, str]]],
+) -> Dict[str, Tuple[str, str, List[str]]]:
+    """Return rig assignments data for each image."""
+    assignments_per_image = {}
+    for instance_id, instance in enumerate(rig_assignments):
+        instance_shots = [s[0] for s in instance]
+        for (shot_id, rig_camera_id) in instance:
+            assignments_per_image[shot_id] = (
+                f"{instance_id}",
+                rig_camera_id,
+                instance_shots,
+            )
+    return assignments_per_image
 
 
 def find_image_rig(
@@ -68,14 +98,18 @@ def create_instances_with_patterns(
 
         cameras_group = {c for _, c in cameras}
         for _, c in cameras:
-            if c in groups_per_camera and cameras_group != groups_per_camera[c]:
+            size_new = len(cameras_group)
+            override = c in groups_per_camera and size_new >= len(groups_per_camera[c])
+            is_new = c not in groups_per_camera
+            if is_new or override:
+                groups_per_camera[c] = cameras_group
+            else:
                 logger.warning(
                     (
                         f"Rig camera {c} already belongs to the rig camera group {groups_per_camera[c]}."
                         f"This rig camera is probably part of an incomplete instance : {cameras_group}"
                     )
                 )
-            groups_per_camera[c] = cameras_group
         per_complete_instance_id[instance_id] = cameras
 
     return per_complete_instance_id, single_shots
@@ -86,48 +120,96 @@ def group_instances(
 ) -> Dict[str, List[TRigInstance]]:
     per_rig_camera_group: Dict[str, List[TRigInstance]] = {}
     for cameras in rig_instances.values():
-        cameras_group = ", ".join({c for _, c in cameras})
+        cameras_group = ", ".join(sorted({c for _, c in cameras}))
         if cameras_group not in per_rig_camera_group:
             per_rig_camera_group[cameras_group] = []
         per_rig_camera_group[cameras_group].append(cameras)
     return per_rig_camera_group
 
 
-def create_subset_dataset_from_instances(
-    data: DataSet, rig_instances: Dict[str, TRigInstance], name: str
-) -> DataSet:
-    """Given a list of images grouped by rigs instances, pick a subset of images
-        and create a dataset subset with the provided name from them.
+def propose_subset_dataset_from_instances(
+    data: "DataSet", rig_instances: Dict[str, TRigInstance], name: str
+) -> Iterable[Tuple["DataSet", List[List[Tuple[str, str]]]]]:
+    """Given a list of images grouped by rigs instances, infitely propose random
+        subset of images and create a dataset subset with the provided name from them.
 
     Returns :
-        A DataSet containing a subset of images containing enough rig instances
+        Yield infinitely DataSet containing a subset of images containing enough rig instances
     """
     per_rig_camera_group = group_instances(rig_instances)
 
-    subset_images = []
-    for instances in per_rig_camera_group.values():
-        instances_sorted = sorted(
-            instances, key=lambda x: data.load_exif(x[0][0])["capture_time"]
+    data.init_reference()
+    reference = data.load_reference()
+
+    instances_to_pick = {}
+    for key, instances in per_rig_camera_group.items():
+        # build GPS look-up tree
+        gpses = []
+        for i, instance in enumerate(instances):
+            all_gps = []
+            for image, _ in instance:
+                gps = data.load_exif(image)["gps"]
+                all_gps.append(
+                    reference.to_topocentric(gps["latitude"], gps["longitude"], 0)
+                )
+            gpses.append((i, np.average(np.array(all_gps), axis=0)))
+        tree = spatial.cKDTree([x[1] for x in gpses])
+
+        # build NN-graph and split by connected components
+        nn = 6
+        instances_graph = nx.Graph()
+        for i, gps in gpses:
+            distances, neighbors = tree.query(gps, k=nn)
+            for d, n in zip(distances, neighbors):
+                if i == n or n >= len(gpses):
+                    continue
+                instances_graph.add_edge(i, n, weight=d)
+        all_components = sorted(
+            nx.algorithms.components.connected_components(instances_graph),
+            key=len,
+            reverse=True,
         )
+        logger.info(f"Found {len(all_components)} connected components")
+        if len(all_components) < 1:
+            continue
 
-        subset_size = data.config["rig_calibration_subset_size"]
-        middle = len(instances_sorted) // 2
-        instances_calibrate = instances_sorted[
-            max([0, middle - int(subset_size / 2)]) : min(
-                [middle + int(subset_size / 2), len(instances_sorted) - 1]
+        # keep the biggest one
+        biggest_component = all_components[0]
+        logger.info(f"Best component has {len(biggest_component)} instances")
+        instances_to_pick[key] = biggest_component
+
+    random.seed(42)
+    while True:
+        total_instances = []
+        subset_images = []
+        for key, instances in instances_to_pick.items():
+            all_instances = per_rig_camera_group[key]
+
+            instances_sorted = sorted(
+                [all_instances[i] for i in instances],
+                key=lambda x: data.load_exif(x[0][0])["capture_time"],
             )
-        ]
 
-        for instance in instances_calibrate:
-            subset_images += [x[0] for x in instance]
+            subset_size = data.config["rig_calibration_subset_size"]
+            random_index = random.randint(0, len(instances_sorted) - 1)
+            instances_calibrate = instances_sorted[
+                max([0, random_index - int(subset_size / 2)]) : min(
+                    [random_index + int(subset_size / 2), len(instances_sorted) - 1]
+                )
+            ]
 
-    return data.subset(name, subset_images)
+            for instance in instances_calibrate:
+                subset_images += [x[0] for x in instance]
+            total_instances += instances_calibrate
+
+        data.io_handler.rm_if_exist(os.path.join(data.data_path, name))
+        yield data.subset(name, subset_images), total_instances
 
 
 def compute_relative_pose(
     pose_instances: List[List[Tuple[pymap.Shot, str]]],
 ) -> Dict[str, pymap.RigCamera]:
-    """ Compute a rig model relatives poses given poses grouped by rig instance. """
+    """Compute a rig model relatives poses given poses grouped by rig instance."""
 
     # Put all poses instances into some canonical frame taken as the mean of their R|t
     centered_pose_instances = []
@@ -181,11 +263,13 @@ def compute_relative_pose(
 def create_rig_cameras_from_reconstruction(
     reconstruction: types.Reconstruction, rig_instances: Dict[str, TRigInstance]
 ) -> Dict[str, pymap.RigCamera]:
-    """ Compute rig cameras poses, given a reconstruction and rig instances's shots. """
+    """Compute rig cameras poses, given a reconstruction and rig instances's shots."""
     rig_cameras: Dict[str, pymap.RigCamera] = {}
     reconstructions_shots = set(reconstruction.shots)
+    logger.info(f"Computing rig cameras pose using {len(reconstructions_shots)} shots")
 
     per_rig_camera_group = group_instances(rig_instances)
+    logger.info(f"Found {len(per_rig_camera_group)} rig cameras groups")
     for instances in sorted(per_rig_camera_group.values(), key=lambda x: -len(x)):
         pose_groups = []
         for instance in instances:
@@ -210,7 +294,7 @@ def create_rig_cameras_from_reconstruction(
     return rig_cameras
 
 
-def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
+def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns):
     """Create rig data (`rig_cameras.json` and `rig_assignments.json`) by performing
     pattern matching to group images belonging to the same instances, followed
     by a bit of ad-hoc SfM to find some initial relative poses.
@@ -226,30 +310,94 @@ def create_rigs_with_pattern(data: DataSet, patterns: TRigPatterns):
         )
     logger.info(f"Found {len(single_shots)} single shots using pattern matching.")
 
-    # Create some subset DataSet with enough images from each rig
-    subset_data = create_subset_dataset_from_instances(
+    # Create some random subset DataSet with enough images from each rig and run SfM
+    count = 0
+    max_rounds = data.config["rig_calibration_max_rounds"]
+    best_reconstruction = None
+    best_rig_cameras = None
+    for subset_data, instances in propose_subset_dataset_from_instances(
         data, instances_per_rig, "rig_calibration"
-    )
+    ):
+        if count > max_rounds:
+            break
+        count += 1
 
-    if len(subset_data.images()) == 0:
-        logger.error("Not enough rig images")
-        return
+        if len(subset_data.images()) == 0:
+            continue
 
-    # Run a bit of SfM without any rig
-    logger.info(f"Running SfM on a subset of {len(subset_data.images())} images.")
-    actions.extract_metadata.run_dataset(subset_data)
-    actions.detect_features.run_dataset(subset_data)
-    actions.match_features.run_dataset(subset_data)
-    actions.create_tracks.run_dataset(subset_data)
-    actions.reconstruct.run_dataset(subset_data)
+        # Run a bit of SfM without any rig
+        logger.info(
+            f"Running SfM on a subset of {len(subset_data.images())} images. Round {count}/{max_rounds}"
+        )
+        actions.extract_metadata.run_dataset(subset_data)
+        actions.detect_features.run_dataset(subset_data)
+        actions.match_features.run_dataset(subset_data)
+        actions.create_tracks.run_dataset(subset_data)
+        actions.reconstruct.run_dataset(
+            subset_data, orec.ReconstructionAlgorithm.INCREMENTAL
+        )
 
-    # Compute some relative poses
-    rig_cameras = create_rig_cameras_from_reconstruction(
-        subset_data.load_reconstruction()[0], instances_per_rig
-    )
+        reconstructions = subset_data.load_reconstruction()
+        if len(reconstructions) == 0:
+            logger.error("Couldn't run sucessful SfM on the subset of images.")
+            continue
 
-    data.save_rig_cameras(rig_cameras)
-    data.save_rig_assignments(list(instances_per_rig.values()))
+        reconstruction = reconstructions[0]
+
+        # Compute some relative poses
+        rig_cameras = create_rig_cameras_from_reconstruction(
+            reconstruction, instances_per_rig
+        )
+        found_cameras = {c for i in instances_per_rig.values() for _, c in i}
+        if set(rig_cameras.keys()) != found_cameras:
+            logger.error(
+                f"Calibrated {len(rig_cameras)} whereas {len(found_cameras)} were requested. Rig creation failed."
+            )
+            continue
+
+        reconstructed_instances = count_reconstructed_instances(
+            instances, reconstruction
+        )
+        logger.info(
+            f"reconstructed {reconstructed_instances} instances over {len(instances)}"
+        )
+        if (
+            reconstructed_instances
+            < len(instances) * data.config["rig_calibration_completeness"]
+        ):
+            logger.error(
+                f"Not enough reconstructed instances: {reconstructed_instances} instances over {len(instances)} instances."
+            )
+            continue
+
+        best_reconstruction = reconstruction
+        best_rig_cameras = rig_cameras
+        break
+
+    if best_reconstruction and best_rig_cameras:
+        logger.info(
+            f"Found a candidate for rig calibration with {len(best_reconstruction.shots)} shots"
+        )
+        data.save_rig_cameras(best_rig_cameras)
+        data.save_rig_assignments(list(instances_per_rig.values()))
+    else:
+        logger.error(
+            "Could not run any sucessful SfM on images subset for rig calibration"
+        )
+
+
+def count_reconstructed_instances(
+    instances: List[List[Tuple[str, str]]], reconstruction: types.Reconstruction
+) -> int:
+    instances_map = {}
+    instances_count = {}
+    for i, instance in enumerate(instances):
+        instances_count[i] = len(instance)
+        for shot_id, _ in instance:
+            instances_map[shot_id] = i
+    for s in reconstruction.shots:
+        instances_count[instances_map[s]] -= 1
+    return len(instances) - sum(1 for i in instances_count.values() if i > 0)
 
 
 def same_rig_shot(meta1, meta2):

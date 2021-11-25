@@ -168,13 +168,22 @@ class Pose {
     return invpose;
   }
 
- private:
+  bool IsIdentity(double epsilon = 1e-15) const {
+    return GetOrigin().norm() < epsilon &&
+           RotationWorldToCameraMin().norm() < epsilon;
+  }
+
+  bool IsValid() const {
+    return GetOrigin().allFinite() && RotationWorldToCameraMin().allFinite();
+  }
+
+ protected:
   Mat4d cam_to_world_;  // [R',-R't] cam to world
   Mat4d world_to_cam_;  // [R, t] world to cam
   Vec3d r_min_cam_to_world_;
   Vec3d r_min_world_to_cam_;
 
-  void UpdateMinRotations() {
+  virtual void UpdateMinRotations() {
     r_min_cam_to_world_ =
         geometry::RotationMatrixToVector(cam_to_world_.block<3, 3>(0, 0));
     r_min_world_to_cam_ = -r_min_cam_to_world_;
@@ -202,5 +211,4 @@ class PoseImmutable : public geometry::Pose {
   void SetFromWorldToCamera(const Vec3d&, const Vec3d&)  THROW_POSE_IMMUTABLE
   // clang-format on
 };
-
 }  // namespace geometry

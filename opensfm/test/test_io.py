@@ -3,8 +3,8 @@ import os.path
 from io import StringIO
 
 import numpy as np
-from opensfm import geo, io
-from opensfm.test import data_generation
+from opensfm import pygeometry, geo, io, types
+from opensfm.test import data_generation, utils
 
 
 filename = os.path.join(
@@ -51,7 +51,7 @@ def test_reconstructions_from_json():
     assert len(reconstructions) == 1
     assert len(reconstructions[0].cameras) == 1
     assert len(reconstructions[0].shots) == 3
-    assert len(reconstructions[0].points) == 1588
+    assert len(reconstructions[0].points) == 1430
     assert len(reconstructions[0].rig_cameras) == 1
     assert len(reconstructions[0].rig_instances) == 3
 
@@ -82,11 +82,10 @@ def test_read_gcp_list():
 13.400502446 52.519251158 16.7021233002 766.0 1133.1 01.jpg
     """
     fp = StringIO(text)
-    reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
     images = ["01.jpg", "02.jpg"]
     exif = {i: {"width": 3000, "height": 2000} for i in images}
 
-    points = io.read_gcp_list(fp, reference, exif)
+    points = io.read_gcp_list(fp, exif)
     assert len(points) == 2
 
     a, b = (len(point.observations) for point in points)
@@ -135,25 +134,22 @@ def test_read_write_ground_control_points():
         if p1.id != "1":
             p1, p2 = p2, p1
 
-        assert p1.coordinates.has_value is False
         assert len(p1.observations) == 2
         assert np.allclose(p2.lla["latitude"], 52.519251158)
         assert np.allclose(p2.lla["longitude"], 13.400502446)
-        assert np.allclose(p2.coordinates.value[2], 16.7021233002)
+        assert np.allclose(p2.lla["altitude"], 16.7021233002)
         assert len(p2.observations) == 1
-
-    reference = geo.TopocentricConverter(52.51913, 13.4007, 0)
 
     # Read json
     fp = StringIO(text)
-    points = io.read_ground_control_points(fp, reference)
+    points = io.read_ground_control_points(fp)
     check_points(points)
 
     # Write json and re-read
     fwrite = StringIO()
-    io.write_ground_control_points(points, fwrite, reference)
+    io.write_ground_control_points(points, fwrite)
     freread = StringIO(fwrite.getvalue())
-    points_reread = io.read_ground_control_points(freread, reference)
+    points_reread = io.read_ground_control_points(freread)
     check_points(points_reread)
 
 
@@ -187,6 +183,7 @@ def test_camera_from_to_vector():
         ("fisheye", 3),
         ("fisheye_opencv", 8),
         ("fisheye62", 12),
+        ("fisheye624", 16),
         ("radial", 6),
         ("simple_radial", 5),
         ("dual", 4),
@@ -197,3 +194,25 @@ def test_camera_from_to_vector():
         camera = io.camera_from_vector("cam1", w, h, projection_type, params)
         params_out = io.camera_to_vector(camera)
         assert params == params_out
+
+
+# specific test for I/O consistency with panoshots
+# ynoutary : hopefully, candidate for deletion soon
+def test_panoshots_consistency():
+    rec_before = types.Reconstruction()
+
+    camera1 = pygeometry.Camera.create_spherical()
+    camera1.id = "camera1"
+    rec_before.add_camera(camera1)
+
+    rec_before.create_shot("shot1", "camera1")
+    rec_before.create_shot("shot2", "camera1")
+    rec_before.create_pano_shot("shot1", "camera1")
+    rec_before.create_pano_shot("shot2", "camera1")
+    rec_before.create_pano_shot("shot4", "camera1")
+    rec_before.create_pano_shot("shot3", "camera1")
+
+    json_data = io.reconstructions_to_json([rec_before])
+    rec_after = io.reconstructions_from_json(json_data)[0]
+
+    utils.assert_reconstructions_equal(rec_before, rec_after)

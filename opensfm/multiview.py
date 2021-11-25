@@ -1,14 +1,13 @@
 import math
 import random
+from typing import Dict, Any, Tuple, Optional, List
 
 import cv2
 import numpy as np
-from opensfm import pygeometry
-from opensfm import pyrobust
-from opensfm import transformations as tf
+from opensfm import pygeometry, pyrobust, transformations as tf, pymap
 
 
-def nullspace(A):
+def nullspace(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the null space of A.
 
     Return the smallest singular value and the corresponding vector.
@@ -17,29 +16,29 @@ def nullspace(A):
     return s[-1], vh[-1]
 
 
-def homogeneous(x):
+def homogeneous(x: np.ndarray) -> np.ndarray:
     """Add a column of ones to x."""
     s = x.shape[:-1] + (1,)
     return np.hstack((x, np.ones(s)))
 
 
-def homogeneous_vec(x):
+def homogeneous_vec(x: np.ndarray) -> np.ndarray:
     """Add a column of zeros to x."""
     s = x.shape[:-1] + (1,)
     return np.hstack((x, np.zeros(s)))
 
 
-def euclidean(x):
+def euclidean(x: np.ndarray) -> np.ndarray:
     """Divide by last column and drop it."""
     return x[..., :-1] / x[..., -1:]
 
 
-def cross_product_matrix(x):
+def cross_product_matrix(x: np.ndarray) -> np.ndarray:
     """Return the matrix representation of x's cross product"""
     return np.array([[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]])
 
 
-def P_from_KRt(K, R, t):
+def P_from_KRt(K: np.ndarray, R: np.ndarray, t: np.ndarray) -> np.ndarray:
     """P = K[R|t]."""
     P = np.empty((3, 4))
     P[:, :3] = np.dot(K, R)
@@ -47,7 +46,7 @@ def P_from_KRt(K, R, t):
     return P
 
 
-def KRt_from_P(P):
+def KRt_from_P(P: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Factorize the camera matrix into K,R,t as P = K[R|t].
 
     >>> K = np.array([[1, 2, 3],
@@ -80,7 +79,7 @@ def KRt_from_P(P):
     return K, R, t
 
 
-def rq(A):
+def rq(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Decompose a matrix into a triangular times rotation.
     (from PCV)
 
@@ -104,7 +103,7 @@ def rq(A):
     return R[:, ::-1], Q[::-1, :]
 
 
-def vector_angle(u, v):
+def vector_angle(u: np.ndarray, v: np.ndarray) -> float:
     """Angle between two vectors.
 
     >>> u = [ 0.99500417, -0.33333333, -0.09983342]
@@ -119,7 +118,9 @@ def vector_angle(u, v):
     return math.acos(cos)
 
 
-def decompose_similarity_transform(T):
+def decompose_similarity_transform(
+    T: np.ndarray,
+) -> Tuple[float, np.ndarray, np.ndarray]:
     """Decompose the similarity transform to scale, rotation and translation"""
     m, n = T.shape[0:2]
     assert m == n
@@ -128,7 +129,9 @@ def decompose_similarity_transform(T):
     return s, A / s, b
 
 
-def ransac_max_iterations(kernel, inliers, failure_probability):
+def ransac_max_iterations(
+    kernel: Any, inliers: np.ndarray, failure_probability: float
+) -> float:
     if len(inliers) >= kernel.num_samples():
         return 0
     inlier_ratio = float(len(inliers)) / kernel.num_samples()
@@ -136,7 +139,10 @@ def ransac_max_iterations(kernel, inliers, failure_probability):
     return math.log(failure_probability) / math.log(1.0 - inlier_ratio ** n)
 
 
-def ransac(kernel, threshold):
+TRansacSolution = Tuple[np.ndarray, np.ndarray, float]
+
+
+def ransac(kernel: Any, threshold: float) -> TRansacSolution:
     """Robustly fit a model to data.
 
     >>> x = np.array([1., 2., 3.])
@@ -268,9 +274,13 @@ class PlaneKernel:
 
 
 def fit_plane_ransac(
-    points, vectors, verticals, point_threshold=1.2, vector_threshold=5.0
-):
-    vectors = [v / math.pi * 180.0 for v in vectors]
+    points: np.ndarray,
+    vectors: np.ndarray,
+    verticals: np.ndarray,
+    point_threshold: float = 1.2,
+    vector_threshold: float = 5.0,
+) -> TRansacSolution:
+    vectors = np.array([v / math.pi * 180.0 for v in vectors])
     kernel = PlaneKernel(
         points - points.mean(axis=0),
         vectors,
@@ -281,14 +291,18 @@ def fit_plane_ransac(
     p, inliers, error = ransac(kernel, point_threshold)
     num_point = points.shape[0]
     points_inliers = points[inliers[inliers < num_point], :]
-    vectors_inliers = [vectors[i - num_point] for i in inliers[inliers >= num_point]]
+    vectors_inliers = np.array(
+        [vectors[i - num_point] for i in inliers[inliers >= num_point]]
+    )
     p = fit_plane(
         points_inliers - points_inliers.mean(axis=0), vectors_inliers, verticals
     )
     return p, inliers, error
 
 
-def fit_plane(points, vectors, verticals):
+def fit_plane(
+    points: np.ndarray, vectors: Optional[np.ndarray], verticals: Optional[np.ndarray]
+) -> np.ndarray:
     """Estimate a plane fron on-plane points and vectors.
 
     >>> x = [[0,0,0], [1,0,0], [0,1,0]]
@@ -310,7 +324,7 @@ def fit_plane(points, vectors, verticals):
     points = np.array(points)
     s = 1.0 / max(1e-8, points.std())  # Normalize the scale to improve conditioning.
     x = homogeneous(s * points)
-    if vectors:
+    if vectors is not None and len(vectors) > 0:
         v = homogeneous_vec(s * np.array(vectors))
         A = np.vstack((x, v))
     else:
@@ -322,7 +336,7 @@ def fit_plane(points, vectors, verticals):
         return np.array([0.0, 0.0, 1.0, 0])
 
     # Use verticals to decide the sign of p
-    if verticals:
+    if verticals is not None and len(verticals) > 0:
         d = 0
         for vertical in verticals:
             d += p[:3].dot(vertical)
@@ -330,7 +344,7 @@ def fit_plane(points, vectors, verticals):
     return p
 
 
-def plane_horizontalling_rotation(p):
+def plane_horizontalling_rotation(p: np.ndarray) -> Optional[np.ndarray]:
     """Compute a rotation that brings p to z=0
 
     >>> p = [1.0, 2.0, 3.0]
@@ -354,7 +368,7 @@ def plane_horizontalling_rotation(p):
     True
     """
     v0 = p[:3]
-    v1 = [0.0, 0.0, 1.0]
+    v1 = np.array([0.0, 0.0, 1.0])
     angle = tf.angle_between_vectors(v0, v1)
     axis = tf.vector_product(v0, v1)
     if np.linalg.norm(axis) > 0:
@@ -363,10 +377,13 @@ def plane_horizontalling_rotation(p):
         return np.eye(3)
     elif angle > 3.0:
         return np.diag([1, -1, -1])
+    return None
 
 
-def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
-    """Fit a similarity transform between two points sets"""
+def fit_similarity_transform(
+    p1: np.ndarray, p2: np.ndarray, max_iterations: int = 1000, threshold: float = 1
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Fit a similarity transform T such as p2 = T . p1 between two points sets p1 and p2"""
     # TODO (Yubin): adapt to RANSAC class
 
     num_points, dim = p1.shape[0:2]
@@ -374,6 +391,7 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
     assert p1.shape[0] == p2.shape[0]
 
     best_inliers = []
+    best_T = np.array((3, 4))
     for _ in range(max_iterations):
         rnd = np.random.permutation(num_points)
         rnd = rnd[0:dim]
@@ -399,12 +417,12 @@ def fit_similarity_transform(p1, p2, max_iterations=1000, threshold=1):
     return best_T, best_inliers
 
 
-def K_from_camera(camera):
+def K_from_camera(camera: Dict[str, Any]) -> np.ndarray:
     f = float(camera["focal"])
     return np.array([[f, 0.0, 0.0], [0.0, f, 0.0], [0.0, 0.0, 1.0]])
 
 
-def focal_from_homography(H):
+def focal_from_homography(H: np.ndarray) -> np.ndarray:
     """Solve for w = H w H^t, with w = diag(a, a, b)
 
     >>> K = np.diag([0.8, 0.8, 1])
@@ -430,7 +448,9 @@ def focal_from_homography(H):
     return focal
 
 
-def R_from_homography(H, f1, f2):
+def R_from_homography(
+    H: np.ndarray, f1: np.ndarray, f2: np.ndarray
+) -> Optional[np.ndarray]:
     K1 = np.diag([f1, f1, 1])
     K2 = np.diag([f2, f2, 1])
     K2inv = np.linalg.inv(K2)
@@ -439,7 +459,7 @@ def R_from_homography(H, f1, f2):
     return R
 
 
-def project_to_rotation_matrix(A):
+def project_to_rotation_matrix(A: np.ndarray) -> Optional[np.ndarray]:
     try:
         u, d, vt = np.linalg.svd(A)
     except np.linalg.linalg.LinAlgError:
@@ -447,7 +467,7 @@ def project_to_rotation_matrix(A):
     return u.dot(vt)
 
 
-def camera_up_vector(rotation_matrix):
+def camera_up_vector(rotation_matrix: np.ndarray) -> np.ndarray:
     """Unit vector pointing to zenit in camera coords.
 
     :param rotation: camera pose rotation
@@ -455,7 +475,7 @@ def camera_up_vector(rotation_matrix):
     return rotation_matrix[:, 2]
 
 
-def camera_compass_angle(rotation_matrix):
+def camera_compass_angle(rotation_matrix: np.ndarray) -> float:
     """Compass angle of a camera
 
     Angle between world's Y axis and camera's Z axis projected
@@ -468,7 +488,9 @@ def camera_compass_angle(rotation_matrix):
     return np.degrees(angle)
 
 
-def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
+def rotation_matrix_from_up_vector_and_compass(
+    up_vector: np.ndarray, compass_angle: float
+) -> np.ndarray:
     """Camera rotation given up_vector and compass.
 
     >>> d = [1, 2, 3]
@@ -506,7 +528,9 @@ def rotation_matrix_from_up_vector_and_compass(up_vector, compass_angle):
     return np.column_stack([r1, r2, r3]).dot(compass_rotation)
 
 
-def motion_from_plane_homography(H):
+def motion_from_plane_homography(
+    H: np.ndarray,
+) -> Optional[List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]]:
     """Compute candidate camera motions from a plane-induced homography.
 
     Returns up to 8 motions.
@@ -525,7 +549,7 @@ def motion_from_plane_homography(H):
 
     # Skip the cases where some singular values are nearly equal
     if d1 / d2 < 1.0001 or d2 / d3 < 1.0001:
-        return []
+        return None
 
     abs_x1 = np.sqrt((d1 ** 2 - d2 ** 2) / (d1 ** 2 - d3 ** 2))
     abs_x3 = np.sqrt((d2 ** 2 - d3 ** 2) / (d1 ** 2 - d3 ** 2))
@@ -568,9 +592,15 @@ def motion_from_plane_homography(H):
     return solutions
 
 
-def absolute_pose_known_rotation_ransac(bs, Xs, threshold, iterations, probabilty):
+def absolute_pose_known_rotation_ransac(
+    bs: np.ndarray,
+    Xs: np.ndarray,
+    threshold: float,
+    iterations: int,
+    probability: float,
+) -> np.ndarray:
     params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
+    params.iterations = iterations
     result = pyrobust.ransac_absolute_pose_known_rotation(
         bs, Xs, threshold, params, pyrobust.RansacType.RANSAC
     )
@@ -580,9 +610,15 @@ def absolute_pose_known_rotation_ransac(bs, Xs, threshold, iterations, probabilt
     return np.concatenate((R, [[t[0]], [t[1]], [t[2]]]), axis=1)
 
 
-def absolute_pose_ransac(bs, Xs, threshold, iterations, probabilty):
+def absolute_pose_ransac(
+    bs: np.ndarray,
+    Xs: np.ndarray,
+    threshold: float,
+    iterations: int,
+    probability: float,
+) -> np.ndarray:
     params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
+    params.iterations = iterations
     result = pyrobust.ransac_absolute_pose(
         bs, Xs, threshold, params, pyrobust.RansacType.RANSAC
     )
@@ -594,9 +630,15 @@ def absolute_pose_ransac(bs, Xs, threshold, iterations, probabilty):
     return Rt
 
 
-def relative_pose_ransac(b1, b2, threshold, iterations, probability):
+def relative_pose_ransac(
+    b1: np.ndarray,
+    b2: np.ndarray,
+    threshold: float,
+    iterations: int,
+    probability: float,
+) -> np.ndarray:
     params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
+    params.iterations = iterations
     result = pyrobust.ransac_relative_pose(
         b1, b2, threshold, params, pyrobust.RansacType.RANSAC
     )
@@ -608,16 +650,24 @@ def relative_pose_ransac(b1, b2, threshold, iterations, probability):
     return Rt
 
 
-def relative_pose_ransac_rotation_only(b1, b2, threshold, iterations, probability):
+def relative_pose_ransac_rotation_only(
+    b1: np.ndarray,
+    b2: np.ndarray,
+    threshold: float,
+    iterations: int,
+    probability: float,
+) -> np.ndarray:
     params = pyrobust.RobustEstimatorParams()
-    params.iterations = 1000
+    params.iterations = iterations
     result = pyrobust.ransac_relative_rotation(
         b1, b2, threshold, params, pyrobust.RansacType.RANSAC
     )
     return result.lo_model.T
 
 
-def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
+def relative_pose_optimize_nonlinear(
+    b1: np.ndarray, b2: np.ndarray, t: np.ndarray, R: np.ndarray, iterations: int
+) -> np.ndarray:
     Rt = np.zeros((3, 4))
     Rt[:3, :3] = R.T
     Rt[:, 3] = -R.T.dot(t)
@@ -629,7 +679,12 @@ def relative_pose_optimize_nonlinear(b1, b2, t, R, iterations):
     return Rt
 
 
-def triangulate_gcp(point, shots, reproj_threshold, min_ray_angle_degrees):
+def triangulate_gcp(
+    point: pymap.GroundControlPoint,
+    shots: Dict[str, pymap.Shot],
+    reproj_threshold: float,
+    min_ray_angle_degrees: float,
+) -> Optional[np.ndarray]:
     """Compute the reconstructed position of a GCP from observations."""
 
     os, bs, ids = [], [], []
@@ -647,7 +702,7 @@ def triangulate_gcp(point, shots, reproj_threshold, min_ray_angle_degrees):
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-            os, bs, thresholds, np.radians(min_ray_angle_degrees)
+            np.asarray(os), np.asarray(bs), thresholds, np.radians(min_ray_angle_degrees)
         )
         if valid_triangulation:
             return X

@@ -3,257 +3,25 @@ import json
 import logging
 import os
 import pickle
-from abc import ABC, abstractmethod
 from io import BytesIO
 from typing import Dict, List, Tuple, Optional, IO, Any
 
-import cv2
 import numpy as np
-from opensfm import config, features, geo, io, pysfm, upright, pygeometry, types, pymap
+from opensfm import (
+    config,
+    features,
+    geo,
+    io,
+    pygeometry,
+    types,
+    pymap,
+    masking,
+    rig,
+)
+from opensfm.dataset_base import DataSetBase
+from PIL.PngImagePlugin import PngImageFile
 
 logger = logging.getLogger(__name__)
-
-
-class DataSetBase(ABC):
-    """Base for dataset classes providing i/o access to persistent data.
-
-    It is possible to store data remotely or in different formats
-    by subclassing this class and overloading its methods.
-    """
-
-    @property
-    @abstractmethod
-    def io_handler(self) -> io.IoFilesystemBase:
-        pass
-
-    @property
-    @abstractmethod
-    def config(self) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def images(self) -> List[str]:
-        pass
-
-    @abstractmethod
-    def open_image_file(self, image: str) -> IO[Any]:
-        pass
-
-    @abstractmethod
-    def load_image(
-        self,
-        image: str,
-        unchanged: bool = False,
-        anydepth: bool = False,
-        grayscale: bool = False,
-    ) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def image_size(self, image: str) -> Tuple[int, int]:
-        pass
-
-    @abstractmethod
-    def load_mask(self, image: str) -> Optional[np.ndarray]:
-        pass
-
-    @abstractmethod
-    def load_features_mask(self, image: str, points: np.ndarray) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def load_instances(self, image: str) -> Optional[np.ndarray]:
-        pass
-
-    @abstractmethod
-    def segmentation_labels(self) -> List[Any]:
-        pass
-
-    @abstractmethod
-    def load_segmentation(self, image: str) -> Optional[np.ndarray]:
-        pass
-
-    @abstractmethod
-    def segmentation_ignore_values(self, image: str) -> List[int]:
-        pass
-
-    @abstractmethod
-    def mask_from_segmentation(
-        self, segmentation: np.ndarray, ignore_values: List[int]
-    ) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def combine_masks(
-        self, mask: Optional[np.ndarray], smask: Optional[np.ndarray]
-    ) -> Optional[np.ndarray]:
-        pass
-
-    @abstractmethod
-    def load_exif(self, image: str) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def save_exif(self, image: str, data: Dict[str, Any]) -> None:
-        pass
-
-    @abstractmethod
-    def exif_exists(self, image: str) -> bool:
-        pass
-
-    @abstractmethod
-    def feature_type(self) -> str:
-        pass
-
-    @abstractmethod
-    def features_exist(self, image: str) -> bool:
-        pass
-
-    @abstractmethod
-    def load_features(self, image: str) -> Optional[features.FeaturesData]:
-        pass
-
-    @abstractmethod
-    def save_features(self, image: str, features_data: features.FeaturesData) -> None:
-        pass
-
-    @abstractmethod
-    def words_exist(self, image: str) -> bool:
-        pass
-
-    @abstractmethod
-    def load_words(self, image: str) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def save_words(self, image: str, words: np.ndarray) -> None:
-        pass
-
-    @abstractmethod
-    def matches_exists(self, image: str) -> bool:
-        pass
-
-    @abstractmethod
-    def load_matches(self, image: str) -> Dict[str, np.ndarray]:
-        pass
-
-    @abstractmethod
-    def save_matches(self, image: str, matches: Dict[str, np.ndarray]) -> None:
-        pass
-
-    @abstractmethod
-    def load_tracks_manager(
-        self, filename: Optional[str] = None
-    ) -> pysfm.TracksManager:
-        pass
-
-    @abstractmethod
-    def save_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager, filename: Optional[str] = None
-    ) -> None:
-        pass
-
-    @abstractmethod
-    def load_reconstruction(
-        self, filename: Optional[str] = None
-    ) -> List[types.Reconstruction]:
-        pass
-
-    @abstractmethod
-    def save_reconstruction(
-        self,
-        reconstruction: List[types.Reconstruction],
-        filename: Optional[str] = None,
-        minify=False,
-    ) -> None:
-        pass
-
-    @abstractmethod
-    def invent_reference_lla(
-        self, images: Optional[List[str]] = None
-    ) -> Dict[str, float]:
-        pass
-
-    @abstractmethod
-    def load_reference(self) -> geo.TopocentricConverter:
-        pass
-
-    @abstractmethod
-    def reference_lla_exists(self) -> bool:
-        pass
-
-    @abstractmethod
-    def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
-        pass
-
-    @abstractmethod
-    def save_camera_models(self, camera_models: Dict[str, pygeometry.Camera]) -> None:
-        pass
-
-    @abstractmethod
-    def camera_models_overrides_exists(self) -> bool:
-        pass
-
-    @abstractmethod
-    def load_camera_models_overrides(self) -> Dict[str, pygeometry.Camera]:
-        pass
-
-    @abstractmethod
-    def save_camera_models_overrides(
-        self, camera_models: Dict[str, pygeometry.Camera]
-    ) -> None:
-        pass
-
-    @abstractmethod
-    def exif_overrides_exists(self) -> bool:
-        pass
-
-    @abstractmethod
-    def load_exif_overrides(self) -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    def load_rig_cameras(
-        self,
-    ) -> Dict[str, pymap.RigCamera]:
-        pass
-
-    @abstractmethod
-    def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
-        pass
-
-    @abstractmethod
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
-        pass
-
-    @abstractmethod
-    def load_rig_assignments_per_image(
-        self,
-    ) -> Dict[str, Tuple[int, str, List[str]]]:
-        pass
-
-    @abstractmethod
-    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
-        pass
-
-    # TODO(pau): switch this to save_profile_log
-    @abstractmethod
-    def profile_log(self) -> str:
-        pass
-
-    @abstractmethod
-    def load_report(self, path: str) -> str:
-        pass
-
-    @abstractmethod
-    def save_report(self, report_str: str, path: str) -> None:
-        pass
-
-    @abstractmethod
-    def load_ground_control_points(
-        self,
-    ) -> List[pymap.GroundControlPoint]:
-        pass
 
 
 class DataSet(DataSetBase):
@@ -276,7 +44,7 @@ class DataSet(DataSetBase):
     mask_files: Dict[str, str] = {}
     image_list: List[str] = []
 
-    def __init__(self, data_path: str, io_handler=io.IoFilesystemDefault):
+    def __init__(self, data_path: str, io_handler=io.IoFilesystemDefault) -> None:
         """Init dataset associated to a folder."""
         self.io_handler = io_handler
         self.data_path = data_path
@@ -284,10 +52,10 @@ class DataSet(DataSetBase):
         self.load_image_list()
         self.load_mask_list()
 
-    def _config_file(self):
+    def _config_file(self) -> str:
         return os.path.join(self.data_path, "config.yaml")
 
-    def load_config(self):
+    def load_config(self) -> None:
         config_file_path = self._config_file()
         if self.io_handler.isfile(config_file_path):
             with self.io_handler.open(config_file_path) as f:
@@ -295,10 +63,10 @@ class DataSet(DataSetBase):
         else:
             self.config = config.default_config()
 
-    def _image_list_file(self):
+    def _image_list_file(self) -> str:
         return os.path.join(self.data_path, "image_list.txt")
 
-    def load_image_list(self):
+    def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
         if self.io_handler.isfile(image_list_file):
@@ -308,11 +76,11 @@ class DataSet(DataSetBase):
         else:
             self._set_image_path(os.path.join(self.data_path, "images"))
 
-    def images(self):
+    def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
         return self.image_list
 
-    def _image_file(self, image: str):
+    def _image_file(self, image: str) -> str:
         """Path to the image file."""
         return self.image_files[image]
 
@@ -367,61 +135,6 @@ class DataSet(DataSetBase):
             mask = None
         return mask
 
-    def load_features_mask(self, image: str, points: np.ndarray) -> np.ndarray:
-        """Load a feature-wise mask.
-
-        This is a binary array true for features that lie inside the
-        combined mask.
-        The array is all true when there's no mask.
-        """
-        if points is None or len(points) == 0:
-            return np.array([], dtype=bool)
-
-        mask_image = self.load_combined_mask(image)
-        if mask_image is None:
-            logger.debug("No segmentation for {}, no features masked.".format(image))
-            return np.ones((points.shape[0],), dtype=bool)
-
-        exif = self.load_exif(image)
-        width = exif["width"]
-        height = exif["height"]
-        orientation = exif["orientation"]
-
-        new_height, new_width = mask_image.shape
-        ps = upright.opensfm_to_upright(
-            points[:, :2],
-            width,
-            height,
-            orientation,
-            new_width=new_width,
-            new_height=new_height,
-        ).astype(int)
-        mask = mask_image[ps[:, 1], ps[:, 0]]
-
-        n_removed = np.sum(mask == 0)
-        logger.debug(
-            "Masking {} / {} ({:.2f}) features for {}".format(
-                n_removed, len(mask), n_removed / len(mask), image
-            )
-        )
-
-        return np.array(mask, dtype=bool)
-
-    def _detection_path(self) -> str:
-        return os.path.join(self.data_path, "detections")
-
-    def _detection_file(self, image: str) -> str:
-        return os.path.join(self._detection_path(), image + ".png")
-
-    def load_detection(self, image: str) -> Optional[np.ndarray]:
-        """Load image detection if it exists, otherwise return None."""
-        detection_file = self._detection_file(image)
-        if self.io_handler.isfile(detection_file):
-            detection = self.io_handler.imread(detection_file, grayscale=True)
-        else:
-            detection = None
-        return detection
-
     def _instances_path(self) -> str:
         return os.path.join(self.data_path, "instances")
 
@@ -450,7 +163,22 @@ class DataSet(DataSetBase):
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if self.io_handler.isfile(segmentation_file):
-            segmentation = self.io_handler.imread(segmentation_file, grayscale=True)
+            with self.io_handler.open(segmentation_file, "rb") as fp:
+                with PngImageFile(fp) as png_image:
+                    # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                    data = np.array(png_image)
+                    if data.ndim == 2:
+                        return data
+                    elif data.ndim == 3:
+                        return data[:, :, 0]
+
+                        # TODO we can optionally return also the instances and scores:
+                        # instances = (
+                        #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                        # )
+                        # scores = data[:, :, 3].astype(np.float32) / 256.0
+                    else:
+                        raise IndexError
         else:
             segmentation = None
         return segmentation
@@ -458,71 +186,21 @@ class DataSet(DataSetBase):
     def segmentation_ignore_values(self, image: str) -> List[int]:
         """List of label values to ignore.
 
-        Pixels with this labels values will be masked out and won't be
-        processed when extracting features or computing depthmaps.
+        Pixels with these label values will be masked out and won't be
+        processed when extracting and matching features.
         """
         return self.config.get("segmentation_ignore_values", [])
 
-    def load_segmentation_mask(self, image: str) -> Optional[np.ndarray]:
-        """Build a mask from segmentation ignore values.
+    def undistorted_segmentation_ignore_values(self, image: str) -> List[int]:
+        """List of label values to ignore on undistorted images
 
-        The mask is non-zero only for pixels with segmentation
-        labels not in segmentation_ignore_values.
+        Pixels with these label values will be masked out and won't be
+        processed when computing depthmaps.
         """
-        ignore_values = self.segmentation_ignore_values(image)
-        if not ignore_values:
-            return None
-
-        segmentation = self.load_segmentation(image)
-        if segmentation is None:
-            return None
-
-        return self.mask_from_segmentation(segmentation, ignore_values)
-
-    def mask_from_segmentation(
-        self, segmentation: np.ndarray, ignore_values: List[int]
-    ) -> np.ndarray:
-        mask = np.ones(segmentation.shape, dtype=np.uint8)
-        for value in ignore_values:
-            mask &= segmentation != value
-        return mask
-
-    def load_combined_mask(self, image: str) -> Optional[np.ndarray]:
-        """Combine binary mask with segmentation mask.
-
-        Return a mask that is non-zero only where the binary
-        mask and the segmentation mask are non-zero.
-        """
-        mask = self.load_mask(image)
-        smask = self.load_segmentation_mask(image)
-        return self.combine_masks(mask, smask)
-
-    def combine_masks(
-        self, mask: Optional[np.ndarray], smask: Optional[np.ndarray]
-    ) -> Optional[np.ndarray]:
-        if mask is None:
-            if smask is None:
-                return None
-            else:
-                return smask
-        else:
-            if smask is None:
-                return mask
-            else:
-                mask, smask = self._resize_masks_to_match(mask, smask)
-                return mask & smask
-
-    def _resize_masks_to_match(
-        self,
-        im1: np.ndarray,
-        im2: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        h, w = max(im1.shape, im2.shape)
-        if im1.shape != (h, w):
-            im1 = cv2.resize(im1, (w, h), interpolation=cv2.INTER_NEAREST)
-        if im2.shape != (h, w):
-            im2 = cv2.resize(im2, (w, h), interpolation=cv2.INTER_NEAREST)
-        return im1, im2
+        return self.config.get(
+            "undistorted_segmentation_ignore_values",
+            self.segmentation_ignore_values(image),
+        )
 
     def _is_image_file(self, filename: str) -> bool:
         extensions = {"jpg", "jpeg", "png", "tif", "tiff", "pgm", "pnm", "gif"}
@@ -550,10 +228,12 @@ class DataSet(DataSetBase):
     def _set_mask_path(self, path: str) -> None:
         """Set mask path and find all masks in there"""
         self.mask_files = {}
-        for image in self.images():
-            filepath = os.path.join(path, image + ".png")
-            if self.io_handler.isfile(filepath):
-                self.mask_files[image] = filepath
+        if self.io_handler.isdir(path):
+            files = set(self.io_handler.ls(path))
+            for image in self.images():
+                mask = image + ".png"
+                if mask in files:
+                    self.mask_files[image] = os.path.join(path, mask)
 
     def _set_mask_list(self, mask_list_lines: List[str]) -> None:
         self.mask_files = {}
@@ -671,7 +351,6 @@ class DataSet(DataSetBase):
 
         with BytesIO() as buffer:
             with gzip.GzipFile(fileobj=buffer, mode="w") as fzip:
-                # pyre-fixme[6]: Expected `IO[bytes]` for 2nd param but got `GzipFile`.
                 pickle.dump(matches, fzip)
             with self.io_handler.open(self._matches_file(image), "wb") as fw:
                 fw.write(buffer.getvalue())
@@ -694,16 +373,16 @@ class DataSet(DataSetBase):
 
     def load_tracks_manager(
         self, filename: Optional[str] = None
-    ) -> pysfm.TracksManager:
+    ) -> pymap.TracksManager:
         """Return the tracks manager"""
         with self.io_handler.open(self._tracks_manager_file(filename), "r") as f:
-            return pysfm.TracksManager.instanciate_from_string(f.read())
+            return pymap.TracksManager.instanciate_from_string(f.read())
 
     def tracks_exists(self, filename: Optional[str] = None) -> bool:
         return self.io_handler.isfile(self._tracks_manager_file(filename))
 
     def save_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager, filename: Optional[str] = None
+        self, tracks_manager: pymap.TracksManager, filename: Optional[str] = None
     ) -> None:
         with self.io_handler.open(self._tracks_manager_file(filename), "w") as fw:
             fw.write(tracks_manager.as_string())
@@ -734,66 +413,32 @@ class DataSet(DataSetBase):
     def _reference_lla_path(self) -> str:
         return os.path.join(self.data_path, "reference_lla.json")
 
-    def invent_reference_lla(
-        self, images: Optional[List[str]] = None
-    ) -> Dict[str, float]:
-        lat, lon, alt = 0.0, 0.0, 0.0
-        wlat, wlon, walt = 0.0, 0.0, 0.0
-        if images is None:
-            images = self.images()
-        for image in images:
-            d = self.load_exif(image)
-            if "gps" in d and "latitude" in d["gps"] and "longitude" in d["gps"]:
-                w = 1.0 / max(0.01, d["gps"].get("dop", 15))
-                lat += w * d["gps"]["latitude"]
-                lon += w * d["gps"]["longitude"]
-                wlat += w
-                wlon += w
-                if "altitude" in d["gps"]:
-                    alt += w * d["gps"]["altitude"]
-                    walt += w
+    def init_reference(self, images: Optional[List[str]] = None) -> None:
+        """Initializes the dataset reference if not done already."""
+        if not self.reference_exists():
+            reference = invent_reference_from_gps_and_gcp(self, images)
+            self.save_reference(reference)
 
-        if not wlat and not wlon:
-            for gcp in self.load_ground_control_points_impl(None):
-                lat += gcp.lla["latitude"]
-                lon += gcp.lla["longitude"]
-                wlat += 1
-                wlon += 1
+    def save_reference(self, reference: geo.TopocentricConverter) -> None:
+        reference_lla = {
+            "latitude": reference.lat,
+            "longitude": reference.lon,
+            "altitude": reference.alt,
+        }
 
-                if gcp.has_altitude:
-                    alt += gcp.lla["altitude"]
-                    walt += 1
-
-        if wlat:
-            lat /= wlat
-        if wlon:
-            lon /= wlon
-        if walt:
-            alt /= walt
-        reference = {
-            "latitude": lat,
-            "longitude": lon,
-            "altitude": 0,
-        }  # Set altitude manually.
-        self.save_reference_lla(reference)
-        return reference
-
-    def save_reference_lla(self, reference: Dict[str, float]) -> None:
         with self.io_handler.open_wt(self._reference_lla_path()) as fout:
-            io.json_dump(reference, fout)
-
-    def load_reference_lla(self) -> Dict[str, float]:
-        with self.io_handler.open_rt(self._reference_lla_path()) as fin:
-            return io.json_load(fin)
+            io.json_dump(reference_lla, fout)
 
     def load_reference(self) -> geo.TopocentricConverter:
         """Load reference as a topocentric converter."""
-        lla = self.load_reference_lla()
+        with self.io_handler.open_rt(self._reference_lla_path()) as fin:
+            lla = io.json_load(fin)
+
         return geo.TopocentricConverter(
             lla["latitude"], lla["longitude"], lla["altitude"]
         )
 
-    def reference_lla_exists(self) -> bool:
+    def reference_exists(self) -> bool:
         return self.io_handler.isfile(self._reference_lla_path())
 
     def _camera_models_file(self) -> str:
@@ -853,10 +498,14 @@ class DataSet(DataSetBase):
 
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         """Return rig models data"""
+        all_rig_cameras = rig.default_rig_cameras(self.load_camera_models())
         if not self.io_handler.exists(self._rig_cameras_file()):
-            return {}
+            return all_rig_cameras
         with self.io_handler.open_rt(self._rig_cameras_file()) as fin:
-            return io.rig_cameras_from_json(json.load(fin))
+            rig_cameras = io.rig_cameras_from_json(json.load(fin))
+            for rig_camera_id, rig_camera in rig_cameras.items():
+                all_rig_cameras[rig_camera_id] = rig_camera
+        return all_rig_cameras
 
     def save_rig_cameras(self, rig_cameras: Dict[str, pymap.RigCamera]) -> None:
         """Save rig models data"""
@@ -874,30 +523,16 @@ class DataSet(DataSetBase):
         with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
             return json.load(fin)
 
-    def load_rig_assignments_per_image(
-        self,
-    ) -> Dict[str, Tuple[int, str, List[str]]]:
-        """Return rig assignments  data"""
-        raw_assignments = self.load_rig_assignments()
-        assignments_per_image = {}
-        for instance_id, instance in enumerate(raw_assignments):
-            instance_shots = [s[0] for s in instance]
-            for (shot_id, rig_camera_id) in instance:
-                assignments_per_image[shot_id] = (
-                    instance_id,
-                    rig_camera_id,
-                    instance_shots,
-                )
-        return assignments_per_image
-
     def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
         """Save rig assignments  data"""
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
 
-    def profile_log(self) -> str:
-        "Filename where to write timings."
-        return os.path.join(self.data_path, "profile.log")
+    def append_to_profile_log(self, content: str) -> None:
+        """Append content to the profile.log file."""
+        path = os.path.join(self.data_path, "profile.log")
+        with self.io_handler.open(path, "a") as fp:
+            fp.write(content)
 
     def _report_path(self) -> str:
         return os.path.join(self.data_path, "reports")
@@ -920,7 +555,7 @@ class DataSet(DataSetBase):
     def save_ply(
         self,
         reconstruction: types.Reconstruction,
-        tracks_manager: pysfm.TracksManager,
+        tracks_manager: pymap.TracksManager,
         filename: Optional[str] = None,
         no_cameras: bool = False,
         no_points: bool = False,
@@ -940,38 +575,27 @@ class DataSet(DataSetBase):
         return os.path.join(self.data_path, "gcp_list.txt")
 
     def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
-        """Load ground control points.
-
-        It uses reference_lla to convert the coordinates
-        to topocentric reference frame.
-        """
-
-        reference = self.load_reference()
-        return self.load_ground_control_points_impl(reference)
-
-    def load_ground_control_points_impl(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
-        """Load ground control points.
-
-        It might use reference to convert the coordinates
-        to topocentric reference frame.
-        If reference is None, it won't initialize topocentric data,
-        thus allowing loading raw data only.
-        """
+        """Load ground control points."""
         exif = {image: self.load_exif(image) for image in self.images()}
 
         gcp = []
         if self.io_handler.isfile(self._gcp_list_file()):
             with self.io_handler.open_rt(self._gcp_list_file()) as fin:
-                gcp = io.read_gcp_list(fin, reference, exif)
+                gcp = io.read_gcp_list(fin, exif)
 
         pcs = []
         if self.io_handler.isfile(self._ground_control_points_file()):
             with self.io_handler.open_rt(self._ground_control_points_file()) as fin:
-                pcs = io.read_ground_control_points(fin, reference)
+                pcs = io.read_ground_control_points(fin)
 
         return gcp + pcs
+
+    def save_ground_control_points(
+        self,
+        points: List[pymap.GroundControlPoint],
+    ) -> None:
+        with self.io_handler.open_wt(self._ground_control_points_file()) as fout:
+            io.write_ground_control_points(points, fout)
 
     def image_as_array(self, image: str) -> np.ndarray:
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")
@@ -1109,28 +733,6 @@ class UndistortedDataSet(object):
         self.io_handler.mkdir_p(self._undistorted_mask_path())
         self.io_handler.imwrite(self._undistorted_mask_file(image), array)
 
-    def _undistorted_detection_path(self) -> str:
-        return os.path.join(self.data_path, "detections")
-
-    def _undistorted_detection_file(self, image: str) -> str:
-        """Path of undistorted version of a detection."""
-        return os.path.join(self._undistorted_detection_path(), image + ".png")
-
-    def undistorted_detection_exists(self, image: str) -> bool:
-        """Check if the undistorted detection file exists."""
-        return self.io_handler.isfile(self._undistorted_detection_file(image))
-
-    def load_undistorted_detection(self, image: str) -> np.ndarray:
-        """Load an undistorted image detection."""
-        return self.io_handler.imread(
-            self._undistorted_detection_file(image), grayscale=True
-        )
-
-    def save_undistorted_detection(self, image: str, array: np.ndarray) -> None:
-        """Save the undistorted image detection."""
-        self.io_handler.mkdir_p(self._undistorted_detection_path())
-        self.io_handler.imwrite(self._undistorted_detection_file(image), array)
-
     def _undistorted_segmentation_path(self) -> str:
         return os.path.join(self.data_path, "segmentations")
 
@@ -1144,9 +746,23 @@ class UndistortedDataSet(object):
 
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
-        return self.io_handler.imread(
-            self._undistorted_segmentation_file(image), grayscale=True
-        )
+        segmentation_file = self._undistorted_segmentation_file(image)
+        with self.io_handler.open(segmentation_file, "rb") as fp:
+            with PngImageFile(fp) as png_image:
+                # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                data = np.array(png_image)
+                if data.ndim == 2:
+                    return data
+                elif data.ndim == 3:
+                    return data[:, :, 0]
+
+                    # TODO we can optionally return also the instances and scores:
+                    # instances = (
+                    #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                    # )
+                    # scores = data[:, :, 3].astype(np.float32) / 256.0
+                else:
+                    raise IndexError
 
     def save_undistorted_segmentation(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image segmentation."""
@@ -1157,9 +773,12 @@ class UndistortedDataSet(object):
         """Build a mask from the undistorted segmentation.
 
         The mask is non-zero only for pixels with segmentation
-        labels not in segmentation_ignore_values.
+        labels not in undistorted_segmentation_ignore_values.
+
+        If there are no undistorted_segmentation_ignore_values in the config,
+        the segmentation_ignore_values are used instead.
         """
-        ignore_values = self.base.segmentation_ignore_values(image)
+        ignore_values = self.base.undistorted_segmentation_ignore_values(image)
         if not ignore_values:
             return None
 
@@ -1167,7 +786,7 @@ class UndistortedDataSet(object):
         if segmentation is None:
             return None
 
-        return self.base.mask_from_segmentation(segmentation, ignore_values)
+        return masking.mask_from_segmentation(segmentation, ignore_values)
 
     def load_undistorted_combined_mask(self, image: str) -> Optional[np.ndarray]:
         """Combine undistorted binary mask with segmentation mask.
@@ -1181,7 +800,7 @@ class UndistortedDataSet(object):
         smask = None
         if self.undistorted_segmentation_exists(image):
             smask = self.load_undistorted_segmentation_mask(image)
-        return self.base.combine_masks(mask, smask)
+        return masking.combine_masks(mask, smask)
 
     def _depthmap_path(self) -> str:
         return os.path.join(self.data_path, "depthmaps")
@@ -1195,7 +814,7 @@ class UndistortedDataSet(object):
 
     def load_point_cloud(
         self, filename: str = "merged.ply"
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.point_cloud_file(filename), "r") as fp:
             return io.point_cloud_from_ply(fp)
 
@@ -1205,12 +824,11 @@ class UndistortedDataSet(object):
         normals: np.ndarray,
         colors: np.ndarray,
         labels: np.ndarray,
-        detections: np.ndarray,
         filename: str = "merged.ply",
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         with self.io_handler.open(self.point_cloud_file(filename), "w") as fp:
-            io.point_cloud_to_ply(points, normals, colors, labels, detections, fp)
+            io.point_cloud_to_ply(points, normals, colors, labels, fp)
 
     def raw_depthmap_exists(self, image: str) -> bool:
         return self.io_handler.isfile(self.depthmap_file(image, "raw.npz"))
@@ -1266,7 +884,6 @@ class UndistortedDataSet(object):
         normals: np.ndarray,
         colors: np.ndarray,
         labels: np.ndarray,
-        detections: np.ndarray,
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "pruned.npz")
@@ -1277,38 +894,27 @@ class UndistortedDataSet(object):
                 normals=normals,
                 colors=colors,
                 labels=labels,
-                detections=detections,
             )
 
     def load_pruned_depthmap(
         self, image: str
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         with self.io_handler.open(self.depthmap_file(image, "pruned.npz"), "rb") as f:
             o = np.load(f)
-            if "detections" not in o:
-                return (
-                    o["points"],
-                    o["normals"],
-                    o["colors"],
-                    o["labels"],
-                    np.zeros(o["labels"].shape),
-                )
-            else:
-                return (
-                    o["points"],
-                    o["normals"],
-                    o["colors"],
-                    o["labels"],
-                    o["detections"],
-                )
+            return (
+                o["points"],
+                o["normals"],
+                o["colors"],
+                o["labels"],
+            )
 
-    def load_undistorted_tracks_manager(self) -> pysfm.TracksManager:
+    def load_undistorted_tracks_manager(self) -> pymap.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")
         with self.io_handler.open(filename, "r") as f:
-            return pysfm.TracksManager.instanciate_from_string(f.read())
+            return pymap.TracksManager.instanciate_from_string(f.read())
 
     def save_undistorted_tracks_manager(
-        self, tracks_manager: pysfm.TracksManager
+        self, tracks_manager: pymap.TracksManager
     ) -> None:
         filename = os.path.join(self.data_path, "tracks.csv")
         with self.io_handler.open(filename, "w") as fw:
@@ -1326,3 +932,43 @@ class UndistortedDataSet(object):
         self.io_handler.mkdir_p(self.data_path)
         with self.io_handler.open_wt(filename) as fout:
             io.json_dump(io.reconstructions_to_json(reconstruction), fout, minify=True)
+
+
+def invent_reference_from_gps_and_gcp(
+    data: DataSetBase, images: Optional[List[str]] = None
+) -> geo.TopocentricConverter:
+    lat, lon, alt = 0.0, 0.0, 0.0
+    wlat, wlon, walt = 0.0, 0.0, 0.0
+    if images is None:
+        images = data.images()
+    for image in images:
+        d = data.load_exif(image)
+        if "gps" in d and "latitude" in d["gps"] and "longitude" in d["gps"]:
+            w = 1.0 / max(0.01, d["gps"].get("dop", 15))
+            lat += w * d["gps"]["latitude"]
+            lon += w * d["gps"]["longitude"]
+            wlat += w
+            wlon += w
+            if "altitude" in d["gps"]:
+                alt += w * d["gps"]["altitude"]
+                walt += w
+
+    if not wlat and not wlon:
+        for gcp in data.load_ground_control_points():
+            lat += gcp.lla["latitude"]
+            lon += gcp.lla["longitude"]
+            wlat += 1
+            wlon += 1
+
+            if gcp.has_altitude:
+                alt += gcp.lla["altitude"]
+                walt += 1
+
+    if wlat:
+        lat /= wlat
+    if wlon:
+        lon /= wlon
+    if walt:
+        alt /= walt
+
+    return geo.TopocentricConverter(lat, lon, 0)  # Set altitude manually.

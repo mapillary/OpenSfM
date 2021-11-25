@@ -1,16 +1,19 @@
+import copy
 import logging
+import math
 from collections import defaultdict
+from itertools import combinations
+from typing import Optional, Tuple, List, Set, Dict, Iterable, Any
 
 import numpy as np
 import scipy.spatial as spatial
-from opensfm import bow, context, feature_loader, vlad
-from opensfm.dataset import DataSetBase
-
+from opensfm import bow, context, feature_loader, vlad, geo, geometry
+from opensfm.dataset_base import DataSetBase
 
 logger = logging.getLogger(__name__)
 
 
-def has_gps_info(exif):
+def has_gps_info(exif: Dict[str, Any]) -> bool:
     return (
         exif
         and "gps" in exif
@@ -19,9 +22,134 @@ def has_gps_info(exif):
     )
 
 
+def sorted_pair(im1: str, im2: str) -> Tuple[str, str]:
+    if im1 < im2:
+        return im1, im2
+    else:
+        return im2, im1
+
+
+def get_gps_point(
+    exif: Dict[str, Any], reference: geo.TopocentricConverter
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Return GPS-based representative point. Direction is returned as Z oriented (vertical assumption)"""
+    gps = exif["gps"]
+    altitude = 0
+    direction = np.array([0, 0, 1])
+    return (
+        reference.to_topocentric(gps["latitude"], gps["longitude"], altitude),
+        direction,
+    )
+
+
+DEFAULT_Z = 1.0
+MAXIMUM_Z = 8000
+SAMPLE_Z = 100
+
+
+def sign(x: float) -> float:
+    """Return a float's sign."""
+    return 1.0 if x > 0.0 else -1.0
+
+
+def get_gps_opk_point(
+    exif: Dict[str, Any], reference: geo.TopocentricConverter
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Return GPS-based representative point."""
+
+    opk = exif["opk"]
+    omega, phi, kappa = (
+        math.radians(opk["omega"]),
+        math.radians(opk["phi"]),
+        math.radians(opk["kappa"]),
+    )
+
+    R_camera = geometry.rotation_from_opk(omega, phi, kappa)
+    z_axis = R_camera[2]
+    origin = get_gps_point(exif, reference)
+
+    return origin[0], z_axis / (sign(z_axis[2]) * z_axis[2]) * DEFAULT_Z
+
+
+def find_best_altitude(
+    origin: Dict[str, np.ndarray], directions: Dict[str, np.ndarray]
+) -> float:
+    """Find the altitude that minimize X/Y bounding box. Domain is [0, MAXIMUM_Z].
+    'origin' contains per-image positions in worl coordinates
+    'directions' viewing directions expected to be homogenized with z=1.
+
+    We sample it every SAMPLE_Z and regress a second polynomial from which we take its extrema.
+    """
+    directions_base = np.array([p for p in directions.values()])
+    origin_base = np.array([p for p in origin.values()])
+
+    samples_x, samples_y = [], []
+    for current_z in range(1, MAXIMUM_Z, SAMPLE_Z):
+        scaled = origin_base + directions_base / DEFAULT_Z * current_z
+        current_size = (np.max(scaled[:, 0]) - np.min(scaled[:, 0])) ** 2 + (
+            np.max(scaled[:, 1]) - np.min(scaled[:, 1])
+        ) ** 2
+        samples_x.append(current_z)
+        samples_y.append(current_size)
+
+    coeffs = np.polyfit(samples_x, samples_y, 2)
+    extrema = -coeffs[1] / (2 * coeffs[0])
+    if extrema < 0:
+        logger.info(
+            f"Altiude is negative ({extrema}) : viewing directions are probably divergent. Using default altide of {DEFAULT_Z}"
+        )
+        extrema = DEFAULT_Z
+    return extrema
+
+
+def get_representative_points(
+    images: List[str], exifs: Dict[str, Any], reference: geo.TopocentricConverter
+) -> Dict[str, np.ndarray]:
+    """Return a topiocentric point for each image, that is suited to run distance-based pair selection."""
+    origin = {}
+    directions = {}
+
+    # GPS/ OPK / YPR method table
+    map_method = {
+        (True, False, False): get_gps_point,
+        (True, True, False): get_gps_opk_point,
+        # (True, False, True):  add YPR method here
+    }
+
+    had_orientation = False
+    for image in images:
+        exif = exifs[image]
+        has_gps = "gps" in exif
+        has_opk = "opk" in exif
+        has_ypr = "ypr" in exif
+        had_orientation |= has_opk or has_ypr
+
+        method_id = (has_gps, has_opk, has_ypr)
+        if method_id not in map_method:
+            raise RuntimeError(
+                f"GPS / OPK / YPR {has_gps, has_opk, has_ypr} tag combination unsupported"
+            )
+        origin[image], directions[image] = map_method[method_id](exif, reference)
+
+    if had_orientation:
+        altitude = find_best_altitude(origin, directions)
+        logger.info(f"Altitude for orientation based matching {altitude}")
+        directions_scaled = {k: v / DEFAULT_Z * altitude for k, v in directions.items()}
+        points = {k: origin[k] + directions_scaled[k] for k in images}
+    else:
+        points = origin
+
+    return points
+
+
 def match_candidates_by_distance(
-    images_ref, images_cand, exifs, reference, max_neighbors, max_distance
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_neighbors: int,
+    max_distance: float,
+) -> Set[Tuple[str, str]]:
     """Find candidate matching pairs by GPS distance.
 
     The GPS altitude is ignored because we want images of the same position
@@ -37,10 +165,13 @@ def match_candidates_by_distance(
     max_distance = max_distance or 99999999.0
     k = min(len(images_cand), max_neighbors)
 
-    points = np.zeros((len(images_cand), 3))
-    for i, image in enumerate(images_cand):
-        gps = exifs[image]["gps"]
-        points[i] = reference.to_topocentric(gps["latitude"], gps["longitude"], 0)
+    representative_points = get_representative_points(
+        images_cand + images_ref, exifs, reference
+    )
+
+    points = np.zeros((len(representative_points), 3))
+    for i, point_id in enumerate(images_cand):
+        points[i] = representative_points[point_id]
 
     tree = spatial.cKDTree(points)
 
@@ -48,8 +179,7 @@ def match_candidates_by_distance(
     for image_ref in images_ref:
         nn = k + 1 if image_ref in images_cand else k
 
-        gps = exifs[image_ref]["gps"]
-        point = reference.to_topocentric(gps["latitude"], gps["longitude"], 0)
+        point = representative_points[image_ref]
         distances, neighbors = tree.query(
             point, k=nn, distance_upper_bound=max_distance
         )
@@ -62,21 +192,81 @@ def match_candidates_by_distance(
                 continue
             image_cand = images_cand[j]
             if image_cand != image_ref:
-                pairs.add(tuple(sorted((image_ref, image_cand))))
+                pairs.add(sorted_pair(image_ref, image_cand))
+    return pairs
+
+
+def norm_2d(vec: np.ndarray):
+    """Return the 2D norm of a vector."""
+    return math.sqrt(vec[0] ** 2 + vec[1] ** 2)
+
+
+def match_candidates_by_graph(
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    rounds: int,
+):
+    """Find by triangulating the GPS points on X/Y axises"""
+    if len(images_cand) == 0 or rounds < 1:
+        return set()
+
+    images_cand_set = set(images_cand)
+    images_ref_set = set(images_ref)
+    images = list(images_cand_set | images_ref_set)
+
+    representative_points = get_representative_points(images, exifs, reference)
+
+    points = np.zeros((len(images), 2))
+    for i, point in enumerate(representative_points.values()):
+        points[i] = point[0:2]
+
+    def produce_edges(triangles):
+        for triangle in triangles:
+            for vertex1, vertex2 in combinations(triangle, 2):
+                image1, image2 = images[vertex1], images[vertex2]
+                if image1 == image2:
+                    continue
+                pair_way1 = image1 in images_cand_set and image2 in images_ref_set
+                pair_way2 = image2 in images_cand_set and image1 in images_ref_set
+                if pair_way1 or pair_way2:
+                    yield sorted_pair(image1, image2), (vertex1, vertex2)
+
+    pairs = set()
+
+    # first round compute scale based on edges (and push delaunay edges)
+    edge_distances = []
+    triangles = spatial.Delaunay(points).simplices
+    for (image1, image2), (vertex1, vertex2) in produce_edges(triangles):
+        pairs.add((image1, image2))
+        edge_distances.append(norm_2d(points[vertex1] - points[vertex2]))
+    scale = np.median(edge_distances)
+
+    # further rounds produces edges from jittered version of the original points
+    # in order to get 'alternative' delaunay triangulations : a perfect square
+    # will only produce one diagonal edge, so by jittering it, we get more
+    # chances of getting such diagonal edges and having more diversity
+    for _ in range(rounds):
+        points_current = copy.copy(points) + np.random.rand(*points.shape) * scale
+        triangles = spatial.Delaunay(points_current).simplices
+        for (image1, image2), _ in produce_edges(triangles):
+            pairs.add((image1, image2))
+
     return pairs
 
 
 def match_candidates_with_bow(
     data: DataSetBase,
-    images_ref,
-    images_cand,
-    exifs,
-    reference,
-    max_neighbors,
-    max_gps_distance,
-    max_gps_neighbors,
-    enforce_other_cameras,
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_neighbors: int,
+    max_gps_distance: float,
+    max_gps_neighbors: int,
+    enforce_other_cameras: bool,
+) -> Dict[Tuple[str, str], float]:
     """Find candidate matching pairs using BoW-based distance.
 
     If max_gps_distance > 0, then we use first restrain a set of
@@ -88,7 +278,7 @@ def match_candidates_with_bow(
     camera.
     """
     if max_neighbors <= 0:
-        return set()
+        return {}
 
     results = compute_bow_affinity(
         data,
@@ -105,13 +295,13 @@ def match_candidates_with_bow(
 
 def compute_bow_affinity(
     data: DataSetBase,
-    images_ref,
-    images_cand,
-    exifs,
-    reference,
-    max_gps_distance,
-    max_gps_neighbors,
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_gps_distance: float,
+    max_gps_neighbors: int,
+) -> List[Tuple[str, List[float], List[str]]]:
     """Compute afinity scores between references and candidates
     images using BoW-based distance.
     """
@@ -133,15 +323,16 @@ def compute_bow_affinity(
 
 def match_candidates_with_vlad(
     data: DataSetBase,
-    images_ref,
-    images_cand,
-    exifs,
-    reference,
-    max_neighbors,
-    max_gps_distance,
-    max_gps_neighbors,
-    enforce_other_cameras,
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_neighbors: int,
+    max_gps_distance: float,
+    max_gps_neighbors: int,
+    enforce_other_cameras: bool,
+    histograms: Dict[str, np.ndarray],
+) -> Dict[Tuple[str, str], float]:
     """Find candidate matching pairs using VLAD-based distance.
      If max_gps_distance > 0, then we use first restrain a set of
     candidates using max_gps_neighbors neighbors selected using
@@ -153,9 +344,12 @@ def match_candidates_with_vlad(
 
     If enforce_other_cameras is False, we keep max_neighbors images
     from all cameras.
+
+    Pre-computed VLAD histograms can be passed as a dictionary.
+    Missing histograms will be computed and added to it.
     """
     if max_neighbors <= 0:
-        return set()
+        return {}
 
     results = compute_vlad_affinity(
         data,
@@ -165,6 +359,7 @@ def match_candidates_with_vlad(
         reference,
         max_gps_distance,
         max_gps_neighbors,
+        histograms,
     )
 
     return construct_pairs(results, max_neighbors, exifs, enforce_other_cameras)
@@ -172,13 +367,14 @@ def match_candidates_with_vlad(
 
 def compute_vlad_affinity(
     data: DataSetBase,
-    images_ref,
-    images_cand,
-    exifs,
-    reference,
-    max_gps_distance,
-    max_gps_neighbors,
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_gps_distance: float,
+    max_gps_neighbors: int,
+    histograms: Dict[str, np.ndarray],
+) -> List[Tuple[str, List[float], List[str]]]:
     """Compute afinity scores between references and candidates
     images using VLAD-based distance.
     """
@@ -187,8 +383,9 @@ def compute_vlad_affinity(
     )
 
     # construct VLAD histograms
+    need_load = {im for im in need_load if im not in histograms}
     logger.info("Computing %d VLAD histograms" % len(need_load))
-    histograms = vlad_histograms(need_load, data)
+    histograms.update(vlad_histograms(need_load, data))
 
     # parallel VLAD neighbors computation
     args, processes, batch_size = create_parallel_matching_args(
@@ -199,8 +396,13 @@ def compute_vlad_affinity(
 
 
 def preempt_candidates(
-    images_ref, images_cand, exifs, reference, max_gps_neighbors, max_gps_distance
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    reference: geo.TopocentricConverter,
+    max_gps_neighbors: int,
+    max_gps_distance: float,
+) -> Tuple[Dict[str, list], Set[str]]:
     """Preempt candidates using GPS to reduce set of images
     from which to load data to save RAM.
     """
@@ -231,7 +433,12 @@ def preempt_candidates(
     return preempted_cand, need_load
 
 
-def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
+def construct_pairs(
+    results: List[Tuple[str, List[float], List[str]]],
+    max_neighbors: int,
+    exifs: Dict[str, Any],
+    enforce_other_cameras: bool,
+) -> Dict[Tuple[str, str], float]:
     """Construct final sets of pairs to match"""
     pairs = {}
     for im, distances, other in results:
@@ -242,42 +449,49 @@ def construct_pairs(results, max_neighbors, exifs, enforce_other_cameras):
             )
         else:
             for i in order[:max_neighbors]:
-                pairs[tuple(sorted((im, other[i])))] = distances[i]
+                pairs[sorted_pair(im, other[i])] = distances[i]
     return pairs
 
 
-def create_parallel_matching_args(data: DataSetBase, preempted_cand, histograms):
+def create_parallel_matching_args(
+    data: DataSetBase,
+    preempted_cand: Dict[str, list],
+    histograms: Dict[str, np.ndarray],
+) -> Tuple[List[Tuple[str, list, Dict[str, np.ndarray]]], int, int]:
     """Create arguments to matching function"""
-    args = list(match_histogram_arguments(preempted_cand, histograms))
+    args = [(im, cands, histograms) for im, cands in preempted_cand.items()]
 
     # parallel VLAD neighbors computation
     per_process = 512
     processes = context.processes_that_fit_in_memory(
         data.config["processes"], per_process
     )
-    batch_size = max(1, len(args) / (2 * processes))
+    batch_size = max(1, len(args) // (2 * processes))
     return args, processes, batch_size
 
 
-def match_histogram_arguments(candidates, histograms):
-    """ Generate arguments for parralel processing of BoW """
-    for im, cands in candidates.items():
-        yield (im, cands, histograms)
-
-
-def match_bow_unwrap_args(args):
-    """ Wrapper for parralel processing of BoW """
+def match_bow_unwrap_args(
+    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
+) -> Tuple[str, List[float], List[str]]:
+    """Wrapper for parralel processing of BoW"""
     image, other_images, histograms = args
     return bow_distances(image, other_images, histograms)
 
 
-def match_vlad_unwrap_args(args):
-    """ Wrapper for parralel processing of VLAD """
+def match_vlad_unwrap_args(
+    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
+) -> Tuple[str, List[float], List[str]]:
+    """Wrapper for parralel processing of VLAD"""
     image, other_images, histograms = args
     return vlad.vlad_distances(image, other_images, histograms)
 
 
-def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
+def match_candidates_by_time(
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    max_neighbors: int,
+) -> Set[Tuple[str, str]]:
     """Find candidate matching pairs by time difference."""
     if max_neighbors <= 0:
         return set()
@@ -304,11 +518,13 @@ def match_candidates_by_time(images_ref, images_cand, exifs, max_neighbors):
                 continue
             image_cand = images_cand[j]
             if image_ref != image_cand:
-                pairs.add(tuple(sorted((image_ref, image_cand))))
+                pairs.add(sorted_pair(image_ref, image_cand))
     return pairs
 
 
-def match_candidates_by_order(images_ref, images_cand, max_neighbors):
+def match_candidates_by_order(
+    images_ref: List[str], images_cand: List[str], max_neighbors: int
+) -> Set[Tuple[str, str]]:
     """Find candidate matching pairs by sequence order."""
     if max_neighbors <= 0:
         return set()
@@ -321,13 +537,17 @@ def match_candidates_by_order(images_ref, images_cand, max_neighbors):
         for j in range(a, b):
             image_cand = images_cand[j]
             if image_ref != image_cand:
-                pairs.add(tuple(sorted([image_ref, image_cand])))
+                pairs.add(sorted_pair(image_ref, image_cand))
     return pairs
 
 
 def match_candidates_from_metadata(
-    images_ref, images_cand, exifs, data: DataSetBase, config_override
-):
+    images_ref: List[str],
+    images_cand: List[str],
+    exifs: Dict[str, Any],
+    data: DataSetBase,
+    config_override: Dict[str, Any],
+) -> Tuple[List[Tuple[str, str]], Dict[str, Any]]:
     """Compute candidate matching pairs between between images_ref and images_cand
 
     Returns a list of pairs (im1, im2) such that (im1 in images_ref) is true.
@@ -339,6 +559,7 @@ def match_candidates_from_metadata(
 
     max_distance = overriden_config["matching_gps_distance"]
     gps_neighbors = overriden_config["matching_gps_neighbors"]
+    graph_rounds = overriden_config["matching_graph_rounds"]
     time_neighbors = overriden_config["matching_time_neighbors"]
     order_neighbors = overriden_config["matching_order_neighbors"]
     bow_neighbors = overriden_config["matching_bow_neighbors"]
@@ -350,8 +571,7 @@ def match_candidates_from_metadata(
     vlad_gps_neighbors = overriden_config["matching_vlad_gps_neighbors"]
     vlad_other_cameras = overriden_config["matching_vlad_other_cameras"]
 
-    if not data.reference_lla_exists():
-        data.invent_reference_lla()
+    data.init_reference()
     reference = data.load_reference()
 
     if not all(map(has_gps_info, exifs.values())):
@@ -361,6 +581,7 @@ def match_candidates_from_metadata(
             )
         gps_neighbors = 0
         max_distance = 0
+        graph_rounds = 0
 
     images_ref.sort()
 
@@ -371,20 +592,23 @@ def match_candidates_from_metadata(
         == order_neighbors
         == bow_neighbors
         == vlad_neighbors
+        == graph_rounds
         == 0
     ):
         # All pair selection strategies deactivated so we match all pairs
         d = set()
         t = set()
+        g = set()
         o = set()
         b = set()
         v = set()
-        pairs = {
-            tuple(sorted([i, j])) for i in images_ref for j in images_cand if i != j
-        }
+        pairs = {sorted_pair(i, j) for i in images_ref for j in images_cand if i != j}
     else:
         d = match_candidates_by_distance(
             images_ref, images_cand, exifs, reference, gps_neighbors, max_distance
+        )
+        g = match_candidates_by_graph(
+            images_ref, images_cand, exifs, reference, graph_rounds
         )
         t = match_candidates_by_time(images_ref, images_cand, exifs, time_neighbors)
         o = match_candidates_by_order(images_ref, images_cand, order_neighbors)
@@ -409,13 +633,15 @@ def match_candidates_from_metadata(
             vlad_gps_distance,
             vlad_gps_neighbors,
             vlad_other_cameras,
+            {},
         )
-        pairs = d | t | o | set(b) | set(v)
+        pairs = d | g | t | o | set(b) | set(v)
 
     pairs = ordered_pairs(pairs, images_ref)
 
     report = {
         "num_pairs_distance": len(d),
+        "num_pairs_graph": len(g),
         "num_pairs_time": len(t),
         "num_pairs_order": len(o),
         "num_pairs_bow": len(b),
@@ -424,7 +650,9 @@ def match_candidates_from_metadata(
     return pairs, report
 
 
-def bow_distances(image, other_images, histograms):
+def bow_distances(
+    image: str, other_images: Iterable[str], histograms: Dict[str, np.ndarray]
+) -> Tuple[str, List[float], List[str]]:
     """Compute BoW-based distance (L1 on histogram of words)
     between an image and other images.
     """
@@ -442,8 +670,8 @@ def bow_distances(image, other_images, histograms):
     return image, distances, other
 
 
-def load_histograms(data: DataSetBase, images):
-    """ Load BoW histograms of given images """
+def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.ndarray]:
+    """Load BoW histograms of given images"""
     min_num_feature = 8
 
     histograms = {}
@@ -465,20 +693,43 @@ def load_histograms(data: DataSetBase, images):
     return histograms
 
 
-def vlad_histograms(images, data: DataSetBase):
+def vlad_histogram_unwrap_args(
+    args: Tuple[DataSetBase, str]
+) -> Optional[Tuple[str, np.ndarray]]:
+    """Helper function for multithreaded VLAD computation.
+
+    Returns the image and its descriptor.
+    """
+    data, image = args
+    vlad_descriptor = vlad.instance.vlad_histogram(data, image)
+    if vlad_descriptor is not None:
+        return image, vlad_descriptor
+    return None
+
+
+def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, np.ndarray]:
     """Construct VLAD histograms from the image features.
 
     Returns a dictionary of VLAD vectors for the images.
     """
-    vlads = {}
-    for im in images:
-        im_vlad = vlad.instance.vlad_histogram(data, im)
-        if im_vlad is not None:
-            vlads[im] = im_vlad
-    return vlads
+    batch_size = 4
+    vlads = context.parallel_map(
+        vlad_histogram_unwrap_args,
+        [(data, image) for image in images],
+        data.config["processes"],
+        batch_size,
+    )
+    return {v[0]: v[1] for v in vlads if v}
 
 
-def pairs_from_neighbors(image, exifs, distances, order, other, max_neighbors):
+def pairs_from_neighbors(
+    image: str,
+    exifs: Dict[str, Any],
+    distances: List[float],
+    order: List[int],
+    other: List[str],
+    max_neighbors: int,
+) -> Dict[Tuple[str, str], float]:
     """Construct matching pairs given closest ordered neighbors.
 
     Pairs will of form (image, im2), im2 being the closest max_neighbors
@@ -504,7 +755,9 @@ def pairs_from_neighbors(image, exifs, distances, order, other, max_neighbors):
     return pairs
 
 
-def ordered_pairs(pairs, images_ref):
+def ordered_pairs(
+    pairs: Set[Tuple[str, str]], images_ref: List[str]
+) -> List[Tuple[str, str]]:
     """Image pairs that need matching skipping duplicates.
 
     Returns a list of pairs (im1, im2) such that (im1 in images_ref) is true.

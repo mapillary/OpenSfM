@@ -1,19 +1,26 @@
+import logging
+import math
+import time
 from collections import defaultdict
 from typing import Callable, Tuple, List, Dict, Any, Optional, Union
 
 import cv2
 import numpy as np
+import opensfm.synthetic_data.synthetic_dataset as sd
 import scipy.signal as signal
 import scipy.spatial as spatial
 from opensfm import (
     geo,
     pygeometry,
-    pysfm,
     reconstruction as rc,
     types,
     pymap,
     features as oft,
+    geometry,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -28,9 +35,9 @@ def samples_generator_random_count(count: int) -> np.ndarray:
 
 
 def samples_generator_interval(
-    start: float, length: float, interval: float, interval_noise: float
+    length: float, end: float, interval: float, interval_noise: float
 ) -> np.ndarray:
-    samples = np.linspace(start / length, 1, num=int(length / interval))
+    samples = np.linspace(0, end / length, num=int(end / interval))
     samples += np.random.normal(
         0.0, float(interval_noise) / float(length), samples.shape
     )
@@ -151,7 +158,9 @@ def generate_causal_noise(
 
 def generate_exifs(
     reconstruction: types.Reconstruction,
+    reference: geo.TopocentricConverter,
     gps_noise: Union[Dict[str, float], float],
+    imu_noise: float,
     causal_gps_noise: bool = False,
 ) -> Dict[str, Any]:
     """Generate fake exif metadata from the reconstruction."""
@@ -159,7 +168,6 @@ def generate_exifs(
     previous_pose = None
     previous_time = 0
     exifs = {}
-    reference = geo.TopocentricConverter(0, 0, 0)
 
     def _gps_dop(shot):
         gps_dop = 15
@@ -202,7 +210,7 @@ def generate_exifs(
             shot = reconstruction.shots[shot_name]
             exif = exifs[shot_name]
 
-            pose = shot.pose.get_origin()
+            origin = shot.pose.get_origin()
 
             if causal_gps_noise:
                 gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
@@ -210,17 +218,27 @@ def generate_exifs(
                 gps_noise = _gps_dop(shot)
                 gps_perturbation = [gps_noise, gps_noise, 0]
 
-            pose = np.array([pose])
-            perturb_points(pose, gps_perturbation)
-            pose = pose[0]
+            origin = np.array([origin])
+            perturb_points(origin, gps_perturbation)
+            origin = origin[0]
             _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
-            lat, lon, alt = reference.to_lla(*pose)
+            lat, lon, alt = reference.to_lla(*origin)
 
             exif["gps"] = {}
             exif["gps"]["latitude"] = lat
             exif["gps"]["longitude"] = lon
             exif["gps"]["altitude"] = alt
             exif["gps"]["dop"] = _gps_dop(shot)
+
+            omega, phi, kappa = geometry.opk_from_rotation(
+                shot.pose.get_rotation_matrix()
+            )
+            opk_noise = np.random.normal(0.0, np.full((3), imu_noise), (3))
+            exif["opk"] = {}
+            exif["opk"]["omega"] = math.degrees(omega) + opk_noise[0]
+            exif["opk"]["phi"] = math.degrees(phi) + opk_noise[1]
+            exif["opk"]["kappa"] = math.degrees(kappa) + opk_noise[2]
+
             exif["compass"] = {"angle": comp}
 
     return exifs
@@ -236,22 +254,6 @@ def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(
-    shot_ids: List[str],
-    positions: List[np.ndarray],
-    rotations: List[np.ndarray],
-    camera: pygeometry.Camera,
-    reconstruction: types.Reconstruction,
-    sequence_key: str,
-):
-    reconstruction.add_camera(camera)
-    for shot_id, position, rotation in zip(shot_ids, positions, rotations):
-        pose = pygeometry.Pose(rotation)
-        pose.set_origin(position)
-        shot = reconstruction.create_shot(shot_id, camera.id, pose)
-        shot.metadata.sequence_key.value = sequence_key
-
-
 def add_points_to_reconstruction(
     points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
 ):
@@ -261,25 +263,37 @@ def add_points_to_reconstruction(
         point.color = color
 
 
-def add_rigs_to_reconstruction(
+def add_shots_to_reconstruction(
     shots: List[List[str]],
     positions: List[np.ndarray],
     rotations: List[np.ndarray],
     rig_cameras: List[pymap.RigCamera],
+    camera: pygeometry.Camera,
     reconstruction: types.Reconstruction,
+    sequence_key: str,
 ):
+    reconstruction.add_camera(camera)
+
     rec_rig_cameras = []
     for rig_camera in rig_cameras:
-        if rig_camera.id not in reconstruction.rig_cameras:
-            rec_rig_cameras.append(reconstruction.add_rig_camera(rig_camera))
-        else:
-            rec_rig_cameras.append(reconstruction.rig_cameras[rig_camera.id])
+        rec_rig_cameras.append(reconstruction.add_rig_camera(rig_camera))
 
-    for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
-        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(i))
-        for j, s in enumerate(i_shots):
-            rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
+    for i_shots, position, rotation in zip(shots, positions, rotations):
+        instance_id = "_".join([s[0] for s in i_shots])
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
+
+        for s in i_shots:
+            shot_id = s[0]
+            rig_camera_id = s[1]
+            shot = reconstruction.create_shot(
+                shot_id,
+                camera.id,
+                pose=None,
+                rig_camera_id=rig_camera_id,
+                rig_instance_id=instance_id,
+            )
+            shot.metadata.sequence_key.value = sequence_key
 
 
 def create_reconstruction(
@@ -287,52 +301,55 @@ def create_reconstruction(
     colors: List[np.ndarray],
     cameras: List[pygeometry.Camera],
     shot_ids: List[List[str]],
-    positions: List[List[np.ndarray]],
-    rotations: List[List[np.ndarray]],
     rig_shots: List[List[List[str]]],
     rig_positions: Optional[List[List[np.ndarray]]] = None,
     rig_rotations: Optional[List[List[np.ndarray]]] = None,
     rig_cameras: Optional[List[List[pymap.RigCamera]]] = None,
+    reference: Optional[geo.TopocentricConverter] = None,
 ):
     reconstruction = types.Reconstruction()
+    if reference is not None:
+        reconstruction.reference = reference
     for point, color in zip(points, colors):
         add_points_to_reconstruction(point, color, reconstruction)
 
-    for i, (s_shot_ids, s_positions, s_rotations, s_cameras) in enumerate(
-        zip(shot_ids, positions, rotations, cameras)
-    ):
+    for i, (
+        s_rig_shots,
+        s_rig_positions,
+        s_rig_rotations,
+        s_rig_cameras,
+        s_cameras,
+        # pyre-fixme [6]
+    ) in enumerate(zip(rig_shots, rig_positions, rig_rotations, rig_cameras, cameras)):
         add_shots_to_reconstruction(
-            s_shot_ids,
-            s_positions,
-            s_rotations,
+            s_rig_shots,
+            s_rig_positions,
+            s_rig_rotations,
+            s_rig_cameras,
             s_cameras,
             reconstruction,
             str(f"sequence_{i}"),
         )
-
-    if rig_shots and rig_positions and rig_rotations and rig_cameras:
-        for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras in zip(
-            rig_shots, rig_positions, rig_rotations, rig_cameras
-        ):
-            add_rigs_to_reconstruction(
-                s_rig_shots,
-                s_rig_positions,
-                s_rig_rotations,
-                s_rig_cameras,
-                reconstruction,
-            )
     return reconstruction
 
 
 def generate_track_data(
-    reconstruction: types.Reconstruction, maximum_depth: float, noise: float
-) -> Tuple[Dict[str, oft.FeaturesData], pysfm.TracksManager,]:
+    reconstruction: types.Reconstruction,
+    maximum_depth: float,
+    projection_noise: float,
+    gcp_noise: Tuple[float, float],
+    gcps_count: Optional[int],
+    gcp_shift: Optional[np.ndarray],
+    on_disk_features_filename: Optional[str],
+) -> Tuple[
+    sd.SyntheticFeatures, pymap.TracksManager, Dict[str, pymap.GroundControlPoint]
+]:
     """Generate projection data from a reconstruction, considering a maximum
     viewing depth and gaussian noise added to the ideal projections.
     Returns feature/descriptor/color data per shot and a tracks manager object.
     """
 
-    tracks_manager = pysfm.TracksManager()
+    tracks_manager = pymap.TracksManager()
 
     feature_data_type = np.float32
     desc_size = 128
@@ -354,9 +371,10 @@ def generate_track_data(
     # should speed-up projection queries
     points_tree = spatial.cKDTree(points_coordinates)
 
-    features = {}
+    start = time.time()
+    features = sd.SyntheticFeatures(on_disk_features_filename)
     default_scale = 0.004
-    for shot_index, shot in reconstruction.shots.items():
+    for index, (shot_index, shot) in enumerate(reconstruction.shots.items()):
         # query all closest points
         neighbors = list(
             sorted(points_tree.query_ball_point(shot.pose.get_origin(), maximum_depth))
@@ -371,7 +389,9 @@ def generate_track_data(
         center = shot.pose.get_origin()
         z_axis = shot.pose.get_rotation_matrix()[2]
         is_panorama = pygeometry.Camera.is_panorama(shot.camera.projection_type)
-        perturbation = float(noise) / float(max(shot.camera.width, shot.camera.height))
+        perturbation = float(projection_noise) / float(
+            max(shot.camera.width, shot.camera.height)
+        )
         sigmas = np.array([perturbation, perturbation])
 
         # pre-generate random perturbations
@@ -398,7 +418,7 @@ def generate_track_data(
             projections_inside.append([projection[0], projection[1], default_scale])
             descriptors_inside.append(track_descriptors[p_id])
             colors_inside.append(color)
-            obs = pysfm.Observation(
+            obs = pymap.Observation(
                 projection[0],
                 projection[1],
                 default_scale,
@@ -415,7 +435,41 @@ def generate_track_data(
             None,
         )
 
-    return features, tracks_manager
+        if index % 100 == 0:
+            logger.info(
+                f"Flushing images # {index} ({(time.time() - start)/(index+1)} sec. per image"
+            )
+            features.sync()
+
+    gcps = {}
+    if gcps_count is not None and gcp_shift is not None:
+        all_track_ids = list(tracks_manager.get_track_ids())
+        gcps_ids = [
+            all_track_ids[i]
+            for i in np.random.randint(len(all_track_ids) - 1, size=gcps_count)
+        ]
+
+        sigmas_gcp = np.random.normal(
+            0.0,
+            np.array([gcp_noise[0], gcp_noise[0], gcp_noise[1]]),
+            (len(gcps_ids), 3),
+        )
+        for i, gcp_id in enumerate(gcps_ids):
+            point = reconstruction.points[gcp_id]
+            gcp = pymap.GroundControlPoint()
+            gcp.id = f"gcp-{gcp_id}"
+            enu = point.coordinates + gcp_shift + sigmas_gcp[i]
+            lat, lon, alt = reconstruction.reference.to_lla(*enu)
+            gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
+            gcp.has_altitude = True
+            for shot_id, obs in tracks_manager.get_track_observations(gcp_id).items():
+                o = pymap.GroundControlPointObservation()
+                o.shot_id = shot_id
+                o.projection = obs.point
+                gcp.add_observation(o)
+            gcps[gcp.id] = gcp
+
+    return features, tracks_manager, gcps
 
 
 def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> bool:

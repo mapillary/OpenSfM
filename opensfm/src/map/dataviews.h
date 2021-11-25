@@ -1,5 +1,6 @@
 #pragma once
 #include <geometry/camera.h>
+#include <geometry/similarity.h>
 #include <map/landmark.h>
 #include <map/rig.h>
 #include <map/shot.h>
@@ -76,6 +77,18 @@ class RigInstanceView {
   RigInstance& GetRigInstance(const RigInstanceId& instance_id);
   const std::unordered_map<RigInstanceId, RigInstance>& GetRigInstances() const;
   bool HasRigInstance(const RigInstanceId& instance_id) const;
+
+ private:
+  Map& map_;
+};
+
+class BiasView {
+ public:
+  explicit BiasView(Map& map);
+  size_t NumberOfBiases() const;
+  geometry::Similarity& GetBias(const CameraId& cam_id);
+  const std::unordered_map<CameraId, geometry::Similarity>& GetBiases() const;
+  bool HasBias(const CameraId& cam_id) const;
 
  private:
   Map& map_;

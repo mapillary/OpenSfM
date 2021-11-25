@@ -1,0 +1,40 @@
+body {
+    padding: 0;
+    margin: 0;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: auto auto;
+    height: 100vh;
+    width: 100vw;
+}
+
+.view{
+    width: 100%;
+    height: 100%;
+}
+
+.inline-flex-child{
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.inline-flex-parent {
+    display: inline-flex;
+    width: 100vw;
+    height: 35px;
+    padding: 0;
+    margin: 0;
+}
+
+#toolsFrame {
+    width: 100%;
+}
+
+#nColumnsListBox {
+    width: auto;
+}

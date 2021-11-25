@@ -2,11 +2,11 @@ from timeit import default_timer as timer
 
 from opensfm import io
 from opensfm import tracking
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 def run_dataset(data: DataSetBase):
-    """ Link matches pair-wise matches into tracks. """
+    """Link matches pair-wise matches into tracks."""
 
     start = timer()
     features, colors, segmentations, instances = tracking.load_features(
@@ -34,7 +34,9 @@ def run_dataset(data: DataSetBase):
     )
 
 
-def write_report(data: DataSetBase, tracks_manager, features_time, matches_time, tracks_time):
+def write_report(
+    data: DataSetBase, tracks_manager, features_time, matches_time, tracks_time
+):
     view_graph = [
         (k[0], k[1], v) for k, v in tracks_manager.get_all_pairs_connectivity().items()
     ]

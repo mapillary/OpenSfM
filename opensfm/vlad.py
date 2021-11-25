@@ -1,26 +1,21 @@
 from functools import lru_cache
+from typing import List, Tuple, Iterable, Dict, Optional
 
 import numpy as np
-from opensfm import bow
-from opensfm import feature_loader
-from opensfm.dataset import DataSetBase
+from opensfm import pyfeatures, feature_loader, bow
+from opensfm.dataset_base import DataSetBase
 
 
-def unnormalized_vlad(features, centers):
+def unnormalized_vlad(features: np.ndarray, centers: np.ndarray) -> np.ndarray:
     """Compute unnormalized VLAD histograms from a set of
     features in relation to centers.
 
     Returns the unnormalized VLAD vector.
     """
-    vlad = np.zeros(centers.shape, dtype=np.float32)
-    for f in features:
-        i = np.argmin(np.linalg.norm(f - centers, axis=1))
-        vlad[i, :] += f - centers[i]
-    vlad = np.ndarray.flatten(vlad)
-    return vlad
+    return pyfeatures.compute_vlad_descriptor(features, centers)
 
 
-def signed_square_root_normalize(v):
+def signed_square_root_normalize(v: np.ndarray) -> np.ndarray:
     """Compute Signed Square Root (SSR) normalization on
     a vector.
 
@@ -31,7 +26,9 @@ def signed_square_root_normalize(v):
     return v
 
 
-def vlad_distances(image, other_images, histograms):
+def vlad_distances(
+    image: str, other_images: Iterable[str], histograms: Dict[str, np.ndarray]
+) -> Tuple[str, List[float], List[str]]:
     """Compute VLAD-based distance (L2 on VLAD-histogram)
     between an image and other images.
 
@@ -53,18 +50,27 @@ def vlad_distances(image, other_images, histograms):
 
 
 class VladCache(object):
+    def clear_cache(self) -> None:
+        self.load_words.cache_clear()
+        self.vlad_histogram.cache_clear()
+
     @lru_cache(1)
-    def load_words(self, data: DataSetBase):
+    def load_words(self, data: DataSetBase) -> np.ndarray:
         words, _ = bow.load_vlad_words_and_frequencies(data.config)
         return words
 
     @lru_cache(1000)
-    def vlad_histogram(self, data: DataSetBase, image):
+    def vlad_histogram(self, data: DataSetBase, image: str) -> Optional[np.ndarray]:
         words = self.load_words(data)
-        features_data = feature_loader.instance.load_all_data(data, image, masked=True)
+        features_data = feature_loader.instance.load_all_data(
+            data, image, masked=True, segmentation_in_descriptor=False
+        )
         if features_data is None:
             return None
-        vlad = unnormalized_vlad(features_data.descriptors, words)
+        descriptors = features_data.descriptors
+        if descriptors is None:
+            return None
+        vlad = unnormalized_vlad(descriptors, words)
         vlad = signed_square_root_normalize(vlad)
         return vlad
 

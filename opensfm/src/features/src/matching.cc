@@ -1,8 +1,14 @@
 #include <features/matching.h>
 #include <pybind11/pybind11.h>
+
+#include <cassert>
+#include <limits>
 #include <map>
 #include <opencv2/core/core.hpp>
+#include <stdexcept>
 #include <vector>
+
+#include "foundation/types.h"
 
 namespace py = pybind11;
 
@@ -87,4 +93,34 @@ py::object match_using_words(foundation::pyarray_f features1,
   return foundation::py_array_from_cvmat<int>(matches);
 }
 
+VecXf compute_vlad_descriptor(const MatXf &features,
+                              const MatXf &vlad_centers) {
+  const auto vlad_center_size = vlad_centers.cols();
+  const auto vlad_center_count = vlad_centers.rows();
+
+  if (vlad_center_count == 0 || vlad_center_size == 0) {
+    throw std::runtime_error("Zero VLAD centers or zero length VLAD words.");
+  }
+
+  VecXf vlad_descriptor(vlad_center_count * vlad_center_size);
+  vlad_descriptor.setZero();
+
+  for (int i = 0; i < features.rows(); ++i) {
+    const auto &feature = features.row(i);
+
+    float best_distance = std::numeric_limits<float>::max();
+    int best_center = -1;
+    for (int j = 0; j < vlad_center_count; ++j) {
+      const float squared_norm = (feature - vlad_centers.row(j)).squaredNorm();
+      if (squared_norm < best_distance) {
+        best_distance = squared_norm;
+        best_center = j;
+      }
+    }
+
+    vlad_descriptor.segment(best_center * vlad_center_size, vlad_center_size) +=
+        (feature - vlad_centers.row(best_center));
+  }
+  return vlad_descriptor;
+}
 }  // namespace features

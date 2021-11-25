@@ -1,10 +1,9 @@
 import copy
 import logging
-import time
 from functools import partial
 
 from opensfm import exif
-from opensfm.dataset import DataSetBase
+from opensfm.dataset_base import DataSetBase
 
 
 logger = logging.getLogger(__name__)
@@ -12,9 +11,7 @@ logging.getLogger("exifread").setLevel(logging.WARNING)
 
 
 def run_dataset(data: DataSetBase):
-    """ Extract metadata from images' EXIF tag. """
-
-    start = time.time()
+    """Extract metadata from images' EXIF tag."""
 
     exif_overrides = {}
     if data.exif_overrides_exists():
@@ -50,15 +47,14 @@ def run_dataset(data: DataSetBase):
                 camera_models[key] = value
     data.save_camera_models(camera_models)
 
-    end = time.time()
-    with data.io_handler.open(data.profile_log(), "a") as fout:
-        fout.write("extract_metadata: {0}\n".format(end - start))
-
 
 def _extract_exif(image, data: DataSetBase):
     with data.open_image_file(image) as fp:
         d = exif.extract_exif_from_file(
-            fp, partial(data.image_size, image), data.config["use_exif_size"], name=image
+            fp,
+            partial(data.image_size, image),
+            data.config["use_exif_size"],
+            name=image,
         )
 
     if data.config["unknown_camera_models_are_different"] and (

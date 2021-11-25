@@ -76,7 +76,9 @@ matching_vlad_neighbors: 0            # Number of images to match selected by VL
 matching_vlad_gps_distance: 0         # Maximum GPS distance for preempting images before using selection by VLAD distance. Set to 0 to disable
 matching_vlad_gps_neighbors: 0        # Number of images (selected by GPS distance) to preempt before using selection by VLAD distance. Set to 0 to use no limit (or disable if matching_vlad_gps_distance is also 0)
 matching_vlad_other_cameras: False    # If True, VLAD image selection will use N neighbors from the same camera + N neighbors from any different camera. If False, the selection will take the nearest neighbors from all cameras.
+matching_graph_rounds: 0              # Number of rounds to run when running triangulation-based pair selection
 matching_use_filters: False           # If True, removes static matches using ad-hoc heuristics
+matching_use_segmentation: no         # Use segmentation information (if available) to improve matching
 
 # Params for geometric estimation
 robust_matching_threshold: 0.004        # Outlier threshold for fundamental matrix estimation as portion of image width
@@ -86,6 +88,8 @@ five_point_algo_threshold: 0.004        # Outlier threshold for essential matrix
 five_point_algo_min_inliers: 20         # Minimum number of inliers for considering a two view reconstruction valid
 five_point_refine_match_iterations: 10  # Number of LM iterations to run when refining relative pose during matching
 five_point_refine_rec_iterations: 1000  # Number of LM iterations to run when refining relative pose during reconstruction
+five_point_reversal_check: False        # Check for Necker reversal ambiguities. Useful for long focal length with long distance capture (aerial manned)
+five_point_reversal_ratio: 0.95         # Ratio of triangulated points non-reversed/reversed when checking for Necker reversal ambiguities
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
@@ -105,8 +109,10 @@ radial_distortion_k1_sd: 0.01   # The standard deviation of the first radial dis
 radial_distortion_k2_sd: 0.01   # The standard deviation of the second radial distortion parameter
 radial_distortion_k3_sd: 0.01   # The standard deviation of the third radial distortion parameter
 radial_distortion_k4_sd: 0.01   # The standard deviation of the fourth radial distortion parameter
-tangential_distortion_p1_sd: 0.01   # The standard deviation of the first tangential distortion parameter
-tangential_distortion_p2_sd: 0.01   # The standard deviation of the second tangential distortion parameter
+tangential_distortion_p1_sd: 0.01  # The standard deviation of the first tangential distortion parameter
+tangential_distortion_p2_sd: 0.01  # The standard deviation of the second tangential distortion parameter
+gcp_horizontal_sd: 0.01            # The default horizontal standard deviation of the GCPs (in meters)
+gcp_vertical_sd: 0.1               # The default vertical standard deviation of the GCPs (in meters)
 rig_translation_sd: 0.1            # The standard deviation of the rig translation
 rig_rotation_sd: 0.1               # The standard deviation of the rig rotation
 bundle_outlier_filtering_type: FIXED    # Type of threshold for filtering outlier : either fixed value (FIXED) or based on actual distribution (AUTO)
@@ -128,25 +134,17 @@ save_partial_reconstructions: no    # Save reconstructions at every iteration
 
 # Params for GPS alignment
 use_altitude_tag: no                  # Use or ignore EXIF altitude tag
-align_method: orientation_prior       # orientation_prior or naive
+align_method: auto                    # orientation_prior or naive
 align_orientation_prior: horizontal   # horizontal, vertical or no_roll
 bundle_use_gps: yes                   # Enforce GPS position in bundle adjustment
 bundle_use_gcp: no                    # Enforce Ground Control Point position in bundle adjustment
+bundle_compensate_gps_bias: no        # Compensate GPS with a per-camera similarity transform
+
 
 # Params for rigs
-rig_calibration_subset_size: 15
-
-# Params for navigation graph
-nav_min_distance: 0.01                # Minimum distance for a possible edge between two nodes
-nav_step_pref_distance: 6             # Preferred distance between camera centers
-nav_step_max_distance: 20             # Maximum distance for a possible step edge between two nodes
-nav_turn_max_distance: 15             # Maximum distance for a possible turn edge between two nodes
-nav_step_forward_view_threshold: 15   # Maximum difference of angles in degrees between viewing directions for forward steps
-nav_step_view_threshold: 30           # Maximum difference of angles in degrees between viewing directions for other steps
-nav_step_drift_threshold: 36          # Maximum motion drift with respect to step directions for steps in degrees
-nav_turn_view_threshold: 40           # Maximum difference of angles in degrees with respect to turn directions
-nav_vertical_threshold: 20            # Maximum vertical angle difference in motion and viewing direction in degrees
-nav_rotation_threshold: 30            # Maximum general rotation in degrees between cameras for steps
+rig_calibration_subset_size: 15       # Number of rig instances to use when calibration rigs
+rig_calibration_completeness: 0.85    # Ratio of reconstructed images needed to consider a reconstruction for rig calibration
+rig_calibration_max_rounds: 10        # Number of SfM tentatives to run until we get a satisfying reconstruction
 
 # Params for image undistortion
 undistorted_image_format: jpg         # Format in which to save the undistorted images

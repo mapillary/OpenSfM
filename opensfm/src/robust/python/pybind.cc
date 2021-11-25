@@ -1,8 +1,7 @@
+#include <foundation/python_types.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
-#include <foundation/python_types.h>
 #include <robust/instanciations.h>
 #include <robust/robust_estimator.h>
 #include <robust/scorer.h>
@@ -18,6 +17,12 @@ void AddScoreType(py::module& m, const std::string& name) {
 }
 
 PYBIND11_MODULE(pyrobust, m) {
+  AddScoreType<Line::Type>(m, "Line");
+  AddScoreType<Eigen::Matrix3d>(m, "Matrix3d");
+  AddScoreType<Eigen::Matrix4d>(m, "Matrix4d");
+  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "Matrix34d");
+  AddScoreType<Eigen::Vector3d>(m, "Vector3d");
+
   py::class_<RobustEstimatorParams>(m, "RobustEstimatorParams")
       .def(py::init())
       .def_readwrite("iterations", &RobustEstimatorParams::iterations)
@@ -40,14 +45,12 @@ PYBIND11_MODULE(pyrobust, m) {
   m.def("ransac_absolute_pose_known_rotation",
         robust::RANSACAbsolutePoseKnownRotation,
         py::call_guard<py::gil_scoped_release>());
+  m.def("ransac_similarity", robust::RANSACSimilarity,
+        py::call_guard<py::gil_scoped_release>());
 
   py::enum_<RansacType>(m, "RansacType")
       .value("RANSAC", RansacType::RANSAC)
       .value("MSAC", RansacType::MSAC)
       .value("LMedS", RansacType::LMedS)
       .export_values();
-  AddScoreType<Line::Type>(m, "Line");
-  AddScoreType<Eigen::Matrix3d>(m, "Matrix3d");
-  AddScoreType<Eigen::Matrix<double, 3, 4>>(m, "Matrix34d");
-  AddScoreType<Eigen::Vector3d>(m, "Vector3d");
 }

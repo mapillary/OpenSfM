@@ -22,6 +22,10 @@ class Camera {
     AspectRatio,
     Cx,
     Cy,
+    S0,
+    S1,
+    S2,
+    S3,
     None
   };
 
@@ -45,6 +49,9 @@ class Camera {
   static Camera CreateFisheye62Camera(double focal, double aspect_ratio,
                                       const Vec2d& principal_point,
                                       const VecXd& distortion);
+  static Camera CreateFisheye624Camera(double focal, double aspect_ratio,
+                                       const Vec2d& principal_point,
+                                       const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();
@@ -79,14 +86,28 @@ class Camera {
   int width{1};
   int height{1};
   std::string id;
-  size_t unique_id_{0}; // Assigned by map.CreateCamera(.)
 
+  /** OpenSfM uses normalized coordinates with the origin
+   in the middle of the image. Normalized coordinates pt' are computed
+   from pixel coordinates pt = [x,y] as:
+   pt' = pt - [(width - 1) / 2, (height - 1) / 2] * 1 / max(width, height)
+   And vice-versa:
+   pt = pt' * max(width, height) + [(width - 1) / 2, (height - 1) / 2]
+  */
   Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord) const;
-  Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
-  static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord,
-                                            const int width, const int height);
+  MatX2d PixelToNormalizedCoordinatesMany(const MatX2d& px_coords) const;
+
   static Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord,
                                             const int width, const int height);
+  static MatX2d PixelToNormalizedCoordinatesMany(const MatX2d& px_coord,
+                                            const int width, const int height);
+
+  Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
+  MatX2d NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords) const;
+
+  static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord,
+                                            const int width, const int height);
+  static MatX2d NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords, const int width, const int height);
 
  private:
   ProjectionType type_{ProjectionType::NONE};

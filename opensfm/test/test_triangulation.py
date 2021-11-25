@@ -1,16 +1,16 @@
 import numpy as np
 from opensfm import io
 from opensfm import pygeometry
-from opensfm import pysfm
+from opensfm import pymap
 from opensfm import reconstruction
 
 
 def test_track_triangulator_spherical():
     """Test triangulating tracks of spherical images."""
-    tracks_manager = pysfm.TracksManager()
-    tracks_manager.add_observation("im1", "1", pysfm.Observation(0, 0, 1.0, 0, 0, 0, 0))
+    tracks_manager = pymap.TracksManager()
+    tracks_manager.add_observation("im1", "1", pymap.Observation(0, 0, 1.0, 0, 0, 0, 0))
     tracks_manager.add_observation(
-        "im2", "1", pysfm.Observation(-0.1, 0, 1.0, 0, 0, 0, 1)
+        "im2", "1", pymap.Observation(-0.1, 0, 1.0, 0, 0, 0, 1)
     )
 
     rec = io.reconstruction_from_json(

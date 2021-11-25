@@ -27,30 +27,26 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 Python dependencies can be installed with::
 
-    pip install -r requirements
+    pip install -r requirements.txt
 
 
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/master/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
+See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
 Installing dependencies on Fedora
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tested on Fedora 33
+Tested on Fedora 33 & 34
 
-    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel eigen3-devel libomp cmake glog-devel
+    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel python3-opencv eigen3-devel libomp cmake glog-devel
 
-There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. We need to build from scratch instead of relying on the version installed by dnf:
+There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. This quick workaround works::
 
-    mkdir ~/src && cd ~/src && clone git@github.com:gflags/gflags.git && checkout v2.2.2
+    sudo sed -i "s^set (GFLAGS_INCLUDE_DIR.*^set (GFLAGS_INCLUDE_DIR "/usr/include")^" /usr/lib64/cmake/gflags/gflags-config.cmake
 
-    mkdir ~/src/gflags/build && cd ~/src/gflags/build && cmake ../ && make -j4
-
-    sudo make install
-
-Install python dependencies before building:
+Install python dependencies before building::
 
     cd ~/src/OpenSfM && pip install -r requirements.txt
 
@@ -76,6 +72,25 @@ Also, in order for Cmake to recognize the libraries installed by Brew, make sure
 
 .. note:: Note on OpenCV 3
     When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
+
+
+Installing dependencies on Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Install vcpkg from the OpenSfM root directory::
+
+    cd OpenSfM
+    git clone https://github.com/microsoft/vcpkg
+    cd vcpkg
+    bootstrap-vcpkg.bat
+
+Then install OpenCV, Ceres, SuiteSparse and LAPACK (this will take a while)::
+
+    vcpkg install opencv4 ceres ceres[suitesparse] lapack suitesparse --triplet x64-windows
+
+Finally install the PIP requirements::
+
+    pip install -r requirements.txt
 
 
 Building the library

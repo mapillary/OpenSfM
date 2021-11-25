@@ -44,7 +44,6 @@ class Landmark {
 
  public:
   const LandmarkId id_;
-  LandmarkUniqueId unique_id_;
 
  private:
   Vec3d global_pos_;  // point in global

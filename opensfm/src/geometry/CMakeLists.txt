@@ -4,6 +4,7 @@ set(GEOMETRY_FILES
     absolute_pose.h
     covariance.h
     pose.h
+    similarity.h
     camera.h
     functions.h
     camera_distortions_functions.h

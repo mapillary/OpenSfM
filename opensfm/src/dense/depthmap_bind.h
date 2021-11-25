@@ -11,6 +11,9 @@ class DepthmapEstimatorWrapper {
  public:
   void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_uint8 image,
                pyarray_uint8 mask) {
+    if ((image.shape(0) != mask.shape(0)) || (image.shape(1) != mask.shape(1))){
+      throw std::invalid_argument("image and mask must have matching shapes.");
+    }
     de_.AddView(K.data(), R.data(), t.data(), image.data(), mask.data(),
                 image.shape(1), image.shape(0));
   }
@@ -98,11 +101,18 @@ class DepthmapPrunerWrapper {
   void SetSameDepthThreshold(float t) { dp_.SetSameDepthThreshold(t); }
 
   void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_f depth,
-               pyarray_f plane, pyarray_uint8 color, pyarray_uint8 label,
-               pyarray_uint8 detection) {
+               pyarray_f plane, pyarray_uint8 color, pyarray_uint8 label) {
+    if ((depth.shape(0) != plane.shape(0)) || (depth.shape(1) != plane.shape(1))){
+      throw std::invalid_argument("depth and plane must have matching shapes.");
+    }
+    if ((depth.shape(0) != color.shape(0)) || (depth.shape(1) != color.shape(1))){
+      throw std::invalid_argument("depth and color must have matching shapes.");
+    }
+    if ((depth.shape(0) != label.shape(0)) || (depth.shape(1) != label.shape(1))){
+      throw std::invalid_argument("depth and label must have matching shapes.");
+    }
     dp_.AddView(K.data(), R.data(), t.data(), depth.data(), plane.data(),
-                color.data(), label.data(), detection.data(), depth.shape(1),
-                depth.shape(0));
+                color.data(), label.data(), depth.shape(1), depth.shape(0));
   }
 
   py::object Prune() {
@@ -110,11 +120,10 @@ class DepthmapPrunerWrapper {
     std::vector<float> normals;
     std::vector<unsigned char> colors;
     std::vector<unsigned char> labels;
-    std::vector<unsigned char> detections;
 
     {
       py::gil_scoped_release release;
-      dp_.Prune(&points, &normals, &colors, &labels, &detections);
+      dp_.Prune(&points, &normals, &colors, &labels);
     }
 
     py::list retn;
@@ -123,7 +132,6 @@ class DepthmapPrunerWrapper {
     retn.append(py_array_from_data(&normals[0], n, 3));
     retn.append(py_array_from_data(&colors[0], n, 3));
     retn.append(py_array_from_data(&labels[0], n));
-    retn.append(py_array_from_data(&detections[0], n));
     return std::move(retn);
   }
 

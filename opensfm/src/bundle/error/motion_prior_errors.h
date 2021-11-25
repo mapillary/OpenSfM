@@ -2,6 +2,7 @@
 
 #include <bundle/data/pose.h>
 #include <bundle/error/error_utils.h>
+#include <bundle/error/position_functors.h>
 #include <foundation/types.h>
 
 #include <Eigen/Eigen>
@@ -16,14 +17,19 @@ struct LinearMotionError {
         orientation_scale_(1.0 / orientation_std_deviation) {}
 
   template <typename T>
-  bool operator()(const T* const shot0, const T* const shot1,
-                  const T* const shot2, T* r) const {
-    Eigen::Map<const Vec3<T> > R0(shot0 + Pose::Parameter::RX);
-    Eigen::Map<const Vec3<T> > t0(shot0 + Pose::Parameter::TX);
-    Eigen::Map<const Vec3<T> > R1(shot1 + Pose::Parameter::RX);
-    Eigen::Map<const Vec3<T> > t1(shot1 + Pose::Parameter::TX);
-    Eigen::Map<const Vec3<T> > R2(shot2 + Pose::Parameter::RX);
-    Eigen::Map<const Vec3<T> > t2(shot2 + Pose::Parameter::TX);
+  bool operator()(T const* const* p, T* r) const {
+    Vec3<T> R0 = ShotRotationFunctor(shot0_rig_instance_index,
+                                     shot0_rig_camera_index)(p);
+    Vec3<T> t0 = ShotPositionFunctor(shot0_rig_instance_index,
+                                     shot0_rig_camera_index)(p);
+    Vec3<T> R1 = ShotRotationFunctor(shot1_rig_instance_index,
+                                     shot1_rig_camera_index)(p);
+    Vec3<T> t1 = ShotPositionFunctor(shot1_rig_instance_index,
+                                     shot1_rig_camera_index)(p);
+    Vec3<T> R2 = ShotRotationFunctor(shot2_rig_instance_index,
+                                     shot2_rig_camera_index)(p);
+    Vec3<T> t2 = ShotPositionFunctor(shot2_rig_instance_index,
+                                     shot2_rig_camera_index)(p);
 
     // Residual have the general form :
     //  op( alpha . op(2, -0), op(0, -1))
@@ -45,5 +51,12 @@ struct LinearMotionError {
   Vec3d acceleration_;
   double position_scale_;
   double orientation_scale_;
+
+  int shot0_rig_camera_index{FUNCTOR_NOT_SET};
+  int shot1_rig_camera_index{FUNCTOR_NOT_SET};
+  int shot2_rig_camera_index{FUNCTOR_NOT_SET};
+  static constexpr int shot0_rig_instance_index = 0;
+  static constexpr int shot1_rig_instance_index = 1;
+  static constexpr int shot2_rig_instance_index = 2;
 };
 }  // namespace bundle
