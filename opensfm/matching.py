@@ -320,10 +320,16 @@ def _match_descriptors_impl(
             if not f2:
                 return dummy, dummy, dummy
             feat_data_index2, index2 = f2
+
+            descriptors1 = feat_data_index1.descriptors
+            descriptors2 = feat_data_index2.descriptors
+            if descriptors1 is None or descriptors2 is None:
+                return dummy, dummy, dummy
+
             matches = match_flann_symmetric(
-                feat_data_index1.descriptors,  # pyre-fixme [6]
+                descriptors1,
                 index1,
-                feat_data_index2.descriptors,  # pyre-fixme [6]
+                descriptors2,
                 index2,
                 overriden_config,
             )
@@ -530,7 +536,6 @@ def match_words(
     """
     ratio = config["lowes_ratio"]
     num_checks = config["bow_num_checks"]
-    # pyre-fixme [7]
     return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0], ratio, num_checks)
 
 

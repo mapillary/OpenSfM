@@ -76,7 +76,7 @@ void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
   }
 }
 
-py::object match_using_words(foundation::pyarray_f features1,
+py::array_t<int> match_using_words(foundation::pyarray_f features1,
                              foundation::pyarray_int words1,
                              foundation::pyarray_f features2,
                              foundation::pyarray_int words2, float lowes_ratio,

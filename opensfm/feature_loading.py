@@ -102,14 +102,15 @@ class FeatureLoader(object):
                 "Semantic segmentation in descriptor only supported for HAHOG UCHAR descriptors"
             )
 
-        if not features.has_segmentation():
+        segmentation = features.get_segmentation()
+        if segmentation is None:
             return features
 
         desc_augmented = np.concatenate(
             (
                 features.descriptors,
                 (
-                    np.array([features.semantic.segmentation]).T  # pyre-fixme [16]
+                    np.array([segmentation]).T
                 ).astype(np.float32),
             ),
             axis=1,
@@ -154,9 +155,11 @@ class FeatureLoader(object):
         )
         if not features_data:
             return None
+        descriptors = features_data.descriptors
+        if descriptors is None:
+            return None
         return features_data, ft.build_flann_index(
-            # pyre-fixme [6]: Expected `np.ndarray`
-            features_data.descriptors,
+            descriptors,
             data.config,
         )
 
