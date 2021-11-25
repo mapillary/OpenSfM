@@ -44,6 +44,17 @@ class Reconstruction(object):
         self.pano_shot_view = pymap.PanoShotView(self.map)
         self.landmark_view = pymap.LandmarkView(self.map)
 
+    def __repr__(self):
+        return (
+            "<Reconstruction"
+            f" cameras={len(self.cameras)}"
+            f" shots={len(self.shots)}"
+            f" points={len(self.points)}"
+            f" rig_cameras={len(self.rig_cameras)}"
+            f" rig_instances={len(self.rig_instances)}"
+            ">"
+        )
+
     def get_cameras(self) -> pymap.CameraView:
         return self.camera_view
 

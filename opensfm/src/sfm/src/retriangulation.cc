@@ -37,7 +37,7 @@ void RealignPoints(const map::Map& reference,
 
     const Mat3d R = shot_after.GetPose()->RotationCameraToWorld() *
                     shot_before.GetPose()->RotationWorldToCamera();
-    const double s = shot_before.scale != 0. ? (1.0 / shot_before.scale) : 1.0;
+    const double s = shot_after.scale != 0. ? (1.0 / shot_after.scale) : 1.0;
 
     const auto oc_before = shot_before.GetPose()->GetOrigin();
     const auto oc_after = shot_after.GetPose()->GetOrigin();
