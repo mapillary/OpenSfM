@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any
 
@@ -6,6 +7,8 @@ import rasterio
 from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
 from flask import send_file
 from PIL import ImageColor
+
+logger = logging.getLogger(__name__)
 
 
 def _load_georeference_metadata(path_cad_model):
@@ -75,11 +78,22 @@ class CADView(WebView):
                 if self.is_geo_reference
                 else None
             )
+            geo = {
+                "latitude": lla[0],
+                "longitude": lla[1],
+                "altitude": lla[2],
+                "horizontal_std": 100,
+                "vertical_std": None,
+            }
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,
                 self.cad_filename,
                 point_coordinates,
-                lla,
+                precision=100,  # in 3D units
+                geo=geo,
+            )
+            logger.warning(
+                f"Saving {geo} on {self.cad_filename} with hardcoded precision values"
             )
         self.main_ui.populate_gcp_list()
 
@@ -140,7 +154,7 @@ class CADView(WebView):
         for point_id, coords in visible_points_coords.items():
             hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
             color = ImageColor.getrgb(hex_color)
-            data["annotations"][point_id] = {"coordinates": coords, "color": color}
+            data["annotations"][point_id] = {"coordinates": coords[:-1], "precision": coords[-1], "color": color}
 
         # Add the 3D reprojections of the points
         fn_reprojections = Path(

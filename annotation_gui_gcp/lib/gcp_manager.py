@@ -16,24 +16,35 @@ def id_generator():
 class GeodeticMeasurement:
     longitude: float
     latitude: float
-    altitude: t.Optional[float]
+    horizontal_std: float  # Standard deviation (m), horizontal.
+    measured_at: int  # Unix time
+    altitude: t.Optional[float] = None
+    vertical_std: t.Optional[float] = None  # Standard deviation (m), vertical.
 
-    def to_dict(self) -> t.Dict[str, float]:
+    def to_dict(self) -> t.Dict[str, t.Any]:
         d = {
             "latitude": self.latitude,
             "longitude": self.longitude,
+            "horizontal_std": self.horizontal_std,
+            "measured_at": self.measured_at,
         }
         if self.altitude:
             d["altitude"] = self.altitude
+        if self.vertical_std:
+            d["vertical_std"] = self.vertical_std
         return d
+
+    @classmethod
+    def from_dict(cls, d: t.Dict[str, t.Any]):
+        return GeodeticMeasurement(**d)
 
 
 @dataclass(frozen=True, eq=True)
 class PointMeasurement:
     image_id: str
-    normalized_x: float
-    normalized_y: float
-    normalized_precision: float
+    normalized_x: float  # (x-w/2) / max(w,h)
+    normalized_y: float  # (y-h/2) / max(w,h)
+    normalized_precision: float  # precision as standard deviation in pixels / max(w,h)
 
 
 @dataclass(frozen=True, eq=True)
@@ -42,7 +53,7 @@ class PointMeasurement3D:
     x: float
     y: float
     z: float
-    precision: t.Optional[float]
+    precision: t.Optional[float]  # precision as standard deviation in (x,y,z) units
 
 
 class ControlPoint:
@@ -85,7 +96,9 @@ def observation_from_json(
             image_id=obs["shot_id"],
             normalized_x=obs["projection"][0],
             normalized_y=obs["projection"][1],
-            normalized_precision=obs.get("precision", 0.004),
+            normalized_precision=obs.get(
+                "precision", 0.004
+            ),  # 3-sigma (99%) confidence of about 8 px in a 640px image.
         )
     elif "point" in obs:
         return PointMeasurement3D(
@@ -123,12 +136,15 @@ class GroundControlPointManager:
             point = ControlPoint(input_point["id"])
             for obs in input_point["observations"]:
                 point.observations.append(observation_from_json(obs))
-            latlon = input_point.get("position")
-            if latlon:
+            geo = input_point.get("position")
+            if geo:
                 point.geodetic_measurement = GeodeticMeasurement(
-                    longitude=latlon["longitude"],
-                    latitude=latlon["latitude"],
-                    altitude=latlon.get("altitude"),
+                    longitude=geo["longitude"],
+                    latitude=geo["latitude"],
+                    measured_at=geo["measured_at"],
+                    altitude=geo.get("altitude"),
+                    horizontal_std=geo.get("horizontal_std", 100),
+                    vertical_std=geo.get("vertical_std"),
                 )
             self.points[point.id] = point
 
@@ -155,17 +171,25 @@ class GroundControlPointManager:
 
     def get_visible_points_coords(
         self, main_image: str
-    ) -> t.OrderedDict[str, t.Tuple[float, ...]]:
+    ) -> t.OrderedDict[
+        str, t.Union[t.Tuple[float, float, float], t.Tuple[float, float, float, float]]
+    ]:
         visible_points_coords = OrderedDict()
         for point in self.points.values():
             for obs in point.observations:
                 if obs.image_id == main_image:
                     if isinstance(obs, PointMeasurement3D):
-                        visible_points_coords[point.id] = (obs.x, obs.y, obs.z)
+                        visible_points_coords[point.id] = (
+                            obs.x,
+                            obs.y,
+                            obs.z,
+                            obs.precision,
+                        )
                     else:
                         visible_points_coords[point.id] = (
                             obs.normalized_x,
                             obs.normalized_y,
+                            obs.normalized_precision,
                         )
         return visible_points_coords
 
@@ -181,19 +205,28 @@ class GroundControlPointManager:
 
     def add_point_observation(
         self,
-        point_id,
-        shot_id,
-        projection_or_point,
-        latlon: t.Optional[t.Tuple[float, ...]] = None,
-        precision: t.Optional[float] = None,
+        point_id: str,
+        shot_id: str,
+        projection_or_point: t.Union[
+            t.Tuple[float, float], t.Tuple[float, float, float]
+        ],
+        precision: float,  # certainty radius. normalized pixels for images. 3D units for 3D.
+        geo: t.Optional[t.Dict[str, t.Union[float, int]]] = None,
     ):
         point = self.points[point_id]
         assert self.get_observation(point_id, shot_id) is None
-        if latlon:
+        if geo:
+            mtime = geo["measured_at"]
+            assert isinstance(
+                mtime, int
+            ), "Measurement time should be integer (unix time)"
             point.geodetic_measurement = GeodeticMeasurement(
-                longitude=latlon[1],
-                latitude=latlon[0],
-                altitude=latlon[2] if len(latlon) == 3 else None,
+                longitude=geo["longitude"],
+                latitude=geo["latitude"],
+                measured_at=mtime,
+                altitude=geo.get("altitude"),
+                horizontal_std=geo.get("horizontal_std", 100),
+                vertical_std=geo.get("vertical_std"),
             )
 
         if len(projection_or_point) == 2:
@@ -201,7 +234,7 @@ class GroundControlPointManager:
                 image_id=shot_id,
                 normalized_x=projection_or_point[0],
                 normalized_y=projection_or_point[1],
-                normalized_precision=precision or 0.004,
+                normalized_precision=precision,
             )
         else:
             obs = PointMeasurement3D(

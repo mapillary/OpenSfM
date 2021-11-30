@@ -35,7 +35,12 @@ class ImageView(WebView):
     def get_image(self, path, max_sz):
         return self.image_manager.get_image(path, max_sz)
 
-    def add_remove_update_point_observation(self, image_id, point_coordinates=None):
+    def add_remove_update_point_observation(
+        self,
+        image_id,
+        point_coordinates=None,  # normalized pixels
+        precision=None,  # std. deviation in px / max(w,h)
+    ):
         gcp_manager = self.main_ui.gcp_manager
         active_gcp = self.main_ui.curr_point
         if active_gcp is None:
@@ -49,11 +54,13 @@ class ImageView(WebView):
 
         # Add the new observation
         if point_coordinates is not None:
+            assert precision is not None
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,
                 image_id,
                 point_coordinates,
-                latlon=None,
+                precision=precision,
+                geo=None,
             )
 
         self.main_ui.populate_gcp_list()
@@ -106,7 +113,9 @@ class ImageView(WebView):
 
         if command == "add_or_update_point_observation":
             self.add_remove_update_point_observation(
-                image_id=data["image_id"], point_coordinates=data["xy"]
+                image_id=data["image_id"],
+                point_coordinates=data["xy"],
+                precision=data["norm_precision"],
             )
         else:  # == "remove_point_observation":
             self.add_remove_update_point_observation(
