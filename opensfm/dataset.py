@@ -516,14 +516,21 @@ class DataSet(DataSetBase):
         """Return path of rig assignments file"""
         return os.path.join(self.data_path, "rig_assignments.json")
 
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
+    def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:
         """Return rig assignments  data"""
         if not self.io_handler.exists(self._rig_assignments_file()):
-            return []
+            return {}
         with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
-            return json.load(fin)
+            assignments = json.load(fin)
 
-    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
+        # Backward compatibility.
+        # Older versions of the file were stored as a list of instances without id.
+        if isinstance(assignments, list):
+            assignments = {str(i): v for i, v in enumerate(assignments)}
+
+        return assignments
+
+    def save_rig_assignments(self, rig_assignments: Dict[str, List[Tuple[str, str]]]):
         """Save rig assignments  data"""
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)

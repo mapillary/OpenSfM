@@ -78,8 +78,8 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
     output = {}
     with open(p_json) as f:
-        assignments = json.load(f)
-    for shot_group in assignments:
+        assignments: t.Dict[str, t.List[t.Tuple[str, str]]] = json.load(f)
+    for shot_group in assignments.values():
         group_shot_ids = [s[0] for s in shot_group]
         for shot_id, _ in shot_group:
             output[shot_id] = group_shot_ids
