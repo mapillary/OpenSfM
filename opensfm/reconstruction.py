@@ -37,7 +37,9 @@ class ReconstructionAlgorithm(str, enum.Enum):
     TRIANGULATION = "triangulation"
 
 
-def _get_camera_from_bundle(ba: pybundle.BundleAdjuster, camera: pygeometry.Camera):
+def _get_camera_from_bundle(
+    ba: pybundle.BundleAdjuster, camera: pygeometry.Camera
+) -> None:
     """Read camera parameters from a bundle adjustment problem."""
     c = ba.get_camera(camera.id)
     for k, v in c.get_parameters_map().items():
@@ -51,7 +53,7 @@ def _add_gcp_to_bundle(
     shots: Dict[str, pymap.Shot],
     gcp_horizontal_sd: float,
     gcp_vertical_sd: float,
-):
+) -> None:
     """Add Ground Control Points constraints to the bundle problem."""
     gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
     for point in gcp:
@@ -76,9 +78,7 @@ def _add_gcp_to_bundle(
 
         if point.lla:
             point_enu = reference.to_topocentric(*point.lla_vec)
-            ba.add_point_prior(
-                point_id, point_enu, gcp_sd, point.has_altitude
-            )
+            ba.add_point_prior(point_id, point_enu, gcp_sd, point.has_altitude)
 
         for observation in point.observations:
             if observation.shot_id in shots:
@@ -439,7 +439,7 @@ def two_view_reconstruction_5pt(
     iterations: int,
     check_reversal: bool = False,
     reversal_ratio: float = 1.0,
-):
+) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], List[int]]:
     """Run 5-point reconstruction and refinement, given computed relative rotation and translation.
 
     Optionally, the method will perform reconstruction and refinement for both given and transposed
@@ -861,7 +861,7 @@ class TrackTriangulator:
         self,
         tracks_manager: pymap.TracksManager,
         reconstruction: types.Reconstruction,
-    ):
+    ) -> None:
         """Build a triangulator for a specific reconstruction."""
         self.tracks_manager = tracks_manager
         self.reconstruction = reconstruction
@@ -905,7 +905,10 @@ class TrackTriangulator:
             bs_t = [bs[i], bs[j]]
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                np.asarray(os_t), np.asarray(bs_t), thresholds, np.radians(min_ray_angle_degrees)
+                np.asarray(os_t),
+                np.asarray(bs_t),
+                thresholds,
+                np.radians(min_ray_angle_degrees),
             )
 
             if valid_triangulation:
@@ -951,7 +954,10 @@ class TrackTriangulator:
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                np.asarray(os), np.asarray(bs), thresholds, np.radians(min_ray_angle_degrees)
+                np.asarray(os),
+                np.asarray(bs),
+                thresholds,
+                np.radians(min_ray_angle_degrees),
             )
             if valid_triangulation:
                 self.reconstruction.create_point(track, X.tolist())
@@ -973,7 +979,10 @@ class TrackTriangulator:
 
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
-                np.asarray(Rts), np.asarray(bs), reproj_threshold, np.radians(min_ray_angle_degrees)
+                np.asarray(Rts),
+                np.asarray(bs),
+                reproj_threshold,
+                np.radians(min_ray_angle_degrees),
             )
             if e:
                 self.reconstruction.create_point(track, X.tolist())
@@ -1249,7 +1258,7 @@ class ShouldBundle:
     new_points_ratio: float
     reconstruction: types.Reconstruction
 
-    def __init__(self, data: DataSetBase, reconstruction: types.Reconstruction):
+    def __init__(self, data: DataSetBase, reconstruction: types.Reconstruction) -> None:
         self.interval = data.config["bundle_interval"]
         self.new_points_ratio = data.config["bundle_new_points_ratio"]
         self.reconstruction = reconstruction
@@ -1275,7 +1284,7 @@ class ShouldRetriangulate:
     ratio: float
     reconstruction: types.Reconstruction
 
-    def __init__(self, data, reconstruction):
+    def __init__(self, data, reconstruction) -> None:
         self.active = data.config["retriangulation"]
         self.ratio = data.config["retriangulation_ratio"]
         self.reconstruction = reconstruction
@@ -1571,7 +1580,7 @@ def reconstruct_from_prior(
 
 
 class Chronometer:
-    def __init__(self):
+    def __init__(self) -> None:
         self.start()
 
     def start(self) -> None:

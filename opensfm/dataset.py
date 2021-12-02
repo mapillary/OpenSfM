@@ -530,7 +530,9 @@ class DataSet(DataSetBase):
 
         return assignments
 
-    def save_rig_assignments(self, rig_assignments: Dict[str, List[Tuple[str, str]]]):
+    def save_rig_assignments(
+        self, rig_assignments: Dict[str, List[Tuple[str, str]]]
+    ) -> None:
         """Save rig assignments  data"""
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
@@ -556,7 +558,7 @@ class DataSet(DataSetBase):
         with self.io_handler.open_wt(filepath) as fout:
             return fout.write(report_str)
 
-    def _ply_file(self, filename: Optional[str]):
+    def _ply_file(self, filename: Optional[str]) -> str:
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
     def save_ply(
@@ -567,7 +569,7 @@ class DataSet(DataSetBase):
         no_cameras: bool = False,
         no_points: bool = False,
         point_num_views: bool = False,
-    ):
+    ) -> None:
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(
             reconstruction, tracks_manager, no_cameras, no_points, point_num_views
@@ -680,7 +682,7 @@ class UndistortedDataSet(object):
         base_dataset: DataSetBase,
         undistorted_data_path: str,
         io_handler=io.IoFilesystemDefault,
-    ):
+    ) -> None:
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
@@ -692,7 +694,7 @@ class UndistortedDataSet(object):
         with self.io_handler.open_rt(filename) as fin:
             return io.json_load(fin)
 
-    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]):
+    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]) -> None:
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
         self.io_handler.mkdir_p(self.data_path)
         with self.io_handler.open_wt(filename) as fout:
@@ -735,7 +737,7 @@ class UndistortedDataSet(object):
             self._undistorted_mask_file(image), grayscale=True
         )
 
-    def save_undistorted_mask(self, image: str, array: np.ndarray):
+    def save_undistorted_mask(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image mask."""
         self.io_handler.mkdir_p(self._undistorted_mask_path())
         self.io_handler.imwrite(self._undistorted_mask_file(image), array)
@@ -868,7 +870,7 @@ class UndistortedDataSet(object):
 
     def save_clean_depthmap(
         self, image: str, depth: np.ndarray, plane: np.ndarray, score: np.ndarray
-    ):
+    ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "clean.npz")
         with self.io_handler.open(filepath, "wb") as f:
