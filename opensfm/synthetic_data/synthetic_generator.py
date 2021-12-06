@@ -301,11 +301,11 @@ def create_reconstruction(
     colors: List[np.ndarray],
     cameras: List[pygeometry.Camera],
     shot_ids: List[List[str]],
-    rig_shots: List[List[List[str]]],
-    rig_positions: Optional[List[List[np.ndarray]]] = None,
-    rig_rotations: Optional[List[List[np.ndarray]]] = None,
-    rig_cameras: Optional[List[List[pymap.RigCamera]]] = None,
-    reference: Optional[geo.TopocentricConverter] = None,
+    rig_shots: List[List[List[Tuple[str, str]]]],
+    rig_positions: List[np.ndarray],
+    rig_rotations: List[np.ndarray],
+    rig_cameras: List[List[pymap.RigCamera]],
+    reference: Optional[geo.TopocentricConverter],
 ):
     reconstruction = types.Reconstruction()
     if reference is not None:
@@ -319,7 +319,6 @@ def create_reconstruction(
         s_rig_rotations,
         s_rig_cameras,
         s_cameras,
-        # pyre-fixme [6]
     ) in enumerate(zip(rig_shots, rig_positions, rig_rotations, rig_cameras, cameras)):
         add_shots_to_reconstruction(
             s_rig_shots,

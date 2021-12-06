@@ -27,7 +27,7 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 Python dependencies can be installed with::
 
-    pip install -r requirements
+    pip install -r requirements.txt
 
 
 Installing dependencies on Ubuntu

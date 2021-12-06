@@ -93,6 +93,36 @@ Camera Camera::CreateFisheye62Camera(double focal, double aspect_ratio,
   return camera;
 }
 
+/**
+  Create a Fisheye624 camera with 15 parameters:
+  - params: f, cx, cy, (radial) k1, k2, k3, k4, k5, k6 (tangential) p1, p2 (thin prism) s0, s1, s2, s3
+  Note that in arvr, the parameters start at 0 and p1/p2 are reversed
+  See: https://fburl.com/diffusion/xnhraa2z
+*/
+Camera Camera::CreateFisheye624Camera(double focal, double aspect_ratio,
+                                      const Vec2d& principal_point,
+                                      const VecXd& distortion) {
+  if (distortion.size() != 12) {
+    throw std::runtime_error("Invalid distortion coefficients size");
+  }
+  Camera camera;
+  camera.type_ = ProjectionType::FISHEYE624;
+  camera.types_ = {Camera::Parameters::K1,    Camera::Parameters::K2,
+                   Camera::Parameters::K3,    Camera::Parameters::K4,
+                   Camera::Parameters::K5,    Camera::Parameters::K6,
+                   Camera::Parameters::P1,    Camera::Parameters::P2,
+                   Camera::Parameters::S0,    Camera::Parameters::S1,
+                   Camera::Parameters::S2,    Camera::Parameters::S3,
+                   Camera::Parameters::Focal, Camera::Parameters::AspectRatio,
+                   Camera::Parameters::Cx,    Camera::Parameters::Cy};
+  camera.values_.resize(16);
+  camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
+      distortion[4], distortion[5], distortion[6], distortion[7],
+      distortion[8], distortion[9], distortion[10], distortion[11],
+      focal, aspect_ratio, principal_point[0], principal_point[1];
+  return camera;
+}
+
 Camera Camera::CreateDualCamera(double transition, double focal, double k1,
                                 double k2) {
   Camera camera;
@@ -197,6 +227,8 @@ std::string Camera::GetProjectionString(const ProjectionType& type) {
       return "fisheye_opencv";
     case ProjectionType::FISHEYE62:
       return "fisheye62";
+    case ProjectionType::FISHEYE624:
+      return "fisheye624";
     case ProjectionType::DUAL:
       return "dual";
     case ProjectionType::SPHERICAL:

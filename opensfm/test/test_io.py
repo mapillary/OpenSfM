@@ -183,6 +183,7 @@ def test_camera_from_to_vector():
         ("fisheye", 3),
         ("fisheye_opencv", 8),
         ("fisheye62", 12),
+        ("fisheye624", 16),
         ("radial", 6),
         ("simple_radial", 5),
         ("dual", 4),

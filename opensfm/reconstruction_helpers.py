@@ -5,10 +5,12 @@ from typing import Dict, Any, Iterable
 import numpy as np
 from opensfm import (
     multiview,
+    pygeometry,
     pymap,
     geometry,
     types,
     exif as oexif,
+    rig,
 )
 from opensfm.dataset_base import DataSetBase
 
@@ -124,13 +126,29 @@ def rotation_from_angles(shot):
 def reconstruction_from_metadata(data: DataSetBase, images: Iterable[str]):
     """Initialize a reconstruction by using EXIF data for constructing shot poses and cameras."""
     data.init_reference()
+    rig_assignments = rig.rig_assignments_per_image(data.load_rig_assignments())
 
     reconstruction = types.Reconstruction()
     reconstruction.reference = data.load_reference()
     reconstruction.cameras = data.load_camera_models()
     for image in images:
-        d = data.load_exif(image)
-        shot = reconstruction.create_shot(image, d["camera"])
+        camera_id = data.load_exif(image)["camera"]
+
+        if image in rig_assignments:
+            rig_instance_id, rig_camera_id, _ = rig_assignments[image]
+        else:
+            rig_instance_id = image
+            rig_camera_id = camera_id
+
+        reconstruction.add_rig_camera(pymap.RigCamera(pygeometry.Pose(), rig_camera_id))
+        reconstruction.add_rig_instance(pymap.RigInstance(rig_instance_id))
+        shot = reconstruction.create_shot(
+            shot_id=image,
+            camera_id=camera_id,
+            rig_camera_id=rig_camera_id,
+            rig_instance_id=rig_instance_id,
+        )
+
         shot.metadata = get_image_metadata(data, image)
 
         if not shot.metadata.gps_position.has_value:
@@ -158,12 +176,12 @@ def exif_to_metadata(
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)
-        metadata.gps_position.value = [x, y, z]
+        metadata.gps_position.value = np.array([x, y, z])
         metadata.gps_accuracy.value = gps.get("dop", 15.0)
         if metadata.gps_accuracy.value == 0.0:
             metadata.gps_accuracy.value = 15.0
     else:
-        metadata.gps_position.value = [0.0, 0.0, 0.0]
+        metadata.gps_position.value = np.array([0.0, 0.0, 0.0])
         metadata.gps_accuracy.value = 999999.0
 
     opk = exif.get("opk")

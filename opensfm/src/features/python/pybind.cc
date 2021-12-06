@@ -1,11 +1,10 @@
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include <features/akaze_bind.h>
 #include <features/hahog.h>
 #include <features/matching.h>
 #include <foundation/python_types.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 PYBIND11_MODULE(pyfeatures, m) {
   py::enum_<DESCRIPTOR_TYPE>(m, "AkazeDescriptorType")
@@ -15,6 +14,11 @@ PYBIND11_MODULE(pyfeatures, m) {
       .value("MSURF", MSURF)
       .value("MLDB_UPRIGHT", MLDB_UPRIGHT)
       .value("MLDB", MLDB);
+  py::enum_<DIFFUSIVITY_TYPE>(m, "AkazeDiffusivityType")
+      .value("PM_G1", PM_G1)
+      .value("PM_G2", PM_G2)
+      .value("WEICKERT", WEICKERT)
+      .value("CHARBONNIER", CHARBONNIER);
 
   py::class_<AKAZEOptions>(m, "AKAZEOptions")
       .def(py::init())
@@ -55,4 +59,6 @@ PYBIND11_MODULE(pyfeatures, m) {
         py::arg("use_adaptive_suppression") = false);
 
   m.def("match_using_words", features::match_using_words);
+  m.def("compute_vlad_descriptor", features::compute_vlad_descriptor,
+        py::call_guard<py::gil_scoped_release>());
 }

@@ -1,7 +1,7 @@
 import copy
 
 import numpy as np
-from opensfm import pyrobust
+from opensfm import pyrobust, pygeometry
 
 
 def line_data():
@@ -9,6 +9,16 @@ def line_data():
     samples = 100
     x = np.linspace(0, 100, samples)
     return a, b, x, samples
+
+
+def similarity_data():
+    rotation = (0.1, 0.2, 0.3)
+    translation = (4, 5, 6)
+    scale = 2
+    samples = 100
+
+    x = np.random.rand(samples, 3)
+    return rotation, translation, scale, x, samples
 
 
 def add_outliers(ratio_outliers, x, min, max):
@@ -143,6 +153,29 @@ def test_outliers_line_LMedS():
     params.use_iteration_reduction = False
 
     result = pyrobust.ransac_line(data, multiplier, params, pyrobust.RansacType.LMedS)
+
+    inliers_count = (1 - ratio_outliers) * samples
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), inliers_count, rtol=(1 - confidence), atol=8
+    )
+
+
+def test_outliers_similarity_ransac():
+    rotation, translation, scale, x, samples = similarity_data()
+
+    similarity = pygeometry.Similarity(rotation, translation, scale)
+    y = np.array([similarity.transform(p) for p in x])
+
+    sigma = 0.001
+    y += np.random.normal(scale=sigma, size=y.shape)
+
+    outliers_max = 1.0
+    ratio_outliers = 0.3
+    add_outliers(ratio_outliers, x, scale, outliers_max)
+
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_similarity(x, y, 0.1, params, pyrobust.RansacType.RANSAC)
 
     inliers_count = (1 - ratio_outliers) * samples
     confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers

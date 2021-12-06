@@ -1,11 +1,12 @@
 #include <features/akaze_bind.h>
 #include <foundation/python_types.h>
 #include <third_party/akaze/lib/AKAZE.h>
+
 #include <opencv2/imgproc/imgproc.hpp>
 
 namespace features {
 
-py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
+py::tuple akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
   py::gil_scoped_release release;
 
   const cv::Mat img(image.shape(0), image.shape(1), CV_8U,
@@ -42,18 +43,15 @@ py::object akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
 
   py::gil_scoped_acquire acquire;
 
-  py::list retn;
-  retn.append(
-      foundation::py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols));
-
+  const auto keys_py =
+      foundation::py_array_from_data(keys.ptr<float>(0), keys.rows, keys.cols);
   if (options.descriptor == MLDB_UPRIGHT || options.descriptor == MLDB) {
-    retn.append(foundation::py_array_from_data(desc.ptr<unsigned char>(0),
-                                               desc.rows, desc.cols));
-  } else {
-    retn.append(foundation::py_array_from_data(desc.ptr<float>(0), desc.rows,
-                                               desc.cols));
+    return py::make_tuple(
+        keys_py, foundation::py_array_from_data(desc.ptr<unsigned char>(0),
+                                             desc.rows, desc.cols));
   }
-  return retn;
+  return py::make_tuple(keys_py, foundation::py_array_from_data(
+                                  desc.ptr<float>(0), desc.rows, desc.cols));
 }
 
 }  // namespace features
