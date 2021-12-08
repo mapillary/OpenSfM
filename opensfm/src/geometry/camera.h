@@ -22,6 +22,10 @@ class Camera {
     AspectRatio,
     Cx,
     Cy,
+    S0,
+    S1,
+    S2,
+    S3,
     None
   };
 
@@ -45,6 +49,9 @@ class Camera {
   static Camera CreateFisheye62Camera(double focal, double aspect_ratio,
                                       const Vec2d& principal_point,
                                       const VecXd& distortion);
+  static Camera CreateFisheye624Camera(double focal, double aspect_ratio,
+                                       const Vec2d& principal_point,
+                                       const VecXd& distortion);
   static Camera CreateDualCamera(double transition, double focal, double k1,
                                  double k2);
   static Camera CreateSphericalCamera();

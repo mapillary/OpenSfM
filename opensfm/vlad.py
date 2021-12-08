@@ -2,8 +2,7 @@ from functools import lru_cache
 from typing import List, Tuple, Iterable, Dict, Optional
 
 import numpy as np
-from opensfm import bow
-from opensfm import feature_loader
+from opensfm import pyfeatures, feature_loader, bow
 from opensfm.dataset_base import DataSetBase
 
 
@@ -13,11 +12,7 @@ def unnormalized_vlad(features: np.ndarray, centers: np.ndarray) -> np.ndarray:
 
     Returns the unnormalized VLAD vector.
     """
-    vlad = np.zeros(centers.shape, dtype=np.float32)
-    for f in features:
-        i = np.argmin(np.linalg.norm(f - centers, axis=1))
-        vlad[i, :] += f - centers[i]
-    return vlad.flatten()
+    return pyfeatures.compute_vlad_descriptor(features, centers)
 
 
 def signed_square_root_normalize(v: np.ndarray) -> np.ndarray:

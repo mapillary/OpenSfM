@@ -155,6 +155,17 @@ TEST_F(ReprojectionError2DFixture, Fisheye62AnalyticErrorEvaluatesOK) {
   RunTest<size>(geometry::ProjectionType::FISHEYE62, &camera[0]);
 }
 
+TEST_F(ReprojectionError2DFixture, Fisheye624AnalyticErrorEvaluatesOK) {
+  constexpr int size = 16;
+
+  // focal, ar, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3
+  constexpr std::array<double, size> camera{0.3,  1.0,   0.001, -0.02,
+                                            0.1,  -0.03, 0.001, -0.005,
+                                            0.01, 0.006, 0.02,  0.003,
+                                            0.001, -0.009, -0.01, 0.03};
+  RunTest<size>(geometry::ProjectionType::FISHEYE624, &camera[0]);
+}
+
 TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
   constexpr int size = 4;
 

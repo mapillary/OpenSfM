@@ -801,6 +801,7 @@ def align(
         n_good_std = -1
         median_shot_std = -1
         max_shot_std = -1
+        std_values = []
 
     metrics = {
         "n_reconstructions": len(data.load_reconstruction()),
@@ -840,11 +841,8 @@ def align(
             )
         else:
             logger.info(
-                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"{n_nan_std}/{len(std_values)} images with unknown error."
-                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"\n{n_good_std}/{len(std_values)} well-localized images."
-                # pyre-fixme[61]: `std_values` may not be initialized here.
                 f"\n{n_bad_std}/{len(std_values)} badly localized images."
             )
 

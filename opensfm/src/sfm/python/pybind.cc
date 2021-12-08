@@ -11,6 +11,10 @@
 #include <optional>
 
 PYBIND11_MODULE(pysfm, m) {
+  py::module::import("opensfm.pymap");
+  py::module::import("opensfm.pygeometry");
+  py::module::import("opensfm.pybundle");
+
   m.def("count_tracks_per_shot", &sfm::tracks_helpers::CountTracksPerShot);
   m.def("add_connections", &sfm::tracks_helpers::AddConnections,
         py::call_guard<py::gil_scoped_release>());
@@ -18,13 +22,13 @@ PYBIND11_MODULE(pysfm, m) {
         py::call_guard<py::gil_scoped_release>());
 
   py::class_<sfm::BAHelpers>(m, "BAHelpers")
-      .def("bundle", &sfm::BAHelpers::Bundle)
-      .def("bundle_local", &sfm::BAHelpers::BundleLocal)
-      .def("bundle_shot_poses", &sfm::BAHelpers::BundleShotPoses)
-      .def("bundle_to_map", &sfm::BAHelpers::BundleToMap)
-      .def("shot_neighborhood_ids", &sfm::BAHelpers::ShotNeighborhoodIds)
-      .def("detect_alignment_constraints",
-           &sfm::BAHelpers::DetectAlignmentConstraints);
+      .def_static("bundle", &sfm::BAHelpers::Bundle)
+      .def_static("bundle_local", &sfm::BAHelpers::BundleLocal)
+      .def_static("bundle_shot_poses", &sfm::BAHelpers::BundleShotPoses)
+      .def_static("bundle_to_map", &sfm::BAHelpers::BundleToMap)
+      .def_static("shot_neighborhood_ids", &sfm::BAHelpers::ShotNeighborhoodIds)
+      .def_static("detect_alignment_constraints",
+                  &sfm::BAHelpers::DetectAlignmentConstraints);
 
   m.def("realign_points", &sfm::retriangulation::RealignPoints,
         py::call_guard<py::gil_scoped_release>());

@@ -1,3 +1,4 @@
+import typing as t
 from io import BytesIO
 
 from flask import send_file
@@ -7,7 +8,7 @@ from PIL import Image
 
 
 class ImageManager:
-    def __init__(self, seqs, path):
+    def __init__(self, seqs: t.Dict[str, t.List[str]], path: str):
         self.seqs = seqs
         self.path = path
 

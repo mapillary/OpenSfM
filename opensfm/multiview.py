@@ -383,7 +383,7 @@ def plane_horizontalling_rotation(p: np.ndarray) -> Optional[np.ndarray]:
 def fit_similarity_transform(
     p1: np.ndarray, p2: np.ndarray, max_iterations: int = 1000, threshold: float = 1
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Fit a similarity transform between two points sets"""
+    """Fit a similarity transform T such as p2 = T . p1 between two points sets p1 and p2"""
     # TODO (Yubin): adapt to RANSAC class
 
     num_points, dim = p1.shape[0:2]
@@ -702,7 +702,7 @@ def triangulate_gcp(
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
         valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-            os, bs, thresholds, np.radians(min_ray_angle_degrees)
+            np.asarray(os), np.asarray(bs), thresholds, np.radians(min_ray_angle_degrees)
         )
         if valid_triangulation:
             return X

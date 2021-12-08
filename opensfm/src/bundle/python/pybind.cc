@@ -6,6 +6,54 @@
 #include <pybind11/stl.h>
 
 PYBIND11_MODULE(pybundle, m) {
+   py::module::import("opensfm.pygeometry");
+
+   py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
+      .def(py::init<const std::string &, const std::string &,
+                    const std::string &, const std::string &,
+                    const Eigen::Vector3d &, const Eigen::Vector3d &, double>())
+      .def_readwrite("reconstruction_i",
+                     &bundle::RelativeMotion::reconstruction_id_i)
+      .def_readwrite("shot_i", &bundle::RelativeMotion::shot_id_i)
+      .def_readwrite("reconstruction_j",
+                     &bundle::RelativeMotion::reconstruction_id_j)
+      .def_readwrite("shot_j", &bundle::RelativeMotion::shot_id_j)
+      .def_property("r", &bundle::RelativeMotion::GetRotation,
+                    &bundle::RelativeMotion::SetRotation)
+      .def_property("t", &bundle::RelativeMotion::GetTranslation,
+                    &bundle::RelativeMotion::SetTranslation)
+      .def("set_scale_matrix", &bundle::RelativeMotion::SetScaleMatrix);
+
+  py::class_<bundle::RelativeSimilarity>(m, "RelativeSimilarity")
+      .def(py::init<const std::string &, const std::string &,
+                    const std::string &, const std::string &,
+                    const Eigen::Vector3d &, const Eigen::Vector3d &, double,
+                    double>())
+      .def_readwrite("scale", &bundle::RelativeSimilarity::scale)
+      .def("set_scale_matrix", &bundle::RelativeSimilarity::SetScaleMatrix);
+
+  py::class_<bundle::RelativeRotation>(m, "RelativeRotation")
+      .def(py::init<const std::string &, const std::string &,
+                    const Eigen::Vector3d &>())
+      .def_readwrite("shot_i", &bundle::RelativeRotation::shot_id_i)
+      .def_readwrite("shot_j", &bundle::RelativeRotation::shot_id_j)
+      .def_property("r", &bundle::RelativeRotation::GetRotation,
+                    &bundle::RelativeRotation::SetRotation)
+      .def("set_scale_matrix", &bundle::RelativeRotation::SetScaleMatrix);
+
+  py::class_<bundle::Reconstruction>(m, "Reconstruction")
+      .def(py::init())
+      .def("get_scale", &bundle::Reconstruction::GetScale)
+      .def("set_scale", &bundle::Reconstruction::SetScale)
+      .def_readwrite("id", &bundle::Reconstruction::id);
+
+  py::class_<bundle::Point>(m, "Point")
+      .def_property_readonly(
+          "p", [](const bundle::Point &p) { return p.GetValue(); })
+      .def_property_readonly("id",
+                             [](const bundle::Point &p) { return p.GetID(); })
+      .def_readwrite("reprojection_errors",
+                     &bundle::Point::reprojection_errors);
   py::class_<bundle::BundleAdjuster>(m, "BundleAdjuster")
       .def(py::init())
       .def("run", &bundle::BundleAdjuster::Run,
@@ -75,52 +123,6 @@ PYBIND11_MODULE(pybundle, m) {
       .def("brief_report", &bundle::BundleAdjuster::BriefReport)
       .def("full_report", &bundle::BundleAdjuster::FullReport);
 
-  py::class_<bundle::Reconstruction>(m, "Reconstruction")
-      .def(py::init())
-      .def("get_scale", &bundle::Reconstruction::GetScale)
-      .def("set_scale", &bundle::Reconstruction::SetScale)
-      .def_readwrite("id", &bundle::Reconstruction::id);
-
-  py::class_<bundle::Point>(m, "Point")
-      .def_property_readonly(
-          "p", [](const bundle::Point &p) { return p.GetValue(); })
-      .def_property_readonly("id",
-                             [](const bundle::Point &p) { return p.GetID(); })
-      .def_readwrite("reprojection_errors",
-                     &bundle::Point::reprojection_errors);
-
-  py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
-      .def(py::init<const std::string &, const std::string &,
-                    const std::string &, const std::string &,
-                    const Eigen::Vector3d &, const Eigen::Vector3d &, double>())
-      .def_readwrite("reconstruction_i",
-                     &bundle::RelativeMotion::reconstruction_id_i)
-      .def_readwrite("shot_i", &bundle::RelativeMotion::shot_id_i)
-      .def_readwrite("reconstruction_j",
-                     &bundle::RelativeMotion::reconstruction_id_j)
-      .def_readwrite("shot_j", &bundle::RelativeMotion::shot_id_j)
-      .def_property("r", &bundle::RelativeMotion::GetRotation,
-                    &bundle::RelativeMotion::SetRotation)
-      .def_property("t", &bundle::RelativeMotion::GetTranslation,
-                    &bundle::RelativeMotion::SetTranslation)
-      .def("set_scale_matrix", &bundle::RelativeMotion::SetScaleMatrix);
-
-  py::class_<bundle::RelativeSimilarity>(m, "RelativeSimilarity")
-      .def(py::init<const std::string &, const std::string &,
-                    const std::string &, const std::string &,
-                    const Eigen::Vector3d &, const Eigen::Vector3d &, double,
-                    double>())
-      .def_readwrite("scale", &bundle::RelativeSimilarity::scale)
-      .def("set_scale_matrix", &bundle::RelativeSimilarity::SetScaleMatrix);
-
-  py::class_<bundle::RelativeRotation>(m, "RelativeRotation")
-      .def(py::init<const std::string &, const std::string &,
-                    const Eigen::Vector3d &>())
-      .def_readwrite("shot_i", &bundle::RelativeRotation::shot_id_i)
-      .def_readwrite("shot_j", &bundle::RelativeRotation::shot_id_j)
-      .def_property("r", &bundle::RelativeRotation::GetRotation,
-                    &bundle::RelativeRotation::SetRotation)
-      .def("set_scale_matrix", &bundle::RelativeRotation::SetScaleMatrix);
 
   ///////////////////////////////////
   // Reconstruction Aligment

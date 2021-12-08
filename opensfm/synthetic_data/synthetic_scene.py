@@ -12,13 +12,15 @@ from opensfm import pygeometry, types, pymap, geo
 def get_camera(
     type: str, id: str, focal: float, k1: float, k2: float
 ) -> pygeometry.Camera:
-    camera = None
+    camera: Optional[pygeometry.Camera] = None
     if type == "perspective":
         camera = pygeometry.Camera.create_perspective(focal, k1, k2)
-    if type == "fisheye":
+    elif type == "fisheye":
         camera = pygeometry.Camera.create_fisheye(focal, k1, k2)
-    if type == "spherical":
+    elif type == "spherical":
         camera = pygeometry.Camera.create_spherical()
+    else:
+        raise RuntimeError(f"Invalid camera type {type}")
 
     camera.id = id
 
@@ -68,7 +70,7 @@ def camera_pose(
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
     pose = pygeometry.Pose()
-    pose.set_rotation_matrix([ex, ey, ez])
+    pose.set_rotation_matrix(np.array([ex, ey, ez]))
     pose.set_origin(position)
     return pose
 
@@ -81,7 +83,7 @@ class SyntheticScene(object):
 class SyntheticCubeScene(SyntheticScene):
     """Scene consisting of cameras looking at point in a cube."""
 
-    def __init__(self, num_cameras: int, num_points: int, noise: float):
+    def __init__(self, num_cameras: int, num_points: int, noise: float) -> None:
         self.reconstruction = types.Reconstruction()
         self.cameras = {}
         for i in range(num_cameras):
@@ -116,7 +118,7 @@ class SyntheticCubeScene(SyntheticScene):
         for i, p in enumerate(points):
             point_id = "point" + str(i)
             pt = self.reconstruction.create_point(point_id, p)
-            pt.color = [100, 100, 20]
+            pt.color = np.array([100, 100, 20])
 
     def get_reconstruction(self) -> types.Reconstruction:
         reconstruction = types.Reconstruction()
@@ -154,7 +156,7 @@ class SyntheticStreetScene(SyntheticScene):
     rig_cameras: List[List[pymap.RigCamera]]
     width: float
 
-    def __init__(self, generator: Optional[Callable], reference: Optional[geo.TopocentricConverter] = None):
+    def __init__(self, generator: Optional[Callable], reference: Optional[geo.TopocentricConverter] = None) -> None:
         self.generator = generator
         self.reference = reference
         self.wall_points = None
@@ -196,9 +198,11 @@ class SyntheticStreetScene(SyntheticScene):
     def add_street(
         self, points_count: int, height: float, width: float
     ) -> "SyntheticStreetScene":
+        generator = self.generator
+        assert generator
         self.wall_points, self.floor_points = sg.generate_street(
             sg.samples_generator_random_count(int(points_count // 3)),
-            self.generator,  # pyre-fixme [6]
+            generator,
             height,
             width,
         )
@@ -206,11 +210,15 @@ class SyntheticStreetScene(SyntheticScene):
         return self
 
     def perturb_walls(self, walls_pertubation: List[float]) -> "SyntheticStreetScene":
-        sg.perturb_points(self.wall_points, walls_pertubation)  # pyre-fixme [6]
+        wall_points = self.wall_points
+        assert wall_points is not None
+        sg.perturb_points(wall_points, walls_pertubation)
         return self
 
     def perturb_floor(self, floor_pertubation: List[float]) -> "SyntheticStreetScene":
-        sg.perturb_points(self.floor_points, floor_pertubation)  # pyre-fixme [6]
+        floor_points = self.floor_points
+        assert floor_points is not None
+        sg.perturb_points(floor_points, floor_pertubation)
         return self
 
     def set_terrain_hill(
@@ -222,13 +230,14 @@ class SyntheticStreetScene(SyntheticScene):
             self._set_terrain_hill_repeated(height, radius)
         return self
 
-    def _set_terrain_hill_single(self, height: float, radius: float):
-        # pyre-fixme [16]: `Optional` has no attribute `__getitem__`
-        self.wall_points[:, 2] += height * np.exp(
-            -0.5 * np.linalg.norm(self.wall_points[:, :2], axis=1) ** 2 / radius ** 2
+    def _set_terrain_hill_single(self, height: float, radius: float)->None:
+        wall_points, floor_points = self.wall_points, self.floor_points
+        assert wall_points is not None and floor_points is not None
+        wall_points[:, 2] += height * np.exp(
+            -0.5 * np.linalg.norm(wall_points[:, :2], axis=1) ** 2 / radius ** 2
         )
-        self.floor_points[:, 2] += height * np.exp(
-            -0.5 * np.linalg.norm(self.floor_points[:, :2], axis=1) ** 2 / radius ** 2
+        floor_points[:, 2] += height * np.exp(
+            -0.5 * np.linalg.norm(floor_points[:, :2], axis=1) ** 2 / radius ** 2
         )
 
         for positions in self.instances_positions:
@@ -240,13 +249,14 @@ class SyntheticStreetScene(SyntheticScene):
                     )
                 )
 
-    def _set_terrain_hill_repeated(self, height: float, radius: float):
-        # pyre-fixme [16]: `Optional` has no attribute `__getitem__`
-        self.wall_points[:, 2] += height * np.sin(
-            np.linalg.norm(self.wall_points[:, :2], axis=1) / radius
+    def _set_terrain_hill_repeated(self, height: float, radius: float) -> None:
+        wall_points, floor_points = self.wall_points, self.floor_points
+        assert wall_points is not None and floor_points is not None
+        wall_points[:, 2] += height * np.sin(
+            np.linalg.norm(wall_points[:, :2], axis=1) / radius
         )
-        self.floor_points[:, 2] += height * np.sin(
-            np.linalg.norm(self.floor_points[:, :2], axis=1) / radius
+        floor_points[:, 2] += height * np.sin(
+            np.linalg.norm(floor_points[:, :2], axis=1) / radius
         )
 
         for positions in self.instances_positions:
@@ -265,15 +275,16 @@ class SyntheticStreetScene(SyntheticScene):
         rotation_noise: float,
         positions_shift: Optional[List[float]] = None,
         end: Optional[float] = None,
-    ):
+    ) -> "SyntheticStreetScene":
         default_noise_interval = 0.25 * interval
         actual_end = length if end is None else end
-
+        generator = self.generator
+        assert generator
         positions, rotations = sg.generate_cameras(
             sg.samples_generator_interval(
                 length, actual_end, interval, default_noise_interval
             ),
-            self.generator,  # pyre-fixme [6]
+            generator,
             height,
         )
         sg.perturb_points(positions, position_noise)
@@ -309,15 +320,16 @@ class SyntheticStreetScene(SyntheticScene):
         position_noise: List[float],
         rotation_noise: float,
         end: Optional[float] = None,
-    ):
+    ) -> "SyntheticStreetScene":
         default_noise_interval = 0.25 * interval
         actual_end = length if end is None else end
-
+        generator = self.generator
+        assert generator
         instances_positions, instances_rotations = sg.generate_cameras(
             sg.samples_generator_interval(
                 length, actual_end, interval, default_noise_interval
             ),
-            self.generator,  # pyre-fixme [6]
+            generator,
             height,
         )
         sg.perturb_points(instances_positions, position_noise)
@@ -360,7 +372,7 @@ class SyntheticStreetScene(SyntheticScene):
             rig_cameras.append(rig_camera)
         self.rig_cameras.append(rig_cameras)
 
-        rig_instances = []
+        rig_instances: List[List[Tuple[str, str]]] = []
         for i in range(len(instances_positions)):
             instance = []
             for j in range(len(shots_ids_per_camera)):
@@ -377,23 +389,15 @@ class SyntheticStreetScene(SyntheticScene):
         wall_color = [10, 90, 130]
 
         return sg.create_reconstruction(
-            [self.floor_points, self.wall_points],  # pyre-fixme [6]
-            # pyre-fixme[6]: Expected `List[np.ndarray]` for 2nd param but got
-            #  `List[List[int]]`.
-            [floor_color, wall_color],
-            self.cameras,
-            self.shot_ids,
-            # pyre-fixme[6]: Expected `List[List[List[str]]]` for 7th param but got
-            #  `List[List[List[Tuple[str, str]]]]`.
-            self.rig_instances,
-            # pyre-fixme[6]: Expected `Optional[List[List[np.ndarray]]]` for 8th
-            #  param but got `List[np.ndarray]`.
-            self.instances_positions,
-            # pyre-fixme[6]: Expected `Optional[List[List[np.ndarray]]]` for 9th
-            #  param but got `List[np.ndarray]`.
-            self.instances_rotations,
-            self.rig_cameras,
-            self.reference,
+            points=np.asarray([self.floor_points, self.wall_points]),
+            colors=np.asarray([floor_color, wall_color]),
+            cameras=self.cameras,
+            shot_ids=self.shot_ids,
+            rig_shots=self.rig_instances,
+            rig_positions=self.instances_positions,
+            rig_rotations=self.instances_rotations,
+            rig_cameras=self.rig_cameras,
+            reference=self.reference,
         )
 
 
@@ -423,7 +427,7 @@ class SyntheticInputData:
         gcps_shift: Optional[np.ndarray] = None,
         on_disk_features_filename: Optional[str] = None,
         generate_projections: bool = True,
-    ):
+    ) -> None:
         self.reconstruction = reconstruction
         self.exifs = sg.generate_exifs(
             reconstruction,

@@ -57,8 +57,7 @@ class BAHelpers {
       map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
       const size_t min_common_points, const size_t max_neighbors);
   static void AddGCPToBundle(
-      bundle::BundleAdjuster& ba,
-      const geo::TopocentricConverter& reference,
+      bundle::BundleAdjuster& ba, const geo::TopocentricConverter& reference,
       const AlignedVector<map::GroundControlPoint>& gcp,
       const std::unordered_map<map::ShotId, map::Shot>& shots,
       const double& horizontal_sigma, const double& vertical_sigma);

@@ -170,7 +170,7 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def save_reference(self, reference: geo.TopocentricConverter):
+    def save_reference(self, reference: geo.TopocentricConverter) -> None:
         pass
 
     @abstractmethod
@@ -214,11 +214,13 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
+    def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:
         pass
 
     @abstractmethod
-    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
+    def save_rig_assignments(
+        self, rig_assignments: Dict[str, List[Tuple[str, str]]]
+    ) -> None:
         pass
 
     @abstractmethod

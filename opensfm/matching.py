@@ -19,7 +19,7 @@ from opensfm.dataset_base import DataSetBase
 logger = logging.getLogger(__name__)
 
 
-def clear_cache():
+def clear_cache() -> None:
     feature_loader.instance.clear_cache()
 
 
@@ -320,10 +320,16 @@ def _match_descriptors_impl(
             if not f2:
                 return dummy, dummy, dummy
             feat_data_index2, index2 = f2
+
+            descriptors1 = feat_data_index1.descriptors
+            descriptors2 = feat_data_index2.descriptors
+            if descriptors1 is None or descriptors2 is None:
+                return dummy, dummy, dummy
+
             matches = match_flann_symmetric(
-                feat_data_index1.descriptors,  # pyre-fixme [6]
+                descriptors1,
                 index1,
-                feat_data_index2.descriptors,  # pyre-fixme [6]
+                descriptors2,
                 index2,
                 overriden_config,
             )
@@ -530,7 +536,6 @@ def match_words(
     """
     ratio = config["lowes_ratio"]
     num_checks = config["bow_num_checks"]
-    # pyre-fixme [7]
     return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0], ratio, num_checks)
 
 
@@ -764,7 +769,7 @@ def robust_match(
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
 
 
-def unfilter_matches(matches, m1, m2):
+def unfilter_matches(matches, m1, m2) -> np.ndarray:
     """Given matches and masking arrays, get matches with un-masked indexes."""
     i1 = np.flatnonzero(m1)
     i2 = np.flatnonzero(m2)
@@ -780,7 +785,7 @@ def apply_adhoc_filters(
     im2: str,
     camera2: pygeometry.Camera,
     p2: np.ndarray,
-):
+) -> List[Tuple[int, int]]:
     """Apply a set of filters functions defined further below
     for removing static data in images.
 
@@ -792,7 +797,9 @@ def apply_adhoc_filters(
     return matches
 
 
-def _non_static_matches(p1: np.ndarray, p2: np.ndarray, matches):
+def _non_static_matches(
+    p1: np.ndarray, p2: np.ndarray, matches: List[Tuple[int, int]]
+) -> List[Tuple[int, int]]:
     """Remove matches with same position in both images.
 
     That should remove matches on that are likely belong to rig occluders,
@@ -816,10 +823,10 @@ def _non_static_matches(p1: np.ndarray, p2: np.ndarray, matches):
 def _not_on_pano_poles_matches(
     p1: np.ndarray,
     p2: np.ndarray,
-    matches,
+    matches: List[Tuple[int, int]],
     camera1: pygeometry.Camera,
     camera2: pygeometry.Camera,
-):
+) -> List[Tuple[int, int]]:
     """Remove matches for features that are too high or to low on a pano.
 
     That should remove matches on the sky and and carhood part of panoramas
@@ -841,8 +848,13 @@ def _not_on_pano_poles_matches(
 
 
 def _not_on_vermont_watermark(
-    p1: np.ndarray, p2: np.ndarray, matches, im1: str, im2: str, data: DataSetBase
-):
+    p1: np.ndarray,
+    p2: np.ndarray,
+    matches: List[Tuple[int, int]],
+    im1: str,
+    im2: str,
+    data: DataSetBase,
+) -> List[Tuple[int, int]]:
     """Filter Vermont images watermark."""
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)
@@ -854,7 +866,7 @@ def _not_on_vermont_watermark(
     return matches
 
 
-def _vermont_valid_mask(p: np.ndarray):
+def _vermont_valid_mask(p: np.ndarray) -> bool:
     """Check if pixel inside the valid region.
 
     Pixel coord Y should be larger than 50.
@@ -865,7 +877,7 @@ def _vermont_valid_mask(p: np.ndarray):
 
 def _not_on_blackvue_watermark(
     p1: np.ndarray, p2: np.ndarray, matches, im1: str, im2: str, data: DataSetBase
-):
+) -> List[Tuple[int, int]]:
     """Filter Blackvue's watermark."""
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)

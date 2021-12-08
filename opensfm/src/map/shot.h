@@ -108,6 +108,14 @@ class Shot {
   Observation* GetLandmarkObservation(Landmark* lm) {
     return &landmark_observations_.at(lm);
   }
+  Landmark* GetObservationLandmark(const FeatureId id) {
+    auto find_landmark = landmark_id_.find(id);
+    if (find_landmark == landmark_id_.end()) {
+      return nullptr;
+    } else {
+      return find_landmark->second;
+    }
+  }
   void RemoveLandmarkObservation(const FeatureId id);
 
   // Metadata such as GPS, IMU, time

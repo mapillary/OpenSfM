@@ -19,6 +19,7 @@ from opensfm import (
     rig,
 )
 from opensfm.dataset_base import DataSetBase
+from PIL.PngImagePlugin import PngImageFile
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +163,22 @@ class DataSet(DataSetBase):
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if self.io_handler.isfile(segmentation_file):
-            segmentation = self.io_handler.imread(segmentation_file, grayscale=True)
+            with self.io_handler.open(segmentation_file, "rb") as fp:
+                with PngImageFile(fp) as png_image:
+                    # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                    data = np.array(png_image)
+                    if data.ndim == 2:
+                        return data
+                    elif data.ndim == 3:
+                        return data[:, :, 0]
+
+                        # TODO we can optionally return also the instances and scores:
+                        # instances = (
+                        #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                        # )
+                        # scores = data[:, :, 3].astype(np.float32) / 256.0
+                    else:
+                        raise IndexError
         else:
             segmentation = None
         return segmentation
@@ -500,14 +516,23 @@ class DataSet(DataSetBase):
         """Return path of rig assignments file"""
         return os.path.join(self.data_path, "rig_assignments.json")
 
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
+    def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:
         """Return rig assignments  data"""
         if not self.io_handler.exists(self._rig_assignments_file()):
-            return []
+            return {}
         with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
-            return json.load(fin)
+            assignments = json.load(fin)
 
-    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
+        # Backward compatibility.
+        # Older versions of the file were stored as a list of instances without id.
+        if isinstance(assignments, list):
+            assignments = {str(i): v for i, v in enumerate(assignments)}
+
+        return assignments
+
+    def save_rig_assignments(
+        self, rig_assignments: Dict[str, List[Tuple[str, str]]]
+    ) -> None:
         """Save rig assignments  data"""
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
@@ -533,7 +558,7 @@ class DataSet(DataSetBase):
         with self.io_handler.open_wt(filepath) as fout:
             return fout.write(report_str)
 
-    def _ply_file(self, filename: Optional[str]):
+    def _ply_file(self, filename: Optional[str]) -> str:
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
     def save_ply(
@@ -544,7 +569,7 @@ class DataSet(DataSetBase):
         no_cameras: bool = False,
         no_points: bool = False,
         point_num_views: bool = False,
-    ):
+    ) -> None:
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(
             reconstruction, tracks_manager, no_cameras, no_points, point_num_views
@@ -657,7 +682,7 @@ class UndistortedDataSet(object):
         base_dataset: DataSetBase,
         undistorted_data_path: str,
         io_handler=io.IoFilesystemDefault,
-    ):
+    ) -> None:
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
@@ -669,7 +694,7 @@ class UndistortedDataSet(object):
         with self.io_handler.open_rt(filename) as fin:
             return io.json_load(fin)
 
-    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]):
+    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]) -> None:
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
         self.io_handler.mkdir_p(self.data_path)
         with self.io_handler.open_wt(filename) as fout:
@@ -712,7 +737,7 @@ class UndistortedDataSet(object):
             self._undistorted_mask_file(image), grayscale=True
         )
 
-    def save_undistorted_mask(self, image: str, array: np.ndarray):
+    def save_undistorted_mask(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image mask."""
         self.io_handler.mkdir_p(self._undistorted_mask_path())
         self.io_handler.imwrite(self._undistorted_mask_file(image), array)
@@ -730,9 +755,23 @@ class UndistortedDataSet(object):
 
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
-        return self.io_handler.imread(
-            self._undistorted_segmentation_file(image), grayscale=True
-        )
+        segmentation_file = self._undistorted_segmentation_file(image)
+        with self.io_handler.open(segmentation_file, "rb") as fp:
+            with PngImageFile(fp) as png_image:
+                # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                data = np.array(png_image)
+                if data.ndim == 2:
+                    return data
+                elif data.ndim == 3:
+                    return data[:, :, 0]
+
+                    # TODO we can optionally return also the instances and scores:
+                    # instances = (
+                    #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                    # )
+                    # scores = data[:, :, 3].astype(np.float32) / 256.0
+                else:
+                    raise IndexError
 
     def save_undistorted_segmentation(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image segmentation."""
@@ -831,7 +870,7 @@ class UndistortedDataSet(object):
 
     def save_clean_depthmap(
         self, image: str, depth: np.ndarray, plane: np.ndarray, score: np.ndarray
-    ):
+    ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "clean.npz")
         with self.io_handler.open(filepath, "wb") as f:

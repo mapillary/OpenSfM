@@ -6,6 +6,7 @@
 #include "relative_rotation_model.h"
 #include "robust_estimator.h"
 #include "scorer.h"
+#include "similarity_model.h"
 
 namespace robust {
 ScoreInfo<Line::Type> RANSACLine(const Eigen::Matrix<double, -1, 2>& points,
@@ -37,5 +38,10 @@ ScoreInfo<AbsolutePose::Type> RANSACAbsolutePose(
 ScoreInfo<AbsolutePoseKnownRotation::Type> RANSACAbsolutePoseKnownRotation(
     const Eigen::Matrix<double, -1, 3>& bearings,
     const Eigen::Matrix<double, -1, 3>& points, double threshold,
+    const RobustEstimatorParams& parameters, const RansacType& ransac_type);
+
+ScoreInfo<Similarity::Type> RANSACSimilarity(
+    const Eigen::Matrix<double, -1, 3>& points1,
+    const Eigen::Matrix<double, -1, 3>& points2, double threshold,
     const RobustEstimatorParams& parameters, const RansacType& ransac_type);
 }  // namespace robust

@@ -91,10 +91,12 @@ class SyntheticDataSet(DataSet):
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
         return self.reconstruction.rig_cameras
 
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
-        rig_assignments = []
+    def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:
+        rig_assignments = {}
         for instance in self.reconstruction.rig_instances.values():
-            rig_assignments.append([(k, v.id) for k, v in instance.rig_cameras.items()])
+            rig_assignments[instance.id] = [
+                (k, v.id) for k, v in instance.rig_cameras.items()
+            ]
         return rig_assignments
 
     def load_exif(self, image: str) -> Dict[str, Any]:
@@ -169,9 +171,7 @@ class SyntheticDataSet(DataSet):
             raise RuntimeError("No tracks manager for the synthetic dataset")
         return tracks_mgr
 
-    def init_reference(
-        self, images: Optional[List[str]] = None
-    ) -> None:
+    def init_reference(self, images: Optional[List[str]] = None) -> None:
         pass
 
     def load_reference(self) -> geo.TopocentricConverter:
