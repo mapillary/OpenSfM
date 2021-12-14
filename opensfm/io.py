@@ -1245,7 +1245,7 @@ def image_size_from_fileobject(fb):
             return height, width
     except Exception:
         # Slower fallback
-        image = imread(fb)
+        image = imread(fb.name)
         return image.shape[:2]
 
 
