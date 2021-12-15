@@ -15,7 +15,7 @@ from opensfm.dataset_base import DataSetBase
 logger = logging.getLogger(__name__)
 
 
-def run_features_processing(data: DataSetBase, images: List[str]) -> None:
+def run_features_processing(data: DataSetBase, images: List[str], force: bool) -> None:
     """Main entry point for running features extraction on a list of images."""
     default_queue_size = 10
     max_queue_size = 200
@@ -38,7 +38,7 @@ def run_features_processing(data: DataSetBase, images: List[str]) -> None:
     if processes == 1:
         for image in images:
             counter = Counter()
-            read_images(process_queue, data, [image], counter, 1)
+            read_images(process_queue, data, [image], counter, 1, force)
             run_detection(process_queue)
             process_queue.get()
     else:
@@ -57,7 +57,7 @@ def run_features_processing(data: DataSetBase, images: List[str]) -> None:
             arguments.append(
                 (
                     "producer",
-                    (process_queue, data, images_chunk, counter, expected),
+                    (process_queue, data, images_chunk, counter, expected, force),
                 )
             )
         for _ in range(processes):
@@ -113,8 +113,8 @@ class Counter(object):
 def process(args: Tuple[str, Any]) -> None:
     process_type, real_args = args
     if process_type == "producer":
-        queue, data, images, counter, expected = real_args
-        read_images(queue, data, images, counter, expected)
+        queue, data, images, counter, expected, force = real_args
+        read_images(queue, data, images, counter, expected, force)
     if process_type == "consumer":
         queue = real_args
         run_detection(queue)
@@ -126,6 +126,7 @@ def read_images(
     images: List[str],
     counter: Counter,
     expected: int,
+    force: bool,
 ) -> None:
     full_queue_timeout = 120
     for image in images:
@@ -136,7 +137,7 @@ def read_images(
             instances_array = data.load_instances(image)
         else:
             segmentation_array, instances_array = None, None
-        args = image, image_array, segmentation_array, instances_array, data
+        args = image, image_array, segmentation_array, instances_array, data, force
         queue.put(args, block=True, timeout=full_queue_timeout)
         counter.increment()
         if counter.value() == expected:
@@ -150,8 +151,8 @@ def run_detection(queue: queue.Queue):
         if args is None:
             queue.put(None)
             break
-        image, image_array, segmentation_array, instances_array, data = args
-        detect(image, image_array, segmentation_array, instances_array, data)
+        image, image_array, segmentation_array, instances_array, data, force = args
+        detect(image, image_array, segmentation_array, instances_array, data, force)
         del image_array
         del segmentation_array
         del instances_array
@@ -198,6 +199,7 @@ def detect(
     segmentation_array: Optional[np.ndarray],
     instances_array: Optional[np.ndarray],
     data: DataSetBase,
+    force: bool = False,
 ) -> None:
     log.setup()
 
@@ -208,7 +210,7 @@ def detect(
     has_words = not need_words or data.words_exist(image)
     has_features = data.features_exist(image)
 
-    if has_features and has_words:
+    if not force and has_features and has_words:
         logger.info(
             "Skip recomputing {} features for image {}".format(
                 data.feature_type().upper(), image

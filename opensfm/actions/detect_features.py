@@ -12,7 +12,7 @@ def run_dataset(data: DataSetBase):
     """Compute features for all images."""
 
     start = timer()
-    features_processing.run_features_processing(data, data.images())
+    features_processing.run_features_processing(data, data.images(), False)
     end = timer()
     write_report(data, end - start)
 
