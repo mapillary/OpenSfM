@@ -6,12 +6,18 @@ from opensfm import pyfeatures, feature_loader, bow
 from opensfm.dataset_base import DataSetBase
 
 
-def unnormalized_vlad(features: np.ndarray, centers: np.ndarray) -> np.ndarray:
+def unnormalized_vlad(
+    features: np.ndarray, centers: np.ndarray
+) -> Optional[np.ndarray]:
     """Compute unnormalized VLAD histograms from a set of
     features in relation to centers.
 
     Returns the unnormalized VLAD vector.
     """
+    correct_dims = centers.shape[1] == features.shape[1]
+    correct_type = centers.dtype == features.dtype
+    if not correct_dims or not correct_type:
+        return None
     return pyfeatures.compute_vlad_descriptor(features, centers)
 
 
@@ -63,6 +69,8 @@ class VladCache(object):
         if descriptors is None:
             return None
         vlad = unnormalized_vlad(descriptors, words)
+        if vlad is None:
+            return None
         vlad = signed_square_root_normalize(vlad)
         return vlad
 
