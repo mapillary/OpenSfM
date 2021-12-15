@@ -61,4 +61,6 @@ PYBIND11_MODULE(pyfeatures, m) {
   m.def("match_using_words", features::match_using_words);
   m.def("compute_vlad_descriptor", features::compute_vlad_descriptor,
         py::call_guard<py::gil_scoped_release>());
+  m.def("compute_vlad_distances", features::compute_vlad_distances,
+        py::call_guard<py::gil_scoped_release>());
 }

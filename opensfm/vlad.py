@@ -35,18 +35,10 @@ def vlad_distances(
     Returns the image, the order of the other images,
     and the other images.
     """
-    if image not in histograms:
-        return image, [], []
-
-    distances = []
-    other = []
-    h = histograms[image]
-    for im2 in other_images:
-        if im2 != image and im2 in histograms:
-            h2 = histograms[im2]
-            distances.append(np.linalg.norm(h - h2))
-            other.append(im2)
-    return image, distances, other
+    distances, others = pyfeatures.compute_vlad_distances(
+        histograms, image, set(other_images)
+    )
+    return image, distances, others
 
 
 class VladCache(object):
