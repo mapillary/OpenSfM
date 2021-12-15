@@ -119,7 +119,13 @@ def get_representative_points(
     had_orientation = False
     for image in images:
         exif = exifs[image]
-        has_gps = "gps" in exif
+
+        has_gps = (
+            "gps" in exif and "latitude" in exif["gps"] and "longitude" in exif["gps"]
+        )
+        if not has_gps:
+            continue
+
         has_opk = "opk" in exif
         has_ypr = "ypr" in exif
         had_orientation |= has_opk or has_ypr
@@ -168,6 +174,13 @@ def match_candidates_by_distance(
     representative_points = get_representative_points(
         images_cand + images_ref, exifs, reference
     )
+
+    # we don't want to loose some images because of missing GPS :
+    # either ALL of them or NONE of them are used for getting pairs
+    difference = abs(len(representative_points) - len(set(images_cand + images_ref)))
+    if difference > 0:
+        logger.warning(f"Couldn't fetch {difference} images. Returning NO pairs.")
+        return set()
 
     points = np.zeros((len(representative_points), 3))
     for i, point_id in enumerate(images_cand):
@@ -381,6 +394,13 @@ def compute_vlad_affinity(
     preempted_candidates, need_load = preempt_candidates(
         images_ref, images_cand, exifs, reference, max_gps_neighbors, max_gps_distance
     )
+
+    if len(preempted_candidates) == 0:
+        logger.warning(
+            f"Couln't preempt any candidate with GPS, using ALL {len(images_cand)} as candidates"
+        )
+        preempted_candidates = {image: images_cand for image in images_ref}
+        need_load = set(images_ref + images_cand)
 
     # construct VLAD histograms
     need_load = {im for im in need_load if im not in histograms}
@@ -704,7 +724,9 @@ def vlad_histogram_unwrap_args(
     vlad_descriptor = vlad.instance.vlad_histogram(data, image)
     if vlad_descriptor is not None:
         return image, vlad_descriptor
-    return None
+    else:
+        logger.warning(f"Couln't compute VLAD descriptor for image {image}")
+        return None
 
 
 def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, np.ndarray]:
