@@ -564,7 +564,6 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_COMPOSITE = 3
     # FLANN_INDEX_KDTREE_SINGLE = 4
     # FLANN_INDEX_HIERARCHICAL = 5
-    FLANN_INDEX_LSH = 6
 
     if descriptors.dtype.type is np.float32:
         algorithm_type = config["flann_algorithm"].upper()
@@ -574,14 +573,13 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
             FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
         else:
             raise ValueError("Unknown flann algorithm type " "must be KMEANS, KDTREE")
+        flann_params = {
+            "algorithm": FLANN_INDEX_METHOD,
+            "branching": config["flann_branching"],
+            "iterations": config["flann_iterations"],
+            "tree": config["flann_tree"],
+        }
     else:
-        FLANN_INDEX_METHOD = FLANN_INDEX_LSH
-
-    flann_params = {
-        "algorithm": FLANN_INDEX_METHOD,
-        "branching": config["flann_branching"],
-        "iterations": config["flann_iterations"],
-        "tree": config["flann_tree"],
-    }
+        raise ValueError("FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead.")
 
     return context.flann_Index(descriptors, flann_params)

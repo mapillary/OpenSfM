@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+
 #include <ceres/jet.h>
 #include <ceres/rotation.h>
 #include <geometry/covariance.h>

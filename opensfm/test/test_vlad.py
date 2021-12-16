@@ -36,8 +36,8 @@ def test_unnormalized_vlad():
     features = np.array([[0, 1.1]])
     centers = np.array(
         [
-            [1, 0],
-            [0, 1],
+            [1.0, 0.0],
+            [0.0, 1.0],
         ]
     )
 
