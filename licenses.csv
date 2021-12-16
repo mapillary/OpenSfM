@@ -2,7 +2,7 @@ ExifRead, 2.1.2, BSD
 Pillow, 6.2.0, HPND
 PyYAML, 5.1, MIT
 cloudpickle, 0.4.0, LICENSE.txt
-fpdf2, 2.1.0, "LGPL 3.0"
+fpdf2, 2.4.6, "LGPL 3.0"
 joblib, 0.13.2, BSD
 networkx, 1.11, BSD
 numpy, 1.18.1, BSD
