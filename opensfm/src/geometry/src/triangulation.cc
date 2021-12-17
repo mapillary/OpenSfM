@@ -1,5 +1,6 @@
-
+#include <foundation/types.h>
 #include <geometry/triangulation.h>
+#include <math.h>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
@@ -122,6 +123,33 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
   }
 
   return std::make_pair(true, X.head<3>());
+}
+
+Eigen::Matrix<float, -1, -1> EpipolarAngleTwoBearingsMany(
+    const Eigen::Matrix<float, -1, 3> &bearings1,
+    const Eigen::Matrix<float, -1, 3> &bearings2,
+    const Eigen::Matrix3f &rotation, const Eigen::Vector3f &translation) {
+  const auto translation_normalized = translation.normalized();
+  const auto bearings2_world = bearings2 * rotation.transpose();
+
+  const auto count1 = bearings1.rows();
+  Eigen::Matrix<float, -1, 3> epi1(count1, 3);
+  for (int i = 0; i < count1; ++i) {
+    const Vec3f bearing = bearings1.row(i);
+    epi1.row(i) = translation_normalized.cross(bearing).normalized();
+  }
+  const auto count2 = bearings2.rows();
+  Eigen::Matrix<float, -1, 3> epi2(count2, 3);
+  for (int i = 0; i < count2; ++i) {
+    const Vec3f bearing = bearings2_world.row(i);
+    epi2.row(i) = translation_normalized.cross(bearing).normalized();
+  }
+
+  Eigen::Matrix<float, -1, -1> symmetric_epi =
+      (((epi1 * bearings2_world.transpose()).array().abs() +
+        (bearings1 * epi2.transpose()).array().abs()) /
+       2.0);
+  return M_PI / 2.0 - symmetric_epi.array().acos();
 }
 
 }  // namespace geometry
