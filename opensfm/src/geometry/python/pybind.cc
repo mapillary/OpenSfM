@@ -298,6 +298,8 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("epipolar_angle_two_bearings_many",
         geometry::EpipolarAngleTwoBearingsMany,
         py::call_guard<py::gil_scoped_release>());
+  m.def("point_refinement", geometry::PointRefinement,
+        py::call_guard<py::gil_scoped_release>());
   m.def("essential_five_points", geometry::EssentialFivePoints);
   m.def("absolute_pose_three_points", geometry::AbsolutePoseThreePoints);
   m.def("absolute_pose_n_points", geometry::AbsolutePoseNPoints);
