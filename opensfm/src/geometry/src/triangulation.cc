@@ -204,11 +204,12 @@ struct BearingErrorCost : public ceres::CostFunction {
     return true;
   }
 
-  std::vector<ceres::int32> parameter_blocks;
   const MatX3d &centers_;
   const MatX3d &bearings_;
   const Vec3d &point_;
 };
+
+constexpr int BearingErrorCost::Size;
 
 Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
                       const Vec3d &point, int iterations) {
