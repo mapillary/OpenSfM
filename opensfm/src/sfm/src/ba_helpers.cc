@@ -419,7 +419,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   std::unordered_set<map::CameraId> added_cameras;
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     const auto& cam = *shot.GetCamera();
     if (added_cameras.find(cam.id) != added_cameras.end()) {
@@ -431,7 +431,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   std::unordered_set<map::Landmark*> landmarks;
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       landmarks.insert(lm_obs.first);
@@ -493,7 +493,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   // add observations
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
