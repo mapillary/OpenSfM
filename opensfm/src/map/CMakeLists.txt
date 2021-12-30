@@ -21,6 +21,7 @@ add_library(map ${MAP_FILES})
 target_link_libraries(map
   PUBLIC
     pybind11
+    Eigen3::Eigen
   PRIVATE
     geo
     geometry
@@ -28,7 +29,6 @@ target_link_libraries(map
 
 target_include_directories(map
   PUBLIC
-    ${EIGEN_INCLUDE_DIRS}
     ${PYTHON_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
 )
