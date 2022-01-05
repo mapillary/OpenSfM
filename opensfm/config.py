@@ -63,6 +63,9 @@ bow_matcher_type: FLANN       # Matcher type to assign words to features
 # Params for VLAD matching
 vlad_file: bow_hahog_root_uchar_64.npz
 
+# Params for guided matching
+guided_matching_threshold: 0.006      # Threshold for epipolar distance for accepting a match in radians
+
 # Params for matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)

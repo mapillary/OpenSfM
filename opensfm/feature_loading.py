@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Optional, Tuple, Any
 
 import numpy as np
-from opensfm import features as ft, masking
+from opensfm import pygeometry, features as ft, masking
 from opensfm.dataset_base import DataSetBase
 
 
@@ -80,6 +80,24 @@ class FeatureLoader(object):
             all_features_data.semantic,
         )
 
+    @lru_cache(2000)
+    def load_bearings(
+        self,
+        data: DataSetBase,
+        image: str,
+        masked: bool,
+        camera: pygeometry.Camera,
+    ) -> Optional[np.ndarray]:
+        if masked:
+            features_data = self._load_all_data_masked(data, image)
+        else:
+            features_data = self._load_all_data_unmasked(data, image)
+        if not features_data:
+            return None
+        keypoints_2d = np.array(features_data.points[:, :2], dtype=float)
+        bearings_3d = camera.pixel_bearing_many(keypoints_2d)
+        return bearings_3d
+
     def load_all_data(
         self,
         data: DataSetBase,
@@ -116,9 +134,7 @@ class FeatureLoader(object):
         desc_augmented = np.concatenate(
             (
                 features.descriptors,
-                (
-                    np.array([segmentation]).T
-                ).astype(np.float32),
+                (np.array([segmentation]).T).astype(np.float32),
             ),
             axis=1,
         )
