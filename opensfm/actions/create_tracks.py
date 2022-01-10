@@ -21,7 +21,7 @@ def run_dataset(data: DataSetBase):
         segmentations,
         instances,
         matches,
-        data.config,
+        data.config["min_track_length"],
     )
     tracks_end = timer()
     data.save_tracks_manager(tracks_manager)
