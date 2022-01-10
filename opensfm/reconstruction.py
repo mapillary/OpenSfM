@@ -1593,6 +1593,7 @@ def reconstruct_from_prior(
 ) -> Tuple[Dict[str, Any], types.Reconstruction]:
     """Retriangulate a new reconstruction from the rec_prior"""
     reconstruction = types.Reconstruction()
+    reconstruction.reference = rec_prior.reference
     report = {}
     rec_report = {}
     report["retriangulate"] = [rec_report]
