@@ -870,7 +870,8 @@ class TrackTriangulator:
         self.Rts = {}
 
     def triangulate_robust(
-        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float
+        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float,
+        iterations: int
     ) -> None:
         """Triangulate track in a RANSAC way and add point to reconstruction."""
         os, bs, ids = [], [], []
@@ -885,6 +886,9 @@ class TrackTriangulator:
 
         if len(ids) < 2:
             return
+
+        os = np.array(os)
+        bs = np.array(bs)
 
         best_inliers = []
         best_point = None
@@ -901,26 +905,46 @@ class TrackTriangulator:
             i, j = all_combinations[random_id]
             combinatiom_tried.add(random_id)
 
-            os_t = [os[i], os[j]]
-            bs_t = [bs[i], bs[j]]
+            os_t = np.array([os[i], os[j]])
+            bs_t = np.array([bs[i], bs[j]])
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                np.asarray(os_t),
-                np.asarray(bs_t),
+                os_t,
+                bs_t,
                 thresholds,
                 np.radians(min_ray_angle_degrees),
             )
+            X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
             if valid_triangulation:
                 reprojected_bs = X - os
                 reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[:, np.newaxis]
                 inliers = np.nonzero(
                     np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
-                )[0]
+                )[0].tolist()
 
                 if len(inliers) > len(best_inliers):
-                    best_inliers = inliers
-                    best_point = X.tolist()
+                    _, new_X = pygeometry.triangulate_bearings_midpoint(
+                        os[inliers],
+                        bs[inliers],
+                        len(inliers) * [reproj_threshold],
+                        np.radians(min_ray_angle_degrees),
+                    )
+                    new_X = pygeometry.point_refinement(os[inliers], bs[inliers], X, iterations)
+
+                    reprojected_bs = new_X - os
+                    reprojected_bs /= np.linalg.norm(reprojected_bs, axis=1)[
+                        :, np.newaxis
+                    ]
+                    ls_inliers = np.nonzero(
+                        np.linalg.norm(reprojected_bs - bs, axis=1) < reproj_threshold
+                    )[0]
+                    if len(ls_inliers) > len(inliers):
+                        best_inliers = ls_inliers
+                        best_point = new_X.tolist()
+                    else:
+                        best_inliers = inliers
+                        best_point = X.tolist()
 
                     pout = 0.99
                     inliers_ratio = float(len(best_inliers)) / len(ids)
@@ -929,7 +953,7 @@ class TrackTriangulator:
                     optimal_iter = math.log(1.0 - pout) / math.log(
                         1.0 - inliers_ratio * inliers_ratio
                     )
-                    if optimal_iter <= ransac_tries:
+                    if optimal_iter <= i:
                         break
 
         if len(best_inliers) > 1:
@@ -938,7 +962,8 @@ class TrackTriangulator:
                 self._add_track_to_reconstruction(track, ids[i])
 
     def triangulate(
-        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float
+        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float,
+        iterations: int
     ) -> None:
         """Triangulate track and add point to reconstruction."""
         os, bs, ids = [], [], []
@@ -960,18 +985,21 @@ class TrackTriangulator:
                 np.radians(min_ray_angle_degrees),
             )
             if valid_triangulation:
+                X = pygeometry.point_refinement(np.array(os), np.array(bs), X, iterations)
                 self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
 
     def triangulate_dlt(
-        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float
+        self, track: str, reproj_threshold: float, min_ray_angle_degrees: float,
+        iterations: int
     ) -> None:
         """Triangulate track using DLT and add point to reconstruction."""
-        Rts, bs, ids = [], [], []
+        Rts, bs, os, ids = [], [], [], []
         for shot_id, obs in self.tracks_manager.get_track_observations(track).items():
             if shot_id in self.reconstruction.shots:
                 shot = self.reconstruction.shots[shot_id]
+                os.append(self._shot_origin(shot))
                 Rts.append(self._shot_Rt(shot))
                 b = shot.camera.pixel_bearing(np.array(obs.point))
                 bs.append(b)
@@ -985,6 +1013,7 @@ class TrackTriangulator:
                 np.radians(min_ray_angle_degrees),
             )
             if e:
+                X = pygeometry.point_refinement(np.array(os), np.array(bs), X, iterations)
                 self.reconstruction.create_point(track, X.tolist())
                 for shot_id in ids:
                     self._add_track_to_reconstruction(track, shot_id)
@@ -1027,6 +1056,7 @@ def triangulate_shot_features(
     """Reconstruct as many tracks seen in shot_id as possible."""
     reproj_threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    refinement_iterations = config["triangulation_refinement_iterations"]
 
     triangulator = TrackTriangulator(tracks_manager, reconstruction)
 
@@ -1039,7 +1069,12 @@ def triangulate_shot_features(
     }
     for track in tracks_ids:
         if track not in reconstruction.points:
-            triangulator.triangulate(track, reproj_threshold, min_ray_angle)
+            if config["triangulation_type"] == "ROBUST":
+                triangulator.triangulate_robust(track, reproj_threshold, min_ray_angle,
+                refinement_iterations)
+            elif config["triangulation_type"] == "FULL":
+                triangulator.triangulate(track, reproj_threshold, min_ray_angle,
+                refinement_iterations)
 
 
 def retriangulate(
@@ -1054,6 +1089,7 @@ def retriangulate(
 
     threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    refinement_iterations = config["triangulation_refinement_iterations"]
 
     reconstruction.points = {}
 
@@ -1066,9 +1102,9 @@ def retriangulate(
             tracks.update(tracks_manager.get_shot_observations(image).keys())
     for track in tracks:
         if config["triangulation_type"] == "ROBUST":
-            triangulator.triangulate_robust(track, threshold, min_ray_angle)
+            triangulator.triangulate_robust(track, threshold, min_ray_angle, refinement_iterations)
         elif config["triangulation_type"] == "FULL":
-            triangulator.triangulate(track, threshold, min_ray_angle)
+            triangulator.triangulate(track, threshold, min_ray_angle, refinement_iterations)
 
     report["num_points_after"] = len(reconstruction.points)
     chrono.lap("retriangulate")

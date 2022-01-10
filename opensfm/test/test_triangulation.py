@@ -39,7 +39,7 @@ def test_track_triangulator_spherical():
     )
 
     triangulator = reconstruction.TrackTriangulator(tracks_manager, rec)
-    triangulator.triangulate("1", 0.01, 2.0)
+    triangulator.triangulate("1", 0.01, 2.0, 10)
     assert "1" in rec.points
     p = rec.points["1"].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
