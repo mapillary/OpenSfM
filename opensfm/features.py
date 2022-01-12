@@ -347,9 +347,14 @@ def extract_features_sift(
             logger.debug("done")
             break
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature(desc)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
     return points, desc
 
 
@@ -398,11 +403,15 @@ def extract_features_surf(
             break
 
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature_surf(desc, partial=True)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
-    return points, desc
 
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
+    return points, desc
 
 def akaze_descriptor_type(name: str) -> pyfeatures.AkazeDescriptorType:
     d = pyfeatures.AkazeDescriptorType.__dict__
@@ -483,7 +492,11 @@ def extract_features_orb(
     points = detector.detect(image)
 
     points, desc = descriptor.compute(image, points)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    if desc is not None:
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
     return points, desc
