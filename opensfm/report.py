@@ -39,6 +39,9 @@ class Report:
 
     def save_report(self, filename):
         bytestring = self.pdf.output(dest="S")
+        if isinstance(bytestring, str):
+            bytestring = bytestring.encode("utf8")
+
         with self.io_handler.open(
             os.path.join(self.output_path, filename), "wb"
         ) as fwb:
