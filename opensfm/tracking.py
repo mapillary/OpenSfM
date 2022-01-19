@@ -63,7 +63,7 @@ def create_tracks_manager(
     segmentations: t.Dict[str, np.ndarray],
     instances: t.Dict[str, np.ndarray],
     matches: t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]],
-    config: t.Dict[str, t.Any],
+    min_length: int,
 ):
     """Link matches into tracks."""
     logger.debug("Merging features onto tracks")
@@ -80,7 +80,6 @@ def create_tracks_manager(
         else:
             sets[p] = [i]
 
-    min_length = config["min_track_length"]
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
     logger.debug("Good tracks: {}".format(len(tracks)))
 

@@ -77,7 +77,14 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("segmentation", &map::Observation::segmentation_id)
       .def_readwrite("instance", &map::Observation::instance_id)
       .def_readonly_static("NO_SEMANTIC_VALUE",
-                           &map::Observation::NO_SEMANTIC_VALUE);
+                           &map::Observation::NO_SEMANTIC_VALUE)
+      .def(
+          "copy",
+          [](const map::Observation &to_copy) {
+            map::Observation copy = to_copy;
+            return copy;
+          },
+          py::return_value_policy::copy);
 
   py::class_<map::Landmark>(m, "Landmark")
       .def(py::init<const map::LandmarkId &, const Vec3d &>())

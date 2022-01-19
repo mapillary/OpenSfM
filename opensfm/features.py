@@ -347,9 +347,14 @@ def extract_features_sift(
             logger.debug("done")
             break
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature(desc)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
     return points, desc
 
 
@@ -398,11 +403,15 @@ def extract_features_surf(
             break
 
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature_surf(desc, partial=True)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
-    return points, desc
 
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
+    return points, desc
 
 def akaze_descriptor_type(name: str) -> pyfeatures.AkazeDescriptorType:
     d = pyfeatures.AkazeDescriptorType.__dict__
@@ -483,7 +492,11 @@ def extract_features_orb(
     points = detector.detect(image)
 
     points, desc = descriptor.compute(image, points)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    if desc is not None:
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
     return points, desc
@@ -564,7 +577,6 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_COMPOSITE = 3
     # FLANN_INDEX_KDTREE_SINGLE = 4
     # FLANN_INDEX_HIERARCHICAL = 5
-    FLANN_INDEX_LSH = 6
 
     if descriptors.dtype.type is np.float32:
         algorithm_type = config["flann_algorithm"].upper()
@@ -574,14 +586,13 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
             FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
         else:
             raise ValueError("Unknown flann algorithm type " "must be KMEANS, KDTREE")
+        flann_params = {
+            "algorithm": FLANN_INDEX_METHOD,
+            "branching": config["flann_branching"],
+            "iterations": config["flann_iterations"],
+            "tree": config["flann_tree"],
+        }
     else:
-        FLANN_INDEX_METHOD = FLANN_INDEX_LSH
-
-    flann_params = {
-        "algorithm": FLANN_INDEX_METHOD,
-        "branching": config["flann_branching"],
-        "iterations": config["flann_iterations"],
-        "tree": config["flann_tree"],
-    }
+        raise ValueError("FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead.")
 
     return context.flann_Index(descriptors, flann_params)

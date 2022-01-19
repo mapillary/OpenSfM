@@ -1,5 +1,11 @@
-
+#include <ceres/cost_function.h>
+#include <ceres/rotation.h>
+#include <ceres/tiny_solver.h>
+#include <ceres/tiny_solver_cost_function_adapter.h>
+#include <foundation/types.h>
+#include <geometry/transformations_functions.h>
 #include <geometry/triangulation.h>
+#include <math.h>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
@@ -10,7 +16,7 @@ double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
 }
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(
-    const Eigen::Matrix<double, -1, 3> &bearings,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
     const std::vector<Eigen::Matrix<double, 3, 4>> &Rts) {
   const int nviews = bearings.rows();
   assert(nviews == Rts.size());
@@ -37,7 +43,7 @@ namespace geometry {
 
 std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
     const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
-    const Eigen::Matrix<double, -1, 3> &bearings, double threshold,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings, double threshold,
     double min_angle) {
   const int count = Rts.size();
   Eigen::MatrixXd world_bearings(count, 3);
@@ -74,8 +80,8 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
 
 std::vector<std::pair<bool, Eigen::Vector3d>>
 TriangulateTwoBearingsMidpointMany(
-    const Eigen::Matrix<double, -1, 3> &bearings1,
-    const Eigen::Matrix<double, -1, 3> &bearings2,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
     const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation) {
   std::vector<std::pair<bool, Eigen::Vector3d>> triangulated(bearings1.rows());
   Eigen::Matrix<double, 2, 3> os, bs;
@@ -90,8 +96,8 @@ TriangulateTwoBearingsMidpointMany(
 }
 
 std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
-    const Eigen::Matrix<double, -1, 3> &centers,
-    const Eigen::Matrix<double, -1, 3> &bearings,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &centers,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
     const std::vector<double> &threshold_list, double min_angle) {
   const int count = centers.rows();
 
@@ -122,6 +128,101 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
   }
 
   return std::make_pair(true, X.head<3>());
+}
+
+Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>
+EpipolarAngleTwoBearingsMany(
+    const Eigen::Matrix<float, Eigen::Dynamic, 3> &bearings1,
+    const Eigen::Matrix<float, Eigen::Dynamic, 3> &bearings2,
+    const Eigen::Matrix3f &rotation, const Eigen::Vector3f &translation) {
+  const auto translation_normalized = translation.normalized();
+  const auto bearings2_world = bearings2 * rotation.transpose();
+
+  const auto count1 = bearings1.rows();
+  Eigen::Matrix<float, Eigen::Dynamic, 3> epi1(count1, 3);
+  for (int i = 0; i < count1; ++i) {
+    const Vec3f bearing = bearings1.row(i);
+    epi1.row(i) = translation_normalized.cross(bearing).normalized();
+  }
+  const auto count2 = bearings2.rows();
+  Eigen::Matrix<float, Eigen::Dynamic, 3> epi2(count2, 3);
+  for (int i = 0; i < count2; ++i) {
+    const Vec3f bearing = bearings2_world.row(i);
+    epi2.row(i) = translation_normalized.cross(bearing).normalized();
+  }
+
+  Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> symmetric_epi =
+      (((epi1 * bearings2_world.transpose()).array().abs() +
+        (bearings1 * epi2.transpose()).array().abs()) /
+       2.0);
+  return M_PI / 2.0 - symmetric_epi.array().acos();
+}
+
+struct BearingErrorCost : public ceres::CostFunction {
+  constexpr static int Size = 3;
+
+  BearingErrorCost(const MatX3d &centers, const MatX3d &bearings,
+                   const Vec3d &point)
+      : centers_(centers), bearings_(bearings), point_(point) {
+    mutable_parameter_block_sizes()->push_back(Size);
+    set_num_residuals(bearings_.rows() * 3);
+  }
+  bool Evaluate(double const *const *parameters, double *residuals,
+                double **jacobians) const override {
+    const double *point = parameters[0];
+    for (int i = 0; i < bearings_.rows(); ++i) {
+      const Vec3d &center = centers_.row(i);
+      const Vec3d &bearing = bearings_.row(i);
+
+      /* Error only */
+      double *dummy = nullptr;
+      double projected[] = {point[0] - center(0), point[1] - center(1),
+                            point[2] - center(2)};
+      if (!jacobians) {
+        geometry::Normalize::Forward(&projected[0], dummy, &projected[0]);
+      } else {
+        constexpr int JacobianSize = Size * Size;
+        double jacobian[JacobianSize];
+        geometry::Normalize::ForwardDerivatives<double, true>(
+            &projected[0], dummy, &projected[0], &jacobian[0]);
+        double *jac_point = jacobians[0];
+        if (jac_point) {
+          for (int j = 0; j < Size; ++j) {
+            for (int k = 0; k < Size; ++k) {
+              jac_point[i * JacobianSize + j * Size + k] =
+                  jacobian[j * Size + k];
+            }
+          }
+        }
+      }
+
+      // The error is the difference between the predicted and observed position
+      for (int j = 0; j < Size; ++j) {
+        residuals[i * 3 + j] = (projected[j] - bearing[j]);
+      }
+    }
+    return true;
+  }
+
+  const MatX3d &centers_;
+  const MatX3d &bearings_;
+  const Vec3d &point_;
+};
+
+constexpr int BearingErrorCost::Size;
+
+Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
+                      const Vec3d &point, int iterations) {
+  using BearingCostFunction =
+      ceres::TinySolverCostFunctionAdapter<Eigen::Dynamic, 3>;
+  BearingErrorCost cost(centers, bearings, point);
+  BearingCostFunction f(cost);
+
+  Vec3d refined = point;
+  ceres::TinySolver<BearingCostFunction> solver;
+  solver.options.max_num_iterations = iterations;
+  solver.Solve(f, &refined);
+  return refined;
 }
 
 }  // namespace geometry

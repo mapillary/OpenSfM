@@ -1,4 +1,4 @@
-#include "map/defines.h"
+#include <map/defines.h>
 #include <map/tracks_manager.h>
 #include <sfm/retriangulation.h>
 
@@ -6,8 +6,7 @@
 
 namespace sfm {
 namespace retriangulation {
-void RealignPoints(const map::Map& reference,
-                   map::Map& to_align) {
+void RealignPoints(const map::Map& reference, map::Map& to_align) {
   const auto& all_reference_shots = reference.GetShots();
   const auto& to_align_shots = to_align.GetShots();
   constexpr auto max_dbl = std::numeric_limits<double>::max();
@@ -17,7 +16,8 @@ void RealignPoints(const map::Map& reference,
     std::pair<double, map::ShotId> best_shot = std::make_pair(max_dbl, "");
     for (const auto& shot_n_obs : lm.second.GetObservations()) {
       const auto shot = shot_n_obs.first;
-      if (all_reference_shots.find(shot->GetId()) == all_reference_shots.end()) {
+      if (all_reference_shots.find(shot->GetId()) ==
+          all_reference_shots.end()) {
         continue;
       }
       const Vec3d ray = point - shot->GetPose()->GetOrigin();

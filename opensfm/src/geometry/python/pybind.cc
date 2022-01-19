@@ -54,7 +54,8 @@ PYBIND11_MODULE(pygeometry, m) {
       .def_static("create_fisheye_opencv",
                   &geometry::Camera::CreateFisheyeOpencvCamera)
       .def_static("create_fisheye62", &geometry::Camera::CreateFisheye62Camera)
-      .def_static("create_fisheye624", &geometry::Camera::CreateFisheye624Camera)
+      .def_static("create_fisheye624",
+                  &geometry::Camera::CreateFisheye624Camera)
       .def_static("create_dual", &geometry::Camera::CreateDualCamera)
       .def_static("create_spherical", &geometry::Camera::CreateSphericalCamera)
       .def_static("create_radial", &geometry::Camera::CreateRadialCamera)
@@ -294,6 +295,11 @@ PYBIND11_MODULE(pygeometry, m) {
   m.def("triangulate_two_bearings_midpoint_many",
         geometry::TriangulateTwoBearingsMidpointMany,
         py::call_guard<py::gil_scoped_release>());
+  m.def("epipolar_angle_two_bearings_many",
+        geometry::EpipolarAngleTwoBearingsMany,
+        py::call_guard<py::gil_scoped_release>());
+  m.def("point_refinement", geometry::PointRefinement,
+        py::call_guard<py::gil_scoped_release>());
   m.def("essential_five_points", geometry::EssentialFivePoints);
   m.def("absolute_pose_three_points", geometry::AbsolutePoseThreePoints);
   m.def("absolute_pose_n_points", geometry::AbsolutePoseNPoints);
@@ -306,14 +312,11 @@ PYBIND11_MODULE(pygeometry, m) {
 
   py::class_<geometry::Pose>(m, "Pose")
       .def(py::init<const Mat3d&>())
-      .def(py::init<const Mat3d&, const Vec3d&>(),
-           py::arg("rotation"),
+      .def(py::init<const Mat3d&, const Vec3d&>(), py::arg("rotation"),
            py::arg("translation"))
-      .def(py::init<const Vec3d&, const Vec3d&>(),
-            py::arg("rotation"),
-            py::arg("translation"))
-      .def(py::init<const Vec3d&>(),
-            py::arg("rotation"))
+      .def(py::init<const Vec3d&, const Vec3d&>(), py::arg("rotation"),
+           py::arg("translation"))
+      .def(py::init<const Vec3d&>(), py::arg("rotation"))
       .def(py::init())
       .def("get_cam_to_world", &geometry::Pose::CameraToWorld)
       .def("get_world_to_cam", &geometry::Pose::WorldToCamera)
