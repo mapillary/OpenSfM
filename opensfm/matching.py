@@ -312,7 +312,7 @@ def _match_descriptors_guided_impl(
         relative_pose,
         overriden_config["guided_matching_threshold"],
     )
-    matches = match_brute_force(d1, d2, overriden_config, epipolar_mask)
+    matches = match_brute_force_symmetric(d1, d2, overriden_config, epipolar_mask)
 
     # Adhoc filters
     if overriden_config["matching_use_filters"]:
