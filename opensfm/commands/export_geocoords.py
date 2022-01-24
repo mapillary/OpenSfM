@@ -1,13 +1,15 @@
 from opensfm.actions import export_geocoords
 
 from . import command
+import argparse
+from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
     name = "export_geocoords"
     help = "Export reconstructions in geographic coordinates"
 
-    def run_impl(self, dataset, args):
+    def run_impl(self, dataset: DataSet, args: argparse.Namespace) -> None:
         export_geocoords.run_dataset(
             dataset,
             args.proj,
@@ -18,7 +20,7 @@ class Command(command.CommandBase):
             args.output,
         )
 
-    def add_arguments_impl(self, parser):
+    def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--proj", help="PROJ.4 projection string", required=True)
         parser.add_argument(
             "--transformation",
