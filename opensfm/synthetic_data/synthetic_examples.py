@@ -82,15 +82,12 @@ def synthetic_rig_scene(reference: Optional[geo.TopocentricConverter] = None):
         [0.0, 1.5707963, 0.0],
         [0.0, -1.5707963, 0.0],
     ]
-    camera_front = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
-    camera_back = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
-    camera_left = ss.get_camera("perspective", "1", 0.9, -0.1, 0.01)
-    camera_right = ss.get_camera("perspective", "1", 0.9, -0.1, 0.01)
+    camera = ss.get_camera("perspective", "1", 0.7, -0.1, 0.01)
     cameras = [
-        camera_front,
-        camera_back,
-        camera_right,
-        camera_left,
+        camera,
+        camera,
+        camera,
+        camera,
     ]
 
     scene.add_rig_camera_sequence(

@@ -149,14 +149,18 @@ class SyntheticStreetScene(SyntheticScene):
     wall_points: Optional[np.ndarray]
     floor_points: Optional[np.ndarray]
     shot_ids: List[List[str]]
-    cameras: List[pygeometry.Camera]
+    cameras: List[List[pygeometry.Camera]]
     instances_positions: List[np.ndarray]
     instances_rotations: List[np.ndarray]
     rig_instances: List[List[List[Tuple[str, str]]]]
     rig_cameras: List[List[pymap.RigCamera]]
     width: float
 
-    def __init__(self, generator: Optional[Callable], reference: Optional[geo.TopocentricConverter] = None) -> None:
+    def __init__(
+        self,
+        generator: Optional[Callable],
+        reference: Optional[geo.TopocentricConverter] = None,
+    ) -> None:
         self.generator = generator
         self.reference = reference
         self.wall_points = None
@@ -230,7 +234,7 @@ class SyntheticStreetScene(SyntheticScene):
             self._set_terrain_hill_repeated(height, radius)
         return self
 
-    def _set_terrain_hill_single(self, height: float, radius: float)->None:
+    def _set_terrain_hill_single(self, height: float, radius: float) -> None:
         wall_points, floor_points = self.wall_points, self.floor_points
         assert wall_points is not None and floor_points is not None
         wall_points[:, 2] += height * np.exp(
@@ -292,10 +296,10 @@ class SyntheticStreetScene(SyntheticScene):
         if positions_shift:
             positions += np.array(positions_shift)
 
-        shift = 0 if len(self.shot_ids) == 0 else len(self.shot_ids[-1])
+        shift = 0 if len(self.shot_ids) == 0 else sum(len(s) for s in self.shot_ids)
         new_shot_ids = [f"Shot {shift+i:04d}" for i in range(len(positions))]
         self.shot_ids.append(new_shot_ids)
-        self.cameras.append(camera)
+        self.cameras.append([camera])
 
         rig_camera = pymap.RigCamera(pygeometry.Pose(), camera.id)
         self.rig_cameras.append([rig_camera])
@@ -336,9 +340,7 @@ class SyntheticStreetScene(SyntheticScene):
         sg.perturb_rotations(instances_rotations, rotation_noise)
 
         shots_ids_per_camera = []
-        for rig_camera_p, rig_camera_r, camera in zip(
-            relative_positions, relative_rotations, cameras
-        ):
+        for rig_camera_p, rig_camera_r in zip(relative_positions, relative_rotations):
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
             pose_rig_camera.set_origin(rig_camera_p)
 
@@ -355,7 +357,7 @@ class SyntheticStreetScene(SyntheticScene):
             shots_ids_per_camera.append(
                 [f"Shot {shift+i:04d}" for i in range(len(positions))]
             )
-            self.cameras.append(camera)
+        self.cameras.append(cameras)
         self.shot_ids += shots_ids_per_camera
 
         rig_camera_ids = []
