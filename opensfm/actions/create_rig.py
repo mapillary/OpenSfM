@@ -1,7 +1,6 @@
 import logging
 
-import numpy as np
-from opensfm import rig, reconstruction_helpers as helpers, pygeometry, types
+from opensfm import pymap, rig, reconstruction_helpers as helpers, types
 from opensfm.dataset import DataSet, DataSetBase
 
 
@@ -34,17 +33,22 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
 
     data.init_reference()
 
-    base_rotation = np.zeros(3)
-
     reconstruction = types.Reconstruction()
     reconstruction.cameras = data.load_camera_models()
     for rig_instance_id, instance in assignments.items():
         for image, rig_camera_id in instance:
             rig_camera = rig_cameras[rig_camera_id]
-            rig_pose = pygeometry.Pose(base_rotation)
-            rig_pose.set_origin(
+            reconstruction.add_rig_camera(
+                pymap.RigCamera(rig_camera.pose, rig_camera_id)
+            )
+
+            instance_obj = reconstruction.add_rig_instance(
+                pymap.RigInstance(rig_instance_id)
+            )
+            instance_obj.pose.set_origin(
                 helpers.get_image_metadata(data, image).gps_position.value
             )
+
             d = data.load_exif(image)
             shot = reconstruction.create_shot(
                 image,
@@ -52,6 +56,5 @@ def _reconstruction_from_rigs_and_assignments(data: DataSetBase):
                 rig_camera_id=rig_camera_id,
                 rig_instance_id=rig_instance_id,
             )
-            shot.pose = rig_camera.pose.compose(rig_pose)
             shot.metadata = helpers.get_image_metadata(data, image)
     return [reconstruction]
