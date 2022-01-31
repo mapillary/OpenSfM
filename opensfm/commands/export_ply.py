@@ -1,16 +1,18 @@
 from opensfm.actions import export_ply
 
 from . import command
+import argparse
+from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
     name = "export_ply"
     help = "Export reconstruction to PLY format"
 
-    def run_impl(self, dataset, args):
+    def run_impl(self, dataset: DataSet, args: argparse.Namespace) -> None:
         export_ply.run_dataset(dataset, args.no_cameras, args.no_points, args.depthmaps, args.point_num_views)
 
-    def add_arguments_impl(self, parser):
+    def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--no-cameras",
             action="store_true",

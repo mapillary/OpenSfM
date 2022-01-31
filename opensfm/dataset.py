@@ -618,8 +618,10 @@ class DataSet(DataSetBase):
         """Create a subset of this dataset by symlinking input data."""
         subset_dataset_path = os.path.join(self.data_path, name)
         self.io_handler.mkdir_p(subset_dataset_path)
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "images"))
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
+
+        folders = ["images", "segmentations", "masks"]
+        for folder in folders:
+            self.io_handler.mkdir_p(os.path.join(subset_dataset_path, folder))
         subset_dataset = DataSet(subset_dataset_path, self.io_handler)
 
         files = []
@@ -648,6 +650,13 @@ class DataSet(DataSetBase):
                     os.path.join(subset_dataset_path, "segmentations", image + ".png"),
                 )
             )
+            if image in self.mask_files:
+                files.append(
+                    (
+                        self.mask_files[image],
+                        os.path.join(subset_dataset_path, "masks", image + ".png"),
+                    )
+                )
 
         for src, dst in files:
             if not self.io_handler.exists(src):

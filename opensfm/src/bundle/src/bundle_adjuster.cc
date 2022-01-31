@@ -796,11 +796,15 @@ void BundleAdjuster::Run() {
     }
 
     auto shot_j_rig_camera = shot_j.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot_j.GetRigCamera()) &&
-        shot_j_rig_camera != shot_i_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      relative_motion->shot_j_rig_camera_index_ = parameter_blocks.size();
-      parameter_blocks.push_back(shot_j_rig_camera);
+    if (IsRigCameraUseful(*shot_j.GetRigCamera())) {
+      if (shot_j_rig_camera != shot_i_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        relative_motion->shot_j_rig_camera_index_ = parameter_blocks.size();
+        parameter_blocks.push_back(shot_j_rig_camera);
+      } else {
+        relative_motion->shot_j_rig_camera_index_ =
+            relative_motion->shot_i_rig_camera_index_;
+      }
     }
     problem.AddResidualBlock(cost_function, relative_motion_loss,
                              parameter_blocks);
@@ -841,11 +845,15 @@ void BundleAdjuster::Run() {
     }
 
     auto shot_j_rig_camera = shot_j.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot_j.GetRigCamera()) &&
-        shot_j_rig_camera != shot_i_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      relative_similarity->shot_j_rig_camera_index_ = parameter_blocks.size();
-      parameter_blocks.push_back(shot_j_rig_camera);
+    if (IsRigCameraUseful(*shot_j.GetRigCamera())) {
+      if (shot_j_rig_camera != shot_i_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        relative_similarity->shot_j_rig_camera_index_ = parameter_blocks.size();
+        parameter_blocks.push_back(shot_j_rig_camera);
+      } else {
+        relative_similarity->shot_j_rig_camera_index_ =
+            relative_similarity->shot_i_rig_camera_index_;
+      }
     }
     problem.AddResidualBlock(cost_function, relative_similarity_loss,
                              parameter_blocks);
@@ -882,11 +890,15 @@ void BundleAdjuster::Run() {
     }
 
     auto shot_j_rig_camera = shot_j.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot_j.GetRigCamera()) &&
-        shot_j_rig_camera != shot_i_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      relative_rotation->shot_j_rig_camera_index_ = parameter_blocks.size();
-      parameter_blocks.push_back(shot_j_rig_camera);
+    if (IsRigCameraUseful(*shot_j.GetRigCamera())) {
+      if (shot_j_rig_camera != shot_i_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        relative_rotation->shot_j_rig_camera_index_ = parameter_blocks.size();
+        parameter_blocks.push_back(shot_j_rig_camera);
+      } else {
+        relative_rotation->shot_j_rig_camera_index_ =
+            relative_rotation->shot_i_rig_camera_index_;
+      }
     }
     problem.AddResidualBlock(cost_function, relative_rotation_loss,
                              parameter_blocks);
@@ -917,11 +929,15 @@ void BundleAdjuster::Run() {
     }
 
     auto shot_j_rig_camera = shot_j.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot_j.GetRigCamera()) &&
-        shot_j_rig_camera != shot_i_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      common_position->shot_j_rig_camera_index_ = parameter_blocks.size();
-      parameter_blocks.push_back(shot_j_rig_camera);
+    if (IsRigCameraUseful(*shot_j.GetRigCamera())) {
+      if (shot_j_rig_camera != shot_i_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        common_position->shot_j_rig_camera_index_ = parameter_blocks.size();
+        parameter_blocks.push_back(shot_j_rig_camera);
+      } else {
+        common_position->shot_j_rig_camera_index_ =
+            common_position->shot_i_rig_camera_index_;
+      }
     }
     problem.AddResidualBlock(cost_function, nullptr, parameter_blocks);
   }
@@ -1041,25 +1057,33 @@ void BundleAdjuster::Run() {
     auto shot0_rig_camera = shot0.GetRigCamera()->GetValueData().data();
     if (IsRigCameraUseful(*shot0.GetRigCamera())) {
       cost_function->AddParameterBlock(6);
-      linear_motion->shot1_rig_camera_index = parameter_blocks.size();
+      linear_motion->shot0_rig_camera_index = parameter_blocks.size();
       parameter_blocks.push_back(shot0_rig_camera);
     }
 
     auto shot1_rig_camera = shot1.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot1.GetRigCamera()) &&
-        shot1_rig_camera != shot0_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      linear_motion->shot1_rig_camera_index = parameter_blocks.size();
-      parameter_blocks.push_back(shot1_rig_camera);
+    if (IsRigCameraUseful(*shot1.GetRigCamera())) {
+      if (shot1_rig_camera != shot0_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        linear_motion->shot1_rig_camera_index = parameter_blocks.size();
+        parameter_blocks.push_back(shot1_rig_camera);
+      } else {
+        linear_motion->shot1_rig_camera_index =
+            linear_motion->shot0_rig_camera_index;
+      }
     }
 
     auto shot2_rig_camera = shot2.GetRigCamera()->GetValueData().data();
-    if (IsRigCameraUseful(*shot2.GetRigCamera()) &&
-        shot2_rig_camera != shot0_rig_camera &&
-        shot2_rig_camera != shot1_rig_camera) {
-      cost_function->AddParameterBlock(6);
-      linear_motion->shot2_rig_camera_index = parameter_blocks.size();
-      parameter_blocks.push_back(shot2_rig_camera);
+    if (IsRigCameraUseful(*shot2.GetRigCamera())) {
+      if (shot2_rig_camera != shot0_rig_camera &&
+          shot2_rig_camera != shot1_rig_camera) {
+        cost_function->AddParameterBlock(6);
+        linear_motion->shot2_rig_camera_index = parameter_blocks.size();
+        parameter_blocks.push_back(shot2_rig_camera);
+      } else {
+        linear_motion->shot2_rig_camera_index =
+            linear_motion->shot0_rig_camera_index;
+      }
     }
     problem.AddResidualBlock(cost_function, linear_motion_prior_loss_,
                              parameter_blocks);
