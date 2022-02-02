@@ -6,18 +6,18 @@ from opensfm import reconstruction
 from opensfm import types
 
 
-def _add_shot(rec, shot_id, cam):
+def _add_shot(rec, shot_id, cam) -> None:
     rec.create_shot(shot_id, cam.id)
 
 
-def _add_point(rec, point_id, observations):
+def _add_point(rec, point_id, observations) -> None:
     rec.create_point(point_id)
     for shot_id in observations:
         obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, int(point_id))
         rec.add_observation(shot_id, point_id, obs)
 
 
-def test_shot_neighborhood_linear_graph():
+def test_shot_neighborhood_linear_graph() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"
@@ -53,7 +53,7 @@ def test_shot_neighborhood_linear_graph():
     assert boundary == {"im0"}
 
 
-def test_shot_neighborhood_linear_graph_cpp():
+def test_shot_neighborhood_linear_graph_cpp() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"
@@ -89,7 +89,7 @@ def test_shot_neighborhood_linear_graph_cpp():
     assert boundary4 == {"im0"}
 
 
-def test_shot_neighborhood_complete_graph():
+def test_shot_neighborhood_complete_graph() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"
@@ -105,7 +105,7 @@ def test_shot_neighborhood_complete_graph():
     assert boundary == set()
 
 
-def test_shot_neighborhood_sorted_results():
+def test_shot_neighborhood_sorted_results() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"
@@ -133,7 +133,7 @@ def test_shot_neighborhood_sorted_results():
     assert boundary == {"im1"}
 
 
-def test_shot_neighborhood_complete_graph_cpp():
+def test_shot_neighborhood_complete_graph_cpp() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"
@@ -147,7 +147,7 @@ def test_shot_neighborhood_complete_graph_cpp():
     assert boundary == set()
 
 
-def test_shot_neighborhood_sorted_results_cpp():
+def test_shot_neighborhood_sorted_results_cpp() -> None:
     rec = types.Reconstruction()
     cam = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam.id = "cam1"

@@ -7,7 +7,7 @@ from opensfm import pygeometry, pymap, types
 from scipy.stats import special_ortho_group
 
 
-def test_reconstruction_class_initialization():
+def test_reconstruction_class_initialization() -> None:
 
     # Instantiate Reconstruction
     reconstruction = types.Reconstruction()
@@ -26,21 +26,27 @@ def test_reconstruction_class_initialization():
     metadata.orientation.value = 1
     metadata.capture_time.value = 0.0
     metadata.gps_accuracy.value = 5.0
+    # pyre-fixme[8]: Attribute has type `ndarray`; used as `List[float]`.
     metadata.gps_position.value = [
         1.0815875281451939,
         -0.96510451436708888,
         1.2042133903991235,
     ]
+    # pyre-fixme[8]: Attribute has type `ndarray`; used as `List[float]`.
     metadata.accelerometer.value = [0.1, 0.9, 0.0]
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0
     metadata.sequence_key.value = "a_sequence_key"
 
     # Instantiate shots
+    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
     pose0 = pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
     shot0 = reconstruction.create_shot("0", camera.id, pose0)
     shot0.metadata = metadata
 
+    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
     pose1 = pygeometry.Pose([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0])
     shot1 = reconstruction.create_shot("1", camera.id, pose1)
     shot1.metadata = metadata
@@ -55,14 +61,14 @@ def test_reconstruction_class_initialization():
     assert reconstruction.get_shot(shot1.id) is not None
 
 
-def test_is_panorama():
+def test_is_panorama() -> None:
     """Test spherical projection--backprojection loop."""
     assert pygeometry.Camera.is_panorama("spherical")
     assert pygeometry.Camera.is_panorama("equirectangular")
     assert not pygeometry.Camera.is_panorama("fisheye")
 
 
-def test_camera_deepcopy():
+def test_camera_deepcopy() -> None:
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
     cam2 = copy.deepcopy(cam1)
     assert cam1.focal == cam2.focal
@@ -72,7 +78,7 @@ def test_camera_deepcopy():
     assert cam3.focal == cam2.focal
 
 
-def test_shot_measurement():
+def test_shot_measurement() -> None:
     m = pymap.ShotMeasurementInt()
     assert not m.has_value
     m.value = 4
@@ -80,7 +86,7 @@ def test_shot_measurement():
     assert m.value == 4
 
 
-def _helper_pose_equal_to_T(pose, T_cw):
+def _helper_pose_equal_to_T(pose, T_cw) -> None:
     assert np.allclose(pose.get_R_world_to_cam(), T_cw[0:3, 0:3])
     assert np.allclose(pose.get_t_world_to_cam(), T_cw[0:3, 3].reshape(3))
     assert np.allclose(pose.translation, T_cw[0:3, 3].reshape(3))
@@ -97,14 +103,14 @@ def _helper_pose_equal_to_T(pose, T_cw):
     assert np.allclose(pose.get_Rt(), T_cw[0:3, 0:4])
 
 
-def _helper_poses_equal_py_cpp(py_pose, cpp_pose):
+def _helper_poses_equal_py_cpp(py_pose, cpp_pose) -> None:
     assert np.allclose(py_pose.translation, cpp_pose.translation)
     assert np.allclose(py_pose.rotation, cpp_pose.rotation)
     assert np.allclose(py_pose.get_rotation_matrix(), cpp_pose.get_rotation_matrix())
     assert np.allclose(py_pose.get_origin(), cpp_pose.get_origin())
 
 
-def _heper_poses_equal(pose1, pose2):
+def _heper_poses_equal(pose1, pose2) -> None:
     assert np.allclose(pose1.translation, pose2.translation)
     assert np.allclose(pose1.rotation, pose2.rotation)
     assert np.allclose(pose1.get_rotation_matrix(), pose2.get_rotation_matrix())
@@ -118,7 +124,7 @@ def _heper_poses_equal(pose1, pose2):
     assert np.allclose(pose1.get_Rt(), pose2.get_Rt())
 
 
-def test_pose_setter():
+def test_pose_setter() -> None:
     R_cw = special_ortho_group.rvs(3)
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
@@ -164,7 +170,7 @@ def test_pose_setter():
     _helper_pose_equal_to_T(p7, T_cw)
 
 
-def test_pose_transform():
+def test_pose_transform() -> None:
     pt = np.random.rand(3)
     pts = np.random.rand(10, 3)
     R_cw = special_ortho_group.rvs(3)
@@ -180,7 +186,7 @@ def test_pose_transform():
     assert np.allclose(p.transform_many(p.transform_inverse_many(pts)), pts)
 
 
-def test_pose_init():
+def test_pose_init() -> None:
     R_cw = special_ortho_group.rvs(3)
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
@@ -217,7 +223,7 @@ def test_pose_init():
     )
 
 
-def test_pose_inverse():
+def test_pose_inverse() -> None:
     R_cw = special_ortho_group.rvs(3)
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
@@ -228,13 +234,14 @@ def test_pose_inverse():
     _heper_poses_equal(pose_inv, pose_inv2)
 
 
-def test_pixel_to_normalized_conversion():
+def test_pixel_to_normalized_conversion() -> None:
     cam = pygeometry.Camera.create_perspective(1, 0, 0)
     width, height = 400, 150
     cam.width, cam.height = width, height
     px_coord = np.array([50, 300])
     norm_coord_comp = cam.pixel_to_normalized_coordinates(px_coord)
     norm_coord_static = pygeometry.Camera.pixel_to_normalized_coordinates_common(
+        # pyre-fixme[6]: For 1st param expected `Camera` but got `ndarray`.
         px_coord, width, height
     )
     norm_coord_gt = px_coord - np.array([(width - 1.0) / 2.0, (height - 1.0) / 2.0])
@@ -244,13 +251,14 @@ def test_pixel_to_normalized_conversion():
 
     px_coord_comp1 = cam.normalized_to_pixel_coordinates(norm_coord_comp)
     px_coord_comp2 = pygeometry.Camera.normalized_to_pixel_coordinates_common(
+        # pyre-fixme[6]: For 1st param expected `Camera` but got `ndarray`.
         norm_coord_comp, width, height
     )
     assert np.allclose(px_coord, px_coord_comp1)
     assert np.allclose(px_coord, px_coord_comp2)
 
 
-def test_shot_view_ref_count():
+def test_shot_view_ref_count() -> None:
     """Test that accessing shots via shot views maintains the map alive."""
     rec = types.Reconstruction()
     camera1 = pygeometry.Camera.create_spherical()
@@ -306,7 +314,7 @@ def _return_shot() -> pymap.Shot:
     return rec.shots["shot1"]
 
 
-def test_return_shot_from_local_reconstruction():
+def test_return_shot_from_local_reconstruction() -> None:
     """Test that one can create a reconstruciton and return shots from it.
 
     Without proper ref counting in the python bindings, this crashes as the

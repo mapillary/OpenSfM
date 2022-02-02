@@ -4,7 +4,7 @@ import sys
 from typing import Optional
 
 
-def setup():
+def setup() -> None:
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s", level=logging.DEBUG
     )

@@ -4,7 +4,7 @@ WGS84_a = 6378137.0
 WGS84_b = 6356752.314245
 
 
-def ecef_from_lla(lat, lon, alt):
+def ecef_from_lla(lat, lon, alt: float):
     """
     Compute ECEF XYZ from latitude, longitude and altitude.
 

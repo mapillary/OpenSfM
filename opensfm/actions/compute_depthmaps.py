@@ -5,7 +5,7 @@ from opensfm import dense
 from opensfm.dataset import DataSet
 
 
-def run_dataset(data: DataSet, subfolder, interactive):
+def run_dataset(data: DataSet, subfolder, interactive) -> None:
     """Compute depthmap on a dataset with has SfM ran already.
 
     Args:

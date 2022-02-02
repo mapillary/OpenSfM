@@ -10,7 +10,7 @@ NEIGHBORS = 6
 
 
 class Args:
-    def __init__(self, dataset):
+    def __init__(self, dataset) -> None:
         self.dataset = dataset
 
 
@@ -47,7 +47,7 @@ def lund_path(tmpdir_factory):
     return path
 
 
-def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
+def match_candidates_from_metadata(data, neighbors: int=NEIGHBORS, assert_count: int=NEIGHBORS) -> None:
     assert neighbors >= assert_count
 
     ims = sorted(data.images())
@@ -92,14 +92,14 @@ def create_match_candidates_config(**kwargs):
     return config
 
 
-def test_match_candidates_from_metadata_vlad(lund_path):
+def test_match_candidates_from_metadata_vlad(lund_path) -> None:
     config = create_match_candidates_config(matching_vlad_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_bow(lund_path):
+def test_match_candidates_from_metadata_bow(lund_path) -> None:
     config = create_match_candidates_config(
         matching_bow_neighbors=NEIGHBORS, matcher_type="WORDS"
     )
@@ -108,28 +108,28 @@ def test_match_candidates_from_metadata_bow(lund_path):
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_gps(lund_path):
+def test_match_candidates_from_metadata_gps(lund_path) -> None:
     config = create_match_candidates_config(matching_gps_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_time(lund_path):
+def test_match_candidates_from_metadata_time(lund_path) -> None:
     config = create_match_candidates_config(matching_time_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_graph(lund_path):
+def test_match_candidates_from_metadata_graph(lund_path) -> None:
     config = create_match_candidates_config(matching_graph_rounds=50)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_get_gps_point():
+def test_get_gps_point() -> None:
     reference = geo.TopocentricConverter(0, 0, 0)
     exifs = {}
     exifs["gps"] = {
@@ -142,7 +142,7 @@ def test_get_gps_point():
     assert np.allclose(direction, [[0, 0, 1]])
 
 
-def test_get_gps_opk_point():
+def test_get_gps_opk_point() -> None:
     reference = geo.TopocentricConverter(0, 0, 0)
     exifs = {}
     exifs["gps"] = {
@@ -160,21 +160,25 @@ def test_get_gps_opk_point():
     assert np.allclose(direction, [[0.0, 1.0, -1.0]])
 
 
-def test_find_best_altitude_convergent():
+def test_find_best_altitude_convergent() -> None:
     origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
     directions = {
         "0": np.array([-1.0, 0.0, -1.0]),
         "1": np.array([1.0, 0.0, -1.0]),
     }
+    # pyre-fixme[6]: For 1st param expected `Dict[str, ndarray]` but got `Dict[str,
+    #  List[float]]`.
     altitude = pairs_selection.find_best_altitude(origins, directions)
     assert np.allclose([altitude], [2.0], atol=1e-2)
 
 
-def test_find_best_altitude_divergent():
+def test_find_best_altitude_divergent() -> None:
     origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
     directions = {
         "0": np.array([1.0, 0.0, -1.0]),
         "1": np.array([-1.0, 0.0, -1.0]),
     }
+    # pyre-fixme[6]: For 1st param expected `Dict[str, ndarray]` but got `Dict[str,
+    #  List[float]]`.
     altitude = pairs_selection.find_best_altitude(origins, directions)
     assert np.allclose([altitude], pairs_selection.DEFAULT_Z, atol=1e-2)

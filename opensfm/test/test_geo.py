@@ -2,14 +2,14 @@ import numpy as np
 from opensfm import geo, pygeo
 
 
-def test_ecef_lla_consistency():
+def test_ecef_lla_consistency() -> None:
     lla_before = [46.5274109, 6.5722075, 402.16]
     ecef = geo.ecef_from_lla(lla_before[0], lla_before[1], lla_before[2])
     lla_after = geo.lla_from_ecef(ecef[0], ecef[1], ecef[2])
     assert np.allclose(lla_after, lla_before)
 
 
-def test_ecef_lla_topocentric_consistency():
+def test_ecef_lla_topocentric_consistency() -> None:
     lla_ref = [46.5, 6.5, 400]
     lla_before = [46.5274109, 6.5722075, 402.16]
     enu = geo.topocentric_from_lla(
@@ -21,14 +21,14 @@ def test_ecef_lla_topocentric_consistency():
     assert np.allclose(lla_after, lla_before)
 
 
-def test_ecef_lla_consistency_pygeo():
+def test_ecef_lla_consistency_pygeo() -> None:
     lla_before = [46.5274109, 6.5722075, 402.16]
     ecef = pygeo.ecef_from_lla(lla_before[0], lla_before[1], lla_before[2])
     lla_after = pygeo.lla_from_ecef(ecef[0], ecef[1], ecef[2])
     assert np.allclose(lla_after, lla_before)
 
 
-def test_ecef_lla_topocentric_consistency_pygeo():
+def test_ecef_lla_topocentric_consistency_pygeo() -> None:
     lla_ref = [46.5, 6.5, 400]
     lla_before = [46.5274109, 6.5722075, 402.16]
     enu = pygeo.topocentric_from_lla(
@@ -39,6 +39,6 @@ def test_ecef_lla_topocentric_consistency_pygeo():
     )
     assert np.allclose(lla_after, lla_before)
 
-def test_eq_geo():
+def test_eq_geo() -> None:
     assert geo.TopocentricConverter(40,30,0) == geo.TopocentricConverter(40,30,0)
     assert geo.TopocentricConverter(40,32,0) != geo.TopocentricConverter(40,30,0)

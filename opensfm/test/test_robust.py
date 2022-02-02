@@ -21,7 +21,7 @@ def similarity_data():
     return rotation, translation, scale, x, samples
 
 
-def add_outliers(ratio_outliers, x, min, max):
+def add_outliers(ratio_outliers, x, min, max) -> None:
     for index in np.random.permutation(len(x))[: int(ratio_outliers * len(x))]:
         shape = x[index].shape
         noise = np.random.uniform(min, max, size=shape)
@@ -32,7 +32,7 @@ def add_outliers(ratio_outliers, x, min, max):
         x[int(index)] += sign * noise
 
 
-def test_uniform_line_ransac():
+def test_uniform_line_ransac() -> None:
     a, b, x, samples = line_data()
 
     scale = 2.0
@@ -47,7 +47,7 @@ def test_uniform_line_ransac():
     assert len(result.inliers_indices) == samples
 
 
-def test_outliers_line_ransac():
+def test_outliers_line_ransac() -> None:
     a, b, x, samples = line_data()
 
     scale = 2.0
@@ -67,7 +67,7 @@ def test_outliers_line_ransac():
     assert len(result.inliers_indices) == inliers_count
 
 
-def test_normal_line_msac():
+def test_normal_line_msac() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -88,7 +88,7 @@ def test_normal_line_msac():
     )
 
 
-def test_outliers_line_msac():
+def test_outliers_line_msac() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -114,7 +114,7 @@ def test_outliers_line_msac():
     )
 
 
-def test_normal_line_LMedS():
+def test_normal_line_LMedS() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -133,7 +133,7 @@ def test_normal_line_LMedS():
     )
 
 
-def test_outliers_line_LMedS():
+def test_outliers_line_LMedS() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -161,7 +161,7 @@ def test_outliers_line_LMedS():
     )
 
 
-def test_outliers_similarity_ransac():
+def test_outliers_similarity_ransac() -> None:
     rotation, translation, scale, x, samples = similarity_data()
 
     similarity = pygeometry.Similarity(rotation, translation, scale)
@@ -184,7 +184,7 @@ def test_outliers_similarity_ransac():
     )
 
 
-def test_uniform_essential_ransac(pairs_and_their_E):
+def test_uniform_essential_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -205,7 +205,7 @@ def test_uniform_essential_ransac(pairs_and_their_E):
         assert len(result.inliers_indices) == len(f1) == len(f2)
 
 
-def test_outliers_essential_ransac(pairs_and_their_E):
+def test_outliers_essential_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -230,7 +230,7 @@ def test_outliers_essential_ransac(pairs_and_their_E):
         assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
 
-def test_outliers_relative_pose_ransac(pairs_and_their_E):
+def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, pose in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -261,7 +261,7 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E):
     assert np.linalg.norm(expected - result.lo_model, ord="fro") < 16e-2
 
 
-def test_outliers_relative_rotation_ransac(pairs_and_their_E):
+def test_outliers_relative_rotation_ransac(pairs_and_their_E) -> None:
     for f1, _, _, _ in pairs_and_their_E:
 
         vec_x = np.random.rand(3)
@@ -301,7 +301,7 @@ def test_outliers_relative_rotation_ransac(pairs_and_their_E):
         assert np.linalg.norm(rotation - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_ransac(shots_and_their_points):
+def test_outliers_absolute_pose_ransac(shots_and_their_points) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)
@@ -326,7 +326,7 @@ def test_outliers_absolute_pose_ransac(shots_and_their_points):
         assert np.linalg.norm(expected - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points):
+def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)

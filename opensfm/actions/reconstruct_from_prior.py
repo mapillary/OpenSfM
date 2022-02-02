@@ -3,7 +3,7 @@ from opensfm import reconstruction
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase, input: str, output: str):
+def run_dataset(data: DataSetBase, input: str, output: str) -> None:
     """Reconstruct the from a prior reconstruction."""
 
     tracks_manager = data.load_tracks_manager()

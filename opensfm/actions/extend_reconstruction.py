@@ -2,7 +2,7 @@ from opensfm import io, reconstruction, types
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase, input, output):
+def run_dataset(data: DataSetBase, input, output) -> None:
     recs_base = data.load_reconstruction(input)
     if len(recs_base) == 0:
         return
