@@ -24,7 +24,7 @@ Processing Summary
 |processing|
 
  - Reconstructed Images : reconstructed images over total number of images
- - Reconstructed Images : reconstructed points over total number of points in the `tracks.csv` file (`create_tracks`)
+ - Reconstructed Points : reconstructed points over total number of points in the `tracks.csv` file (`create_tracks`)
  - Reconstructed Components : number of continously reconstructed sets of images
  - Detected Features : median number (accross images) of detected features
  - Reconstructed Features : median number (accross images) of reconstructed features
