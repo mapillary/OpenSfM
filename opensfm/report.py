@@ -7,12 +7,13 @@ import PIL
 from fpdf import FPDF
 from opensfm import io
 from opensfm.dataset import DataSet
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class Report:
-    def __init__(self, data: DataSet):
+    def __init__(self, data: DataSet) -> None:
         self.output_path = os.path.join(data.data_path, "stats")
         self.dataset_name = os.path.basename(data.data_path)
         self.io_handler = data.io_handler
@@ -37,14 +38,14 @@ class Report:
 
         self.stats = self._read_stats_file("stats.json")
 
-    def save_report(self, filename):
+    def save_report(self, filename: str) -> None:
         bytestring = self.pdf.output(dest="S")
         with self.io_handler.open(
             os.path.join(self.output_path, filename), "wb"
         ) as fwb:
             fwb.write(bytestring)
 
-    def _make_table(self, columns_names, rows, row_header=False):
+    def _make_table(self, columns_names, rows, row_header=False) -> None:
         self.pdf.set_font("Helvetica", "", self.h3)
         self.pdf.set_line_width(0.3)
 
@@ -87,25 +88,25 @@ class Report:
                 self.pdf.cell(size, self.cell_height, col, align="L")
             self.pdf.set_xy(self.margin, self.pdf.get_y() + self.cell_height)
 
-    def _read_stats_file(self, filename):
+    def _read_stats_file(self, filename) -> Dict[str, Any]:
         file_path = os.path.join(self.output_path, filename)
         with self.io_handler.open_rt(file_path) as fin:
             return io.json_load(fin)
 
-    def _make_section(self, title):
+    def _make_section(self, title: str) -> None:
         self.pdf.set_font("Helvetica", "B", self.h1)
         self.pdf.set_text_color(*self.mapi_dark_grey)
         self.pdf.cell(0, self.margin, title, align="L")
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 1.5 * self.margin)
 
-    def _make_subsection(self, title):
+    def _make_subsection(self, title: str) -> None:
         self.pdf.set_xy(self.margin, self.pdf.get_y() - 0.5 * self.margin)
         self.pdf.set_font("Helvetica", "B", self.h2)
         self.pdf.set_text_color(*self.mapi_dark_grey)
         self.pdf.cell(0, self.margin, title, align="L")
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def _make_centered_image(self, image_path, desired_height):
+    def _make_centered_image(self, image_path: str, desired_height: float) -> None:
 
         with tempfile.TemporaryDirectory() as tmp_local_dir:
             local_image_path = os.path.join(tmp_local_dir, os.path.basename(image_path))
@@ -129,7 +130,7 @@ class Report:
                 self.margin, self.pdf.get_y() + desired_height + self.margin
             )
 
-    def make_title(self):
+    def make_title(self) -> None:
         # title
         self.pdf.set_font("Helvetica", "B", self.title_size)
         self.pdf.set_text_color(*self.mapi_light_green)
@@ -158,7 +159,7 @@ class Report:
         )
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
 
-    def make_dataset_summary(self):
+    def make_dataset_summary(self) -> None:
         self._make_section("Dataset Summary")
 
         rows = [
@@ -176,13 +177,13 @@ class Report:
         self._make_table(None, rows, True)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def _has_meaningful_gcp(self):
+    def _has_meaningful_gcp(self) -> bool:
         return (
             self.stats["reconstruction_statistics"]["has_gcp"]
             and "average_error" in self.stats["gcp_errors"]
         )
 
-    def make_processing_summary(self):
+    def make_processing_summary(self) -> None:
         self._make_section("Processing Summary")
 
         rec_shots, init_shots = (
@@ -247,7 +248,7 @@ class Report:
 
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def make_processing_time_details(self):
+    def make_processing_time_details(self) -> None:
         self._make_section("Processing Time Details")
 
         columns_names = list(self.stats["processing_statistics"]["steps_times"].keys())
@@ -258,7 +259,7 @@ class Report:
         self._make_table(columns_names, rows)
         self.pdf.set_xy(self.margin, self.pdf.get_y() + 2 * self.margin)
 
-    def make_gps_details(self):
+    def make_gps_details(self) -> None:
         self._make_section("GPS/GCP Errors Details")
 
         # GPS
@@ -307,7 +308,7 @@ class Report:
 
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
-    def make_features_details(self):
+    def make_features_details(self) -> None:
         self._make_section("Features Details")
 
         heatmap_height = 60
@@ -333,7 +334,7 @@ class Report:
 
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def make_reconstruction_details(self):
+    def make_reconstruction_details(self) -> None:
         self._make_section("Reconstruction Details")
 
         rows = [
@@ -369,7 +370,7 @@ class Report:
         )
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def make_camera_models_details(self):
+    def make_camera_models_details(self) -> None:
         self._make_section("Camera Models Details")
 
         for camera, params in self.stats["camera_errors"].items():
@@ -398,7 +399,7 @@ class Report:
                 os.path.join(self.output_path, residual_grids[0]), residual_grid_height
             )
 
-    def make_rig_cameras_details(self):
+    def make_rig_cameras_details(self) -> None:
         if len(self.stats["rig_errors"]) == 0:
             return
 
@@ -444,7 +445,7 @@ class Report:
             self._make_table(columns_names, rows)
             self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin / 2)
 
-    def make_tracks_details(self):
+    def make_tracks_details(self) -> None:
         self._make_section("Tracks Details")
         matchgraph_height = 80
         matchgraph = [
@@ -473,10 +474,10 @@ class Report:
 
         self.pdf.set_xy(self.margin, self.pdf.get_y() + self.margin)
 
-    def add_page_break(self):
+    def add_page_break(self) -> None:
         self.pdf.add_page("P")
 
-    def generate_report(self):
+    def generate_report(self) -> None:
         self.make_title()
         self.make_dataset_summary()
         self.make_processing_summary()
