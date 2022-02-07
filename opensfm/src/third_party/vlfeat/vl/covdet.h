@@ -141,7 +141,6 @@ typedef struct _VlCovDetFeature
   float edgeScore ; /**< edge score. */
   float orientationScore ; /**< orientation score. */
   float laplacianScaleScore ; /**< Laplacian scale score. */
-  float minimumSuppressionRadius ; /**< distance to the closest stronger feature **/
 } VlCovDetFeature ;
 
 /** @brief A detected feature orientation */
@@ -253,8 +252,6 @@ VL_EXPORT void vl_covdet_set_octave_resolution (VlCovDet * self, vl_size r) ;
 VL_EXPORT void vl_covdet_set_peak_threshold (VlCovDet * self, double peakThreshold) ;
 VL_EXPORT void vl_covdet_set_edge_threshold (VlCovDet * self, double edgeThreshold) ;
 VL_EXPORT void vl_covdet_set_laplacian_peak_threshold (VlCovDet * self, double peakThreshold) ;
-VL_EXPORT void vl_covdet_set_target_num_features (VlCovDet * self, vl_size target) ;
-VL_EXPORT void vl_covdet_set_use_adaptive_suppression (VlCovDet * self, vl_bool use) ;
 VL_EXPORT void vl_covdet_set_transposed (VlCovDet * self, vl_bool t) ;
 VL_EXPORT void vl_covdet_set_aa_accurate_smoothing (VlCovDet * self, vl_bool x) ;
 VL_EXPORT void vl_covdet_set_non_extrema_suppression_threshold (VlCovDet * self, double x) ;
