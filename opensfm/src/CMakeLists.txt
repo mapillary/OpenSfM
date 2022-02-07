@@ -37,6 +37,9 @@ endif()
 # For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
 
+# Use the version of vlfeat in ./src/third_party/vlfeat
+add_definitions(-DINPLACE_VLFEAT)
+
 if (WIN32)
     # Missing math constant
     add_definitions(-DM_PI=3.14159265358979323846)
