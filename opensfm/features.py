@@ -413,6 +413,7 @@ def extract_features_surf(
         desc = np.array(np.zeros((0, 3)))
     return points, desc
 
+
 def akaze_descriptor_type(name: str) -> pyfeatures.AkazeDescriptorType:
     d = pyfeatures.AkazeDescriptorType.__dict__
     if name in d:
@@ -460,7 +461,6 @@ def extract_features_hahog(
         peak_threshold=config["hahog_peak_threshold"],
         edge_threshold=config["hahog_edge_threshold"],
         target_num_features=features_count,
-        use_adaptive_suppression=config["feature_use_adaptive_suppression"],
     )
 
     if config["feature_root"]:
@@ -593,6 +593,8 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
             "tree": config["flann_tree"],
         }
     else:
-        raise ValueError("FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead.")
+        raise ValueError(
+            "FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead."
+        )
 
     return context.flann_Index(descriptors, flann_params)

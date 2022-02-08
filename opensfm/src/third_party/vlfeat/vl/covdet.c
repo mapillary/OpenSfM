@@ -1461,8 +1461,6 @@ struct _VlCovDet
   double peakThreshold ;     /**< peak threshold. */
   double edgeThreshold ;     /**< edge threshold. */
   double lapPeakThreshold;   /**< peak threshold for Laplacian scale selection. */
-  vl_size targetNumFeatures ;/**< number of features to keep after adaptive non-extrema suppresion. */
-  vl_bool useAdaptiveSuppression ;   /**< use adaptive non-maximal suppression rather than keeping the bests scores */
   vl_size octaveResolution ; /**< resolution of each octave. */
   vl_index firstOctave ;     /**< index of the first octave. */
 
@@ -1535,8 +1533,6 @@ vl_covdet_new (VlCovDetMethod method)
     default:
       assert(0) ;
   }
-  self->targetNumFeatures = 0 ;
-  self->useAdaptiveSuppression = 0 ;
 
   self->nonExtremaSuppression = 0.5 ;
   self->features = NULL ;
@@ -1911,16 +1907,6 @@ _vl_dog_response (float * dog,
   }
 }
 
-
-static int
-_vl_compare_radius (const void * a,
-                    const void * b)
-{
-  float fa = ((VlCovDetFeature *)a)->minimumSuppressionRadius ;
-  float fb = ((VlCovDetFeature *)b)->minimumSuppressionRadius ;
-  return (fb > fa) - (fb < fa) ;
-}
-
 static int
 _vl_compare_scores (const void * a,
                     const void * b)
@@ -2119,15 +2105,6 @@ vl_covdet_detect (VlCovDet * self)
       break ;
   }
 
-  if (self->targetNumFeatures != 0 && !self->useAdaptiveSuppression) {
-    // Keep only 1.5 x targetNumFeatures for speeding-up duplicate detection
-    int to_keep = 3 * self->targetNumFeatures / 2;
-    if (self->numFeatures > to_keep) {
-      qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_scores);
-      self->numFeatures = to_keep;
-    }
-  }
-
   if (self->nonExtremaSuppression) {
     vl_index i, j ;
     double tol = self->nonExtremaSuppression ;
@@ -2162,40 +2139,6 @@ vl_covdet_detect (VlCovDet * self)
       }
     }
     self->numFeatures = j ;
-  }
-
-  if (self->targetNumFeatures != 0) {
-    if (self->useAdaptiveSuppression) {
-      vl_index i, j ;
-      double tol = self->nonExtremaSuppression ;
-      self->numNonExtremaSuppressed = 0 ;
-      for (i = 0 ; i < (signed)self->numFeatures ; ++i) {
-        double x = self->features[i].frame.x ;
-        double y = self->features[i].frame.y ;
-        double sigma = self->features[i].frame.a11 ;
-        double score = self->features[i].peakScore ;
-        self->features[i].minimumSuppressionRadius = 99999999999;
-
-        for (j = 0 ; j < (signed)self->numFeatures ; ++j) {
-          double score_ = self->features[j].peakScore ;
-          if (score_ > score) {
-            double dx_ = self->features[j].frame.x - x ;
-            double dy_ = self->features[j].frame.y - y ;
-            double sigma_ = self->features[j].frame.a11 ;
-            double radius_ = dx_ * dx_ + dy_ * dy_;  // TODO(pau) use sigma to compute a 3d radius
-            if (radius_ < self->features[i].minimumSuppressionRadius) {
-              self->features[i].minimumSuppressionRadius = radius_;
-            }
-          }
-        }
-      }
-      qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_radius);
-
-      if (self->numFeatures > self->targetNumFeatures) self->numFeatures = self->targetNumFeatures;
-    } else {
-      qsort(self->features, self->numFeatures, sizeof(VlCovDetFeature), _vl_compare_scores);
-      if (self->numFeatures > self->targetNumFeatures) self->numFeatures = self->targetNumFeatures;
-    }
   }
 
   if (levelxx) vl_free(levelxx) ;
@@ -3286,19 +3229,6 @@ vl_covdet_set_laplacian_peak_threshold (VlCovDet * self, double peakThreshold)
 {
   assert(peakThreshold >= 0) ;
   self->lapPeakThreshold = peakThreshold ;
-}
-
-void
-vl_covdet_set_target_num_features (VlCovDet * self, vl_size target)
-{
-  self->targetNumFeatures = target ;
-}
-
-
-void
-vl_covdet_set_use_adaptive_suppression (VlCovDet * self, vl_bool target)
-{
-  self->useAdaptiveSuppression = target ;
 }
 
 /* ---------------------------------------------------------------- */
