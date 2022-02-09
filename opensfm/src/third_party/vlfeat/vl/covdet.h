@@ -137,6 +137,8 @@ vl_get_frame_type (vl_bool affineAdaptation, vl_bool orientation)
 typedef struct _VlCovDetFeature
 {
   VlFrameOrientedEllipse frame ; /**< feature frame. */
+  int o ; /**< Detected octave. */
+  int s ; /**< Octave subdivision. */
   float peakScore ; /**< peak score. */
   float edgeScore ; /**< edge score. */
   float orientationScore ; /**< orientation score. */
@@ -195,7 +197,7 @@ VL_EXPORT int vl_covdet_put_image (VlCovDet * self,
                                     float const * image,
                                     vl_size width, vl_size height) ;
 
-VL_EXPORT void vl_covdet_detect (VlCovDet * self, vl_size max_num_features ) ;
+VL_EXPORT void vl_covdet_detect (VlCovDet * self, vl_size max_num_features) ;
 VL_EXPORT int vl_covdet_append_feature (VlCovDet * self, VlCovDetFeature const * feature) ;
 VL_EXPORT void vl_covdet_extract_orientations (VlCovDet * self) ;
 VL_EXPORT void vl_covdet_extract_laplacian_scales (VlCovDet * self) ;
@@ -229,7 +231,7 @@ vl_covdet_drop_features_outside (VlCovDet * self, double margin) ;
 /** @name Retrieve data and parameters
  ** @{ */
 VL_EXPORT vl_size vl_covdet_get_num_features (VlCovDet const * self) ;
-VL_EXPORT void * vl_covdet_get_features (VlCovDet * self) ;
+VL_EXPORT VlCovDetFeature * vl_covdet_get_features (VlCovDet * self) ;
 VL_EXPORT vl_index vl_covdet_get_first_octave (VlCovDet const * self) ;
 VL_EXPORT vl_size vl_covdet_get_octave_resolution (VlCovDet const * self) ;
 VL_EXPORT double vl_covdet_get_peak_threshold (VlCovDet const * self) ;
