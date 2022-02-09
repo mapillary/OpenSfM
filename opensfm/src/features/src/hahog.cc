@@ -4,9 +4,9 @@
 #include <vector>
 
 extern "C" {
-#include <third_party/vlfeat/vl/covdet.h>
-#include <third_party/vlfeat/vl/sift.h>
 #include <time.h>
+#include <vl/covdet.h>
+#include <vl/sift.h>
 }
 
 namespace features {
@@ -16,7 +16,6 @@ static int vlfeat_compare_scores(const void *a, const void *b) {
   float fa = ((VlCovDetFeature *)a)->peakScore;
   float fb = ((VlCovDetFeature *)b)->peakScore;
   return (fb > fa) - (fb < fa);
-  // return (fa > fb) - (fa < fb) ;
 }
 
 // select 'target_num_features' for using feature's scores
@@ -135,7 +134,6 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
   {
     py::gil_scoped_release release;
 
-    // clock_t t_start = clock();
     // create a detector object
     VlCovDet *covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
     // set various parameters (optional)
@@ -146,7 +144,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     // process the image and run the detector
     vl_covdet_put_image(covdet, image.data(), image.shape(1), image.shape(0));
     vl_covdet_set_non_extrema_suppression_threshold(covdet, 0);
-    vl_covdet_detect(covdet);
+    vl_covdet_detect(covdet, std::numeric_limits<vl_size>::max());
 
     // select the best features to keep
     numFeatures = run_features_selection(covdet, target_num_features);
@@ -155,8 +153,6 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     std::vector<VlCovDetFeature> vecFeatures =
         vlfeat_covdet_extract_orientations(covdet, numFeatures);
     numFeatures = vecFeatures.size();
-
-    // clock_t t_orient = clock();
 
     // get feature descriptors
     VlSiftFilt *sift = vl_sift_new(16, 16, 1, 3, 0);
@@ -198,15 +194,6 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     }
     vl_sift_delete(sift);
     vl_covdet_delete(covdet);
-
-    // clock_t t_description = clock();
-    // std::cout << "t_scalespace " << float(t_scalespace -
-    // t_start)/CLOCKS_PER_SEC << "\n"; std::cout << "t_detect " <<
-    // float(t_detect - t_scalespace)/CLOCKS_PER_SEC << "\n"; std::cout <<
-    // "t_affine " << float(t_affine - t_detect)/CLOCKS_PER_SEC << "\n";
-    // std::cout << "t_orient " << float(t_orient - t_affine)/CLOCKS_PER_SEC <<
-    // "\n"; std::cout << "description " << float(t_description -
-    // t_orient)/CLOCKS_PER_SEC << "\n";
   }
 
   return py::make_tuple(
