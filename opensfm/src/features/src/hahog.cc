@@ -5,8 +5,13 @@
 
 extern "C" {
 #include <time.h>
+#ifdef INPLACE_VLFEAT
+#include <third_party/vlfeat/vl/covdet.h>
+#include <third_party/vlfeat/vl/sift.h>
+#else
 #include <vl/covdet.h>
 #include <vl/sift.h>
+#endif
 }
 
 namespace features {

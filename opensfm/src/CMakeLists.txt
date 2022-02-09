@@ -74,8 +74,6 @@ add_subdirectory(third_party/pybind11)
 add_subdirectory(third_party/akaze)
 add_subdirectory(third_party/vlfeat)
 
-include_directories(third_party/vlfeat)
-
 ####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     add_executable(debug_c_extension
