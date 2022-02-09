@@ -1929,7 +1929,7 @@ _vl_compare_scores (const void * a,
  **/
 
 void
-vl_covdet_detect (VlCovDet * self)
+vl_covdet_detect (VlCovDet * self, vl_size max_num_features)
 {
   VlScaleSpaceGeometry geom = vl_scalespace_get_geometry(self->gss) ;
   VlScaleSpaceGeometry cgeom ;
@@ -2089,6 +2089,9 @@ vl_covdet_detect (VlCovDet * self)
           }
           break ;
         }
+      }
+      if (self->numFeatures >= max_num_features) {
+        break;
       }
     } /* next octave */
 
@@ -3230,6 +3233,7 @@ vl_covdet_set_laplacian_peak_threshold (VlCovDet * self, double peakThreshold)
   assert(peakThreshold >= 0) ;
   self->lapPeakThreshold = peakThreshold ;
 }
+
 
 /* ---------------------------------------------------------------- */
 /** @brief Get the index of the first octave
