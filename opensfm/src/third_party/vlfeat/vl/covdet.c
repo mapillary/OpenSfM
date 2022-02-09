@@ -944,7 +944,6 @@ $\ell_{(\kappa\sigma)^2}$ and $\ell_{\sigma^2}$.
 
 #include "covdet.h"
 #include <string.h>
-#include <time.h>
 
 /** @brief Reallocate buffer
  ** @param buffer
@@ -1907,16 +1906,6 @@ _vl_dog_response (float * dog,
   }
 }
 
-static int
-_vl_compare_scores (const void * a,
-                    const void * b)
-{
-  float fa = ((VlCovDetFeature *)a)->peakScore ;
-  float fb = ((VlCovDetFeature *)b)->peakScore ;
-  return (fb > fa) - (fb < fa) ;
-//return (fa > fb) - (fa < fb) ;
-}
-
 /* ---------------------------------------------------------------- */
 /*                                                  Detect features */
 /* ---------------------------------------------------------------- */
@@ -2005,7 +1994,7 @@ vl_covdet_detect (VlCovDet * self, vl_size max_num_features)
     vl_size extremaBufferSize = 0 ;
     vl_size numExtrema ;
     vl_size index ;
-    for (o = cgeom.firstOctave ; o <= cgeom.lastOctave ; ++o) {
+    for (o = cgeom.lastOctave; o >= cgeom.firstOctave; --o) {
       VlScaleSpaceOctaveGeometry octgeom = vl_scalespace_get_octave_geometry(self->css, o) ;
       double step = octgeom.step ;
       vl_size width = octgeom.width ;
@@ -2044,6 +2033,8 @@ vl_covdet_detect (VlCovDet * self, vl_size max_num_features)
               feature.frame.a12 = 0.0 ;
               feature.frame.a21 = 0.0 ;
               feature.frame.a22 = sigma ;
+              feature.o = o ;
+              feature.s = round(refined.z) ;
               feature.peakScore = refined.peakScore ;
               feature.edgeScore = refined.edgeScore ;
               vl_covdet_append_feature(self, &feature) ;
@@ -2081,6 +2072,8 @@ vl_covdet_detect (VlCovDet * self, vl_size max_num_features)
                 feature.frame.a12 = 0.0 ;
                 feature.frame.a21 = 0.0 ;
                 feature.frame.a22 = sigma ;
+                feature.o = o ;
+                feature.s = s ;
                 feature.peakScore = refined.peakScore ;
                 feature.edgeScore = refined.edgeScore ;
                 vl_covdet_append_feature(self, &feature) ;
@@ -2117,6 +2110,7 @@ vl_covdet_detect (VlCovDet * self, vl_size max_num_features)
       double y = self->features[i].frame.y ;
       double sigma = self->features[i].frame.a11 ;
       double score = self->features[i].peakScore ;
+      if (score == 0) continue ;
 
       for (j = 0 ; j < (signed)self->numFeatures ; ++j) {
         double dx_ = self->features[j].frame.x - x ;
@@ -3234,7 +3228,6 @@ vl_covdet_set_laplacian_peak_threshold (VlCovDet * self, double peakThreshold)
   self->lapPeakThreshold = peakThreshold ;
 }
 
-
 /* ---------------------------------------------------------------- */
 /** @brief Get the index of the first octave
  ** @param self object.
@@ -3356,7 +3349,7 @@ vl_covdet_get_num_features (VlCovDet const * self)
 /** @brief Get the stored frames
  ** @return frames stored in the detector.
  **/
-void *
+VlCovDetFeature *
 vl_covdet_get_features (VlCovDet * self)
 {
   return self->features ;

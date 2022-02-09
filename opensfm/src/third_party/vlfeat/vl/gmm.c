@@ -719,7 +719,7 @@ VL_XCAT(vl_get_gmm_data_posteriors_, SFX)
  TYPE const * covariances,
  TYPE const * data)
 {
-  vl_index i_d = 0, i_cl = 0;
+  vl_index i_d, i_cl;
   vl_size dim;
   double LL = 0;
 
@@ -899,20 +899,20 @@ VL_XCAT(_vl_gmm_restart_empty_modes_, SFX) (VlGMM * self, TYPE const * data)
      Search for the Gaussian components that (approximately)
      maximally contribute to make the negative log-likelihood of the data
      large. Then split the worst offender.
-
+     
      To do so, we approximate the exptected log-likelihood of the GMM:
-
+     
      E[-log(f(x))] = H(f) = - log \int f(x) log f(x)
-
+    
      where the density f(x) = sum_k pk gk(x) is a GMM. This is intractable
      but it is easy to approximate if we suppose that supp gk is disjoint with
      supp gq for all components k ~= q. In this canse
-
+     
      H(f) ~= sum_k [ - pk log(pk) + pk H(gk) ]
-
+     
      where H(gk) is the entropy of component k taken alone. The entropy of
      the latter is given by:
-
+     
      H(gk) = D/2 (1 + log(2pi) + 1/2 sum_{i=0}^D log sigma_i^2
 
      */
@@ -1044,7 +1044,7 @@ VL_XCAT(_vl_gmm_maximization_, SFX)
  vl_size numData)
 {
   vl_size numClusters = self->numClusters;
-  vl_index i_d = 0, i_cl = 0;
+  vl_index i_d, i_cl;
   vl_size dim ;
   TYPE * oldMeans ;
   double time = 0 ;
@@ -1102,13 +1102,13 @@ VL_XCAT(_vl_gmm_maximization_, SFX)
 
         #ifndef VL_DISABLE_AVX
         if (vl_get_simd_enabled() && vl_cpu_has_avx()) {
-          VL_XCAT(_vl_weighted_mean_sse2_, SFX)
+          VL_XCAT(_vl_weighted_mean_avx_, SFX)
           (self->dimension,
            means_+ i_cl * self->dimension,
            data + i_d * self->dimension,
            p) ;
 
-          VL_XCAT(_vl_weighted_sigma_sse2_, SFX)
+          VL_XCAT(_vl_weighted_sigma_avx_, SFX)
           (self->dimension,
            covariances_ + i_cl * self->dimension,
            data + i_d * self->dimension,
