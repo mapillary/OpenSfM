@@ -78,7 +78,7 @@ class DataSet(DataSetBase):
         else:
             self._set_image_path(image_list_path)
 
-        if not self.image_list:
+        if self.data_path and not self.image_list:
             raise IOError(
                 "No Images found in {}"
                 .format(image_list_path)
