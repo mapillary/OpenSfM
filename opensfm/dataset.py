@@ -69,12 +69,20 @@ class DataSet(DataSetBase):
     def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
+        image_list_path = os.path.join(self.data_path, "images")
+
         if self.io_handler.isfile(image_list_file):
             with self.io_handler.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
-            self._set_image_path(os.path.join(self.data_path, "images"))
+            self._set_image_path(image_list_path)
+
+        if not self.image_list:
+            raise IOError(
+                "No Images found in {}"
+                .format(image_list_path)
+                )
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
