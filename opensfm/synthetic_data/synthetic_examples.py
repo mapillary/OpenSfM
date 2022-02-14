@@ -33,11 +33,13 @@ def synthetic_rig_scene(
     scene.add_street(points_count, 15, 12).perturb_floor([0, 0, 0.1]).perturb_walls(
         [0.2, 0.2, 0.01]
     )
-    make_rig_scene(scene_length, scene)
+    make_4_cameras_rig_scene(scene_length, scene)
     return scene
 
 
-def make_rig_scene(scene_length: float, scene: ss.SyntheticStreetScene) -> None:
+def make_4_cameras_rig_scene(
+    scene_length: float, scene: ss.SyntheticStreetScene
+) -> None:
     camera_height = 2
     camera_interval = 3
     position_perturbation = [0.2, 0.2, 0.01]
