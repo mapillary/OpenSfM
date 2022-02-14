@@ -281,9 +281,12 @@ def compute_orientation_prior_similarity(
             b = max_scale * b / current_scale
             s = max_scale / current_scale
     else:
-        T = tf.affine_matrix_from_points(
-            X.T[:2], Xp.T[:2], shear=False, scale=use_scale
-        )
+        try:
+            T = tf.affine_matrix_from_points(
+                X.T[:2], Xp.T[:2], shear=False, scale=use_scale
+            )
+        except ValueError:
+            return None
         s = np.linalg.det(T[:2, :2]) ** 0.5
         A = np.eye(3)
         A[:2, :2] = T[:2, :2] / s
