@@ -47,7 +47,7 @@ from opensfm.dataset import DataSet
 I_3 = np.eye(3)
 
 
-def run_dataset(data: DataSet, binary) -> None:
+def run_dataset(data: DataSet, binary: bool) -> None:
     """Export reconstruction to COLMAP format."""
 
     export_folder = os.path.join(data.data_path, "colmap_export")

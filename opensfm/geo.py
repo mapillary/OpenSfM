@@ -50,7 +50,7 @@ def lla_from_ecef(x, y, z):
     return np.degrees(lat), np.degrees(lon), alt
 
 
-def ecef_from_topocentric_transform(lat, lon, alt):
+def ecef_from_topocentric_transform(lat, lon, alt: float):
     """
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -77,7 +77,7 @@ def ecef_from_topocentric_transform(lat, lon, alt):
     )
 
 
-def ecef_from_topocentric_transform_finite_diff(lat, lon, alt):
+def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float):
     """
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -124,7 +124,7 @@ def ecef_from_topocentric_transform_finite_diff(lat, lon, alt):
     )
 
 
-def topocentric_from_lla(lat, lon, alt, reflat, reflon, refalt):
+def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt):
     """
     Transform from lat, lon, alt to topocentric XYZ.
 
