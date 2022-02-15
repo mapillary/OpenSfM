@@ -11,22 +11,19 @@ namespace bundle {
 struct RelativeMotionError {
   RelativeMotionError(const Eigen::VectorXd& Rtij,
                       const Eigen::MatrixXd& scale_matrix)
-      : Rtij_(Rtij),
-        scale_matrix_(scale_matrix),
-        shot_i_rig_camera_index_(FUNCTOR_NOT_SET),
-        shot_j_rig_camera_index_(FUNCTOR_NOT_SET) {}
+      : Rtij_(Rtij), scale_matrix_(scale_matrix) {}
 
   template <typename T>
   Eigen::Matrix<T, 6, 1> Error(T const* const* p) const {
     // Get rotation and translation values.
-    Vec3<T> Ri = ShotRotationFunctor(shot_i_rig_instance_index_,
-                                     shot_i_rig_camera_index_)(p);
-    Vec3<T> ti = ShotPositionFunctor(shot_i_rig_instance_index_,
-                                     shot_i_rig_camera_index_)(p);
-    Vec3<T> Rj = ShotRotationFunctor(shot_j_rig_instance_index_,
-                                     shot_j_rig_camera_index_)(p);
-    Vec3<T> tj = ShotPositionFunctor(shot_j_rig_instance_index_,
-                                     shot_j_rig_camera_index_)(p);
+    Vec3<T> Ri =
+        ShotRotationFunctor(shot_i_rig_instance_index_, FUNCTOR_NOT_SET)(p);
+    Vec3<T> ti =
+        ShotPositionFunctor(shot_i_rig_instance_index_, FUNCTOR_NOT_SET)(p);
+    Vec3<T> Rj =
+        ShotRotationFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
+    Vec3<T> tj =
+        ShotPositionFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
     Eigen::Matrix<T, 6, 1> residual;
 
     // Compute rotation residual: log( Rij Ri Rj^t )  ->  log( Rij Ri^t Rj)
@@ -52,8 +49,6 @@ struct RelativeMotionError {
 
   Eigen::VectorXd Rtij_;
   Eigen::MatrixXd scale_matrix_;
-  int shot_i_rig_camera_index_{FUNCTOR_NOT_SET};
-  int shot_j_rig_camera_index_{FUNCTOR_NOT_SET};
   static constexpr int shot_i_rig_instance_index_ = 0;
   static constexpr int shot_j_rig_instance_index_ = 1;
   static constexpr int scale_index_ = 2;

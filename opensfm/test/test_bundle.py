@@ -154,8 +154,8 @@ def test_pair(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
         # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
@@ -201,8 +201,8 @@ def test_pair_with_points_priors(bundle_adjuster) -> None:
     sa.add_point("p2", [0, 0, 0], False)
 
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
 
     # identity rotation with pan/tilt/roll
     sa.add_absolute_roll("1", np.radians(90), 1)
@@ -261,8 +261,8 @@ def test_pair_non_rigid(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", False)
     sa.add_relative_similarity(
         # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
@@ -323,10 +323,10 @@ def test_four_cams_single_reconstruction(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
         # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
@@ -399,31 +399,46 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", False)
 
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
-            # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
-            "1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1, 1
+            "1234",
+            "1",
+            "1234",
+            "2",
+            np.array([0, 0, 0]),
+            np.array([-1, 0, 0]),
+            1,
+            1,
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
-            # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
-            "1234", "2", "1234", "3", [0, 0, 0], [-1, -1, 0], 1, 1
+            "1234",
+            "2",
+            "1234",
+            "3",
+            np.array([0, 0, 0]),
+            np.array([-1, -1, 0]),
+            1,
+            1,
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
-            # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
-            "1234", "3", "1234", "4", [0, 0, 0], [0, -1, 0], 1, 1
+            "1234",
+            "3",
+            "1234",
+            "4",
+            np.array([0, 0, 0]),
+            np.array([0, -1, 0]),
+            1,
+            1,
         )
     )
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
@@ -489,10 +504,10 @@ def test_four_cams_one_fixed(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
         # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
@@ -556,9 +571,9 @@ def test_linear_motion_prior_position(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("123", False)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
     sa.add_rig_instance_position_prior("3", [2, 0, 0], [1, 1, 1], "")
@@ -605,9 +620,9 @@ def test_linear_motion_prior_rotation(bundle_adjuster) -> None:
         True,
     )
     sa.add_reconstruction("123", False)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
     sa.add_linear_motion("1", "2", "3", 0.3, 0.1, 0.1)
 
@@ -715,9 +730,9 @@ def test_heatmaps_position(bundle_adjuster) -> None:
         False,
     )
     sa.add_reconstruction("123", True)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
 
     def bell_heatmap(size, r, mu_x, mu_y):

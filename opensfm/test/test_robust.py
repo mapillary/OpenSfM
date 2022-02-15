@@ -1,19 +1,20 @@
 import copy
+from typing import Tuple
 
 import numpy as np
 from opensfm import pyrobust, pygeometry
 
 
-def line_data():
+def line_data() -> Tuple[int, int, np.ndarray, int]:
     a, b = 2, 3
     samples = 100
     x = np.linspace(0, 100, samples)
     return a, b, x, samples
 
 
-def similarity_data():
-    rotation = (0.1, 0.2, 0.3)
-    translation = (4, 5, 6)
+def similarity_data() -> Tuple[np.ndarray, np.ndarray, int, np.ndarray, int]:
+    rotation = np.array([0.1, 0.2, 0.3])
+    translation = np.array([4, 5, 6])
     scale = 2
     samples = 100
 
@@ -21,7 +22,7 @@ def similarity_data():
     return rotation, translation, scale, x, samples
 
 
-def add_outliers(ratio_outliers, x, min, max) -> None:
+def add_outliers(ratio_outliers: float, x: np.ndarray, min: float, max: float) -> None:
     for index in np.random.permutation(len(x))[: int(ratio_outliers * len(x))]:
         shape = x[index].shape
         noise = np.random.uniform(min, max, size=shape)
@@ -63,8 +64,8 @@ def test_outliers_line_ransac() -> None:
     result = pyrobust.ransac_line(data, scale, params, pyrobust.RansacType.RANSAC)
 
     inliers_count = (1 - ratio_outliers) * samples
-    assert result.score == inliers_count
-    assert len(result.inliers_indices) == inliers_count
+    assert np.allclose(result.score, inliers_count, atol=1)
+    assert np.allclose(len(result.inliers_indices), inliers_count, atol=1)
 
 
 def test_normal_line_msac() -> None:
