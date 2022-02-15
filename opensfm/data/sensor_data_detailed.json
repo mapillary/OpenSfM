@@ -25247,6 +25247,13 @@
         "Sensor": "1/2\" (~ 6.4 x 4.8 mm)", 
         "Sensor res. (height)": 1527.0
     }, 
+    "Yuneec E90": {
+        "Sensor height (mm)": 8.8, 
+        "Sensor width (mm)": 13.2, 
+        "Sensor res. (width)": 5472.0, 
+        "Sensor": "1\" (~ 13.2 x 8.8 mm)", 
+        "Sensor res. (height)": 3648.0
+    }, 
     "GITUP GIT2": {
         "Sensor height (mm)": 4.662, 
         "Sensor width (mm)": 6.216, 

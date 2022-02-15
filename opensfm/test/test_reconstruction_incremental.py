@@ -4,7 +4,7 @@ from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 
 def test_reconstruction_incremental(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -50,7 +50,7 @@ def test_reconstruction_incremental(
 
 def test_reconstruction_incremental_rig(
     scene_synthetic_rig: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic_rig.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,

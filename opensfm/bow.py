@@ -59,6 +59,6 @@ def load_vlad_words_and_frequencies(config):
     return vlad["words"], vlad["frequencies"]
 
 
-def load_bows(config):
+def load_bows(config) -> BagOfWords:
     words, frequencies = load_bow_words_and_frequencies(config)
     return BagOfWords(words, frequencies)

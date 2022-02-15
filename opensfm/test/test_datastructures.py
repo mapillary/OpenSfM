@@ -14,12 +14,12 @@ from opensfm.test.utils import (
 
 
 def _create_reconstruction(
-    n_cameras=0,
+    n_cameras: int=0,
     n_shots_cam=None,
     n_pano_shots_cam=None,
-    n_points=0,
-    dist_to_shots=False,
-    dist_to_pano_shots=False,
+    n_points: int=0,
+    dist_to_shots: bool=False,
+    dist_to_pano_shots: bool=False,
 ):
     """Creates a reconstruction with n_cameras random cameras and
     shots, where n_shots_cam is a dictionary, containing the
@@ -86,7 +86,7 @@ Camera Tests
 """
 
 
-def test_create_cameras():
+def test_create_cameras() -> None:
     n_cameras = 100
     rec = types.Reconstruction()
 
@@ -106,7 +106,7 @@ def test_create_cameras():
     assert len(rec.cameras) == n_cameras
 
 
-def test_camera_iterators():
+def test_camera_iterators() -> None:
     n_cameras = 100
     rec = _create_reconstruction(n_cameras)
 
@@ -142,14 +142,14 @@ def test_camera_iterators():
         assert cam is rec.cameras[cam.id]
 
 
-def _check_common_cam_properties(cam1, cam2):
+def _check_common_cam_properties(cam1, cam2) -> None:
     assert cam1.id == cam2.id
     assert cam1.width == cam2.width
     assert cam1.height == cam2.height
     assert cam1.projection_type == cam2.projection_type
 
 
-def test_brown_camera():
+def test_brown_camera() -> None:
     rec = types.Reconstruction()
     focal_x = 0.6
     focal_y = 0.7
@@ -161,6 +161,8 @@ def test_brown_camera():
     p2 = 0.002
     k3 = 0.01
     cam_cpp = pygeometry.Camera.create_brown(
+        # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
         focal_x, focal_y / focal_x, [c_x, c_y], [k1, k2, k3, p1, p2]
     )
     cam_cpp.width = 800
@@ -179,7 +181,7 @@ def test_brown_camera():
     assert cam_cpp.aspect_ratio == c.aspect_ratio
 
 
-def test_fisheye_camera():
+def test_fisheye_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     k1 = -0.1
@@ -198,12 +200,14 @@ def test_fisheye_camera():
     assert cam_cpp.focal == c.focal
 
 
-def test_fisheye_opencv_camera():
+def test_fisheye_opencv_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
     ppoint = [0.51, 0.52]
     dist = [-0.1, 0.09, 0.08, 0.01]
+    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
+    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
     cam_cpp = pygeometry.Camera.create_fisheye_opencv(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -220,12 +224,14 @@ def test_fisheye_opencv_camera():
     assert cam_cpp.aspect_ratio == c.aspect_ratio
 
 
-def test_fisheye62_camera():
+def test_fisheye62_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
     ppoint = [0.51, 0.52]
     dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2]  # [k1-k6, p1, p2]
+    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
+    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
     cam_cpp = pygeometry.Camera.create_fisheye62(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -244,12 +250,14 @@ def test_fisheye62_camera():
     assert cam_cpp.aspect_ratio == c.aspect_ratio
 
 
-def test_fisheye624_camera():
+def test_fisheye624_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
     ppoint = [0.51, 0.52]
     dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]  # [k1-k6, p1, p2, s0-s3]
+    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
+    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
     cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -270,7 +278,7 @@ def test_fisheye624_camera():
     assert cam_cpp.aspect_ratio == c.aspect_ratio
 
 
-def test_dual_camera():
+def test_dual_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     k1 = -0.1
@@ -291,7 +299,7 @@ def test_dual_camera():
     assert cam_cpp.transition == c.transition
 
 
-def test_perspective_camera():
+def test_perspective_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     k1 = -0.1
@@ -310,7 +318,7 @@ def test_perspective_camera():
     assert cam_cpp.focal == c.focal
 
 
-def test_spherical_camera():
+def test_spherical_camera() -> None:
     rec = types.Reconstruction()
     cam_cpp = pygeometry.Camera.create_spherical()
     cam_cpp.width = 800
@@ -321,7 +329,7 @@ def test_spherical_camera():
 
 
 # Test Metadata
-def _help_measurement_test(measurement, attr, val):
+def _help_measurement_test(measurement, attr, val) -> None:
     # Test metadata's has_value properties
     assert getattr(measurement, attr).has_value is False
     getattr(measurement, attr).value = val
@@ -336,7 +344,7 @@ def _help_measurement_test(measurement, attr, val):
     assert getattr(measurement, attr).has_value is False
 
 
-def test_shot_measurement_setter_and_getter():
+def test_shot_measurement_setter_and_getter() -> None:
     m1 = pymap.ShotMeasurements()
     # Test basic functionality
     _help_measurement_test(m1, "capture_time", np.random.rand(1))
@@ -351,7 +359,7 @@ def test_shot_measurement_setter_and_getter():
     _help_measurement_test(m1, "sequence_key", "key_test")
 
 
-def _helper_populate_metadata(m):
+def _helper_populate_metadata(m) -> None:
     m.capture_time.value = np.random.rand(1)
     m.gps_position.value = np.random.rand(3)
     m.gps_accuracy.value = np.random.rand(1)
@@ -364,7 +372,7 @@ def _helper_populate_metadata(m):
     m.sequence_key.value = "sequence_key"
 
 
-def test_shot_measurement_set():
+def test_shot_measurement_set() -> None:
     m1 = pymap.ShotMeasurements()
     _helper_populate_metadata(m1)
     m2 = pymap.ShotMeasurements()
@@ -378,7 +386,7 @@ def test_shot_measurement_set():
     assert_metadata_equal(m1, m3)
 
 
-def test_shot_create():
+def test_shot_create() -> None:
     # Given some created shot
     rec = _create_reconstruction(2)
     shot1 = rec.create_shot("shot0", "0")
@@ -389,7 +397,7 @@ def test_shot_create():
     assert len(rec.shots) == 1
 
 
-def test_shot_create_existing():
+def test_shot_create_existing() -> None:
     # Given some created shot
     rec = _create_reconstruction(2)
     rec.create_shot("shot0", "0")
@@ -400,7 +408,7 @@ def test_shot_create_existing():
         rec.create_shot("shot0", "1")
 
 
-def test_shot_create_more():
+def test_shot_create_more() -> None:
     # Given some created shot
     rec = _create_reconstruction(2)
     rec.create_shot("shot0", "0")
@@ -414,7 +422,7 @@ def test_shot_create_more():
     assert len(rec.shots) == n_shots
 
 
-def test_shot_delete_non_existing():
+def test_shot_delete_non_existing() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(2)
     rec.create_shot("shot0", "0")
@@ -425,7 +433,7 @@ def test_shot_delete_non_existing():
         rec.remove_shot("abcde")
 
 
-def test_shot_delete_existing():
+def test_shot_delete_existing() -> None:
     # Given some created reconstruction
     n_shots = 10
     rec = _create_reconstruction(1, {"0": n_shots})
@@ -439,7 +447,7 @@ def test_shot_delete_existing():
     assert len(rec.shots) == n_shots - len(del_shots)
 
 
-def test_shot_get():
+def test_shot_get() -> None:
     # Given some created shot
     rec = _create_reconstruction(1)
     shot_id = "shot0"
@@ -450,7 +458,7 @@ def test_shot_get():
     assert shot1 is rec.shots[shot_id]
 
 
-def test_shot_pose_set():
+def test_shot_pose_set() -> None:
     # Given some created shot
     rec = _create_reconstruction(1)
     shot_id = "shot0"
@@ -461,7 +469,7 @@ def test_shot_pose_set():
     assert np.allclose(origin, shot.pose.get_origin())
 
 
-def test_shot_get_non_existing():
+def test_shot_get_non_existing() -> None:
     # Given some created shot
     rec = _create_reconstruction(1)
     shot_id = "shot0"
@@ -474,7 +482,7 @@ def test_shot_get_non_existing():
         assert shot1 is rec.shots["toto"]
 
 
-def test_pano_shot_get():
+def test_pano_shot_get() -> None:
     # Given some created pano shot
     rec = _create_reconstruction(1)
     shot_id = "shot0"
@@ -485,7 +493,7 @@ def test_pano_shot_get():
     assert shot1 is rec.get_pano_shot(shot_id)
 
 
-def test_pano_shot_get_non_existing():
+def test_pano_shot_get_non_existing() -> None:
     # Given some created pano shot
     rec = _create_reconstruction(1)
     shot_id = "shot0"
@@ -498,7 +506,7 @@ def test_pano_shot_get_non_existing():
         assert shot1 is rec.shots["toto"]
 
 
-def test_pano_shot_create():
+def test_pano_shot_create() -> None:
     # Given some created shot
     rec = _create_reconstruction(2)
     shot1 = rec.create_pano_shot("shot0", "0")
@@ -509,7 +517,7 @@ def test_pano_shot_create():
     assert len(rec.pano_shots) == 1
 
 
-def test_pano_shot_create_existing():
+def test_pano_shot_create_existing() -> None:
     # Given some created pano shot
     rec = _create_reconstruction(2)
     rec.create_pano_shot("shot0", "0")
@@ -523,7 +531,7 @@ def test_pano_shot_create_existing():
             rec.create_pano_shot("shot0", "1")
 
 
-def test_pano_shot_create_more():
+def test_pano_shot_create_more() -> None:
     # Given some created pano shot
     rec = _create_reconstruction(2)
     rec.create_pano_shot("shot0", "0")
@@ -537,7 +545,7 @@ def test_pano_shot_create_more():
     assert len(rec.pano_shots) == n_shots
 
 
-def test_pano_shot_delete_non_existing():
+def test_pano_shot_delete_non_existing() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(2)
     rec.create_pano_shot("shot0", "0")
@@ -548,7 +556,7 @@ def test_pano_shot_delete_non_existing():
         rec.remove_pano_shot("abcde")
 
 
-def test_pano_shot_delete_existing():
+def test_pano_shot_delete_existing() -> None:
     # Given some created reconstruction
     n_shots = 10
     rec = _create_reconstruction(2)
@@ -564,7 +572,7 @@ def test_pano_shot_delete_existing():
     assert len(rec.pano_shots) == n_shots - len(del_shots)
 
 
-def test_shot_merge_cc():
+def test_shot_merge_cc() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(1, {"0": 2})
     map_shot1 = rec.shots["0"]
@@ -576,7 +584,7 @@ def test_shot_merge_cc():
     assert map_shot1.merge_cc == 10
 
 
-def test_shot_covariance():
+def test_shot_covariance() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(1, {"0": 2})
     map_shot1 = rec.shots["0"]
@@ -588,7 +596,7 @@ def test_shot_covariance():
     assert np.allclose(map_shot1.covariance, np.diag([1, 2, 3]))
 
 
-def test_shot_covariance_different():
+def test_shot_covariance_different() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(1, {"0": 2})
     map_shot1 = rec.shots["0"]
@@ -602,7 +610,7 @@ def test_shot_covariance_different():
     assert map_shot2.covariance is not map_shot1.covariance
 
 
-def test_shot_create_remove_create():
+def test_shot_create_remove_create() -> None:
     # Given some created reconstruction
     n_shots = 10
     rec = _create_reconstruction(1, {"0": n_shots})
@@ -620,7 +628,7 @@ def test_shot_create_remove_create():
     assert len(rec.shots) == n_shots
 
 
-def test_pano_shot_create_remove_create():
+def test_pano_shot_create_remove_create() -> None:
     # Given some created reconstruction
     n_shots = 10
     rec = _create_reconstruction(1, n_pano_shots_cam={"0": n_shots})
@@ -660,7 +668,7 @@ def _create_rig_instance():
     return rec, rig_instance, shot
 
 
-def test_rig_camera_create():
+def test_rig_camera_create() -> None:
     rec = _create_reconstruction(1, {"0": 2})
     rec.add_rig_camera(_create_rig_camera())
 
@@ -669,12 +677,12 @@ def test_rig_camera_create():
     assert "rig_camera" in rec.rig_cameras.keys()
 
 
-def test_rig_instance():
+def test_rig_instance() -> None:
     _, rig_instance, _ = _create_rig_instance()
     assert list(rig_instance.keys()) == ["0"]
 
 
-def test_rig_instance_create_default():
+def test_rig_instance_create_default() -> None:
     # one default rig instance per shot
     rec, rig_instance, _ = _create_rig_instance()
 
@@ -685,37 +693,37 @@ def test_rig_instance_create_default():
     assert list(rec.rig_instances["1"].shots.keys()) == ["1"]
 
 
-def test_rig_instance_create_add_existing():
+def test_rig_instance_create_add_existing() -> None:
     rec, rig_instance, _ = _create_rig_instance()
     with pytest.raises(RuntimeError):
         rec.add_rig_instance(rig_instance)
 
 
-def test_rig_instance_remove_shot():
+def test_rig_instance_remove_shot() -> None:
     rec, _, shot = _create_rig_instance()
     rec.remove_shot(shot.id)
     assert len(rec.rig_instances["0"].shots) == 0
 
 
-def test_rig_shot_modify_pose_raise():
+def test_rig_shot_modify_pose_raise() -> None:
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
         shot.pose.set_origin(np.array([1, 2, 3]))
 
 
-def test_rig_shot_modify_pose_succeed():
+def test_rig_shot_modify_pose_succeed() -> None:
     _, rig_instance, shot = _create_rig_instance()
     next(iter(rig_instance.rig_cameras.values())).pose = pygeometry.Pose()
     shot.pose.set_origin(np.array([1, 2, 3]))
 
 
-def test_rig_shot_set_pose():
+def test_rig_shot_set_pose() -> None:
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
         shot.pose = pygeometry.Pose()
 
 
-def test_add_shot_from_shot_correct_value():
+def test_add_shot_from_shot_correct_value() -> None:
     # Given some created reconstruction (rec) ...
     n_shots = 5
     rec = _create_reconstruction(1, n_shots_cam={"0": n_shots})
@@ -737,7 +745,7 @@ def test_add_shot_from_shot_correct_value():
         assert_shots_equal(rec.shots[k], rec_new.shots[k])
 
 
-def test_shot_metadata_different():
+def test_shot_metadata_different() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(1, n_shots_cam={"0": 2})
     shot1 = rec.shots["0"]
@@ -748,7 +756,7 @@ def test_shot_metadata_different():
     assert shot1.metadata is not shot2.metadata
 
 
-def test_shot_metadata_assign_equal():
+def test_shot_metadata_assign_equal() -> None:
     # Given some created reconstruction
     rec = _create_reconstruction(1, n_shots_cam={"0": 2})
     shot1 = rec.shots["0"]
@@ -765,7 +773,7 @@ def test_shot_metadata_assign_equal():
     assert_metadata_equal(shot1.metadata, shot2.metadata)
 
 
-def test_add_pano_shot_from_shot_correct_value():
+def test_add_pano_shot_from_shot_correct_value() -> None:
     # Given some created reconstruction (rec) ...
     n_shots = 5
     rec = _create_reconstruction(1, n_pano_shots_cam={"0": n_shots})
@@ -784,7 +792,7 @@ def test_add_pano_shot_from_shot_correct_value():
         assert_shots_equal(rec.pano_shots[k], rec_new.pano_shots[k])
 
 
-def test_single_point_create():
+def test_single_point_create() -> None:
     # Given a created point
     rec = types.Reconstruction()
     pt = rec.create_point("0")
@@ -794,7 +802,7 @@ def test_single_point_create():
     assert len(rec.points) == 1
 
 
-def test_single_point_get_existing():
+def test_single_point_get_existing() -> None:
     # Given a created point
     rec = types.Reconstruction()
     pt = rec.create_point("0")
@@ -803,7 +811,7 @@ def test_single_point_get_existing():
     assert pt == rec.points["0"] and pt == rec.get_point("0")
 
 
-def test_single_point_get_non_existing():
+def test_single_point_get_non_existing() -> None:
     # Given a created point
     rec = types.Reconstruction()
     rec.create_point("0")
@@ -814,7 +822,7 @@ def test_single_point_get_non_existing():
         rec.get_point("toto")
 
 
-def test_single_point_coordinates():
+def test_single_point_coordinates() -> None:
     # Given a created point
     rec = types.Reconstruction()
     pt = rec.create_point("0")
@@ -827,7 +835,7 @@ def test_single_point_coordinates():
     assert np.allclose(pt.coordinates, coord)
 
 
-def test_single_point_color():
+def test_single_point_color() -> None:
     # Given a created point
     rec = types.Reconstruction()
     pt = rec.create_point("0")
@@ -840,7 +848,7 @@ def test_single_point_color():
     assert np.allclose(pt.color, color)
 
 
-def test_point_add_from_point():
+def test_point_add_from_point() -> None:
     # Given some created reconstruction (rec) ...
     rec = types.Reconstruction()
 
@@ -864,7 +872,7 @@ def test_point_add_from_point():
     assert np.allclose(pt2_1.coordinates, coord2)
 
 
-def test_point_reproj_errors_assign():
+def test_point_reproj_errors_assign() -> None:
     # Given some created point
     rec = _create_reconstruction(n_points=1)
     pt = rec.points["0"]
@@ -878,7 +886,7 @@ def test_point_reproj_errors_assign():
         assert np.allclose(pt.reprojection_errors[k], reproj_errors[k])
 
 
-def test_point_delete_non_existing():
+def test_point_delete_non_existing() -> None:
     # Given some created points
     n_points = 100
     rec = _create_reconstruction(n_points=n_points)
@@ -889,7 +897,7 @@ def test_point_delete_non_existing():
         rec.remove_point("abcdef")
 
 
-def test_point_delete_existing():
+def test_point_delete_existing() -> None:
     # Given some created points
     n_points = 100
     rec = _create_reconstruction(n_points=n_points)
@@ -903,7 +911,7 @@ def test_point_delete_existing():
     assert len(rec.points) == 0
 
 
-def test_point_delete_existing_assign_empty():
+def test_point_delete_existing_assign_empty() -> None:
     # Given some created points
     n_points = 100
     rec = _create_reconstruction(n_points=n_points)
@@ -913,7 +921,7 @@ def test_point_delete_existing_assign_empty():
     assert len(rec.points) == 0
 
 
-def test_single_observation():
+def test_single_observation() -> None:
     # Given a 1-camera, 1-point reconstruction
     rec = _create_reconstruction(1, n_shots_cam={"0": 1}, n_points=1)
 
@@ -933,7 +941,7 @@ def test_single_observation():
     assert obs is not None
 
 
-def test_single_observation_delete():
+def test_single_observation_delete() -> None:
     # Given a 1-camera, 1-point reconstruction and corresponding observation
     rec = _create_reconstruction(1, n_shots_cam={"0": 1}, n_points=1)
     obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, 100)
@@ -950,7 +958,7 @@ def test_single_observation_delete():
     assert pt.number_of_observations() == 0
 
 
-def test_many_observations_delete():
+def test_many_observations_delete() -> None:
     # Given a map with 10 shots, 1000 landmarks ...
     m = pymap.Map()
     n_cams = 2
@@ -991,7 +999,7 @@ def test_many_observations_delete():
     m.clear_observations_and_landmarks()
 
 
-def test_clean_landmarks_with_min_observations():
+def test_clean_landmarks_with_min_observations() -> None:
     m = pymap.Map()
     n_cams = 2
     n_shots = 2
@@ -1029,7 +1037,7 @@ def test_clean_landmarks_with_min_observations():
     assert len(m.get_landmarks()) == 0
 
 
-def test_camera_deepcopy():
+def test_camera_deepcopy() -> None:
     # Given a camera
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
 
@@ -1040,7 +1048,7 @@ def test_camera_deepcopy():
     assert cam1.focal == cam2.focal
 
 
-def test_camera_deepcopy_assign():
+def test_camera_deepcopy_assign() -> None:
     # Given a camera
     cam1 = pygeometry.Camera.create_perspective(0.5, 0, 0)
 
@@ -1052,7 +1060,7 @@ def test_camera_deepcopy_assign():
     assert cam1.focal != cam2.focal
 
 
-def test_observation_shot_removal():
+def test_observation_shot_removal() -> None:
     # Given a reconstruction with 2 shots
     rec = _create_reconstruction(
         n_cameras=2, n_shots_cam={"0": 1, "1": 1}, n_points=200, dist_to_shots=True
@@ -1073,7 +1081,7 @@ def test_observation_shot_removal():
         assert len(p.get_observations()) == 0
 
 
-def test_rec_deepcopy():
+def test_rec_deepcopy() -> None:
     # Given a reconstruction with everything (shots, pano shots, metadata)
     rec = _create_reconstruction(
         n_cameras=2,
@@ -1088,6 +1096,8 @@ def test_rec_deepcopy():
         _helper_populate_metadata(shot.metadata)
 
     # When we deep-copy it
+    # pyre-fixme[6]: For 2nd param expected `Optional[Dict[int, typing.Any]]` but
+    #  got `Dict[str, bool]`.
     rec2 = copy.deepcopy(rec, {"copy_observations": True})
 
     # It has the expected count of data
@@ -1133,7 +1143,7 @@ def test_rec_deepcopy():
             assert obs1 is not obs_cpy
 
 
-def test_gcp():
+def test_gcp() -> None:
     gcp = []
     for i in range(0, 10):
         p = pymap.GroundControlPoint()
@@ -1155,7 +1165,7 @@ def test_gcp():
         assert pt.observations[1].shot_id == "p2"
 
 
-def test_add_correspondences_from_tracks_manager():
+def test_add_correspondences_from_tracks_manager() -> None:
     n_shots = 3
     rec = _create_reconstruction(
         n_cameras=1,

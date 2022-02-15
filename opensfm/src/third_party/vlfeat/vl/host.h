@@ -199,7 +199,7 @@ the terms of the BSD license (see the COPYING file).
 
 /** @name Identifying the host threading library
  ** @{ */
-#if defined(VL_OS_MACOSX) || defined(VL_OS_LINUX) || \
+#if !defined(VL_OS_WIN) && !defined(VL_OS_WIN64) || \
 defined(__DOXYGEN__)
 #define VL_THREADS_POSIX 1
 #endif
@@ -312,7 +312,7 @@ defined(__DOXYGEN__)
 #if defined(VL_COMPILER_MSC) & ! defined(__DOXYGEN__)
 #  define VL_UNUSED
 #  define VL_INLINE static __inline
-#if _MSC_VER < 1900
+#if defined _MSC_VER && _MSC_VER < 1900
 #  define snprintf _snprintf
 #endif
 #  define isnan _isnan
@@ -389,7 +389,7 @@ typedef unsigned int        vl_uint ;    /**< @brief Same as <code>unsigned int<
 typedef int                 vl_bool ;    /**< @brief Boolean. */
 typedef vl_int64            vl_intptr ;  /**< @brief Integer holding a pointer. */
 typedef vl_uint64           vl_uintptr ; /**< @brief Unsigned integer holding a pointer. */
-typedef vl_int64            vl_size ;    /**< @brief Integer holding the size of a memory block. */
+typedef vl_int64            vl_size ;    /**< @brief Signed integer holding the size of a memory block. */
 typedef vl_int64            vl_index ;   /**< @brief Signed version of ::vl_size and ::vl_uindex */
 typedef vl_uint64           vl_uindex ;  /**< @brief Same as ::vl_size */
 #endif

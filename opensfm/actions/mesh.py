@@ -2,7 +2,7 @@ from opensfm import mesh
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase):
+def run_dataset(data: DataSetBase) -> None:
     """Add delaunay meshes to the reconstruction."""
 
     tracks_manager = data.load_tracks_manager()

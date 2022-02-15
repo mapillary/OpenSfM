@@ -268,11 +268,12 @@ def add_shots_to_reconstruction(
     positions: List[np.ndarray],
     rotations: List[np.ndarray],
     rig_cameras: List[pymap.RigCamera],
-    camera: pygeometry.Camera,
+    cameras: List[pygeometry.Camera],
     reconstruction: types.Reconstruction,
     sequence_key: str,
 ):
-    reconstruction.add_camera(camera)
+    for camera in cameras:
+        reconstruction.add_camera(camera)
 
     rec_rig_cameras = []
     for rig_camera in rig_cameras:
@@ -283,9 +284,9 @@ def add_shots_to_reconstruction(
         rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
 
-        for s in i_shots:
-            shot_id = s[0]
-            rig_camera_id = s[1]
+        for shot, camera in zip(i_shots, cameras):
+            shot_id = shot[0]
+            rig_camera_id = shot[1]
             shot = reconstruction.create_shot(
                 shot_id,
                 camera.id,
@@ -299,7 +300,7 @@ def add_shots_to_reconstruction(
 def create_reconstruction(
     points: List[np.ndarray],
     colors: List[np.ndarray],
-    cameras: List[pygeometry.Camera],
+    cameras: List[List[pygeometry.Camera]],
     shot_ids: List[List[str]],
     rig_shots: List[List[List[Tuple[str, str]]]],
     rig_positions: List[np.ndarray],

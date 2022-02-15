@@ -1,13 +1,15 @@
 from opensfm.actions import undistort
 
 from . import command
+import argparse
+from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
     name = "undistort"
     help = "Save radially undistorted images"
 
-    def run_impl(self, dataset, args):
+    def run_impl(self, dataset: DataSet, args: argparse.Namespace) -> None:
         undistort.run_dataset(
             dataset,
             args.reconstruction,
@@ -17,7 +19,7 @@ class Command(command.CommandBase):
             args.skip_images
         )
 
-    def add_arguments_impl(self, parser):
+    def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
             "--reconstruction",
             help="reconstruction to undistort",

@@ -22,6 +22,6 @@ def create_berlin_test_folder(tmpdir):
     return opensfm.dataset.DataSet(dst)
 
 
-def save_config(config, path):
+def save_config(config, path) -> None:
     with io.open_wt(os.path.join(path, "config.yaml")) as fout:
         yaml.safe_dump(config, fout, default_flow_style=False)

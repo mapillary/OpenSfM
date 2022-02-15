@@ -69,12 +69,20 @@ class DataSet(DataSetBase):
     def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
+        image_list_path = os.path.join(self.data_path, "images")
+
         if self.io_handler.isfile(image_list_file):
             with self.io_handler.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
-            self._set_image_path(os.path.join(self.data_path, "images"))
+            self._set_image_path(image_list_path)
+
+        if self.data_path and not self.image_list:
+            raise IOError(
+                "No Images found in {}"
+                .format(image_list_path)
+                )
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
@@ -618,8 +626,10 @@ class DataSet(DataSetBase):
         """Create a subset of this dataset by symlinking input data."""
         subset_dataset_path = os.path.join(self.data_path, name)
         self.io_handler.mkdir_p(subset_dataset_path)
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "images"))
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
+
+        folders = ["images", "segmentations", "masks"]
+        for folder in folders:
+            self.io_handler.mkdir_p(os.path.join(subset_dataset_path, folder))
         subset_dataset = DataSet(subset_dataset_path, self.io_handler)
 
         files = []
@@ -648,6 +658,13 @@ class DataSet(DataSetBase):
                     os.path.join(subset_dataset_path, "segmentations", image + ".png"),
                 )
             )
+            if image in self.mask_files:
+                files.append(
+                    (
+                        self.mask_files[image],
+                        os.path.join(subset_dataset_path, "masks", image + ".png"),
+                    )
+                )
 
         for src, dst in files:
             if not self.io_handler.exists(src):

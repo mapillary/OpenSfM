@@ -5,14 +5,14 @@ from opensfm import commands, dataset
 from opensfm.test import data_generation, utils
 
 
-def run_command(command, args):
+def run_command(command, args) -> None:
     parser = argparse.ArgumentParser()
     command.add_arguments(parser)
     parsed_args = parser.parse_args(args)
     command.run(dataset.DataSet(parsed_args.dataset), parsed_args)
 
 
-def test_run_all(tmpdir):
+def test_run_all(tmpdir) -> None:
     data = data_generation.create_berlin_test_folder(tmpdir)
     run_all_commands = [
         commands.extract_metadata,
@@ -54,13 +54,13 @@ def test_run_all(tmpdir):
     check_prior(data, output_rec_path)
 
 
-def check_reconstruction(data: dataset.DataSet):
+def check_reconstruction(data: dataset.DataSet) -> None:
     reconstruction = data.load_reconstruction()
     assert len(reconstruction[0].shots) == 3
     assert len(reconstruction[0].points) > 1000
 
 
-def check_prior(data: dataset.DataSet, output_rec_path: str):
+def check_prior(data: dataset.DataSet, output_rec_path: str) -> None:
     reconstruction = data.load_reconstruction()  # load old reconstruction
     prior_rec = data.load_reconstruction(output_rec_path)
     for shot_id, shot in reconstruction[0].shots.items():

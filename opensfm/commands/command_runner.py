@@ -1,9 +1,10 @@
+from typing import Any, Callable, List
 import argparse
 
 from opensfm import log
 
 
-def command_runner(all_commands_types, dataset_factory, dataset_choices):
+def command_runner(all_commands_types: List[Any], dataset_factory: Callable, dataset_choices: List[str]) -> None:
     """ Main entry point for running the passed SfM commands types."""
     log.setup()
 
