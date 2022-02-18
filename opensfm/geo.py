@@ -124,7 +124,7 @@ def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float):
     )
 
 
-def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt):
+def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt: float):
     """
     Transform from lat, lon, alt to topocentric XYZ.
 
@@ -145,7 +145,7 @@ def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt):
     return tx, ty, tz
 
 
-def lla_from_topocentric(x, y, z, reflat, reflon, refalt):
+def lla_from_topocentric(x, y, z, reflat, reflon, refalt: float):
     """
     Transform from topocentric XYZ to lat, lon, alt.
     """
