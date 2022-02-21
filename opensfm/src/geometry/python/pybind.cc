@@ -76,10 +76,10 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_parameters_values", &geometry::Camera::GetParametersValues)
       .def("get_parameters_types", &geometry::Camera::GetParametersTypes)
       .def("get_parameters_map", &geometry::Camera::GetParametersMap)
-      .def("pixel_to_normalized_coordinates_common",
+      .def_static("pixel_to_normalized_coordinates_common",
            (Vec2d(*)(const Vec2d&, const int, const int)) &
                geometry::Camera::PixelToNormalizedCoordinates)
-      .def("pixel_to_normalized_coordinates_many_common",
+      .def_static("pixel_to_normalized_coordinates_many_common",
            (MatX2d(*)(const MatX2d&, const int, const int)) &
                geometry::Camera::PixelToNormalizedCoordinatesMany)
       .def("pixel_to_normalized_coordinates",
@@ -88,10 +88,10 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("pixel_to_normalized_coordinates_many",
            (MatX2d(geometry::Camera::*)(const MatX2d&) const) &
                geometry::Camera::PixelToNormalizedCoordinatesMany)
-      .def("normalized_to_pixel_coordinates_common",
+      .def_static("normalized_to_pixel_coordinates_common",
            (Vec2d(*)(const Vec2d&, const int, const int)) &
                geometry::Camera::NormalizedToPixelCoordinates)
-      .def("normalized_to_pixel_coordinates_many_common",
+      .def_static("normalized_to_pixel_coordinates_many_common",
            (MatX2d(*)(const MatX2d&, const int, const int)) &
                geometry::Camera::NormalizedToPixelCoordinatesMany)
       .def("normalized_to_pixel_coordinates",

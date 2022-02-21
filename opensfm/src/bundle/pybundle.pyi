@@ -2,6 +2,7 @@
 # Do not manually edit
 # To regenerate:
 #   $ buck run //mapillary/opensfm/opensfm/src/bundle:pybundle_stubgen
+# Use proper mode, e.g. @arvr/mode/linux/dev for arvr
 # @generated
 
 import numpy

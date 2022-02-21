@@ -241,7 +241,6 @@ def test_pixel_to_normalized_conversion() -> None:
     px_coord = np.array([50, 300])
     norm_coord_comp = cam.pixel_to_normalized_coordinates(px_coord)
     norm_coord_static = pygeometry.Camera.pixel_to_normalized_coordinates_common(
-        # pyre-fixme[6]: For 1st param expected `Camera` but got `ndarray`.
         px_coord, width, height
     )
     norm_coord_gt = px_coord - np.array([(width - 1.0) / 2.0, (height - 1.0) / 2.0])
@@ -251,7 +250,6 @@ def test_pixel_to_normalized_conversion() -> None:
 
     px_coord_comp1 = cam.normalized_to_pixel_coordinates(norm_coord_comp)
     px_coord_comp2 = pygeometry.Camera.normalized_to_pixel_coordinates_common(
-        # pyre-fixme[6]: For 1st param expected `Camera` but got `ndarray`.
         norm_coord_comp, width, height
     )
     assert np.allclose(px_coord, px_coord_comp1)

@@ -2,6 +2,7 @@
 # Do not manually edit
 # To regenerate:
 #   $ buck run //mapillary/opensfm/opensfm/src/map:pymap_stubgen
+# Use proper mode, e.g. @arvr/mode/linux/dev for arvr
 # @generated
 
 import numpy
@@ -176,6 +177,7 @@ class Map:
     def update_shot(self, arg0: Shot) -> Shot: ...
 class Observation:
     def __init__(self, x: float, y: float, s: float, r: int, g: int, b: int, feature: int, segmentation: int = -1, instance: int = -1) -> None: ...
+    def copy(self) -> Observation: ...
     @property
     def color(self) -> numpy.ndarray:...
     @color.setter
