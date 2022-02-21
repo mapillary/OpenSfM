@@ -500,6 +500,11 @@ class DataSet(DataSetBase):
         with self.io_handler.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
 
+    def save_exif_overrides(self, exif_overrides: Dict[str, Any]) -> None:
+        """Load EXIF overrides data."""
+        with self.io_handler.open_wt(self._exif_overrides_file()) as fout:
+            io.json_dump(exif_overrides, fout)
+
     def _rig_cameras_file(self) -> str:
         """Return path of rig models file"""
         return os.path.join(self.data_path, "rig_cameras.json")
