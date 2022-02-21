@@ -63,6 +63,16 @@ bow_matcher_type: FLANN       # Matcher type to assign words to features
 # Params for VLAD matching
 vlad_file: bow_hahog_root_uchar_64.npz
 
+# Params for guided matching
+guided_spanning_trees: 5              # Number of randomized spanning-trees to samples over the tracks-graph
+guided_spanning_trees_random: 0.5     # Random ratio higher bound edges are multiplied with
+guided_matching_threshold: 0.006      # Threshold for epipolar distance for accepting a match in radians
+guided_min_length_initial: 3          # Minimum track length for initial triangulation
+guided_min_length_final: 3            # Minimum track length for final triangulation
+guided_extend_threshold: 0.002        # Threshold of reprojection for extending a track within a new image (in radians)
+guided_extend_image_neighbors: 50     # Number of images considered as neighbors of another one
+guided_extend_feature_neighbors: 10   # Maximum number of reprojected neighbors (in the tracks-graph) to check when extending a track within a new image
+
 # Params for matching
 matching_gps_distance: 150            # Maximum gps distance between two images for matching
 matching_gps_neighbors: 0             # Number of images to match selected by GPS distance. Set to 0 to use no limit (or disable if matching_gps_distance is also 0)
@@ -93,6 +103,7 @@ five_point_reversal_ratio: 0.95         # Ratio of triangulated points non-rever
 triangulation_threshold: 0.006          # Outlier threshold for accepting a triangulated point in radians
 triangulation_min_ray_angle: 1.0        # Minimum angle between views to accept a triangulated point
 triangulation_type: FULL                # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
+triangulation_refinement_iterations: 10 # Number of LM iterations to run when refining a point
 resection_threshold: 0.004              # Outlier threshold for resection in radians
 resection_min_inliers: 10               # Minimum number of resection inliers to accept it
 

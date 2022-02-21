@@ -2,22 +2,23 @@ from functools import lru_cache
 from typing import List, Tuple, Iterable, Dict, Optional
 
 import numpy as np
-from opensfm import bow
-from opensfm import feature_loader
+from opensfm import pyfeatures, feature_loader, bow
 from opensfm.dataset_base import DataSetBase
 
 
-def unnormalized_vlad(features: np.ndarray, centers: np.ndarray) -> np.ndarray:
+def unnormalized_vlad(
+    features: np.ndarray, centers: np.ndarray
+) -> Optional[np.ndarray]:
     """Compute unnormalized VLAD histograms from a set of
     features in relation to centers.
 
     Returns the unnormalized VLAD vector.
     """
-    vlad = np.zeros(centers.shape, dtype=np.float32)
-    for f in features:
-        i = np.argmin(np.linalg.norm(f - centers, axis=1))
-        vlad[i, :] += f - centers[i]
-    return vlad.flatten()
+    correct_dims = centers.shape[1] == features.shape[1]
+    correct_type = centers.dtype == features.dtype
+    if not correct_dims or not correct_type:
+        return None
+    return pyfeatures.compute_vlad_descriptor(features, centers)
 
 
 def signed_square_root_normalize(v: np.ndarray) -> np.ndarray:
@@ -40,18 +41,10 @@ def vlad_distances(
     Returns the image, the order of the other images,
     and the other images.
     """
-    if image not in histograms:
-        return image, [], []
-
-    distances = []
-    other = []
-    h = histograms[image]
-    for im2 in other_images:
-        if im2 != image and im2 in histograms:
-            h2 = histograms[im2]
-            distances.append(np.linalg.norm(h - h2))
-            other.append(im2)
-    return image, distances, other
+    distances, others = pyfeatures.compute_vlad_distances(
+        histograms, image, set(other_images)
+    )
+    return image, distances, others
 
 
 class VladCache(object):
@@ -76,6 +69,8 @@ class VladCache(object):
         if descriptors is None:
             return None
         vlad = unnormalized_vlad(descriptors, words)
+        if vlad is None:
+            return None
         vlad = signed_square_root_normalize(vlad)
         return vlad
 

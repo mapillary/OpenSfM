@@ -6,7 +6,7 @@ from opensfm import pydense
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
-def run_dataset(data: DataSet, image_list):
+def run_dataset(data: DataSet, image_list) -> None:
     """ Export reconstruction to OpenMVS format. """
 
     udata = data.undistorted_dataset()
@@ -24,7 +24,7 @@ def run_dataset(data: DataSet, image_list):
         export(reconstructions[0], tracks_manager, udata, export_only)
 
 
-def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_only):
+def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_only) -> None:
     exporter = pydense.OpenMVSExporter()
     for camera in reconstruction.cameras.values():
         if camera.projection_type == "perspective":

@@ -33,10 +33,9 @@ class SemanticData:
     def mask(self, mask: np.ndarray) -> "SemanticData":
         try:
             segmentation = self.segmentation[mask]
-            if self.has_instances():
-                instances = self.instances[mask]  # pyre-fixme [16]
-            else:
-                instances = None
+            instances = self.instances
+            if instances is not None:
+                instances = instances[mask]
         except IndexError:
             logger.error(
                 f"Invalid mask array of dtype {mask.dtype}, shape {mask.shape}: {mask}"
@@ -67,11 +66,13 @@ class FeaturesData:
         self.colors = colors
         self.semantic = semantic
 
-    def has_segmentation(self) -> bool:
+    def get_segmentation(self) -> Optional[np.ndarray]:
         semantic = self.semantic
         if not semantic:
-            return False
-        return semantic.segmentation is not None
+            return None
+        if semantic.segmentation is not None:
+            return semantic.segmentation
+        return None
 
     def has_instances(self) -> bool:
         semantic = self.semantic
@@ -105,18 +106,19 @@ class FeaturesData:
             feature_data_type = np.uint8
         else:
             feature_data_type = np.float32
-        if self.descriptors is None:
+        descriptors = self.descriptors
+        if descriptors is None:
             raise RuntimeError("No descriptors found, canot save features data.")
-        if self.semantic:
+        semantic = self.semantic
+        if semantic:
             np.savez_compressed(
                 fileobject,
                 points=self.points.astype(np.float32),
-                # pyre-fixme [16]
-                descriptors=self.descriptors.astype(feature_data_type),
+                descriptors=descriptors.astype(feature_data_type),
                 colors=self.colors,
-                segmentations=self.semantic.segmentation,  # pyre-fixme [16]
-                instances=self.semantic.instances,  # pyre-fixme [16]
-                segmentation_labels=self.semantic.labels,  # pyre-fixme [16]
+                segmentations=semantic.segmentation,
+                instances=semantic.instances,
+                segmentation_labels=semantic.labels,
                 OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
                 allow_pickle=True,
             )
@@ -124,7 +126,7 @@ class FeaturesData:
             np.savez_compressed(
                 fileobject,
                 points=self.points.astype(np.float32),
-                descriptors=self.descriptors.astype(feature_data_type),
+                descriptors=descriptors.astype(feature_data_type),
                 colors=self.colors,
                 segmentations=None,
                 instances=None,
@@ -345,9 +347,14 @@ def extract_features_sift(
             logger.debug("done")
             break
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature(desc)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
     return points, desc
 
 
@@ -396,9 +403,14 @@ def extract_features_surf(
             break
 
     points, desc = descriptor.compute(image, points)
-    if config["feature_root"]:
-        desc = root_feature_surf(desc, partial=True)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+
+    if desc is not None:
+        if config["feature_root"]:
+            desc = root_feature(desc)
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
     return points, desc
 
 
@@ -449,7 +461,6 @@ def extract_features_hahog(
         peak_threshold=config["hahog_peak_threshold"],
         edge_threshold=config["hahog_edge_threshold"],
         target_num_features=features_count,
-        use_adaptive_suppression=config["feature_use_adaptive_suppression"],
     )
 
     if config["feature_root"]:
@@ -481,7 +492,11 @@ def extract_features_orb(
     points = detector.detect(image)
 
     points, desc = descriptor.compute(image, points)
-    points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    if desc is not None:
+        points = np.array([(i.pt[0], i.pt[1], i.size, i.angle) for i in points])
+    else:
+        points = np.array(np.zeros((0, 3)))
+        desc = np.array(np.zeros((0, 3)))
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
     return points, desc
@@ -555,16 +570,15 @@ def extract_features(
     return normalize_features(points, desc, colors, image.shape[1], image.shape[0])
 
 
-def build_flann_index(features: np.ndarray, config: Dict[str, Any]) -> Any:
+def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_LINEAR = 0
     FLANN_INDEX_KDTREE = 1
     FLANN_INDEX_KMEANS = 2
     # FLANN_INDEX_COMPOSITE = 3
     # FLANN_INDEX_KDTREE_SINGLE = 4
     # FLANN_INDEX_HIERARCHICAL = 5
-    FLANN_INDEX_LSH = 6
 
-    if features.dtype.type is np.float32:
+    if descriptors.dtype.type is np.float32:
         algorithm_type = config["flann_algorithm"].upper()
         if algorithm_type == "KMEANS":
             FLANN_INDEX_METHOD = FLANN_INDEX_KMEANS
@@ -572,14 +586,15 @@ def build_flann_index(features: np.ndarray, config: Dict[str, Any]) -> Any:
             FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
         else:
             raise ValueError("Unknown flann algorithm type " "must be KMEANS, KDTREE")
+        flann_params = {
+            "algorithm": FLANN_INDEX_METHOD,
+            "branching": config["flann_branching"],
+            "iterations": config["flann_iterations"],
+            "tree": config["flann_tree"],
+        }
     else:
-        FLANN_INDEX_METHOD = FLANN_INDEX_LSH
+        raise ValueError(
+            "FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead."
+        )
 
-    flann_params = {
-        "algorithm": FLANN_INDEX_METHOD,
-        "branching": config["flann_branching"],
-        "iterations": config["flann_iterations"],
-        "tree": config["flann_tree"],
-    }
-
-    return context.flann_Index(features, flann_params)
+    return context.flann_Index(descriptors, flann_params)

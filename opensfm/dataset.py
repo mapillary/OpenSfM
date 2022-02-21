@@ -19,6 +19,7 @@ from opensfm import (
     rig,
 )
 from opensfm.dataset_base import DataSetBase
+from PIL.PngImagePlugin import PngImageFile
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,20 @@ class DataSet(DataSetBase):
     def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
+        image_list_path = os.path.join(self.data_path, "images")
+
         if self.io_handler.isfile(image_list_file):
             with self.io_handler.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
-            self._set_image_path(os.path.join(self.data_path, "images"))
+            self._set_image_path(image_list_path)
+
+        if self.data_path and not self.image_list:
+            raise IOError(
+                "No Images found in {}"
+                .format(image_list_path)
+                )
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
@@ -162,7 +171,22 @@ class DataSet(DataSetBase):
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if self.io_handler.isfile(segmentation_file):
-            segmentation = self.io_handler.imread(segmentation_file, grayscale=True)
+            with self.io_handler.open(segmentation_file, "rb") as fp:
+                with PngImageFile(fp) as png_image:
+                    # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                    data = np.array(png_image)
+                    if data.ndim == 2:
+                        return data
+                    elif data.ndim == 3:
+                        return data[:, :, 0]
+
+                        # TODO we can optionally return also the instances and scores:
+                        # instances = (
+                        #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                        # )
+                        # scores = data[:, :, 3].astype(np.float32) / 256.0
+                    else:
+                        raise IndexError
         else:
             segmentation = None
         return segmentation
@@ -500,14 +524,23 @@ class DataSet(DataSetBase):
         """Return path of rig assignments file"""
         return os.path.join(self.data_path, "rig_assignments.json")
 
-    def load_rig_assignments(self) -> List[List[Tuple[str, str]]]:
+    def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:
         """Return rig assignments  data"""
         if not self.io_handler.exists(self._rig_assignments_file()):
-            return []
+            return {}
         with self.io_handler.open_rt(self._rig_assignments_file()) as fin:
-            return json.load(fin)
+            assignments = json.load(fin)
 
-    def save_rig_assignments(self, rig_assignments: List[List[Tuple[str, str]]]):
+        # Backward compatibility.
+        # Older versions of the file were stored as a list of instances without id.
+        if isinstance(assignments, list):
+            assignments = {str(i): v for i, v in enumerate(assignments)}
+
+        return assignments
+
+    def save_rig_assignments(
+        self, rig_assignments: Dict[str, List[Tuple[str, str]]]
+    ) -> None:
         """Save rig assignments  data"""
         with self.io_handler.open_wt(self._rig_assignments_file()) as fout:
             io.json_dump(rig_assignments, fout)
@@ -533,7 +566,7 @@ class DataSet(DataSetBase):
         with self.io_handler.open_wt(filepath) as fout:
             return fout.write(report_str)
 
-    def _ply_file(self, filename: Optional[str]):
+    def _ply_file(self, filename: Optional[str]) -> str:
         return os.path.join(self.data_path, filename or "reconstruction.ply")
 
     def save_ply(
@@ -544,7 +577,7 @@ class DataSet(DataSetBase):
         no_cameras: bool = False,
         no_points: bool = False,
         point_num_views: bool = False,
-    ):
+    ) -> None:
         """Save a reconstruction in PLY format."""
         ply = io.reconstruction_to_ply(
             reconstruction, tracks_manager, no_cameras, no_points, point_num_views
@@ -558,37 +591,28 @@ class DataSet(DataSetBase):
     def _gcp_list_file(self) -> str:
         return os.path.join(self.data_path, "gcp_list.txt")
 
-    def load_ground_control_points(
-        self, reference: Optional[geo.TopocentricConverter]
-    ) -> List[pymap.GroundControlPoint]:
-        """Load ground control points.
-
-        It might use reference to convert the coordinates
-        to topocentric reference frame.
-        If reference is None, it won't initialize topocentric data,
-        thus allowing loading raw data only.
-        """
+    def load_ground_control_points(self) -> List[pymap.GroundControlPoint]:
+        """Load ground control points."""
         exif = {image: self.load_exif(image) for image in self.images()}
 
         gcp = []
         if self.io_handler.isfile(self._gcp_list_file()):
             with self.io_handler.open_rt(self._gcp_list_file()) as fin:
-                gcp = io.read_gcp_list(fin, reference, exif)
+                gcp = io.read_gcp_list(fin, exif)
 
         pcs = []
         if self.io_handler.isfile(self._ground_control_points_file()):
             with self.io_handler.open_rt(self._ground_control_points_file()) as fin:
-                pcs = io.read_ground_control_points(fin, reference)
+                pcs = io.read_ground_control_points(fin)
 
         return gcp + pcs
 
     def save_ground_control_points(
         self,
         points: List[pymap.GroundControlPoint],
-        reference: Optional[geo.TopocentricConverter],
     ) -> None:
         with self.io_handler.open_wt(self._ground_control_points_file()) as fout:
-            io.write_ground_control_points(points, fout, reference)
+            io.write_ground_control_points(points, fout)
 
     def image_as_array(self, image: str) -> np.ndarray:
         logger.warning("image_as_array() is deprecated. Use load_image() instead.")
@@ -602,8 +626,10 @@ class DataSet(DataSetBase):
         """Create a subset of this dataset by symlinking input data."""
         subset_dataset_path = os.path.join(self.data_path, name)
         self.io_handler.mkdir_p(subset_dataset_path)
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "images"))
-        self.io_handler.mkdir_p(os.path.join(subset_dataset_path, "segmentations"))
+
+        folders = ["images", "segmentations", "masks"]
+        for folder in folders:
+            self.io_handler.mkdir_p(os.path.join(subset_dataset_path, folder))
         subset_dataset = DataSet(subset_dataset_path, self.io_handler)
 
         files = []
@@ -632,6 +658,13 @@ class DataSet(DataSetBase):
                     os.path.join(subset_dataset_path, "segmentations", image + ".png"),
                 )
             )
+            if image in self.mask_files:
+                files.append(
+                    (
+                        self.mask_files[image],
+                        os.path.join(subset_dataset_path, "masks", image + ".png"),
+                    )
+                )
 
         for src, dst in files:
             if not self.io_handler.exists(src):
@@ -666,7 +699,7 @@ class UndistortedDataSet(object):
         base_dataset: DataSetBase,
         undistorted_data_path: str,
         io_handler=io.IoFilesystemDefault,
-    ):
+    ) -> None:
         """Init dataset associated to a folder."""
         self.base = base_dataset
         self.config = self.base.config
@@ -678,7 +711,7 @@ class UndistortedDataSet(object):
         with self.io_handler.open_rt(filename) as fin:
             return io.json_load(fin)
 
-    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]):
+    def save_undistorted_shot_ids(self, ushot_dict: Dict[str, List[str]]) -> None:
         filename = os.path.join(self.data_path, "undistorted_shot_ids.json")
         self.io_handler.mkdir_p(self.data_path)
         with self.io_handler.open_wt(filename) as fout:
@@ -721,7 +754,7 @@ class UndistortedDataSet(object):
             self._undistorted_mask_file(image), grayscale=True
         )
 
-    def save_undistorted_mask(self, image: str, array: np.ndarray):
+    def save_undistorted_mask(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image mask."""
         self.io_handler.mkdir_p(self._undistorted_mask_path())
         self.io_handler.imwrite(self._undistorted_mask_file(image), array)
@@ -739,9 +772,23 @@ class UndistortedDataSet(object):
 
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
-        return self.io_handler.imread(
-            self._undistorted_segmentation_file(image), grayscale=True
-        )
+        segmentation_file = self._undistorted_segmentation_file(image)
+        with self.io_handler.open(segmentation_file, "rb") as fp:
+            with PngImageFile(fp) as png_image:
+                # TODO: We do not write a header tag in the metadata. Might be good safety check.
+                data = np.array(png_image)
+                if data.ndim == 2:
+                    return data
+                elif data.ndim == 3:
+                    return data[:, :, 0]
+
+                    # TODO we can optionally return also the instances and scores:
+                    # instances = (
+                    #     data[:, :, 1].astype(np.int16) + data[:, :, 2].astype(np.int16) * 256
+                    # )
+                    # scores = data[:, :, 3].astype(np.float32) / 256.0
+                else:
+                    raise IndexError
 
     def save_undistorted_segmentation(self, image: str, array: np.ndarray) -> None:
         """Save the undistorted image segmentation."""
@@ -840,7 +887,7 @@ class UndistortedDataSet(object):
 
     def save_clean_depthmap(
         self, image: str, depth: np.ndarray, plane: np.ndarray, score: np.ndarray
-    ):
+    ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "clean.npz")
         with self.io_handler.open(filepath, "wb") as f:
@@ -933,7 +980,7 @@ def invent_reference_from_gps_and_gcp(
                 walt += w
 
     if not wlat and not wlon:
-        for gcp in data.load_ground_control_points(None):
+        for gcp in data.load_ground_control_points():
             lat += gcp.lla["latitude"]
             lon += gcp.lla["longitude"]
             wlat += 1

@@ -660,7 +660,7 @@ VL_XCAT(_vl_kmeans_quantize_, SFX)
  TYPE const * data,
  vl_size numData)
 {
-  vl_index i = 0 ;
+  vl_index i ;
 
 #if (FLT == VL_TYPE_FLOAT)
   VlFloatVectorComparisonFunction distFn = vl_get_vector_comparison_function_f(self->distance) ;
@@ -726,7 +726,7 @@ VL_XCAT(_vl_kmeans_quantize_ann_, SFX)
   vl_kdforest_build(forest,self->numCenters,self->centers);
 
 #ifdef _OPENMP
-#pragma omp parallel \
+#pragma omp parallel default(none) \
   num_threads(vl_get_max_threads()) \
   shared(self, forest, update, assignments, distances, data, numData, distFn)
 #endif
@@ -880,7 +880,7 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
       }
       break ;
     }
-
+    
     if (iteration == 0) {
       initialEnergy = energy ;
     } else {
@@ -892,7 +892,7 @@ VL_XCAT(_vl_kmeans_refine_centers_lloyd_, SFX)
         break ;
       }
     }
-
+    
     /* begin next iteration */
     previousEnergy = energy ;
 
@@ -1056,7 +1056,7 @@ VL_XCAT(_vl_kmeans_refine_centers_ann_, SFX)
       }
       break ;
     }
-
+    
     if (iteration == 0) {
       initialEnergy = energy ;
     } else {
@@ -1489,6 +1489,7 @@ VL_XCAT(_vl_kmeans_refine_centers_elkan_, SFX)
 
 #if defined(_OPENMP)
 #pragma omp parallel for \
+            default(none) \
             shared(self,numData, \
               pointToClosestCenterUB,pointToCenterLB, \
               nextCenterDistances,pointToClosestCenterUBIsStrict, \

@@ -36,11 +36,11 @@ def default_rig_cameras(camera_ids: Iterable[str]) -> Dict[str, pymap.RigCamera]
 
 
 def rig_assignments_per_image(
-    rig_assignments: List[List[Tuple[str, str]]],
+    rig_assignments: Dict[str, List[Tuple[str, str]]],
 ) -> Dict[str, Tuple[str, str, List[str]]]:
     """Return rig assignments data for each image."""
     assignments_per_image = {}
-    for instance_id, instance in enumerate(rig_assignments):
+    for instance_id, instance in rig_assignments.items():
         instance_shots = [s[0] for s in instance]
         for (shot_id, rig_camera_id) in instance:
             assignments_per_image[shot_id] = (
@@ -78,13 +78,12 @@ def create_instances_with_patterns(
     per_instance_id: Dict[str, TRigInstance] = {}
     for image in images:
         rig_camera_id, instance_member_id = find_image_rig(image, rig_patterns)
-        if not rig_camera_id and not instance_member_id:
+        if not rig_camera_id or not instance_member_id:
             instance_member_id = INCOMPLETE_INSTANCE_GROUP
             rig_camera_id = INCOMPLETE_INSTANCE_ID
         if instance_member_id not in per_instance_id:
-            # pyre-fixme [6]
             per_instance_id[instance_member_id] = []
-        # pyre-fixme [6]
+
         per_instance_id[instance_member_id].append((image, rig_camera_id))
 
     per_complete_instance_id: Dict[str, TRigInstance] = {}
@@ -379,7 +378,7 @@ def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns):
             f"Found a candidate for rig calibration with {len(best_reconstruction.shots)} shots"
         )
         data.save_rig_cameras(best_rig_cameras)
-        data.save_rig_assignments(list(instances_per_rig.values()))
+        data.save_rig_assignments(instances_per_rig)
     else:
         logger.error(
             "Could not run any sucessful SfM on images subset for rig calibration"

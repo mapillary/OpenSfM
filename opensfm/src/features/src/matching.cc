@@ -1,7 +1,13 @@
 #include <features/matching.h>
+#include <foundation/optional.h>
+#include <foundation/types.h>
 #include <pybind11/pybind11.h>
+
+#include <cassert>
+#include <limits>
 #include <map>
 #include <opencv2/core/core.hpp>
+#include <stdexcept>
 #include <vector>
 
 namespace py = pybind11;
@@ -70,11 +76,11 @@ void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
   }
 }
 
-py::object match_using_words(foundation::pyarray_f features1,
-                             foundation::pyarray_int words1,
-                             foundation::pyarray_f features2,
-                             foundation::pyarray_int words2, float lowes_ratio,
-                             int max_checks) {
+py::array_t<int> match_using_words(foundation::pyarray_f features1,
+                                   foundation::pyarray_int words1,
+                                   foundation::pyarray_f features2,
+                                   foundation::pyarray_int words2,
+                                   float lowes_ratio, int max_checks) {
   cv::Mat cv_f1 = foundation::pyarray_cv_mat_view(features1);
   cv::Mat cv_w1 = foundation::pyarray_cv_mat_view(words1);
   cv::Mat cv_f2 = foundation::pyarray_cv_mat_view(features2);
@@ -87,4 +93,58 @@ py::object match_using_words(foundation::pyarray_f features1,
   return foundation::py_array_from_cvmat<int>(matches);
 }
 
+VecXf compute_vlad_descriptor(const MatXf &features,
+                              const MatXf &vlad_centers) {
+  const auto vlad_center_size = vlad_centers.cols();
+  const auto vlad_center_count = vlad_centers.rows();
+
+  if (vlad_center_count == 0 || vlad_center_size == 0) {
+    throw std::runtime_error("Zero VLAD centers or zero length VLAD words.");
+  }
+
+  VecXf vlad_descriptor(vlad_center_count * vlad_center_size);
+  vlad_descriptor.setZero();
+
+  for (int i = 0; i < features.rows(); ++i) {
+    const auto &feature = features.row(i);
+
+    float best_distance = std::numeric_limits<float>::max();
+    int best_center = -1;
+    for (int j = 0; j < vlad_center_count; ++j) {
+      const float squared_norm = (feature - vlad_centers.row(j)).squaredNorm();
+      if (squared_norm < best_distance) {
+        best_distance = squared_norm;
+        best_center = j;
+      }
+    }
+
+    vlad_descriptor.segment(best_center * vlad_center_size, vlad_center_size) +=
+        (feature - vlad_centers.row(best_center));
+  }
+  return vlad_descriptor;
+}
+
+std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
+    const std::map<std::string, VecXf> &vlad_descriptors,
+    const std::string &image, std::set<std::string> &other_images) {
+  if (vlad_descriptors.find(image) == vlad_descriptors.end()) {
+    return std::make_pair(std::vector<double>(), std::vector<std::string>());
+  }
+
+  std::vector<double> distances;
+  std::vector<std::string> others;
+  const auto &reference = vlad_descriptors.at(image);
+  for (const auto &candidate : other_images) {
+    if (candidate == image) {
+      continue;
+    }
+    const auto find_candidate = vlad_descriptors.find(candidate);
+    if (find_candidate == vlad_descriptors.end()) {
+      continue;
+    }
+    distances.push_back((reference - find_candidate->second).norm());
+    others.push_back(candidate);
+  }
+  return std::make_pair(distances, others);
+}
 }  // namespace features

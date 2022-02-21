@@ -1,6 +1,6 @@
 import logging
 from timeit import default_timer as timer
-from typing import Dict, Any, Tuple, List, Generator
+from typing import Optional, Dict, Any, Tuple, List, Generator
 
 import cv2
 import numpy as np
@@ -19,7 +19,7 @@ from opensfm.dataset_base import DataSetBase
 logger = logging.getLogger(__name__)
 
 
-def clear_cache():
+def clear_cache() -> None:
     feature_loader.instance.clear_cache()
 
 
@@ -63,19 +63,19 @@ def match_images_with_pairs(
     config_override: Dict[str, Any],
     exifs: Dict[str, Any],
     pairs: List[Tuple[str, str]],
+    poses: Optional[Dict[str, pygeometry.Pose]] = None,
 ) -> Dict[Tuple[str, str], List[Tuple[int, int]]]:
     """Perform pair matchings given pairs."""
     cameras = data.load_camera_models()
-    args = list(match_arguments(pairs, data, config_override, cameras, exifs))
+    args = list(match_arguments(pairs, data, config_override, cameras, exifs, poses))
 
     # Perform all pair matchings in parallel
     start = timer()
     logger.info("Matching {} image pairs".format(len(pairs)))
+    processes = config_override.get("processes", data.config["processes"])
     mem_per_process = 512
     jobs_per_process = 2
-    processes = context.processes_that_fit_in_memory(
-        data.config["processes"], mem_per_process
-    )
+    processes = context.processes_that_fit_in_memory(processes, mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
     logger.info(
@@ -157,6 +157,7 @@ def match_arguments(
     config_override: Dict[str, Any],
     cameras: Dict[str, pygeometry.Camera],
     exifs: Dict[str, pygeometry.Camera],
+    poses: Optional[Dict[str, pygeometry.Pose]],
 ) -> Generator[
     Tuple[
         str,
@@ -165,13 +166,14 @@ def match_arguments(
         Dict[str, pygeometry.Camera],
         DataSetBase,
         Dict[str, Any],
+        Optional[Dict[str, pygeometry.Pose]],
     ],
     None,
     None,
 ]:
     """Generate arguments for parralel processing of pair matching"""
     for im1, im2 in pairs:
-        yield im1, im2, cameras, exifs, data, config_override
+        yield im1, im2, cameras, exifs, data, config_override, poses
 
 
 def match_unwrap_args(
@@ -182,6 +184,7 @@ def match_unwrap_args(
         Dict[str, Any],
         DataSetBase,
         Dict[str, Any],
+        Optional[Dict[str, pygeometry.Pose]],
     ]
 ) -> Tuple[str, str, np.ndarray]:
     """Wrapper for parallel processing of pair matching.
@@ -195,9 +198,16 @@ def match_unwrap_args(
     exifs = args[3]
     data: DataSetBase = args[4]
     config_override = args[5]
+    poses = args[6]
+    if poses:
+        pose1 = poses[im1]
+        pose2 = poses[im2]
+        pose = pose2.relative_to(pose1)
+    else:
+        pose = None
     camera1 = cameras[exifs[im1]["camera"]]
     camera2 = cameras[exifs[im2]["camera"]]
-    matches = match(im1, im2, camera1, camera2, data, config_override)
+    matches = match(im1, im2, camera1, camera2, data, config_override, pose)
     return im1, im2, matches
 
 
@@ -216,7 +226,7 @@ def match_descriptors(
 
     # Run descriptor matching
     time_start = timer()
-    _, _, matches = _match_descriptors_impl(
+    _, _, matches, matcher_type = _match_descriptors_impl(
         im1, im2, camera1, camera2, data, overriden_config
     )
     time_2d_matching = timer() - time_start
@@ -228,7 +238,6 @@ def match_descriptors(
     if m1 is not None and m2 is not None:
         matches_unfiltered = unfilter_matches(matches, m1, m2)
 
-    matcher_type = overriden_config["matcher_type"].upper()
     symmetric = "symmetric" if overriden_config["symmetric_matching"] else "one-way"
     logger.debug(
         "Matching {} and {}.  Matcher: {} ({}) "
@@ -244,6 +253,87 @@ def match_descriptors(
     return np.array(matches_unfiltered, dtype=int)
 
 
+def _match_descriptors_guided_impl(
+    im1: str,
+    im2: str,
+    camera1: pygeometry.Camera,
+    camera2: pygeometry.Camera,
+    relative_pose: pygeometry.Pose,
+    data: DataSetBase,
+    overriden_config: Dict[str, Any],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, str]:
+    """Perform descriptor guided matching for a pair of images, using their relative pose. It also apply static objects removal."""
+    guided_matcher_override = "BRUTEFORCE"
+    matcher_type = overriden_config["matcher_type"].upper()
+    symmetric_matching = overriden_config["symmetric_matching"]
+    if matcher_type in ["WORDS", "FLANN"] or symmetric_matching:
+        logger.warning(
+            f"{matcher_type} and/or symmetric isn't supported for guided matching, switching to asymmetric {guided_matcher_override}"
+        )
+        matcher_type = guided_matcher_override
+
+    # Will apply mask to features if any
+    dummy = np.array([])
+    segmentation_in_descriptor = overriden_config["matching_use_segmentation"]
+    features_data1 = feature_loader.instance.load_all_data(
+        data,
+        im1,
+        masked=True,
+        segmentation_in_descriptor=segmentation_in_descriptor,
+    )
+    features_data2 = feature_loader.instance.load_all_data(
+        data, im2, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+    )
+    bearings1 = feature_loader.instance.load_bearings(
+        data, im1, masked=True, camera=camera1
+    )
+    bearings2 = feature_loader.instance.load_bearings(
+        data, im2, masked=True, camera=camera2
+    )
+
+    if (
+        features_data1 is None
+        or bearings1 is None
+        or len(features_data1.points) < 2
+        or features_data2 is None
+        or bearings2 is None
+        or len(features_data2.points) < 2
+    ):
+        return dummy, dummy, dummy, matcher_type
+
+    d1 = features_data1.descriptors
+    d2 = features_data2.descriptors
+    if d1 is None or d2 is None:
+        return dummy, dummy, dummy, matcher_type
+
+    epipolar_mask = compute_inliers_bearing_epipolar(
+        bearings1,
+        bearings2,
+        relative_pose,
+        overriden_config["guided_matching_threshold"],
+    )
+    matches = match_brute_force_symmetric(d1, d2, overriden_config, epipolar_mask)
+
+    # Adhoc filters
+    if overriden_config["matching_use_filters"]:
+        matches = apply_adhoc_filters(
+            data,
+            matches,
+            im1,
+            camera1,
+            features_data1.points,
+            im2,
+            camera2,
+            features_data2.points,
+        )
+    return (
+        features_data1.points,
+        features_data2.points,
+        np.array(matches, dtype=int),
+        matcher_type,
+    )
+
+
 def _match_descriptors_impl(
     im1: str,
     im2: str,
@@ -251,8 +341,12 @@ def _match_descriptors_impl(
     camera2: pygeometry.Camera,
     data: DataSetBase,
     overriden_config: Dict[str, Any],
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, str]:
     """Perform descriptor matching for a pair of images. It also apply static objects removal."""
+    dummy = np.array([])
+    matcher_type = overriden_config["matcher_type"].upper()
+    dummy_ret = dummy, dummy, dummy, matcher_type
+
     # Will apply mask to features if any
     dummy = np.array([])
     segmentation_in_descriptor = overriden_config["matching_use_segmentation"]
@@ -268,20 +362,27 @@ def _match_descriptors_impl(
         or features_data2 is None
         or len(features_data2.points) < 2
     ):
-        return dummy, dummy, dummy
+        return dummy_ret
 
     d1 = features_data1.descriptors
     d2 = features_data2.descriptors
     if d1 is None or d2 is None:
-        return dummy, dummy, dummy
+        return dummy_ret
 
-    matcher_type = overriden_config["matcher_type"].upper()
+    # Prevent using FLANN + Binary (np.uint8)
+    binary_matcher_override = "BRUTEFORCE"
+    if matcher_type == "FLANN" and d1.dtype == np.uint8:
+        logger.warning(
+            f"{matcher_type} for binary descriptors offers poor performance. Switching to {binary_matcher_override}."
+        )
+        matcher_type = binary_matcher_override
+
     symmetric_matching = overriden_config["symmetric_matching"]
     if matcher_type == "WORDS":
         words1 = feature_loader.instance.load_words(data, im1, masked=True)
         words2 = feature_loader.instance.load_words(data, im2, masked=True)
         if words1 is None or words2 is None:
-            return dummy, dummy, dummy
+            return dummy_ret
 
         if symmetric_matching:
             matches = match_words_symmetric(
@@ -308,7 +409,7 @@ def _match_descriptors_impl(
             segmentation_in_descriptor=segmentation_in_descriptor,
         )
         if not f1:
-            return dummy, dummy, dummy
+            return dummy_ret
         feat_data_index1, index1 = f1
         if symmetric_matching:
             f2 = feature_loader.instance.load_features_index(
@@ -318,12 +419,18 @@ def _match_descriptors_impl(
                 segmentation_in_descriptor=segmentation_in_descriptor,
             )
             if not f2:
-                return dummy, dummy, dummy
+                return dummy_ret
             feat_data_index2, index2 = f2
+
+            descriptors1 = feat_data_index1.descriptors
+            descriptors2 = feat_data_index2.descriptors
+            if descriptors1 is None or descriptors2 is None:
+                return dummy_ret
+
             matches = match_flann_symmetric(
-                feat_data_index1.descriptors,  # pyre-fixme [6]
+                descriptors1,
                 index1,
-                feat_data_index2.descriptors,  # pyre-fixme [6]
+                descriptors2,
                 index2,
                 overriden_config,
             )
@@ -349,7 +456,12 @@ def _match_descriptors_impl(
             camera2,
             features_data2.points,
         )
-    return features_data1.points, features_data2.points, np.array(matches, dtype=int)
+    return (
+        features_data1.points,
+        features_data2.points,
+        np.array(matches, dtype=int),
+        matcher_type,
+    )
 
 
 def match_robust(
@@ -450,20 +562,25 @@ def match(
     camera2: pygeometry.Camera,
     data: DataSetBase,
     config_override: Dict[str, Any],
+    guided_matching_pose: Optional[pygeometry.Pose],
 ) -> np.ndarray:
-    """Perform full matching (descriptor+robust) for a pair of images."""
+    """Perform full matching (descriptor+robust, optionally guided) for a pair of images."""
     # Override parameters
     overriden_config = data.config.copy()
     overriden_config.update(config_override)
 
     # Run descriptor matching
     time_start = timer()
-    p1, p2, matches = _match_descriptors_impl(
-        im1, im2, camera1, camera2, data, overriden_config
-    )
+    if guided_matching_pose:
+        p1, p2, matches, matcher_type = _match_descriptors_guided_impl(
+            im1, im2, camera1, camera2, guided_matching_pose, data, overriden_config
+        )
+    else:
+        p1, p2, matches, matcher_type = _match_descriptors_impl(
+            im1, im2, camera1, camera2, data, overriden_config
+        )
     time_2d_matching = timer() - time_start
 
-    matcher_type = overriden_config["matcher_type"].upper()
     symmetric = "symmetric" if overriden_config["symmetric_matching"] else "one-way"
     robust_matching_min_match = overriden_config["robust_matching_min_match"]
     if len(matches) < robust_matching_min_match:
@@ -475,7 +592,7 @@ def match(
         )
         return np.array([])
 
-    # Run robust matching
+    # Run robust matching (non guided case only)
     t = timer()
     rmatches = _match_robust_impl(
         im1, im2, p1, p2, matches, camera1, camera2, data, overriden_config
@@ -530,7 +647,6 @@ def match_words(
     """
     ratio = config["lowes_ratio"]
     num_checks = config["bow_num_checks"]
-    # pyre-fixme [7]
     return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0], ratio, num_checks)
 
 
@@ -586,6 +702,7 @@ def match_flann_symmetric(
         fj: feature descriptors of the second image
         indexj: flann index of the second image
         config: config parameters
+        maskij: optional boolean mask of len(i descriptors) x len(j descriptors)
     """
     matches_ij = [(a, b) for a, b in match_flann(indexi, fj, config)]
     matches_ji = [(b, a) for a, b in match_flann(indexj, fi, config)]
@@ -594,7 +711,10 @@ def match_flann_symmetric(
 
 
 def match_brute_force(
-    f1: np.ndarray, f2: np.ndarray, config: Dict[str, Any]
+    f1: np.ndarray,
+    f2: np.ndarray,
+    config: Dict[str, Any],
+    maskij: Optional[np.ndarray] = None,
 ) -> List[Tuple[int, int]]:
     """Brute force matching and Lowe's ratio filtering.
 
@@ -602,6 +722,7 @@ def match_brute_force(
         f1: feature descriptors of the first image
         f2: feature descriptors of the second image
         config: config parameters
+        maskij: optional boolean mask of len(i descriptors) x len(j descriptors)
     """
     assert f1.dtype.type == f2.dtype.type
     if f1.dtype.type == np.uint8:
@@ -609,7 +730,11 @@ def match_brute_force(
     else:
         matcher_type = "BruteForce"
     matcher = cv2.DescriptorMatcher_create(matcher_type)
-    matches = matcher.knnMatch(f1, f2, k=2)
+    matcher.add([f2])
+    if maskij is not None:
+        matches = matcher.knnMatch(f1, k=2, masks=np.array([maskij]).astype(np.uint8))
+    else:
+        matches = matcher.knnMatch(f1, k=2)
 
     ratio = config["lowes_ratio"]
     good_matches = []
@@ -627,7 +752,10 @@ def _convert_matches_to_vector(matches: List[Any]) -> List[Tuple[int, int]]:
 
 
 def match_brute_force_symmetric(
-    fi: np.ndarray, fj: np.ndarray, config: Dict[str, Any]
+    fi: np.ndarray,
+    fj: np.ndarray,
+    config: Dict[str, Any],
+    maskij: Optional[np.ndarray] = None,
 ) -> List[Tuple[int, int]]:
     """Match with brute force in both directions and keep consistent matches.
 
@@ -635,9 +763,11 @@ def match_brute_force_symmetric(
         fi: feature descriptors of the first image
         fj: feature descriptors of the second image
         config: config parameters
+        maskij: optional boolean mask of len(i descriptors) x len(j descriptors)
     """
-    matches_ij = [(a, b) for a, b in match_brute_force(fi, fj, config)]
-    matches_ji = [(b, a) for a, b in match_brute_force(fj, fi, config)]
+    matches_ij = [(a, b) for a, b in match_brute_force(fi, fj, config, maskij)]
+    maskijT = maskij.T if maskij is not None else None
+    matches_ji = [(b, a) for a, b in match_brute_force(fj, fi, config, maskijT)]
 
     return list(set(matches_ij).intersection(set(matches_ji)))
 
@@ -678,7 +808,7 @@ def compute_inliers_bearings(
               functions in this module.
         threshold: max reprojection error in radians.
     Returns:
-        array: Aray of boolean indicating inliers/outliers
+        array: Array of boolean indicating inliers/outliers
     """
     p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
 
@@ -701,6 +831,28 @@ def compute_inliers_bearings(
     for i, ok in enumerate(is_ok):
         inliers[good_idx[i]] = ok
     return inliers
+
+
+def compute_inliers_bearing_epipolar(
+    b1: np.ndarray, b2: np.ndarray, pose: pygeometry.Pose, threshold: float
+) -> np.ndarray:
+    """Compute mask of epipolarly consistent bearings, given two lists of bearings
+
+    Args:
+        b1, b2: Bearings in the two images. Expected to be normalized.
+        pose: Pose of the second image wrt. the first one (relative pose)
+        threshold: max reprojection error in radians.
+    Returns:
+        array: Matrix of boolean indicating inliers/outliers
+    """
+    symmetric_angle_error = pygeometry.epipolar_angle_two_bearings_many(
+        b1.astype(np.float32),
+        b2.astype(np.float32),
+        pose.get_R_cam_to_world(),
+        pose.get_origin(),
+    )
+    mask = symmetric_angle_error < threshold
+    return mask
 
 
 def robust_match_calibrated(
@@ -764,7 +916,7 @@ def robust_match(
         return robust_match_calibrated(p1, p2, camera1, camera2, matches, config)
 
 
-def unfilter_matches(matches, m1, m2):
+def unfilter_matches(matches, m1, m2) -> np.ndarray:
     """Given matches and masking arrays, get matches with un-masked indexes."""
     i1 = np.flatnonzero(m1)
     i2 = np.flatnonzero(m2)
@@ -780,7 +932,7 @@ def apply_adhoc_filters(
     im2: str,
     camera2: pygeometry.Camera,
     p2: np.ndarray,
-):
+) -> List[Tuple[int, int]]:
     """Apply a set of filters functions defined further below
     for removing static data in images.
 
@@ -792,7 +944,9 @@ def apply_adhoc_filters(
     return matches
 
 
-def _non_static_matches(p1: np.ndarray, p2: np.ndarray, matches):
+def _non_static_matches(
+    p1: np.ndarray, p2: np.ndarray, matches: List[Tuple[int, int]]
+) -> List[Tuple[int, int]]:
     """Remove matches with same position in both images.
 
     That should remove matches on that are likely belong to rig occluders,
@@ -816,10 +970,10 @@ def _non_static_matches(p1: np.ndarray, p2: np.ndarray, matches):
 def _not_on_pano_poles_matches(
     p1: np.ndarray,
     p2: np.ndarray,
-    matches,
+    matches: List[Tuple[int, int]],
     camera1: pygeometry.Camera,
     camera2: pygeometry.Camera,
-):
+) -> List[Tuple[int, int]]:
     """Remove matches for features that are too high or to low on a pano.
 
     That should remove matches on the sky and and carhood part of panoramas
@@ -841,8 +995,13 @@ def _not_on_pano_poles_matches(
 
 
 def _not_on_vermont_watermark(
-    p1: np.ndarray, p2: np.ndarray, matches, im1: str, im2: str, data: DataSetBase
-):
+    p1: np.ndarray,
+    p2: np.ndarray,
+    matches: List[Tuple[int, int]],
+    im1: str,
+    im2: str,
+    data: DataSetBase,
+) -> List[Tuple[int, int]]:
     """Filter Vermont images watermark."""
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)
@@ -854,7 +1013,7 @@ def _not_on_vermont_watermark(
     return matches
 
 
-def _vermont_valid_mask(p: np.ndarray):
+def _vermont_valid_mask(p: np.ndarray) -> bool:
     """Check if pixel inside the valid region.
 
     Pixel coord Y should be larger than 50.
@@ -865,7 +1024,7 @@ def _vermont_valid_mask(p: np.ndarray):
 
 def _not_on_blackvue_watermark(
     p1: np.ndarray, p2: np.ndarray, matches, im1: str, im2: str, data: DataSetBase
-):
+) -> List[Tuple[int, int]]:
     """Filter Blackvue's watermark."""
     meta1 = data.load_exif(im1)
     meta2 = data.load_exif(im2)

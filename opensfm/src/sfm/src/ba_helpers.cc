@@ -9,6 +9,7 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "geo/geo.h"
 #include "map/defines.h"
 
 namespace sfm {
@@ -240,7 +241,8 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetShots(),
+    const auto& reference = map.GetTopocentricConverter();
+    AddGCPToBundle(ba, reference, gcp, map.GetShots(),
                    config["gcp_horizontal_sd"].cast<double>(),
                    config["gcp_vertical_sd"].cast<double>());
   }
@@ -343,6 +345,7 @@ bool BAHelpers::TriangulateGCP(
 // Add Ground Control Points constraints to the bundle problem
 void BAHelpers::AddGCPToBundle(
     bundle::BundleAdjuster& ba,
+    const geo::TopocentricConverter& reference,
     const AlignedVector<map::GroundControlPoint>& gcp,
     const std::unordered_map<map::ShotId, map::Shot>& shots,
     const double& horizontal_sigma, const double& vertical_sigma) {
@@ -350,17 +353,17 @@ void BAHelpers::AddGCPToBundle(
     const auto point_id = "gcp-" + point.id_;
     Vec3d coordinates;
     if (!TriangulateGCP(point, shots, coordinates)) {
-      if (point.coordinates_.HasValue()) {
-        coordinates = point.coordinates_.Value();
+      if (!point.lla_.empty()) {
+        coordinates = reference.ToTopocentric(point.GetLlaVec3d());
       } else {
         continue;
       }
     }
     constexpr auto point_constant{false};
     ba.AddPoint(point_id, coordinates, point_constant);
-    if (point.coordinates_.HasValue()) {
+    if (!point.lla_.empty()) {
       ba.AddPointPrior(
-          point_id, point.coordinates_.Value(),
+          point_id, reference.ToTopocentric(point.GetLlaVec3d()),
           Vec3d(horizontal_sigma, horizontal_sigma, vertical_sigma),
           point.has_altitude_);
     }
@@ -416,7 +419,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   std::unordered_set<map::CameraId> added_cameras;
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     const auto& cam = *shot.GetCamera();
     if (added_cameras.find(cam.id) != added_cameras.end()) {
@@ -428,7 +431,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   std::unordered_set<map::Landmark*> landmarks;
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       landmarks.insert(lm_obs.first);
@@ -490,7 +493,7 @@ py::dict BAHelpers::BundleShotPoses(
   }
 
   // add observations
-  for (const auto shot_id : shot_ids) {
+  for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
@@ -666,8 +669,9 @@ py::dict BAHelpers::Bundle(
     }
   }
 
+  const auto& reference = map.GetTopocentricConverter();
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, gcp, map.GetShots(),
+    AddGCPToBundle(ba, reference, gcp, map.GetShots(),
                    config["gcp_horizontal_sd"].cast<double>(),
                    config["gcp_vertical_sd"].cast<double>());
   }
@@ -802,13 +806,15 @@ void BAHelpers::AlignmentConstraints(
   }
   Xp.conservativeResize(reserve_size, Eigen::NoChange);
   X.conservativeResize(reserve_size, Eigen::NoChange);
+  const auto& topocentricConverter = map.GetTopocentricConverter();
   size_t idx = 0;
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {
+      if (point.lla_.empty()) continue;
       Vec3d coordinates;
       if (TriangulateGCP(point, shots, coordinates)) {
-        Xp.row(idx) = point.coordinates_.Value();
+        Xp.row(idx) = topocentricConverter.ToTopocentric(point.GetLlaVec3d());
         X.row(idx) = coordinates;
         ++idx;
       }

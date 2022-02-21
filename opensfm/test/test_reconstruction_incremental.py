@@ -4,7 +4,7 @@ from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 
 def test_reconstruction_incremental(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -44,13 +44,13 @@ def test_reconstruction_incremental(
 
     # Check that the GPS bias (only translation) is recovered
     translation = reconstructed_scene[0].biases["1"].translation
-    assert 9.9 < translation[0] < 10.3
+    assert 9.9 < translation[0] < 10.31
     assert 99.9 < translation[2] < 100.2
 
 
 def test_reconstruction_incremental_rig(
     scene_synthetic_rig: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic_rig.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,

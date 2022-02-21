@@ -1,18 +1,20 @@
 from opensfm.actions import export_pmvs
 
 from . import command
+import argparse
+from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
     name = "export_pmvs"
     help = "Export reconstruction to PMVS"
 
-    def run_impl(self, dataset, args):
+    def run_impl(self, dataset: DataSet, args: argparse.Namespace) -> None:
         export_pmvs.run_dataset(
             dataset, args.points, args.image_list, args.output, args.undistorted
         )
 
-    def add_arguments_impl(self, parser):
+    def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--points", action="store_true", help="export points")
         parser.add_argument(
             "--image_list",

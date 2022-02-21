@@ -3,7 +3,7 @@ from opensfm.large import tools
 from opensfm.dataset import DataSet
 
 
-def run_dataset(data: DataSet):
+def run_dataset(data: DataSet) -> None:
     """ Align submodel reconstructions for of MetaDataSet. """
 
     meta_data = metadataset.MetaDataSet(data.data_path)

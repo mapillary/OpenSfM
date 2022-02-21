@@ -4,7 +4,6 @@ License: BSD
 Version: 0.9.20 2015-01-14
 Local modifications:
 
-* Strip the library to contain only relevant source files.
 
 * Set vl_size to be signed.  This avoids some UndefinedBehaviorSanitizer runtime errors.  The following code is common inside the library:
 

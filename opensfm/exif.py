@@ -4,9 +4,11 @@ from codecs import encode, decode
 from typing import Tuple
 
 import exifread
+import numpy as np
 import xmltodict as x2d
 from opensfm import pygeometry
 from opensfm.dataset_base import DataSetBase
+from opensfm.geo import ecef_from_lla
 from opensfm.sensors import sensor_data
 
 logger = logging.getLogger(__name__)
@@ -449,6 +451,130 @@ class EXIF:
         )
         return 0.0
 
+    def extract_opk(self, geo):
+        opk = None
+
+        if self.has_xmp() and geo and "latitude" in geo and "longitude" in geo:
+            ypr = np.array([None, None, None])
+
+            try:
+                # YPR conventions (assuming nadir camera)
+                # Yaw: 0 --> top of image points north
+                # Yaw: 90 --> top of image points east
+                # Yaw: 270 --> top of image points west
+                # Pitch: 0 --> nadir camera
+                # Pitch: 90 --> camera is looking forward
+                # Roll: 0 (assuming gimbal)
+
+                if (
+                    "@Camera:Yaw" in self.xmp[0]
+                    and "@Camera:Pitch" in self.xmp[0]
+                    and "@Camera:Roll" in self.xmp[0]
+                ):
+                    ypr = np.array(
+                        [
+                            float(self.xmp[0]["@Camera:Yaw"]),
+                            float(self.xmp[0]["@Camera:Pitch"]),
+                            float(self.xmp[0]["@Camera:Roll"]),
+                        ]
+                    )
+                elif (
+                    "@drone-dji:GimbalYawDegree" in self.xmp[0]
+                    and "@drone-dji:GimbalPitchDegree" in self.xmp[0]
+                    and "@drone-dji:GimbalRollDegree" in self.xmp[0]
+                ):
+                    ypr = np.array(
+                        [
+                            float(self.xmp[0]["@drone-dji:GimbalYawDegree"]),
+                            float(self.xmp[0]["@drone-dji:GimbalPitchDegree"]),
+                            float(self.xmp[0]["@drone-dji:GimbalRollDegree"]),
+                        ]
+                    )
+                    ypr[1] += 90  # DJI's values need to be offset
+            except ValueError:
+                logger.debug(
+                    'Invalid yaw/pitch/roll tag in image file "{0:s}"'.format(
+                        self.fileobj_name
+                    )
+                )
+
+            if np.all(ypr) is not None:
+                ypr = np.radians(ypr)
+
+                # Convert YPR --> OPK
+                # Ref: New Calibration and Computing Method for Direct
+                # Georeferencing of Image and Scanner Data Using the
+                # Position and Angular Data of an Hybrid Inertial Navigation System
+                # by Manfred Bäumker
+                y, p, r = ypr
+
+                # YPR rotation matrix
+                cnb = np.array(
+                    [
+                        [
+                            np.cos(y) * np.cos(p),
+                            np.cos(y) * np.sin(p) * np.sin(r) - np.sin(y) * np.cos(r),
+                            np.cos(y) * np.sin(p) * np.cos(r) + np.sin(y) * np.sin(r),
+                        ],
+                        [
+                            np.sin(y) * np.cos(p),
+                            np.sin(y) * np.sin(p) * np.sin(r) + np.cos(y) * np.cos(r),
+                            np.sin(y) * np.sin(p) * np.cos(r) - np.cos(y) * np.sin(r),
+                        ],
+                        [-np.sin(p), np.cos(p) * np.sin(r), np.cos(p) * np.cos(r)],
+                    ]
+                )
+
+                # Convert between image and body coordinates
+                # Top of image pixels point to flying direction
+                # and camera is looking down.
+                # We might need to change this if we want different
+                # camera mount orientations (e.g. backward or sideways)
+
+                # (Swap X/Y, flip Z)
+                cbb = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1]])
+
+                delta = 1e-7
+
+                p1 = np.array(
+                    ecef_from_lla(
+                        geo["latitude"] + delta,
+                        geo["longitude"],
+                        geo.get("altitude", 0),
+                    )
+                )
+                p2 = np.array(
+                    ecef_from_lla(
+                        geo["latitude"] - delta,
+                        geo["longitude"],
+                        geo.get("altitude", 0),
+                    )
+                )
+                xnp = p1 - p2
+                m = np.linalg.norm(xnp)
+
+                if m == 0:
+                    logger.debug("Cannot compute OPK angles, divider = 0")
+                    return opk
+
+                # Unit vector pointing north
+                xnp /= m
+
+                znp = np.array([0, 0, -1]).T
+                ynp = np.cross(znp, xnp)
+
+                cen = np.array([xnp, ynp, znp]).T
+
+                # OPK rotation matrix
+                ceb = cen.dot(cnb).dot(cbb)
+
+                opk = {}
+                opk["omega"] = np.degrees(np.arctan2(-ceb[1][2], ceb[2][2]))
+                opk["phi"] = np.degrees(np.arcsin(ceb[0][2]))
+                opk["kappa"] = np.degrees(np.arctan2(-ceb[0][1], ceb[0][0]))
+
+        return opk
+
     def extract_exif(self):
         width, height = self.extract_image_size()
         projection_type = self.extract_projection_type()
@@ -457,6 +583,7 @@ class EXIF:
         orientation = self.extract_orientation()
         geo = self.extract_geo()
         capture_time = self.extract_capture_time()
+        opk = self.extract_opk(geo)
         d = {
             "make": make,
             "model": model,
@@ -468,6 +595,9 @@ class EXIF:
             "capture_time": capture_time,
             "gps": geo,
         }
+        if opk:
+            d["opk"] = opk
+
         d["camera"] = camera_id(d)
         return d
 
@@ -550,6 +680,10 @@ def focal_xy_calibration(exif):
             "k4": 0.0,
             "k5": 0.0,
             "k6": 0.0,
+            "s0": 0.0,
+            "s1": 0.0,
+            "s2": 0.0,
+            "s3": 0.0,
         }
 
 
@@ -566,6 +700,12 @@ def default_calibration(data: DataSetBase):
         "p2": 0.0,
         "k3": 0.0,
         "k4": 0.0,
+        "k5": 0.0,
+        "k6": 0.0,
+        "s0": 0.0,
+        "s1": 0.0,
+        "s2": 0.0,
+        "s3": 0.0,
     }
 
 
@@ -578,6 +718,7 @@ def calibration_from_metadata(metadata, data: DataSetBase):
         or pt == "radial"
         or pt == "simple_radial"
         or pt == "fisheye62"
+        or pt == "fisheye624"
     ):
         calib = (
             hard_coded_calibration(metadata)
@@ -614,8 +755,8 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_brown(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"], calib["k3"], calib["p1"], calib["p2"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"], calib["k3"], calib["p1"], calib["p2"]]),
         )
     elif calib_pt == "fisheye":
         camera = pygeometry.Camera.create_fisheye(
@@ -625,37 +766,61 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_fisheye_opencv(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"], calib["k3"], calib["k4"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"], calib["k3"], calib["k4"]]),
         )
     elif calib_pt == "fisheye62":
         camera = pygeometry.Camera.create_fisheye62(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [
-                calib["k1"],
-                calib["k2"],
-                calib["k3"],
-                calib["k4"],
-                calib["k5"],
-                calib["k6"],
-                calib["p1"],
-                calib["p2"],
-            ],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array(
+                [
+                    calib["k1"],
+                    calib["k2"],
+                    calib["k3"],
+                    calib["k4"],
+                    calib["k5"],
+                    calib["k6"],
+                    calib["p1"],
+                    calib["p2"],
+                ]
+            ),
+        )
+    elif calib_pt == "fisheye624":
+        camera = pygeometry.Camera.create_fisheye624(
+            calib["focal_x"],
+            calib["focal_y"] / calib["focal_x"],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array(
+                [
+                    calib["k1"],
+                    calib["k2"],
+                    calib["k3"],
+                    calib["k4"],
+                    calib["k5"],
+                    calib["k6"],
+                    calib["p1"],
+                    calib["p2"],
+                    calib["s0"],
+                    calib["s1"],
+                    calib["s2"],
+                    calib["s3"],
+                ]
+            ),
         )
     elif calib_pt == "radial":
         camera = pygeometry.Camera.create_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
-            [calib["k1"], calib["k2"]],
+            np.array([calib["c_x"], calib["c_y"]]),
+            np.array([calib["k1"], calib["k2"]]),
         )
     elif calib_pt == "simple_radial":
         camera = pygeometry.Camera.create_simple_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
-            [calib["c_x"], calib["c_y"]],
+            np.array([calib["c_x"], calib["c_y"]]),
             calib["k1"],
         )
     elif calib_pt == "dual":

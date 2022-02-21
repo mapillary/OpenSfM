@@ -169,7 +169,7 @@ VL_XCAT(_vl_vlad_encode_, SFX)
  int flags)
 {
   vl_uindex dim ;
-  vl_index i_cl=0, i_d ;
+  vl_index i_cl, i_d ;
 
   memset(enc, 0, sizeof(TYPE) * dimension * numClusters) ;
 

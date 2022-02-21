@@ -35,6 +35,7 @@ class WebView(abc.ABC):
         self.eventQueue = Queue()
         self.latlons = main_ui.image_manager.load_latlons()
         self.register_routes(route_prefix)
+        self.route_prefix = route_prefix
 
     @abc.abstractclassmethod
     def sync_to_client(self):
@@ -51,7 +52,6 @@ class WebView(abc.ABC):
     def register_routes(self, route):
         def send_main_page():
             template = self.template_name()
-            self.sync_to_client()
             return render_template(f"{template}.html", class_name=template)
 
         self.app.add_url_rule(route, route + "_index", send_main_page)
@@ -60,10 +60,11 @@ class WebView(abc.ABC):
             data = request.get_json()
 
             # Do something with the event received from the client
-            self.process_client_message(data)
+            if data["event"] != "init":
+                self.process_client_message(data)
 
-            # Send a sync event back to the client to reflect the changed state
-            self.sync_to_client()
+            # Send a sync event back to the client to reflect the changed state (all views)
+            self.main_ui.sync_to_client()
             return jsonify(success=True)
 
         self.app.add_url_rule(

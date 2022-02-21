@@ -1,3 +1,4 @@
+#include <foundation/types.h>
 #include <geometry/camera.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -27,6 +28,9 @@ class CameraFixture : public ::testing::Test {
     distortion_fisheye62.resize(8);
     distortion_fisheye62 << -0.1, 0.03, 0.001, 0.005, 0.02, 0.001, 0.0007,
         -0.01;
+    distortion_fisheye624.resize(12);
+    distortion_fisheye624 << -0.1, 0.03, 0.001, 0.005, 0.02, 0.001, 0.0007,
+        -0.01, 0.01, -0.007, -0.03, 0.0053;
     distortion_radial << 0.1, 0.03;
     principal_point << 0.1, -0.05;
   }
@@ -54,6 +58,7 @@ class CameraFixture : public ::testing::Test {
   VecXd distortion_brown;
   VecXd distortion_fisheye;
   VecXd distortion_fisheye62;
+  VecXd distortion_fisheye624;
   Vec2d distortion_radial;
   Vec2d principal_point;
 
@@ -102,6 +107,69 @@ TEST_F(CameraFixture, Fisheye62IsConsistent) {
       focal, 1.0, principal_point, distortion_fisheye62);
   const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
   ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, Fisheye624IsConsistent) {
+  geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      focal, 1.0, principal_point, distortion_fisheye624);
+  const auto projected = camera.ProjectMany(camera.BearingsMany(pixels));
+  ASSERT_LT(ComputeError(projected), 2e-7);
+}
+
+TEST_F(CameraFixture, Fisheye624MatchesReference) {
+  Eigen::Matrix<double, 3, 3> points;
+  points <<
+    10.0, 0.0, 0.0,
+    0.0, 10.0, 0.0,
+    1e-6, 1e-6, 10.0;
+
+  // This test case is constructed to result in round numbers apart from the
+  // thin prism distortions.
+  Eigen::Matrix<double, 3, 2> reference_pixels;
+  reference_pixels <<
+    149.42887062, 48.67088846,
+    99.4288738, 98.67088528,
+    100.0, 50.0;
+
+  constexpr int width = 200, height = 100;
+  constexpr double f = width / (2 * M_PI);
+  Eigen::Matrix<double, 12, 1> distortion_thin_prism;
+  distortion_thin_prism << 0, 0, 0, 0, 0, 0, 0, 0, 0.01, -0.007, -0.03, 0.0053;
+  const geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      f, 1.0, {width / 2, height / 2}, distortion_thin_prism);
+  const MatX2d reference_projected = camera.ProjectMany(points);
+
+  ASSERT_TRUE(reference_pixels.isApprox(reference_projected, 1e-5))
+    << " where reference_pixels = \n" << reference_pixels << '\n'
+    << " and reference_projected = \n" << reference_projected << '\n';
+}
+
+TEST_F(CameraFixture, Fisheye624WithTanMatchesReference) {
+  Eigen::Matrix<double, 3, 3> points;
+  points <<
+    10.0, 0.0, 0.0,
+    0.0, 10.0, 0.0,
+    1e-6, 1e-6, 10.0;
+
+  // This test case is constructed to result in round numbers apart from the
+  // tangential and thin prism distortions.
+  Eigen::Matrix<double, 3, 2> reference_pixels;
+  reference_pixels <<
+    151.7850648, 51.02708265,
+    100.2142719, 105.7394678,
+    100.0, 50.0;
+
+  constexpr int width = 200, height = 100;
+  constexpr double f = width / (2 * M_PI);
+  Eigen::Matrix<double, 12, 1> distortion_tan_and_thin_prism;
+  distortion_tan_and_thin_prism << 0, 0, 0, 0, 0, 0, 0.03, 0.01, 0.01, -0.007, -0.03, 0.0053;
+  const geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      f, 1.0, {width / 2, height / 2}, distortion_tan_and_thin_prism);
+  const MatX2d reference_projected = camera.ProjectMany(points);
+
+  ASSERT_TRUE(reference_pixels.isApprox(reference_projected, 1e-5))
+    << " where reference_pixels = \n" << reference_pixels << '\n'
+    << " and reference_projected = \n" << reference_projected << '\n';
 }
 
 TEST_F(CameraFixture, DualIsConsistent) {
@@ -181,6 +249,23 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectTypes) {
        geometry::Camera::Parameters::K3, geometry::Camera::Parameters::K4,
        geometry::Camera::Parameters::K5, geometry::Camera::Parameters::K6,
        geometry::Camera::Parameters::P1, geometry::Camera::Parameters::P2,
+       geometry::Camera::Parameters::Focal,
+       geometry::Camera::Parameters::AspectRatio,
+       geometry::Camera::Parameters::Cx, geometry::Camera::Parameters::Cy});
+  ASSERT_THAT(expected, ::testing::ContainerEq(types));
+}
+
+TEST_F(CameraFixture, Fisheye624ReturnCorrectTypes) {
+  geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      focal, 1.0, principal_point, distortion_fisheye624);
+  const auto types = camera.GetParametersTypes();
+  const auto expected = std::vector<geometry::Camera::Parameters>(
+      {geometry::Camera::Parameters::K1, geometry::Camera::Parameters::K2,
+       geometry::Camera::Parameters::K3, geometry::Camera::Parameters::K4,
+       geometry::Camera::Parameters::K5, geometry::Camera::Parameters::K6,
+       geometry::Camera::Parameters::P1, geometry::Camera::Parameters::P2,
+       geometry::Camera::Parameters::S0, geometry::Camera::Parameters::S1,
+       geometry::Camera::Parameters::S2, geometry::Camera::Parameters::S3,
        geometry::Camera::Parameters::Focal,
        geometry::Camera::Parameters::AspectRatio,
        geometry::Camera::Parameters::Cx, geometry::Camera::Parameters::Cy});
@@ -272,6 +357,16 @@ TEST_F(CameraFixture, Fisheye62ReturnCorrectValues) {
 
   VecXd expected(12);
   expected << distortion_fisheye62, focal, 1.0, principal_point;
+  ASSERT_EQ(expected, values);
+}
+
+TEST_F(CameraFixture, Fisheye624ReturnCorrectValues) {
+  geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      focal, 1.0, principal_point, distortion_fisheye624);
+  const auto values = camera.GetParametersValues();
+
+  VecXd expected(16);
+  expected << distortion_fisheye624, focal, 1.0, principal_point;
   ASSERT_EQ(expected, values);
 }
 
@@ -411,6 +506,22 @@ TEST_F(CameraFixture, FisheyeOpencvAsFisheye62) {
   ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
 }
 
+TEST_F(CameraFixture, FisheyeOpencvAsFisheye624) {
+  Eigen::Matrix<double, 12, 1> dist_624;
+  dist_624 << distortion_fisheye[0], distortion_fisheye[1],
+      distortion_fisheye[2], distortion_fisheye[3], 0, 0, 0, 0, 0, 0, 0, 0;
+  geometry::Camera cam624 = geometry::Camera::CreateFisheye624Camera(
+      focal, 1.0, principal_point, dist_624);
+  geometry::Camera camcv = geometry::Camera::CreateFisheyeOpencvCamera(
+      focal, 1.0, principal_point, distortion_fisheye);
+  const MatX3d bear1 = cam624.BearingsMany(pixels);
+  const MatX3d bear2 = camcv.BearingsMany(pixels);
+  ASSERT_TRUE(bear1.isApprox(bear2, 1e-6));
+  const auto proj1 = cam624.ProjectMany(bear1);
+  const auto proj2 = camcv.ProjectMany(bear2);
+  ASSERT_TRUE(proj1.isApprox(proj2, 1e-6));
+}
+
 TEST_F(CameraFixture, SimpleRadialAsRadial) {
   const double k1 = distortion_radial[0];
   geometry::Camera cam_simple = geometry::Camera::CreateSimpleRadialCamera(
@@ -470,6 +581,9 @@ TEST(Camera, TestCameraProjectionTypes) {
   ASSERT_EQ(geometry::Camera::GetProjectionString(
                 geometry::ProjectionType::FISHEYE62),
             "fisheye62");
+  ASSERT_EQ(geometry::Camera::GetProjectionString(
+                geometry::ProjectionType::FISHEYE624),
+            "fisheye624");
   ASSERT_EQ(geometry::Camera::GetProjectionString(
                 geometry::ProjectionType::SPHERICAL),
             "spherical");

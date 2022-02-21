@@ -1,17 +1,28 @@
 import copy
+from typing import Tuple
 
 import numpy as np
-from opensfm import pyrobust
+from opensfm import pyrobust, pygeometry
 
 
-def line_data():
+def line_data() -> Tuple[int, int, np.ndarray, int]:
     a, b = 2, 3
     samples = 100
     x = np.linspace(0, 100, samples)
     return a, b, x, samples
 
 
-def add_outliers(ratio_outliers, x, min, max):
+def similarity_data() -> Tuple[np.ndarray, np.ndarray, int, np.ndarray, int]:
+    rotation = np.array([0.1, 0.2, 0.3])
+    translation = np.array([4, 5, 6])
+    scale = 2
+    samples = 100
+
+    x = np.random.rand(samples, 3)
+    return rotation, translation, scale, x, samples
+
+
+def add_outliers(ratio_outliers: float, x: np.ndarray, min: float, max: float) -> None:
     for index in np.random.permutation(len(x))[: int(ratio_outliers * len(x))]:
         shape = x[index].shape
         noise = np.random.uniform(min, max, size=shape)
@@ -22,7 +33,7 @@ def add_outliers(ratio_outliers, x, min, max):
         x[int(index)] += sign * noise
 
 
-def test_uniform_line_ransac():
+def test_uniform_line_ransac() -> None:
     a, b, x, samples = line_data()
 
     scale = 2.0
@@ -37,7 +48,7 @@ def test_uniform_line_ransac():
     assert len(result.inliers_indices) == samples
 
 
-def test_outliers_line_ransac():
+def test_outliers_line_ransac() -> None:
     a, b, x, samples = line_data()
 
     scale = 2.0
@@ -53,11 +64,11 @@ def test_outliers_line_ransac():
     result = pyrobust.ransac_line(data, scale, params, pyrobust.RansacType.RANSAC)
 
     inliers_count = (1 - ratio_outliers) * samples
-    assert result.score == inliers_count
-    assert len(result.inliers_indices) == inliers_count
+    assert np.allclose(result.score, inliers_count, atol=1)
+    assert np.allclose(len(result.inliers_indices), inliers_count, atol=1)
 
 
-def test_normal_line_msac():
+def test_normal_line_msac() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -78,7 +89,7 @@ def test_normal_line_msac():
     )
 
 
-def test_outliers_line_msac():
+def test_outliers_line_msac() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -104,7 +115,7 @@ def test_outliers_line_msac():
     )
 
 
-def test_normal_line_LMedS():
+def test_normal_line_LMedS() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -123,7 +134,7 @@ def test_normal_line_LMedS():
     )
 
 
-def test_outliers_line_LMedS():
+def test_outliers_line_LMedS() -> None:
     a, b, x, samples = line_data()
 
     sigma = 2.0
@@ -151,7 +162,30 @@ def test_outliers_line_LMedS():
     )
 
 
-def test_uniform_essential_ransac(pairs_and_their_E):
+def test_outliers_similarity_ransac() -> None:
+    rotation, translation, scale, x, samples = similarity_data()
+
+    similarity = pygeometry.Similarity(rotation, translation, scale)
+    y = np.array([similarity.transform(p) for p in x])
+
+    sigma = 0.001
+    y += np.random.normal(scale=sigma, size=y.shape)
+
+    outliers_max = 1.0
+    ratio_outliers = 0.3
+    add_outliers(ratio_outliers, x, scale, outliers_max)
+
+    params = pyrobust.RobustEstimatorParams()
+    result = pyrobust.ransac_similarity(x, y, 0.1, params, pyrobust.RansacType.RANSAC)
+
+    inliers_count = (1 - ratio_outliers) * samples
+    confidence = 0.95  # 1.96*MAD -> 95% rejecting inliers
+    assert np.isclose(
+        len(result.inliers_indices), inliers_count, rtol=(1 - confidence), atol=8
+    )
+
+
+def test_uniform_essential_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -172,7 +206,7 @@ def test_uniform_essential_ransac(pairs_and_their_E):
         assert len(result.inliers_indices) == len(f1) == len(f2)
 
 
-def test_outliers_essential_ransac(pairs_and_their_E):
+def test_outliers_essential_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -197,7 +231,7 @@ def test_outliers_essential_ransac(pairs_and_their_E):
         assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
 
-def test_outliers_relative_pose_ransac(pairs_and_their_E):
+def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
     for f1, f2, _, pose in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -228,7 +262,7 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E):
     assert np.linalg.norm(expected - result.lo_model, ord="fro") < 16e-2
 
 
-def test_outliers_relative_rotation_ransac(pairs_and_their_E):
+def test_outliers_relative_rotation_ransac(pairs_and_their_E) -> None:
     for f1, _, _, _ in pairs_and_their_E:
 
         vec_x = np.random.rand(3)
@@ -268,7 +302,7 @@ def test_outliers_relative_rotation_ransac(pairs_and_their_E):
         assert np.linalg.norm(rotation - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_ransac(shots_and_their_points):
+def test_outliers_absolute_pose_ransac(shots_and_their_points) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)
@@ -293,7 +327,7 @@ def test_outliers_absolute_pose_ransac(shots_and_their_points):
         assert np.linalg.norm(expected - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points):
+def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)

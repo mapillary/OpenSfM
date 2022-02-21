@@ -1,7 +1,9 @@
 #pragma once
 
 #include <foundation/numeric.h>
+
 #include <Eigen/Eigen>
+#include <Eigen/Geometry>
 
 template <class IT>
 std::pair<Eigen::Vector3d, Eigen::Vector3d> ComputeAverage(IT begin, IT end) {
@@ -35,4 +37,18 @@ Eigen::Matrix3d RotationBetweenPoints(IT begin, IT end) {
     rotation *= -1.0;
   }
   return rotation;
+}
+
+template <class IT>
+Eigen::Matrix4d SimilarityBetweenPoints(IT begin, IT end) {
+  const auto count_points = (end - begin);
+  Eigen::Matrix<double, 3, -1> x1(3, count_points), x2(3, count_points);
+
+  int idx = 0;
+  for (IT it = begin; it != end; ++it) {
+    x1.col(idx) = it->first;
+    x2.col(idx) = it->second;
+    ++idx;
+  }
+  return Eigen::umeyama(x1, x2, true);
 }

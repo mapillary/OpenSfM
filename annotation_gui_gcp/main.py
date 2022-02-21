@@ -12,7 +12,7 @@ from flask import Flask
 from opensfm import dataset, io
 
 
-def parse_args():
+def get_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", help="dataset")
     parser.add_argument(
@@ -49,7 +49,7 @@ def parse_args():
         type=int,
         default=5000,
     )
-    return parser.parse_args()
+    return parser
 
 
 def file_sanity_check(root, seq_dict, fname):
@@ -78,8 +78,8 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
     output = {}
     with open(p_json) as f:
-        assignments = json.load(f)
-    for shot_group in assignments:
+        assignments: t.Dict[str, t.List[t.Tuple[str, str]]] = json.load(f)
+    for shot_group in assignments.values():
         group_shot_ids = [s[0] for s in shot_group]
         for shot_id, _ in shot_group:
             output[shot_id] = group_shot_ids
@@ -88,7 +88,7 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
 
 def load_sequence_database_from_file(
-    root, fname="sequence_database.json", skip_missing=False
+    root, fname="sequence_database.json", skip_missing: bool=False
 ):
     """
     Simply loads a sequence file and returns it.
@@ -203,7 +203,7 @@ def group_images(args):
         return groups_from_sequence_database
 
 
-def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
+def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths: int=6):
     if path_cad_files is None:
         return []
 
@@ -233,7 +233,8 @@ def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
 
 def init_ui():
     app = Flask(__name__)
-    args = parse_args()
+    parser = get_parser()
+    args = parser.parse_args()
     path = args.dataset
     rig_groups = load_rig_assignments(Path(args.dataset))
     groups = group_images(args)

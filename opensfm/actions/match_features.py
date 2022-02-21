@@ -5,7 +5,7 @@ from opensfm import matching
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase):
+def run_dataset(data: DataSetBase) -> None:
     """Match features between image pairs."""
 
     images = data.images()
@@ -18,7 +18,7 @@ def run_dataset(data: DataSetBase):
     write_report(data, preport, list(pairs_matches.keys()), end - start)
 
 
-def write_report(data: DataSetBase, preport, pairs, wall_time):
+def write_report(data: DataSetBase, preport, pairs, wall_time) -> None:
     report = {
         "wall_time": wall_time,
         "num_pairs": len(pairs),
