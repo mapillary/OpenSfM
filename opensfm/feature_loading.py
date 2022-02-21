@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Optional, Tuple, Any
 
 import numpy as np
-from opensfm import features as ft, masking
+from opensfm import pygeometry, features as ft, masking
 from opensfm.dataset_base import DataSetBase
 
 
@@ -52,6 +52,13 @@ class FeatureLoader(object):
                 )
                 smask &= mask
 
+            n_removed = np.sum(smask == 0)
+            logger.debug(
+                "Masking {} / {} ({:.2f}) features for {}".format(
+                    n_removed, len(smask), n_removed / len(smask), image
+                )
+            )
+
             return smask
 
         else:
@@ -72,6 +79,24 @@ class FeatureLoader(object):
             all_features_data.colors,
             all_features_data.semantic,
         )
+
+    @lru_cache(2000)
+    def load_bearings(
+        self,
+        data: DataSetBase,
+        image: str,
+        masked: bool,
+        camera: pygeometry.Camera,
+    ) -> Optional[np.ndarray]:
+        if masked:
+            features_data = self._load_all_data_masked(data, image)
+        else:
+            features_data = self._load_all_data_unmasked(data, image)
+        if not features_data:
+            return None
+        keypoints_2d = np.array(features_data.points[:, :2], dtype=float)
+        bearings_3d = camera.pixel_bearing_many(keypoints_2d)
+        return bearings_3d
 
     def load_all_data(
         self,
@@ -102,15 +127,14 @@ class FeatureLoader(object):
                 "Semantic segmentation in descriptor only supported for HAHOG UCHAR descriptors"
             )
 
-        if not features.has_segmentation():
+        segmentation = features.get_segmentation()
+        if segmentation is None:
             return features
 
         desc_augmented = np.concatenate(
             (
                 features.descriptors,
-                (
-                    np.array([features.semantic.segmentation]).T  # pyre-fixme [16]
-                ).astype(np.float32),
+                (np.array([segmentation]).T).astype(np.float32),
             ),
             axis=1,
         )
@@ -154,9 +178,11 @@ class FeatureLoader(object):
         )
         if not features_data:
             return None
+        descriptors = features_data.descriptors
+        if descriptors is None:
+            return None
         return features_data, ft.build_flann_index(
-            # pyre-fixme [6]: Expected `np.ndarray`
-            features_data.descriptors,
+            descriptors,
             data.config,
         )
 

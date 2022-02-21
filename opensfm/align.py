@@ -46,7 +46,7 @@ def apply_similarity_pose(
     Rp = R.dot(A.T)
     tp = -Rp.dot(b) + s * t
     pose.set_rotation_matrix(Rp)
-    pose.translation = list(tp)
+    pose.translation = tp
 
 
 def apply_similarity(
@@ -281,9 +281,12 @@ def compute_orientation_prior_similarity(
             b = max_scale * b / current_scale
             s = max_scale / current_scale
     else:
-        T = tf.affine_matrix_from_points(
-            X.T[:2], Xp.T[:2], shear=False, scale=use_scale
-        )
+        try:
+            T = tf.affine_matrix_from_points(
+                X.T[:2], Xp.T[:2], shear=False, scale=use_scale
+            )
+        except ValueError:
+            return None
         s = np.linalg.det(T[:2, :2]) ** 0.5
         A = np.eye(3)
         A[:2, :2] = T[:2, :2] / s
@@ -441,5 +444,6 @@ def triangulate_all_gcp(
         )
         if x is not None:
             triangulated.append(x)
-            measured.append(point.coordinates.value)
+            point_enu = reconstruction.reference.to_topocentric(*point.lla_vec)
+            measured.append(point_enu)
     return triangulated, measured

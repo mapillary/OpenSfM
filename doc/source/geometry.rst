@@ -144,8 +144,8 @@ Identifier `brown`
     y_n = \frac{y}{z} \\
     r^2 = x_n^2 + y_n^2 \\
     d_r = 1 + k_1 r^2 + k_2 r^4 + k_3 r^6\\
-    d^t_x = 2p_1\ x_n\ y_n + p_2\ (r^2 + 2x)\\
-    d^t_y = 2p_2\ x_n\ y_n + p_1\ (r^2 + 2y)\\
+    d^t_x = 2p_1\ x_n\ y_n + p_2\ (r^2 + 2x^2)\\
+    d^t_y = 2p_2\ x_n\ y_n + p_1\ (r^2 + 2y^2)\\
     u = f_x\ (d_r\ x_n + d^t_x) + c_x \\
     v = f_y\ (d_r\ y_n + d^t_y) + c_y
     \end{array}

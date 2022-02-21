@@ -80,15 +80,17 @@ def gcp_errors(
 ) -> Dict[str, Any]:
     all_errors = []
 
-    gcp = data.load_ground_control_points(data.load_reference())
-    if not gcp:
+    reference = data.load_reference()
+    gcps = data.load_ground_control_points()
+    if not gcps:
         return {}
 
     all_errors = []
-    for gcp in gcp:
-        if not gcp.coordinates.has_value:
+    for gcp in gcps:
+        if not gcp.lla:
             continue
 
+        triangulated = None
         for rec in reconstructions:
             triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
@@ -96,10 +98,10 @@ def gcp_errors(
             else:
                 break
 
-        # pyre-fixme[61]: `triangulated` may not be initialized here.
         if triangulated is None:
             continue
-        all_errors.append(triangulated - gcp.coordinates.value)
+        gcp_enu = reference.to_topocentric(*gcp.lla_vec)
+        all_errors.append(triangulated - gcp_enu)
 
     return _gps_gcp_errors_stats(np.array(all_errors))
 
@@ -198,7 +200,7 @@ def reconstruction_statistics(
         for shot in rec.shots.values():
             gps_count += shot.metadata.gps_position.has_value
     stats["has_gps"] = gps_count > 2
-    stats["has_gcp"] = True if data.load_ground_control_points(None) else False
+    stats["has_gcp"] = True if data.load_ground_control_points() else False
 
     stats["initial_points_count"] = tracks_manager.num_tracks()
     stats["initial_shots_count"] = len(data.images())
@@ -473,7 +475,7 @@ def _get_gaussian_kernel(radius: int, ratio: float) -> np.ndarray:
     half_kernel = list(range(1, radius + 1))
     kernel = np.array(half_kernel + [radius + 1] + list(reversed(half_kernel)))
     kernel = np.exp(np.outer(kernel.T, kernel) / (2 * std_dev * std_dev))
-    return kernel / sum(np.ndarray.flatten(kernel))  # pyre-fixme [16]
+    return kernel / sum(kernel.flatten())
 
 
 def save_matchgraph(
@@ -781,7 +783,7 @@ def save_heatmap(
             shot = reconstructions[i].get_shot(shot_id)
             w = shot.camera.width
             h = shot.camera.height
-            center = [w / 2.0, h / 2.0]
+            center = np.array([w / 2.0, h / 2.0])
             normalizer = max(shot.camera.width, shot.camera.height)
 
             buckets_x, buckets_y = _heatmap_buckets(shot.camera)
@@ -880,7 +882,7 @@ def save_residual_grids(
             shot = reconstructions[i].get_shot(shot_id)
             w = shot.camera.width
             h = shot.camera.height
-            center = [w / 2.0, h / 2.0]
+            center = np.array([w / 2.0, h / 2.0])
             normalizer = max(shot.camera.width, shot.camera.height)
 
             buckets_x, buckets_y = _grid_buckets(shot.camera)
@@ -913,11 +915,8 @@ def save_residual_grids(
             camera_array_res[y, x] += e
             camera_array_count[y, x, 0] += 1
         camera_array_res = np.divide(camera_array_res, camera_array_count)
-
-        # pyre-fixme[61]: `shot_id` may not be initialized here.
-        shot = rec.get_shot(shot_id)
-        w = shot.camera.width
-        h = shot.camera.height
+        camera = rec.get_camera(camera_id)
+        w, h = camera.width, camera.height
         normalizer = max(w, h)
 
         clamp = 0.1

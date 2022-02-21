@@ -11,6 +11,7 @@ enum class ProjectionType {
   FISHEYE,
   FISHEYE_OPENCV,
   FISHEYE62,
+  FISHEYE624,
   SPHERICAL,
   DUAL,
   RADIAL,
@@ -178,6 +179,7 @@ using FisheyeCamera = ProjectGeneric<FisheyeProjection, Disto24, UniformScale>;
 using FisheyeOpencvCamera =
     ProjectGeneric<FisheyeProjection, Disto2468, Affine>;
 using Fisheye62Camera = ProjectGeneric<FisheyeProjection, Disto62, Affine>;
+using Fisheye624Camera = ProjectGeneric<FisheyeProjection, Disto624, Affine>;
 using DualCamera = ProjectGeneric<DualProjection, Disto24, UniformScale>;
 using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 
@@ -201,6 +203,9 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
       break;
     case ProjectionType::FISHEYE62:
       FUNC::template Apply<Fisheye62Camera>(std::forward<IN>(args)...);
+      break;
+    case ProjectionType::FISHEYE624:
+      FUNC::template Apply<Fisheye624Camera>(std::forward<IN>(args)...);
       break;
     case ProjectionType::RADIAL:
       FUNC::template Apply<RadialCamera>(std::forward<IN>(args)...);

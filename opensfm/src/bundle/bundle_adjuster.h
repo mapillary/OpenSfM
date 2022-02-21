@@ -38,7 +38,7 @@ struct Reconstruction {
     if (shared) {
       return &(scales.begin()->second);
     }
-    return &(scales[shot]);
+    return &(scales.at(shot));
   }
 
   double GetScale(const std::string &shot) const {
@@ -64,14 +64,15 @@ struct PointProjectionObservation {
 };
 
 struct RelativeMotion {
-  RelativeMotion(const std::string &reconstruction_i, const std::string &shot_i,
-                 const std::string &reconstruction_j, const std::string &shot_j,
-                 const Vec3d &rotation, const Vec3d &translation,
-                 double robust_multiplier) {
+  RelativeMotion(const std::string &reconstruction_i,
+                 const std::string &rig_instance_i,
+                 const std::string &reconstruction_j,
+                 const std::string &rig_instance_j, const Vec3d &rotation,
+                 const Vec3d &translation, double robust_multiplier) {
     reconstruction_id_i = reconstruction_i;
-    shot_id_i = shot_i;
+    rig_instance_id_i = rig_instance_i;
     reconstruction_id_j = reconstruction_j;
-    shot_id_j = shot_j;
+    rig_instance_id_j = rig_instance_j;
     parameters.resize(Pose::Parameter::NUM_PARAMS);
     parameters.segment(Pose::Parameter::RX, 3) = rotation;
     parameters.segment(Pose::Parameter::TX, 3) = translation;
@@ -96,9 +97,10 @@ struct RelativeMotion {
   void SetScaleMatrix(const MatXd &s) { scale_matrix = s; }
 
   std::string reconstruction_id_i;
-  std::string shot_id_i;
+  std::string rig_instance_id_i;
   std::string reconstruction_id_j;
-  std::string shot_id_j;
+  std::string rig_instance_id_j;
+
   VecXd parameters;
   MatXd scale_matrix;
   double robust_multiplier;
@@ -106,13 +108,14 @@ struct RelativeMotion {
 
 struct RelativeSimilarity : public RelativeMotion {
   RelativeSimilarity(const std::string &reconstruction_i,
-                     const std::string &shot_i,
+                     const std::string &rig_instance_i,
                      const std::string &reconstruction_j,
-                     const std::string &shot_j, const Vec3d &rotation,
+                     const std::string &rig_instance_j, const Vec3d &rotation,
                      const Vec3d &translation, double s,
                      double robust_multiplier)
-      : RelativeMotion(reconstruction_i, shot_i, reconstruction_j, shot_j,
-                       rotation, translation, robust_multiplier),
+      : RelativeMotion(reconstruction_i, rig_instance_i, reconstruction_j,
+                       rig_instance_j, rotation, translation,
+                       robust_multiplier),
         scale(s) {
     scale_matrix.resize(Pose::Parameter::NUM_PARAMS + 1,
                         Pose::Parameter::NUM_PARAMS + 1);
@@ -219,8 +222,8 @@ class BundleAdjuster {
 
   // Cluster-SfM related
   void AddReconstruction(const std::string &id, bool constant);
-  void AddReconstructionShot(const std::string &reconstruction_id, double scale,
-                             const std::string &shot_id);
+  void AddReconstructionInstance(const std::string &reconstruction_id,
+                                 double scale, const std::string &instance_id);
   void SetScaleSharing(const std::string &id, bool share);
 
   // Real bundle adjustment : point projections
@@ -292,7 +295,6 @@ class BundleAdjuster {
   geometry::Camera GetCamera(const std::string &id) const;
   geometry::Similarity GetBias(const std::string &id) const;
   Reconstruction GetReconstruction(const std::string &reconstruction_id) const;
-  Reconstruction GetShotReconstruction(const std::string &shot_id) const;
   Point GetPoint(const std::string &id) const;
   RigCamera GetRigCamera(const std::string &rig_camera_id) const;
   RigInstance GetRigInstance(const std::string &instance_id) const;
@@ -317,7 +319,6 @@ class BundleAdjuster {
   std::map<std::string, RigCamera> rig_cameras_;
   std::map<std::string, RigInstance> rig_instances_;
 
-  std::unordered_map<std::string, std::string> shot_to_reconstruction_;
   bool use_analytic_{false};
 
   // minimization constraints

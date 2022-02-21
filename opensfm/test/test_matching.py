@@ -32,7 +32,7 @@ def example_features(nfeatures, config):
     return [f1, f2], [w1, w2]
 
 
-def test_example_features():
+def test_example_features() -> None:
     nfeatures = 1000
 
     features, words = example_features(nfeatures, config.default_config())
@@ -40,7 +40,7 @@ def test_example_features():
     assert len(words[0]) == nfeatures
 
 
-def test_match_using_words():
+def test_match_using_words() -> None:
     configuration = config.default_config()
     nfeatures = 1000
 
@@ -58,7 +58,7 @@ def test_match_using_words():
         assert i == j
 
 
-def test_unfilter_matches():
+def test_unfilter_matches() -> None:
     matches = np.array([])
     m1 = np.array([], dtype=bool)
     m2 = np.array([], dtype=bool)
@@ -76,7 +76,7 @@ def test_unfilter_matches():
     assert res[1][1] == 6
 
 
-def test_match_images(scene_synthetic):
+def test_match_images(scene_synthetic) -> None:
     reference = scene_synthetic.reconstruction
     synthetic = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -85,7 +85,15 @@ def test_match_images(scene_synthetic):
         scene_synthetic.tracks_manager,
     )
 
+    # pyre-fixme[8]: Attribute has type
+    #  `BoundMethod[typing.Callable(SyntheticDataSet.matches_exists)[[Named(self,
+    #  SyntheticDataSet), Named(image, str)], bool], SyntheticDataSet]`; used as `(im:
+    #  Any) -> bool`.
     synthetic.matches_exists = lambda im: False
+    # pyre-fixme[8]: Attribute has type
+    #  `BoundMethod[typing.Callable(DataSet.save_matches)[[Named(self, DataSet),
+    #  Named(image, str), Named(matches, Dict[str, ndarray])], None],
+    #  SyntheticDataSet]`; used as `(im: Any, m: Any) -> bool`.
     synthetic.save_matches = lambda im, m: False
 
     override = {}
@@ -102,10 +110,12 @@ def test_match_images(scene_synthetic):
         matches = pairs.get(pair)
         if matches is None or len(matches) == 1:
             matches = pairs.get(pair[::-1])
+        # pyre-fixme[6]: For 1st param expected `Sized` but got
+        #  `Optional[List[Tuple[int, int]]]`.
         assert len(matches) > 25
 
 
-def test_ordered_pairs():
+def test_ordered_pairs() -> None:
     neighbors = [
         [1, 3],
         [1, 2],
@@ -114,11 +124,14 @@ def test_ordered_pairs():
         [4, 5],
     ]
     images = [1, 2, 3]
+    # pyre-fixme[6]: For 1st param expected `Set[Tuple[str, str]]` but got
+    #  `List[List[int]]`.
+    # pyre-fixme[6]: For 2nd param expected `List[str]` but got `List[int]`.
     pairs = pairs_selection.ordered_pairs(neighbors, images)
     assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
 
 
-def test_triangulation_inliers(pairs_and_their_E):
+def test_triangulation_inliers(pairs_and_their_E) -> None:
     for f1, f2, _, pose in pairs_and_their_E:
         Rt = pose.get_cam_to_world()[:3]
 

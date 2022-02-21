@@ -241,7 +241,7 @@ def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
     :return: An array of booleans determining if each track was successfully triangulated or not.
     """
     succeeded = []
-    triangulator = reconstruct.TrackTriangulator(graph, reconstruction)
+    triangulator = reconstruct.TrackTriangulator(reconstruction, reconstruct.TrackHandlerTrackManager(graph, reconstruction)
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.

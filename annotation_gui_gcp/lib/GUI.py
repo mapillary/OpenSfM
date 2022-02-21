@@ -5,11 +5,12 @@ import sys
 import time
 from collections import defaultdict
 
+import flask
 from annotation_gui_gcp.lib.views.cad_view import CADView
+from annotation_gui_gcp.lib.views.cp_finder_view import ControlPointFinderView
 from annotation_gui_gcp.lib.views.image_view import ImageView
 from annotation_gui_gcp.lib.views.tools_view import ToolsView
 from opensfm import dataset
-import flask
 
 
 class Gui:
@@ -34,15 +35,13 @@ class Gui:
         self.reconstruction_options = self.get_reconstruction_options()
         self.create_ui(cad_paths)
 
-        p_default_gcp = self.path + "/ground_control_points.json"
-        if os.path.exists(p_default_gcp):
-            self.load_gcps(p_default_gcp)
+        self.load_gcps()
 
         self.load_analysis_results(self.ix_a, self.ix_b)
 
     def get_reconstruction_options(self):
-        p_recs = self.path + "/reconstruction.json"
-        if not os.path.exists(p_recs):
+        p_recs = self.path + "/reconstruction.json" if self.path else None
+        if p_recs is None or not os.path.exists(p_recs):
             return ["NONE", "NONE"]
         data = dataset.DataSet(self.path)
         recs = data.load_reconstruction()
@@ -58,6 +57,10 @@ class Gui:
         options.append("None (3d-to-2d)")
         return options
 
+    def sync_to_client(self) -> None:
+        for view in self.sequence_views + self.cad_views + [self.tools_view]:
+            view.sync_to_client()
+
     def create_ui(self, cad_paths):
         subpane_routes = []
         has_views_that_need_tracking = len(cad_paths) > 0
@@ -65,24 +68,26 @@ class Gui:
 
         self.sequence_views = []
         for ix, image_keys in enumerate(self.image_manager.seqs.values()):
-            route_prefix = f"/sequence_view_{ix+1}"
             v = ImageView(
                 self,
                 self.app,
-                route_prefix,
+                f"/sequence_view_{ix+1}",
                 image_keys,
                 has_views_that_need_tracking,
             )
             self.sequence_views.append(v)
-            subpane_routes.append(route_prefix)
-            break
+
+        cp_view = ControlPointFinderView(self, self.app)
+        self.sequence_views.append(cp_view)
 
         self.cad_views = []
         for ix, cad_path in enumerate(cad_paths):
-            route_prefix = f"/cad_view_{ix+1}"
-            v = CADView(self, self.app, route_prefix, cad_path)
+            v = CADView(self, self.app, f"/cad_view_{ix+1}", cad_path)
             self.cad_views.append(v)
-            subpane_routes.append(route_prefix)
+
+        subpane_routes = [
+            v.route_prefix for v in (self.sequence_views + self.cad_views)
+        ]
 
         @self.app.route("/")
         def send_main_page():
@@ -148,8 +153,6 @@ class Gui:
                     self.shot_std[shot] = float(std)
 
     def load_gcps(self, filename=None):
-        if filename is None:
-            return
         self.gcp_manager.load_from_file(filename)
         for view in self.sequence_views + self.cad_views:
             view.display_points()
@@ -168,7 +171,6 @@ class Gui:
             self.sticky_zoom.set(True)
 
     def populate_gcp_list(self):
-        # self.tools_view.sync_to_client()
         pass
 
     def remove_gcp(self):
@@ -188,13 +190,7 @@ class Gui:
                 view.highlight_gcp_reprojection(self.curr_point, zoom=False)
 
     def save_gcps(self, filename=None):
-        if filename is None:
-            return
-        else:
-            self.gcp_manager.write_to_file(filename)
-            parent = os.path.dirname(filename)
-            dirname = os.path.basename(parent)
-            self.gcp_manager.write_to_file(os.path.join(parent, dirname + ".json"))
+        self.gcp_manager.write_to_file(filename)
 
     def go_to_current_gcp(self):
         """

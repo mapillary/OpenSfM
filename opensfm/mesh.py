@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 import itertools
 import logging
+from typing import Any, Tuple, List
 
 import numpy as np
 import scipy.spatial
-from opensfm import pygeometry
+from opensfm import pygeometry, pymap, types
 
 
 logger = logging.getLogger(__name__)
 
 
-def triangle_mesh(shot_id, r, tracks_manager):
+def triangle_mesh(
+    shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
+):
     """
     Create triangle meshes in a list
     """
@@ -19,9 +22,20 @@ def triangle_mesh(shot_id, r, tracks_manager):
 
     shot = r.shots[shot_id]
 
-    if shot.camera.projection_type in ["perspective", "brown", "radial", "simple_radial"]:
+    if shot.camera.projection_type in [
+        "perspective",
+        "brown",
+        "radial",
+        "simple_radial",
+    ]:
         return triangle_mesh_perspective(shot_id, r, tracks_manager)
-    elif shot.camera.projection_type in ["fisheye", "fisheye_opencv", "fisheye62", "dual"]:
+    elif shot.camera.projection_type in [
+        "fisheye",
+        "fisheye_opencv",
+        "fisheye62",
+        "fisheye624",
+        "dual",
+    ]:
         return triangle_mesh_fisheye(shot_id, r, tracks_manager)
     elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
         return triangle_mesh_spherical(shot_id, r, tracks_manager)
@@ -31,7 +45,9 @@ def triangle_mesh(shot_id, r, tracks_manager):
         )
 
 
-def triangle_mesh_perspective(shot_id, r, tracks_manager):
+def triangle_mesh_perspective(
+    shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
+) -> Tuple[List[Any], List[Any]]:
     shot = r.shots[shot_id]
     cam = shot.camera
 
@@ -74,7 +90,9 @@ def triangle_mesh_perspective(shot_id, r, tracks_manager):
     return vertices, faces
 
 
-def back_project_no_distortion(shot, pixel, depth):
+def back_project_no_distortion(
+    shot: pymap.Shot, pixel: List[float], depth: float
+) -> np.ndarray:
     """
     Back-project a pixel of a perspective camera ignoring its radial distortion
     """
@@ -85,7 +103,9 @@ def back_project_no_distortion(shot, pixel, depth):
     return shot.pose.transform_inverse(p)
 
 
-def triangle_mesh_fisheye(shot_id, r, tracks_manager):
+def triangle_mesh_fisheye(
+    shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
+) -> Tuple[List[Any], List[Any]]:
     shot = r.shots[shot_id]
 
     bearings = []
@@ -135,7 +155,9 @@ def triangle_mesh_fisheye(shot_id, r, tracks_manager):
     return vertices, faces
 
 
-def triangle_mesh_spherical(shot_id, r, tracks_manager):
+def triangle_mesh_spherical(
+    shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
+) -> Tuple[List[Any], List[Any]]:
     shot = r.shots[shot_id]
 
     bearings = []

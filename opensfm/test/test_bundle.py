@@ -14,7 +14,7 @@ from opensfm import (
 )
 
 
-def test_unicode_strings_in_bundle():
+def test_unicode_strings_in_bundle() -> None:
     """Test that byte and unicode strings can be used as camera ids."""
     ba = pybundle.BundleAdjuster()
 
@@ -26,6 +26,7 @@ def test_unicode_strings_in_bundle():
     camera.id = unicode_id
     ba.add_camera(camera.id, camera, camera, True)
 
+    # pyre-fixme[8]: Attribute has type `str`; used as `bytes`.
     camera.id = byte_id
     ba.add_camera(camera.id, camera, camera, True)
 
@@ -39,11 +40,13 @@ def bundle_adjuster():
     return ba
 
 
-def test_sigleton(bundle_adjuster):
+def test_sigleton(bundle_adjuster) -> None:
     """Single camera test"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0.5, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -58,12 +61,14 @@ def test_sigleton(bundle_adjuster):
     assert np.allclose(s1.translation, [1, 0, 0], atol=1e-6)
 
 
-def test_singleton_pan_tilt_roll(bundle_adjuster):
+def test_singleton_pan_tilt_roll(bundle_adjuster) -> None:
     """Single camera test with pan, tilt, roll priors."""
     pan, tilt, roll = 1, 0.3, 0.2
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0.5, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -90,7 +95,7 @@ def _projection_errors_std(points):
     return np.std(all_errors)
 
 
-def test_bundle_projection_fixed_internals(scene_synthetic):
+def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
     reference = scene_synthetic.reconstruction
     camera_priors = dict(reference.cameras.items())
     rig_priors = dict(reference.rig_cameras.items())
@@ -127,11 +132,13 @@ def test_bundle_projection_fixed_internals(scene_synthetic):
     assert reference.cameras["1"].k2 == orig_camera.k2
 
 
-def test_pair(bundle_adjuster):
+def test_pair(bundle_adjuster) -> None:
     """Simple two camera test"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -139,16 +146,20 @@ def test_pair(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
@@ -165,11 +176,13 @@ def test_pair(bundle_adjuster):
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_with_points_priors(bundle_adjuster):
+def test_pair_with_points_priors(bundle_adjuster) -> None:
     """Simple two rigs test with a point constraint for anchoring"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
         pygeometry.Pose([1e-3, 1e-3, 1e-3], [1e-3, 1e-3, 1e-3]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -177,6 +190,8 @@ def test_pair_with_points_priors(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
         pygeometry.Pose([1e-3, 1e-3, 1e-3], [1e-3, 1e-3, 1e-3]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -186,8 +201,8 @@ def test_pair_with_points_priors(bundle_adjuster):
     sa.add_point("p2", [0, 0, 0], False)
 
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
 
     # identity rotation with pan/tilt/roll
     sa.add_absolute_roll("1", np.radians(90), 1)
@@ -196,6 +211,8 @@ def test_pair_with_points_priors(bundle_adjuster):
 
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
 
@@ -222,11 +239,13 @@ def test_pair_with_points_priors(bundle_adjuster):
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_pair_non_rigid(bundle_adjuster):
+def test_pair_non_rigid(bundle_adjuster) -> None:
     """Simple two rigs test"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -234,16 +253,20 @@ def test_pair_non_rigid(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("12", False)
-    sa.add_reconstruction_shot("12", 4, "1")
-    sa.add_reconstruction_shot("12", 4, "2")
+    sa.add_reconstruction_instance("12", 4, "1")
+    sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", False)
     sa.add_relative_similarity(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeSimilarity("12", "1", "12", "2", [0, 0, 0], [-1, 0, 0], 1, 1)
     )
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
@@ -260,11 +283,13 @@ def test_pair_non_rigid(bundle_adjuster):
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_four_cams_single_reconstruction(bundle_adjuster):
+def test_four_cams_single_reconstruction(bundle_adjuster) -> None:
     """Four rigs, one reconstruction"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -272,6 +297,8 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -279,6 +306,8 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
@@ -286,24 +315,32 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     )
     sa.add_rig_instance(
         "4",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"4": "cam1"},
         {"4": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
     )
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
@@ -322,11 +359,13 @@ def test_four_cams_single_reconstruction(bundle_adjuster):
     assert np.allclose(s4.translation, [0, 0, -2], atol=1e-6)
 
 
-def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
+def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster) -> None:
     """Four rigs, one reconstruction"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -334,6 +373,8 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -341,6 +382,8 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
@@ -348,31 +391,54 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     )
     sa.add_rig_instance(
         "4",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"4": "cam1"},
         {"4": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", False)
 
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1, 1
+            "1234",
+            "1",
+            "1234",
+            "2",
+            np.array([0, 0, 0]),
+            np.array([-1, 0, 0]),
+            1,
+            1,
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234", "2", "1234", "3", [0, 0, 0], [-1, -1, 0], 1, 1
+            "1234",
+            "2",
+            "1234",
+            "3",
+            np.array([0, 0, 0]),
+            np.array([-1, -1, 0]),
+            1,
+            1,
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234", "3", "1234", "4", [0, 0, 0], [0, -1, 0], 1, 1
+            "1234",
+            "3",
+            "1234",
+            "4",
+            np.array([0, 0, 0]),
+            np.array([0, -1, 0]),
+            1,
+            1,
         )
     )
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
@@ -398,11 +464,13 @@ def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster):
     assert np.allclose(r1234.get_scale("4"), 0.5)
 
 
-def test_four_cams_one_fixed(bundle_adjuster):
+def test_four_cams_one_fixed(bundle_adjuster) -> None:
     """Four rigs, one reconstruction"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -410,6 +478,8 @@ def test_four_cams_one_fixed(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -417,6 +487,8 @@ def test_four_cams_one_fixed(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
@@ -424,24 +496,32 @@ def test_four_cams_one_fixed(bundle_adjuster):
     )
     sa.add_rig_instance(
         "4",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0.0, 0, 0], [0, 0, 0]),
         {"4": "cam1"},
         {"4": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_shot("1234", 1, "1")
-    sa.add_reconstruction_shot("1234", 1, "2")
-    sa.add_reconstruction_shot("1234", 1, "3")
-    sa.add_reconstruction_shot("1234", 1, "4")
+    sa.add_reconstruction_instance("1234", 1, "1")
+    sa.add_reconstruction_instance("1234", 1, "2")
+    sa.add_reconstruction_instance("1234", 1, "3")
+    sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "2", [0, 0, 0], [-1, 0, 0], 1)
     )
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "3", [0, 0, 0], [0, -1, 0], 1)
     )
     sa.add_relative_motion(
+        # pyre-fixme[6]: For 5th param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 6th param expected `ndarray` but got `List[int]`.
         pybundle.RelativeMotion("1234", "1", "1234", "4", [0, 0, 0], [0, 0, -1], 1)
     )
     sa.add_rig_instance_position_prior("1", [100, 0, 0], [1, 1, 1], "")
@@ -460,11 +540,13 @@ def test_four_cams_one_fixed(bundle_adjuster):
     assert np.allclose(s4.translation, [0, 0, -2], atol=1e-6)
 
 
-def test_linear_motion_prior_position(bundle_adjuster):
+def test_linear_motion_prior_position(bundle_adjuster) -> None:
     """Three rigs, middle has no gps info. Translation only"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -472,6 +554,8 @@ def test_linear_motion_prior_position(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -479,15 +563,17 @@ def test_linear_motion_prior_position(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("123", False)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
     sa.add_rig_instance_position_prior("1", [0, 0, 0], [1, 1, 1], "")
     sa.add_rig_instance_position_prior("3", [2, 0, 0], [1, 1, 1], "")
@@ -503,11 +589,13 @@ def test_linear_motion_prior_position(bundle_adjuster):
     assert np.allclose(s3.translation, [-2, 0, 0], atol=1e-6)
 
 
-def test_linear_motion_prior_rotation(bundle_adjuster):
+def test_linear_motion_prior_rotation(bundle_adjuster) -> None:
     """Three rigs, middle has no gps or orientation info"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -515,6 +603,8 @@ def test_linear_motion_prior_rotation(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -522,15 +612,17 @@ def test_linear_motion_prior_rotation(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 1, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
         True,
     )
     sa.add_reconstruction("123", False)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
     sa.add_linear_motion("1", "2", "3", 0.3, 0.1, 0.1)
 
@@ -540,7 +632,7 @@ def test_linear_motion_prior_rotation(bundle_adjuster):
     assert np.allclose(s2.rotation, [0, 0.3, 0], atol=1e-6)
 
 
-def test_bundle_void_gps_ignored():
+def test_bundle_void_gps_ignored() -> None:
     """Test that void gps values are ignored."""
     camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     camera.id = "camera1"
@@ -580,7 +672,7 @@ def test_bundle_void_gps_ignored():
     assert np.allclose(shot.pose.get_origin(), np.zeros(3))
 
 
-def test_bundle_alignment_prior():
+def test_bundle_alignment_prior() -> None:
     """Test that cameras are aligned to have the Y axis pointing down."""
     camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
     camera.id = "camera1"
@@ -590,6 +682,7 @@ def test_bundle_alignment_prior():
     shot = r.create_shot(
         "1", camera.id, pygeometry.Pose(np.random.rand(3), np.random.rand(3))
     )
+    # pyre-fixme[8]: Attribute has type `ndarray`; used as `List[int]`.
     shot.metadata.gps_position.value = [0, 0, 0]
     shot.metadata.gps_accuracy.value = 1
 
@@ -606,11 +699,13 @@ def test_bundle_alignment_prior():
     assert np.allclose(shot.pose.transform([0, 0, 1]), [0, -1, 0], atol=1e-7)
 
 
-def test_heatmaps_position(bundle_adjuster):
+def test_heatmaps_position(bundle_adjuster) -> None:
     """Three cameras. Same heatmap different offsets"""
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -618,6 +713,8 @@ def test_heatmaps_position(bundle_adjuster):
     )
     sa.add_rig_instance(
         "2",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -625,15 +722,17 @@ def test_heatmaps_position(bundle_adjuster):
     )
     sa.add_rig_instance(
         "3",
+        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
+        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
         pygeometry.Pose([0, 0, 0], [0, 0, 0]),
         {"3": "cam1"},
         {"3": "rig_cam1"},
         False,
     )
     sa.add_reconstruction("123", True)
-    sa.add_reconstruction_shot("123", 1, "1")
-    sa.add_reconstruction_shot("123", 1, "2")
-    sa.add_reconstruction_shot("123", 1, "3")
+    sa.add_reconstruction_instance("123", 1, "1")
+    sa.add_reconstruction_instance("123", 1, "2")
+    sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
 
     def bell_heatmap(size, r, mu_x, mu_y):

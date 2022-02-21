@@ -5,7 +5,7 @@ from opensfm import tracking
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase):
+def run_dataset(data: DataSetBase) -> None:
     """Link matches pair-wise matches into tracks."""
 
     start = timer()
@@ -21,7 +21,7 @@ def run_dataset(data: DataSetBase):
         segmentations,
         instances,
         matches,
-        data.config,
+        data.config["min_track_length"],
     )
     tracks_end = timer()
     data.save_tracks_manager(tracks_manager)
@@ -36,7 +36,7 @@ def run_dataset(data: DataSetBase):
 
 def write_report(
     data: DataSetBase, tracks_manager, features_time, matches_time, tracks_time
-):
+) -> None:
     view_graph = [
         (k[0], k[1], v) for k, v in tracks_manager.get_all_pairs_connectivity().items()
     ]

@@ -27,7 +27,7 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 Python dependencies can be installed with::
 
-    pip install -r requirements
+    pip install -r requirements.txt
 
 
 Installing dependencies on Ubuntu
@@ -77,6 +77,14 @@ Also, in order for Cmake to recognize the libraries installed by Brew, make sure
 Installing dependencies on Windows
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Install git_.
+
+Install cmake_.
+
+Install `Visual Studio 2019`_ from "Older Downloads" (CMake does not currently support VS 2022). Make sure to select the "Desktop development with C++" option.
+
+Install `Python 3.8`_ from the Microsoft Store (OpenSFM uses classes that have been removed in Python 3.9).
+
 Install vcpkg from the OpenSfM root directory::
 
     cd OpenSfM
@@ -105,6 +113,7 @@ Building the documentation
 --------------------------
 To build the documentation and browse it locally use::
 
+    pip install sphinx_rtd_theme
     python3 setup.py build_doc
     python3 -m http.server --directory build/doc/html/
 
@@ -119,3 +128,7 @@ and browse `http://localhost:8000/ <http://localhost:8000/>`_
 .. _SciPy: http://www.scipy.org/
 .. _Ceres solver: http://ceres-solver.org/
 .. _Networkx: https://github.com/networkx/networkx
+.. _git: https://git-scm.com/
+.. _cmake: https://cmake.org/
+.. _Visual Studio 2019: https://visualstudio.microsoft.com/downloads/
+.. _Python 3.8: https://www.microsoft.com/en-us/p/python-38/9mssztt1n39l

@@ -2,7 +2,7 @@ from opensfm import io, reconstruction, types
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase, input, output):
+def run_dataset(data: DataSetBase, input, output) -> None:
     recs_base = data.load_reconstruction(input)
     if len(recs_base) == 0:
         return
@@ -13,7 +13,7 @@ def run_dataset(data: DataSetBase, input, output):
 
     images = data.images()
     remaining_images = set(images) - set(rec_base.shots)
-    gcp = data.load_ground_control_points(rec_base.reference)
+    gcp = data.load_ground_control_points()
     report = {}
     rec_report = {}
     report["extend_reconstruction"] = [rec_report]

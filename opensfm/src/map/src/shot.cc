@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 #include <stdexcept>
+#include <string>
 namespace {
 bool IsSingleShotRig(const map::RigInstance* rig_instance,
                      const map::RigCamera* rig_camera) {
@@ -124,7 +125,12 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
 }
 
 void Shot::RemoveLandmarkObservation(const FeatureId id) {
-  auto* lm = landmark_id_.at(id);
+  const auto find_feature = landmark_id_.find(id);
+  if (find_feature == landmark_id_.end()) {
+    throw std::runtime_error("Can't find Feature ID " + std::to_string(id) +
+                             " in Shot " + this->id_);
+  }
+  auto* lm = find_feature->second;
   landmark_id_.erase(id);
   landmark_observations_.erase(lm);
 }

@@ -243,6 +243,9 @@ class CameraDerivativesFixture : public ::testing::Test {
     distortion_fisheye62.resize(8);
     distortion_fisheye62 << -0.1, 0.03, 0.001, 0.005, 0.02, 0.001, 0.0007,
         -0.01;
+    distortion_fisheye624.resize(12);
+    distortion_fisheye624 << -0.1, 0.03, 0.001, 0.005, 0.02, 0.001, 0.0007,
+        -0.01, 0.01, -0.007, -0.03, 0.0053;
     distortion_radial << 0.1, 0.03;
     principal_point << 0.1, -0.05;
 
@@ -282,7 +285,9 @@ class CameraDerivativesFixture : public ::testing::Test {
     for (int i = 0; i < 2; ++i) {
       for (int j = 0; j < size_params; ++j) {
         ASSERT_NEAR(projection_expected[i].derivatives()(j), jacobian(i, j),
-                    eps);
+                    eps)
+          << "where (i, j) = (" << testing::PrintToString(i)
+          << ", " << testing::PrintToString(j) << ')';
       }
       ASSERT_NEAR(projection_expected[i].value(), projected[i], eps);
     }
@@ -295,6 +300,7 @@ class CameraDerivativesFixture : public ::testing::Test {
   VecXd distortion_brown;
   VecXd distortion_fisheye;
   VecXd distortion_fisheye62;
+  VecXd distortion_fisheye624;
   Vec2d distortion_radial;
   Vec2d principal_point;
 
@@ -352,6 +358,18 @@ TEST_F(CameraDerivativesFixture, ComputeFisheye62AnalyticalDerivatives) {
 
   Eigen::Matrix<double, 2, 15, Eigen::RowMajor> jacobian;
   RunJacobianEval(camera, geometry::ProjectionType::FISHEYE62, &jacobian);
+  CheckJacobian(jacobian, size_params);
+}
+
+TEST_F(CameraDerivativesFixture, ComputeFisheye624AnalyticalDerivatives) {
+  const geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
+      focal, 1.0, principal_point, distortion_fisheye624);
+
+  const VecXd camera_params = camera.GetParametersValues();
+  const int size_params = 3 + camera_params.size();
+
+  Eigen::Matrix<double, 2, 19, Eigen::RowMajor> jacobian;
+  RunJacobianEval(camera, geometry::ProjectionType::FISHEYE624, &jacobian);
   CheckJacobian(jacobian, size_params);
 }
 

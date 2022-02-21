@@ -35,9 +35,9 @@ def samples_generator_random_count(count: int) -> np.ndarray:
 
 
 def samples_generator_interval(
-    start: float, length: float, interval: float, interval_noise: float
+    length: float, end: float, interval: float, interval_noise: float
 ) -> np.ndarray:
-    samples = np.linspace(start / length, 1, num=int(length / interval))
+    samples = np.linspace(0, end / length, num=int(end / interval))
     samples += np.random.normal(
         0.0, float(interval_noise) / float(length), samples.shape
     )
@@ -254,24 +254,6 @@ def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
         rotations[i] = cv2.Rodrigues(rodrigues)[0]
 
 
-def add_shots_to_reconstruction(
-    shot_ids: List[str],
-    positions: List[np.ndarray],
-    rotations: List[np.ndarray],
-    camera: pygeometry.Camera,
-    reconstruction: types.Reconstruction,
-    sequence_key: str,
-):
-    reconstruction.add_camera(camera)
-    for shot_id, position, rotation in zip(shot_ids, positions, rotations):
-        pose = pygeometry.Pose(rotation)
-        pose.set_origin(position)
-        shot = reconstruction.create_shot(
-            shot_id, camera.id, pose, rig_camera_id=None, rig_instance_id=None
-        )
-        shot.metadata.sequence_key.value = sequence_key
-
-
 def add_points_to_reconstruction(
     points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
 ):
@@ -281,68 +263,73 @@ def add_points_to_reconstruction(
         point.color = color
 
 
-def add_rigs_to_reconstruction(
+def add_shots_to_reconstruction(
     shots: List[List[str]],
     positions: List[np.ndarray],
     rotations: List[np.ndarray],
     rig_cameras: List[pymap.RigCamera],
+    cameras: List[pygeometry.Camera],
     reconstruction: types.Reconstruction,
+    sequence_key: str,
 ):
+    for camera in cameras:
+        reconstruction.add_camera(camera)
+
     rec_rig_cameras = []
     for rig_camera in rig_cameras:
-        if rig_camera.id not in reconstruction.rig_cameras:
-            rec_rig_cameras.append(reconstruction.add_rig_camera(rig_camera))
-        else:
-            rec_rig_cameras.append(reconstruction.rig_cameras[rig_camera.id])
+        rec_rig_cameras.append(reconstruction.add_rig_camera(rig_camera))
 
-    for i, (i_shots, position, rotation) in enumerate(zip(shots, positions, rotations)):
-        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(str(i)))
-        for j, s in enumerate(i_shots):
-            rig_instance.add_shot(rec_rig_cameras[j], reconstruction.get_shot(s[0]))
+    for i_shots, position, rotation in zip(shots, positions, rotations):
+        instance_id = "_".join([s[0] for s in i_shots])
+        rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
-        for _, s in enumerate(i_shots):
-            reconstruction.remove_rig_instance(s[0])
+
+        for shot, camera in zip(i_shots, cameras):
+            shot_id = shot[0]
+            rig_camera_id = shot[1]
+            shot = reconstruction.create_shot(
+                shot_id,
+                camera.id,
+                pose=None,
+                rig_camera_id=rig_camera_id,
+                rig_instance_id=instance_id,
+            )
+            shot.metadata.sequence_key.value = sequence_key
 
 
 def create_reconstruction(
     points: List[np.ndarray],
     colors: List[np.ndarray],
-    cameras: List[pygeometry.Camera],
+    cameras: List[List[pygeometry.Camera]],
     shot_ids: List[List[str]],
-    positions: List[List[np.ndarray]],
-    rotations: List[List[np.ndarray]],
-    rig_shots: List[List[List[str]]],
-    rig_positions: Optional[List[List[np.ndarray]]] = None,
-    rig_rotations: Optional[List[List[np.ndarray]]] = None,
-    rig_cameras: Optional[List[List[pymap.RigCamera]]] = None,
+    rig_shots: List[List[List[Tuple[str, str]]]],
+    rig_positions: List[np.ndarray],
+    rig_rotations: List[np.ndarray],
+    rig_cameras: List[List[pymap.RigCamera]],
+    reference: Optional[geo.TopocentricConverter],
 ):
     reconstruction = types.Reconstruction()
+    if reference is not None:
+        reconstruction.reference = reference
     for point, color in zip(points, colors):
         add_points_to_reconstruction(point, color, reconstruction)
 
-    for i, (s_shot_ids, s_positions, s_rotations, s_cameras) in enumerate(
-        zip(shot_ids, positions, rotations, cameras)
-    ):
+    for i, (
+        s_rig_shots,
+        s_rig_positions,
+        s_rig_rotations,
+        s_rig_cameras,
+        s_cameras,
+    ) in enumerate(zip(rig_shots, rig_positions, rig_rotations, rig_cameras, cameras)):
         add_shots_to_reconstruction(
-            s_shot_ids,
-            s_positions,
-            s_rotations,
+            s_rig_shots,
+            s_rig_positions,
+            s_rig_rotations,
+            s_rig_cameras,
             s_cameras,
             reconstruction,
             str(f"sequence_{i}"),
         )
-
-    if rig_shots and rig_positions and rig_rotations and rig_cameras:
-        for s_rig_shots, s_rig_positions, s_rig_rotations, s_rig_cameras in zip(
-            rig_shots, rig_positions, rig_rotations, rig_cameras
-        ):
-            add_rigs_to_reconstruction(
-                s_rig_shots,
-                s_rig_positions,
-                s_rig_rotations,
-                s_rig_cameras,
-                reconstruction,
-            )
     return reconstruction
 
 
@@ -471,8 +458,8 @@ def generate_track_data(
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
-            gcp.coordinates.value = point.coordinates + gcp_shift + sigmas_gcp[i]
-            lat, lon, alt = reconstruction.reference.to_lla(*gcp.coordinates.value)
+            enu = point.coordinates + gcp_shift + sigmas_gcp[i]
+            lat, lon, alt = reconstruction.reference.to_lla(*enu)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
             gcp.has_altitude = True
             for shot_id, obs in tracks_manager.get_track_observations(gcp_id).items():

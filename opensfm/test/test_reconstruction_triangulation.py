@@ -4,7 +4,7 @@ from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 
 def test_reconstruction_triangulation(
     scene_synthetic_triangulation: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic_triangulation.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
