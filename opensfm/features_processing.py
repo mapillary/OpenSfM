@@ -19,21 +19,35 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
     """Main entry point for running features extraction on a list of images."""
     default_queue_size = 10
     max_queue_size = 200
+
     mem_available = log.memory_available()
+    processes = data.config["processes"]
     if mem_available:
+        # Use 90% of available memory
+        ratio_use = 0.9
+        mem_available *= ratio_use
+        logger.info(
+            f"Planning to use {mem_available} MB of RAM for both processing queue and parallel processing."
+        )
+
+        # 50% for the queue / 50% for parralel processing
         expected_mb = mem_available / 2
         expected_images = min(
             max_queue_size, int(expected_mb / average_image_size(data))
         )
-        logger.info(f"Capping memory usage to ~ {expected_mb} MB")
+        processing_size = average_processing_size(data)
+        logger.info(
+            f"Scale-space expected size of a single image : {processing_size} MB"
+        )
+        processes = min(max(1, int(expected_mb / processing_size)), processes)
     else:
         expected_images = default_queue_size
-    logger.info(f"Expecting to process {expected_images} images.")
+    logger.info(
+        f"Expecting to queue at most {expected_images} images while parallel processing of {processes} images."
+    )
 
     process_queue = queue.Queue(expected_images)
     arguments: List[Tuple[str, Any]] = []
-
-    processes = data.config["processes"]
 
     if processes == 1:
         for image in images:
@@ -70,6 +84,21 @@ def average_image_size(data: DataSetBase) -> float:
     for camera in data.load_camera_models().values():
         average_size_mb += camera.width * camera.height * 4 / 1024 / 1024
     return average_size_mb / max(1, len(data.load_camera_models()))
+
+
+def average_processing_size(data: DataSetBase) -> float:
+    processing_size = data.config["feature_process_size"]
+
+    min_octave_size = 16  # from covdet.c
+    octaveResolution = 3  # from covdet.c
+    start_size = processing_size * processing_size * 4 / 1024 / 1024
+    last_octave = math.floor(math.log2(processing_size / min_octave_size))
+
+    total_size = 0
+    for _ in range(last_octave + 1):
+        total_size += start_size * octaveResolution
+        start_size /= 2
+    return total_size
 
 
 def is_high_res_panorama(
