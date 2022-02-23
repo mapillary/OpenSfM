@@ -32,9 +32,7 @@ def test_depthmap_to_ply() -> None:
     r = types.Reconstruction()
     r.add_camera(camera)
     shot = r.create_shot(
-        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
-        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
-        "shot1", camera.id, pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+        "shot1", camera.id, pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]))
     )
 
     image = np.zeros((height, width, 3))

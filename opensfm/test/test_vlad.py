@@ -25,8 +25,7 @@ def test_vlad_distances_order() -> None:
 
 
 def test_signed_square_root_normalize() -> None:
-    v = [1, 0.01]
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
+    v = np.array([1, 0.01])
     res = vlad.signed_square_root_normalize(v)
 
     assert pytest.approx(np.linalg.norm(res), 1e-6) == 1
@@ -43,7 +42,6 @@ def test_unnormalized_vlad() -> None:
     )
 
     res = vlad.unnormalized_vlad(features, centers)
-
-    # pyre-fixme[16]: Optional type has no attribute `__getitem__`.
+    assert res is not None
     assert res[0] == res[1] == res[2] == 0
     assert pytest.approx(res[3], 1e-6) == 0.1

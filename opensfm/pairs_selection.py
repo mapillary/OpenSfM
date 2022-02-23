@@ -796,7 +796,6 @@ def ordered_pairs(
         while next_image:
             im1 = next_image
             next_image = None
-
             for im2 in per_image[im1]:
                 if (im2, im1) not in ordered:
                     ordered.add((im1, im2))
@@ -806,5 +805,4 @@ def ordered_pairs(
 
             if not next_image and remaining:
                 next_image = remaining.pop()
-
     return list(ordered)

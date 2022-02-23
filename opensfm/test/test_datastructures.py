@@ -20,7 +20,7 @@ def _create_reconstruction(
     n_points: int=0,
     dist_to_shots: bool=False,
     dist_to_pano_shots: bool=False,
-):
+) -> types.Reconstruction:
     """Creates a reconstruction with n_cameras random cameras and
     shots, where n_shots_cam is a dictionary, containing the
     camera_id and the number of shots.
@@ -161,9 +161,7 @@ def test_brown_camera() -> None:
     p2 = 0.002
     k3 = 0.01
     cam_cpp = pygeometry.Camera.create_brown(
-        # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-        # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
-        focal_x, focal_y / focal_x, [c_x, c_y], [k1, k2, k3, p1, p2]
+        focal_x, focal_y / focal_x, np.array([c_x, c_y]), np.array([k1, k2, k3, p1, p2])
     )
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -204,10 +202,8 @@ def test_fisheye_opencv_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01])
     cam_cpp = pygeometry.Camera.create_fisheye_opencv(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -228,10 +224,8 @@ def test_fisheye62_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2]  # [k1-k6, p1, p2]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2])  # [k1-k6, p1, p2]
     cam_cpp = pygeometry.Camera.create_fisheye62(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -254,10 +248,8 @@ def test_fisheye624_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]  # [k1-k6, p1, p2, s0-s3]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007])  # [k1-k6, p1, p2, s0-s3]
     cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600

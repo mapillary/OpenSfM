@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Set, Tuple
+
 import numpy as np
 from opensfm import bow
 from opensfm import config
@@ -7,7 +9,7 @@ from opensfm import pyfeatures
 from opensfm.synthetic_data import synthetic_dataset
 
 
-def compute_words(features, bag_of_words, num_words, bow_matcher_type):
+def compute_words(features: np.ndarray, bag_of_words, num_words, bow_matcher_type) -> np.ndarray:
     closest_words = bag_of_words.map_to_words(features, num_words, bow_matcher_type)
     if closest_words is None:
         return np.array([], dtype=np.int32)
@@ -15,7 +17,9 @@ def compute_words(features, bag_of_words, num_words, bow_matcher_type):
         return closest_words.astype(np.int32)
 
 
-def example_features(nfeatures, config):
+def example_features(
+    nfeatures: int, config: Dict[str, Any]
+) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     words, frequencies = bow.load_bow_words_and_frequencies(config)
     bag_of_words = bow.BagOfWords(words, frequencies)
 
@@ -110,25 +114,27 @@ def test_match_images(scene_synthetic) -> None:
         matches = pairs.get(pair)
         if matches is None or len(matches) == 1:
             matches = pairs.get(pair[::-1])
-        # pyre-fixme[6]: For 1st param expected `Sized` but got
-        #  `Optional[List[Tuple[int, int]]]`.
+        assert matches is not None
         assert len(matches) > 25
 
 
 def test_ordered_pairs() -> None:
-    neighbors = [
-        [1, 3],
-        [1, 2],
-        [2, 5],
-        [3, 2],
-        [4, 5],
-    ]
-    images = [1, 2, 3]
-    # pyre-fixme[6]: For 1st param expected `Set[Tuple[str, str]]` but got
-    #  `List[List[int]]`.
-    # pyre-fixme[6]: For 2nd param expected `List[str]` but got `List[int]`.
+    neighbors: Set[Tuple[str, str]] = {
+        ("1", "3"),
+        ("1", "2"),
+        ("2", "5"),
+        ("3", "2"),
+        ("4", "5"),
+    }
+    images = ["1", "2", "3"]
     pairs = pairs_selection.ordered_pairs(neighbors, images)
-    assert set(pairs) == {(1, 2), (1, 3), (2, 5), (3, 2)}
+
+    assert {tuple(sorted(p)) for p in pairs} == {
+        ("1", "2"),
+        ("1", "3"),
+        ("2", "5"),
+        ("2", "3"),
+    }
 
 
 def test_triangulation_inliers(pairs_and_their_E) -> None:

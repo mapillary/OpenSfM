@@ -1,14 +1,12 @@
 import copy
-import random
 
 import numpy as np
 from opensfm import multiview
 from opensfm import pygeometry
 from opensfm import transformations as tf
-from opensfm.synthetic_data import synthetic_examples
 
 
-def normalized(x):
+def normalized(x: np.ndarray) -> np.ndarray:
     return x / np.linalg.norm(x)
 
 
@@ -21,9 +19,8 @@ def test_motion_from_plane_homography() -> None:
     H = scale * (d * R - np.outer(t, n))
 
     motions = multiview.motion_from_plane_homography(H)
-
+    assert motions is not None
     goodness = []
-    # pyre-fixme[16]: Optional type has no attribute `__iter__`.
     for Re, te, ne, de in motions:
         scalee = np.linalg.norm(te)
         good_R = np.allclose(R, Re)
@@ -125,9 +122,8 @@ def test_relative_rotation(pairs_and_their_E) -> None:
         rotation = np.array([vec_x, vec_y, vec_z])
 
         f1 /= np.linalg.norm(f1, axis=1)[:, None]
-        f2 = [rotation.dot(x) for x in f1]
+        f2 = np.array([rotation.dot(x) for x in f1])
 
-        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[typing.Any]`.
         result = pygeometry.relative_rotation_n_points(f1, f2)
 
         assert np.allclose(rotation, result, rtol=1e-10)

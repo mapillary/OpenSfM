@@ -1,67 +1,53 @@
 import numpy as np
 from opensfm import config, multiview, pymap, reconstruction, types
-
+from typing import Tuple
 
 def test_corresponding_tracks() -> None:
-    t1 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1, 1, 1)}
-    t2 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2, 2, 2)}
+    t1 = {"1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1, 1, 1)}
+    t2 = {"1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 2, 2, 2)}
 
-    # pyre-fixme[6]: For 1st param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
-    # pyre-fixme[6]: For 2nd param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 0
 
-    t1 = {1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
-    t2 = {2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
+    t1 = {"1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
+    t2 = {"2": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3)}
 
-    # pyre-fixme[6]: For 1st param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
-    # pyre-fixme[6]: For 2nd param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
-    assert correspondences[0] == (1, 2)
+    assert correspondences[0] == ("1", "2")
 
     t1 = {
-        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3),
-        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
+        "1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 3, 3, 3),
+        "2": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
     }
     t2 = {
-        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
-        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        "1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 4, 4, 4),
+        "2": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
     }
 
-    # pyre-fixme[6]: For 1st param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
-    # pyre-fixme[6]: For 2nd param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     assert len(correspondences) == 1
-    assert correspondences[0] == (2, 1)
+    assert correspondences[0] == ("2", "1")
 
     t1 = {
-        1: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
-        2: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
+        "1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        "2": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
     }
     t2 = {
-        3: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
-        4: pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
+        "3": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 5, 5, 5),
+        "4": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 6, 6, 6),
     }
 
-    # pyre-fixme[6]: For 1st param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
-    # pyre-fixme[6]: For 2nd param expected `Dict[str, Observation]` but got
-    #  `Dict[int, Observation]`.
     correspondences = reconstruction.corresponding_tracks(t1, t2)
     correspondences.sort(key=lambda c: c[0] + c[1])
     assert len(correspondences) == 2
-    assert correspondences[0] == (1, 3)
-    assert correspondences[1] == (2, 4)
+    assert correspondences[0] == ("1", "3")
+    assert correspondences[1] == ("2", "4")
 
 
-def copy_cluster_points(cluster, tracks_manager, points, noise):
+def copy_cluster_points(
+    cluster: types.Reconstruction, tracks_manager: pymap.TracksManager, points, noise
+) -> types.Reconstruction:
     for shot in cluster.shots:
         for point in tracks_manager.get_shot_observations(shot):
             base = points[point]
@@ -71,7 +57,9 @@ def copy_cluster_points(cluster, tracks_manager, points, noise):
     return cluster
 
 
-def split_synthetic_reconstruction(scene, tracks_manager, cluster_size, point_noise):
+def split_synthetic_reconstruction(
+    scene, tracks_manager: pymap.TracksManager, cluster_size, point_noise
+) -> Tuple[types.Reconstruction, types.Reconstruction]:
     cluster1 = types.Reconstruction()
     cluster2 = types.Reconstruction()
     cluster1.cameras = scene.cameras
@@ -87,7 +75,7 @@ def split_synthetic_reconstruction(scene, tracks_manager, cluster_size, point_no
     return cluster1, cluster2
 
 
-def move_and_scale_cluster(cluster):
+def move_and_scale_cluster(cluster: types.Reconstruction)->Tuple[types.Reconstruction, np.ndarray, float]:
     scale = np.random.rand(1)
     translation = np.random.rand(3)
     for point in cluster.points.values():

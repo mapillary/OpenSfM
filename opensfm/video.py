@@ -25,9 +25,10 @@ def video_orientation(video_file) -> int:
             orientation = 3
         elif rotation == 270:
             orientation = 8
+        else:
+            raise RuntimeError(f"rotation {rotation} has no valid orientation!")
     else:
         orientation = 1
-    # pyre-fixme[61]: `orientation` is undefined, or not always defined.
     return orientation
 
 
