@@ -15,10 +15,11 @@ if (OPENSFM_BUILD_TESTS)
         test/geo_test.cc
     )
     add_executable(geo_test ${GEO_TEST_FILES})
-    target_include_directories(geo_test PRIVATE ${CMAKE_SOURCE_DIR} ${EIGEN_INCLUDE_DIRS})
+    target_include_directories(geo_test PRIVATE ${CMAKE_SOURCE_DIR})
     target_link_libraries(geo_test
                         PUBLIC
                         geo
+                        Eigen3::Eigen
                         ${TEST_MAIN})
     add_test(geo_test geo_test)
 endif()
