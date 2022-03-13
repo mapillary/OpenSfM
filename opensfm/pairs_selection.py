@@ -96,7 +96,7 @@ def find_best_altitude(
     extrema = -coeffs[1] / (2 * coeffs[0])
     if extrema < 0:
         logger.info(
-            f"Altiude is negative ({extrema}) : viewing directions are probably divergent. Using default altide of {DEFAULT_Z}"
+            f"Altiude is negative ({extrema}) : viewing directions are probably divergent. Using default altitude of {DEFAULT_Z}"
         )
         extrema = DEFAULT_Z
     return extrema
