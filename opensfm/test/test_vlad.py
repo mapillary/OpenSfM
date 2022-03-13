@@ -3,7 +3,7 @@ import pytest
 from opensfm import vlad
 
 
-def test_vlad_distances_order():
+def test_vlad_distances_order() -> None:
     im = "im1"
     other_ims = ["im2", "im3"]
 
@@ -24,15 +24,15 @@ def test_vlad_distances_order():
     assert other_ims[order_res[1]] == "im2"
 
 
-def test_signed_square_root_normalize():
-    v = [1, 0.01]
+def test_signed_square_root_normalize() -> None:
+    v = np.array([1, 0.01])
     res = vlad.signed_square_root_normalize(v)
 
     assert pytest.approx(np.linalg.norm(res), 1e-6) == 1
     assert pytest.approx(v[0] / v[1], 1e-6) == 10 * res[0] / res[1]
 
 
-def test_unnormalized_vlad():
+def test_unnormalized_vlad() -> None:
     features = np.array([[0, 1.1]])
     centers = np.array(
         [
@@ -42,6 +42,6 @@ def test_unnormalized_vlad():
     )
 
     res = vlad.unnormalized_vlad(features, centers)
-
+    assert res is not None
     assert res[0] == res[1] == res[2] == 0
     assert pytest.approx(res[3], 1e-6) == 0.1

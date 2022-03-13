@@ -3,20 +3,20 @@ from opensfm import pybundle
 from opensfm import pygeometry
 
 
-def get_shot_origin(shot):
+def get_shot_origin(shot) -> np.ndarray:
     """Compute the origin of a shot."""
     pose = pygeometry.Pose([shot.rx, shot.ry, shot.rz], [shot.tx, shot.ty, shot.tz])
     return pose.get_origin()
 
 
-def get_reconstruction_origin(r):
+def get_reconstruction_origin(r) -> np.ndarray:
     """Compute the origin of a reconstruction."""
     s = r.scale
-    pose = pygeometry.Pose([r.rx, r.ry, r.rz], [r.tx / s, r.ty / s, r.tz / s])
+    pose = pygeometry.Pose(np.array([r.rx, r.ry, r.rz]), np.array([r.tx / s, r.ty / s, r.tz / s]))
     return pose.get_origin()
 
 
-def test_single_shot():
+def test_single_shot() -> None:
     """Single shot test."""
     ra = pybundle.ReconstructionAlignment()
     ra.add_shot("1", 0.5, 0, 0, 0, 0, 0, False)
@@ -27,7 +27,7 @@ def test_single_shot():
     assert np.allclose(get_shot_origin(s1), [1, 0, 0], atol=1e-6)
 
 
-def test_singleton_reconstruction():
+def test_singleton_reconstruction() -> None:
     """Single shot in a single reconstruction."""
     ra = pybundle.ReconstructionAlignment()
     ra.add_shot("1", 0, 0, 0, 0, 0, 0, False)
@@ -43,7 +43,7 @@ def test_singleton_reconstruction():
     assert np.allclose(get_shot_origin(s1), [1, 0, 0], atol=1e-6)
 
 
-def test_pair():
+def test_pair() -> None:
     """Simple single reconstruction two shots test."""
     ra = pybundle.ReconstructionAlignment()
     ra.add_shot("1", 0, 0, 0, 0, 0, 0, False)
@@ -69,7 +69,7 @@ def test_pair():
     assert np.allclose(rec_a.scale, 0.5)
 
 
-def test_two_shots_one_fixed():
+def test_two_shots_one_fixed() -> None:
     """Two shot, one reconstruction. One shot is fixed"""
     ra = pybundle.ReconstructionAlignment()
     ra.add_shot("1", 0, 0, 0, -1, 0, 0, True)
@@ -96,7 +96,7 @@ def test_two_shots_one_fixed():
     assert np.allclose(rec_a.scale, 0.5)
 
 
-def test_two_reconstructions_soft_alignment():
+def test_two_reconstructions_soft_alignment() -> None:
     """Two reconstructions"""
     ra = pybundle.ReconstructionAlignment()
     ra.add_shot("1", 0, 0, 0, 0, 0, 0, False)
@@ -145,7 +145,7 @@ def test_two_reconstructions_soft_alignment():
     assert np.allclose(rec_b.scale, 1)
 
 
-def test_two_reconstructions_rigid_alignment():
+def test_two_reconstructions_rigid_alignment() -> None:
     """Two reconstructions"""
     ra = pybundle.ReconstructionAlignment()
 
@@ -178,7 +178,7 @@ def test_two_reconstructions_rigid_alignment():
     assert np.allclose(rec_b.scale, 1)
 
 
-def test_two_reconstructions_common_camera():
+def test_two_reconstructions_common_camera() -> None:
     """Two reconstructions"""
     ra = pybundle.ReconstructionAlignment()
 
@@ -210,7 +210,7 @@ def test_two_reconstructions_common_camera():
     assert np.allclose(rec_b.scale, 1)
 
 
-def test_common_points():
+def test_common_points() -> None:
     """Two reconstructions, two common points"""
     ra = pybundle.ReconstructionAlignment()
     ra.add_reconstruction("a", 0, 0, 0, 0, 0, 0, 1, True)

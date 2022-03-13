@@ -6,7 +6,7 @@ from opensfm.dense import depthmap_to_ply, scale_down_image
 from opensfm.dataset import DataSet
 
 
-def run_dataset(data: DataSet, no_cameras, no_points, depthmaps, point_num_views):
+def run_dataset(data: DataSet, no_cameras: bool, no_points: bool, depthmaps, point_num_views: bool) -> None:
     """Export reconstruction to PLY format
 
     Args:

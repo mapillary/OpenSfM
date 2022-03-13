@@ -17,13 +17,14 @@ set(GEOMETRY_FILES
     src/triangulation.cc
     src/absolute_pose.cc
     src/relative_pose.cc
-)
+    )
 add_library(geometry ${GEOMETRY_FILES})
 target_link_libraries(geometry
-  PRIVATE
+    PRIVATE
     foundation
-)
-target_include_directories(geometry PUBLIC ${CMAKE_SOURCE_DIR} ${CERES_INCLUDE_DIR})
+    ${CERES_LIBRARIES}
+    )
+target_include_directories(geometry PUBLIC ${CMAKE_SOURCE_DIR})
 
 if (OPENSFM_BUILD_TESTS)
     set(GEOMETRY_TEST_FILES
@@ -31,13 +32,14 @@ if (OPENSFM_BUILD_TESTS)
         test/camera_functions_test.cc
         test/covariance_test.cc
         test/point_test.cc
-    )
+        )
     add_executable(geometry_test ${GEOMETRY_TEST_FILES})
-    target_include_directories(geometry_test PRIVATE ${CMAKE_SOURCE_DIR} ${EIGEN_INCLUDE_DIRS})
+    target_include_directories(geometry_test PRIVATE ${CMAKE_SOURCE_DIR})
     target_link_libraries(geometry_test
-                        PUBLIC
-                        geometry
-                        ${TEST_MAIN})
+        PUBLIC
+        geometry
+        Eigen3::Eigen
+        ${TEST_MAIN})
     add_test(geometry_test geometry_test)
 endif()
 

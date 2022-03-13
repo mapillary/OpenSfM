@@ -69,12 +69,20 @@ class DataSet(DataSetBase):
     def load_image_list(self) -> None:
         """Load image list from image_list.txt or list images/ folder."""
         image_list_file = self._image_list_file()
+        image_list_path = os.path.join(self.data_path, "images")
+
         if self.io_handler.isfile(image_list_file):
             with self.io_handler.open_rt(image_list_file) as fin:
                 lines = fin.read().splitlines()
             self._set_image_list(lines)
         else:
-            self._set_image_path(os.path.join(self.data_path, "images"))
+            self._set_image_path(image_list_path)
+
+        if self.data_path and not self.image_list:
+            raise IOError(
+                "No Images found in {}"
+                .format(image_list_path)
+                )
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
@@ -491,6 +499,11 @@ class DataSet(DataSetBase):
         """Load EXIF overrides data."""
         with self.io_handler.open_rt(self._exif_overrides_file()) as fin:
             return json.load(fin)
+
+    def save_exif_overrides(self, exif_overrides: Dict[str, Any]) -> None:
+        """Load EXIF overrides data."""
+        with self.io_handler.open_wt(self._exif_overrides_file()) as fout:
+            io.json_dump(exif_overrides, fout)
 
     def _rig_cameras_file(self) -> str:
         """Return path of rig models file"""

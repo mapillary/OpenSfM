@@ -88,7 +88,7 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
 
 def load_sequence_database_from_file(
-    root, fname="sequence_database.json", skip_missing=False
+    root, fname="sequence_database.json", skip_missing: bool=False
 ):
     """
     Simply loads a sequence file and returns it.
@@ -203,7 +203,7 @@ def group_images(args):
         return groups_from_sequence_database
 
 
-def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths=6):
+def find_suitable_cad_paths(path_cad_files, path_dataset, n_paths: int=6):
     if path_cad_files is None:
         return []
 

@@ -1,4 +1,6 @@
+import argparse
 import os.path
+from typing import Any, Dict
 
 import numpy as np
 import pytest
@@ -7,11 +9,6 @@ from opensfm.test import data_generation
 
 
 NEIGHBORS = 6
-
-
-class Args:
-    def __init__(self, dataset):
-        self.dataset = dataset
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -27,7 +24,7 @@ def clear_cache():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def lund_path(tmpdir_factory):
+def lund_path(tmpdir_factory) -> str:
     """
     Precompute exif and features to avoid doing
     it for every test which is time consuming.
@@ -39,7 +36,9 @@ def lund_path(tmpdir_factory):
     # Use words matcher type to support the bow retrieval test
     data_generation.save_config({"matcher_type": "WORDS"}, path)
 
-    args = Args(path)
+    args = argparse.Namespace()
+    args.dataset = path
+
     data = dataset.DataSet(path)
     commands.extract_metadata.Command().run(data, args)
     commands.detect_features.Command().run(data, args)
@@ -47,7 +46,9 @@ def lund_path(tmpdir_factory):
     return path
 
 
-def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGHBORS):
+def match_candidates_from_metadata(
+    data, neighbors: int = NEIGHBORS, assert_count: int = NEIGHBORS
+) -> None:
     assert neighbors >= assert_count
 
     ims = sorted(data.images())
@@ -74,7 +75,7 @@ def match_candidates_from_metadata(data, neighbors=NEIGHBORS, assert_count=NEIGH
     assert count >= assert_count
 
 
-def create_match_candidates_config(**kwargs):
+def create_match_candidates_config(**kwargs) -> Dict[str, Any]:
     config = {
         "matcher_type": "BRUTEFORCE",
         "matching_gps_distance": 0,
@@ -92,14 +93,14 @@ def create_match_candidates_config(**kwargs):
     return config
 
 
-def test_match_candidates_from_metadata_vlad(lund_path):
+def test_match_candidates_from_metadata_vlad(lund_path) -> None:
     config = create_match_candidates_config(matching_vlad_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_bow(lund_path):
+def test_match_candidates_from_metadata_bow(lund_path) -> None:
     config = create_match_candidates_config(
         matching_bow_neighbors=NEIGHBORS, matcher_type="WORDS"
     )
@@ -108,28 +109,28 @@ def test_match_candidates_from_metadata_bow(lund_path):
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_gps(lund_path):
+def test_match_candidates_from_metadata_gps(lund_path) -> None:
     config = create_match_candidates_config(matching_gps_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_time(lund_path):
+def test_match_candidates_from_metadata_time(lund_path) -> None:
     config = create_match_candidates_config(matching_time_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_graph(lund_path):
+def test_match_candidates_from_metadata_graph(lund_path) -> None:
     config = create_match_candidates_config(matching_graph_rounds=50)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_get_gps_point():
+def test_get_gps_point() -> None:
     reference = geo.TopocentricConverter(0, 0, 0)
     exifs = {}
     exifs["gps"] = {
@@ -142,7 +143,7 @@ def test_get_gps_point():
     assert np.allclose(direction, [[0, 0, 1]])
 
 
-def test_get_gps_opk_point():
+def test_get_gps_opk_point() -> None:
     reference = geo.TopocentricConverter(0, 0, 0)
     exifs = {}
     exifs["gps"] = {
@@ -160,8 +161,8 @@ def test_get_gps_opk_point():
     assert np.allclose(direction, [[0.0, 1.0, -1.0]])
 
 
-def test_find_best_altitude_convergent():
-    origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
+def test_find_best_altitude_convergent() -> None:
+    origins = {"0": np.array([2.0, 0.0, 8.0]), "1": np.array([-2.0, 0.0, 8.0])}
     directions = {
         "0": np.array([-1.0, 0.0, -1.0]),
         "1": np.array([1.0, 0.0, -1.0]),
@@ -170,8 +171,8 @@ def test_find_best_altitude_convergent():
     assert np.allclose([altitude], [2.0], atol=1e-2)
 
 
-def test_find_best_altitude_divergent():
-    origins = {"0": [2.0, 0.0, 8.0], "1": [-2.0, 0.0, 8.0]}
+def test_find_best_altitude_divergent() -> None:
+    origins = {"0": np.array([2.0, 0.0, 8.0]), "1": np.array([-2.0, 0.0, 8.0])}
     directions = {
         "0": np.array([1.0, 0.0, -1.0]),
         "1": np.array([-1.0, 0.0, -1.0]),

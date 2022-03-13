@@ -3,7 +3,7 @@ from opensfm import reconstruction
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase, algorithm: reconstruction.ReconstructionAlgorithm):
+def run_dataset(data: DataSetBase, algorithm: reconstruction.ReconstructionAlgorithm) -> None:
     """Compute the SfM reconstruction."""
 
     tracks_manager = data.load_tracks_manager()

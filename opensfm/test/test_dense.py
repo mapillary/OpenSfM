@@ -4,7 +4,7 @@ from opensfm import pygeometry
 from opensfm import types
 
 
-def test_angle_between_points():
+def test_angle_between_points() -> None:
     origin = [0, 0, 0]
     p1 = [1, 0, 0]
     p2 = [0, 1, 0]
@@ -22,7 +22,7 @@ def test_angle_between_points():
     assert np.allclose(res, np.pi / 4)
 
 
-def test_depthmap_to_ply():
+def test_depthmap_to_ply() -> None:
     height, width = 2, 3
 
     camera = pygeometry.Camera.create_perspective(0.8, 0.0, 0.0)
@@ -32,7 +32,7 @@ def test_depthmap_to_ply():
     r = types.Reconstruction()
     r.add_camera(camera)
     shot = r.create_shot(
-        "shot1", camera.id, pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+        "shot1", camera.id, pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]))
     )
 
     image = np.zeros((height, width, 3))

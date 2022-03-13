@@ -29,13 +29,15 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            np.array([
-                obj.get("k1", 0.0),
-                obj.get("k2", 0.0),
-                obj.get("k3", 0.0),
-                obj.get("p1", 0.0),
-                obj.get("p2", 0.0),
-            ]),
+            np.array(
+                [
+                    obj.get("k1", 0.0),
+                    obj.get("k2", 0.0),
+                    obj.get("k3", 0.0),
+                    obj.get("p1", 0.0),
+                    obj.get("p2", 0.0),
+                ]
+            ),
         )
     elif pt == "fisheye":
         camera = pygeometry.Camera.create_fisheye(
@@ -46,58 +48,66 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            np.array([
-                obj.get("k1", 0.0),
-                obj.get("k2", 0.0),
-                obj.get("k3", 0.0),
-                obj.get("k4", 0.0),
-            ]),
+            np.array(
+                [
+                    obj.get("k1", 0.0),
+                    obj.get("k2", 0.0),
+                    obj.get("k3", 0.0),
+                    obj.get("k4", 0.0),
+                ]
+            ),
         )
     elif pt == "fisheye62":
         camera = pygeometry.Camera.create_fisheye62(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            np.array([
-                obj.get("k1", 0.0),
-                obj.get("k2", 0.0),
-                obj.get("k3", 0.0),
-                obj.get("k4", 0.0),
-                obj.get("k5", 0.0),
-                obj.get("k6", 0.0),
-                obj.get("p1", 0.0),
-                obj.get("p2", 0.0),
-            ]),
+            np.array(
+                [
+                    obj.get("k1", 0.0),
+                    obj.get("k2", 0.0),
+                    obj.get("k3", 0.0),
+                    obj.get("k4", 0.0),
+                    obj.get("k5", 0.0),
+                    obj.get("k6", 0.0),
+                    obj.get("p1", 0.0),
+                    obj.get("p2", 0.0),
+                ]
+            ),
         )
     elif pt == "fisheye624":
         camera = pygeometry.Camera.create_fisheye624(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            np.array([
-                obj.get("k1", 0.0),
-                obj.get("k2", 0.0),
-                obj.get("k3", 0.0),
-                obj.get("k4", 0.0),
-                obj.get("k5", 0.0),
-                obj.get("k6", 0.0),
-                obj.get("p1", 0.0),
-                obj.get("p2", 0.0),
-                obj.get("s0", 0.0),
-                obj.get("s1", 0.0),
-                obj.get("s2", 0.0),
-                obj.get("s3", 0.0),
-            ]),
+            np.array(
+                [
+                    obj.get("k1", 0.0),
+                    obj.get("k2", 0.0),
+                    obj.get("k3", 0.0),
+                    obj.get("k4", 0.0),
+                    obj.get("k5", 0.0),
+                    obj.get("k6", 0.0),
+                    obj.get("p1", 0.0),
+                    obj.get("p2", 0.0),
+                    obj.get("s0", 0.0),
+                    obj.get("s1", 0.0),
+                    obj.get("s2", 0.0),
+                    obj.get("s3", 0.0),
+                ]
+            ),
         )
     elif pt == "radial":
         camera = pygeometry.Camera.create_radial(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            np.array([
-                obj.get("k1", 0.0),
-                obj.get("k2", 0.0),
-            ]),
+            np.array(
+                [
+                    obj.get("k1", 0.0),
+                    obj.get("k2", 0.0),
+                ]
+            ),
         )
     elif pt == "simple_radial":
         camera = pygeometry.Camera.create_simple_radial(
@@ -685,14 +695,21 @@ def camera_from_vector(
     elif projection_type == "fisheye624":
         fx, fy, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3 = parameters
         camera = pygeometry.Camera.create_fisheye624(
-            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3])
+            fx,
+            fy / fx,
+            np.array([cx, cy]),
+            np.array([k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3]),
         )
     elif projection_type == "radial":
         fx, fy, cx, cy, k1, k2 = parameters
-        camera = pygeometry.Camera.create_radial(fx, fy / fx, np.array([cx, cy]), np.array([k1, k2]))
+        camera = pygeometry.Camera.create_radial(
+            fx, fy / fx, np.array([cx, cy]), np.array([k1, k2])
+        )
     elif projection_type == "simple_radial":
         fx, fy, cx, cy, k1 = parameters
-        camera = pygeometry.Camera.create_simple_radial(fx, fy / fx, np.array([cx, cy]), k1)
+        camera = pygeometry.Camera.create_simple_radial(
+            fx, fy / fx, np.array([cx, cy]), k1
+        )
     elif projection_type == "dual":
         focal, k1, k2, transition = parameters
         camera = pygeometry.Camera.create_dual(transition, focal, k1, k2)
@@ -1107,47 +1124,38 @@ def point_cloud_to_ply(
     colors: np.ndarray,
     labels: np.ndarray,
     fp: TextIO,
-) -> None:
-    """Export depthmap points as a PLY string"""
-    lines = _point_cloud_to_ply_lines(points, normals, colors, labels)
-    fp.writelines(lines)
-
-
-def _point_cloud_to_ply_lines(
-    points: np.ndarray,
-    normals: np.ndarray,
-    colors: np.ndarray,
-    labels: np.ndarray,
 ):
-    yield "ply\n"
-    yield "format ascii 1.0\n"
-    yield "element vertex {}\n".format(len(points))
-    yield "property float x\n"
-    yield "property float y\n"
-    yield "property float z\n"
-    yield "property float nx\n"
-    yield "property float ny\n"
-    yield "property float nz\n"
-    yield "property uchar diffuse_red\n"
-    yield "property uchar diffuse_green\n"
-    yield "property uchar diffuse_blue\n"
-    yield "property uchar class\n"
-    yield "end_header\n"
+    fp.write("ply\n")
+    fp.write("format ascii 1.0\n")
+    fp.write("element vertex {}\n".format(len(points)))
+    fp.write("property float x\n")
+    fp.write("property float y\n")
+    fp.write("property float z\n")
+    fp.write("property float nx\n")
+    fp.write("property float ny\n")
+    fp.write("property float nz\n")
+    fp.write("property uchar diffuse_red\n")
+    fp.write("property uchar diffuse_green\n")
+    fp.write("property uchar diffuse_blue\n")
+    fp.write("property uchar class\n")
+    fp.write("end_header\n")
 
     template = "{:.4f} {:.4f} {:.4f} {:.3f} {:.3f} {:.3f} {} {} {} {}\n"
     for i in range(len(points)):
         p, n, c, l = points[i], normals[i], colors[i], labels[i]
-        yield template.format(
-            p[0],
-            p[1],
-            p[2],
-            n[0],
-            n[1],
-            n[2],
-            int(c[0]),
-            int(c[1]),
-            int(c[2]),
-            int(l),
+        fp.write(
+            template.format(
+                p[0],
+                p[1],
+                p[2],
+                n[0],
+                n[1],
+                n[2],
+                int(c[0]),
+                int(c[1]),
+                int(c[2]),
+                int(l),
+            )
         )
 
 

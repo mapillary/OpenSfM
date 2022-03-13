@@ -3,7 +3,7 @@ import os.path
 from io import StringIO
 
 import numpy as np
-from opensfm import pygeometry, geo, io, types
+from opensfm import pygeometry, io, types
 from opensfm.test import data_generation, utils
 
 
@@ -12,7 +12,7 @@ filename = os.path.join(
 )
 
 
-def test_reconstructions_from_json_consistency():
+def test_reconstructions_from_json_consistency() -> None:
     with open(filename) as fin:
         obj_before = json.loads(fin.read())
     obj_after = io.reconstructions_to_json(io.reconstructions_from_json(obj_before))
@@ -42,7 +42,7 @@ def test_reconstructions_from_json_consistency():
                 assert obj1 == obj2
 
 
-def test_reconstructions_from_json():
+def test_reconstructions_from_json() -> None:
     with open(filename) as fin:
         obj = json.loads(fin.read())
 
@@ -56,7 +56,7 @@ def test_reconstructions_from_json():
     assert len(reconstructions[0].rig_instances) == 3
 
 
-def test_reconstruction_to_ply():
+def test_reconstruction_to_ply() -> None:
     with open(filename) as fin:
         obj = json.loads(fin.read())
     reconstructions = io.reconstructions_from_json(obj)
@@ -64,7 +64,7 @@ def test_reconstruction_to_ply():
     assert len(ply.splitlines()) > len(reconstructions[0].points)
 
 
-def test_parse_projection():
+def test_parse_projection() -> None:
     proj = io._parse_projection("WGS84")
     assert proj is None
 
@@ -75,7 +75,7 @@ def test_parse_projection():
     assert np.allclose((lat, lon), (plat, plon))
 
 
-def test_read_gcp_list():
+def test_read_gcp_list() -> None:
     text = """WGS84
 13.400740745 52.519134104 12.0792090446 2335.0 1416.7 01.jpg
 13.400740745 52.519134104 12.0792090446 2639.1 938.0 02.jpg
@@ -93,7 +93,7 @@ def test_read_gcp_list():
     assert max(a, b) == 2
 
 
-def test_read_write_ground_control_points():
+def test_read_write_ground_control_points() -> None:
     text = """
 {
   "points": [
@@ -128,7 +128,7 @@ def test_read_write_ground_control_points():
 }
     """
 
-    def check_points(points):
+    def check_points(points) -> None:
         assert len(points) == 2
         p1, p2 = points
         if p1.id != "1":
@@ -153,7 +153,7 @@ def test_read_write_ground_control_points():
     check_points(points_reread)
 
 
-def test_json_to_and_from_metadata():
+def test_json_to_and_from_metadata() -> None:
     obj = {
         "orientation": 10,
         "capture_time": 1,
@@ -175,7 +175,7 @@ def test_json_to_and_from_metadata():
     assert obj == io.pymap_metadata_to_json(m)
 
 
-def test_camera_from_to_vector():
+def test_camera_from_to_vector() -> None:
     w, h = 640, 480
     camera_sizes = [
         ("perspective", 3),
@@ -198,7 +198,7 @@ def test_camera_from_to_vector():
 
 # specific test for I/O consistency with panoshots
 # ynoutary : hopefully, candidate for deletion soon
-def test_panoshots_consistency():
+def test_panoshots_consistency() -> None:
     rec_before = types.Reconstruction()
 
     camera1 = pygeometry.Camera.create_spherical()

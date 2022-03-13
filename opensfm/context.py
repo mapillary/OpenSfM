@@ -1,11 +1,12 @@
 import logging
 import os
+
 try:
     import resource
 except ModuleNotFoundError:
-    pass # Windows
-import sys
+    pass  # Windows
 import ctypes
+import sys
 from typing import Optional
 
 import cv2
@@ -16,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 abspath = os.path.dirname(os.path.realpath(__file__))
-SENSOR = os.path.join(abspath, "data", "sensor_data.json")
+SENSOR_DATA = os.path.join(abspath, "data", "sensor_data.json")
+CAMERA_CALIBRATION = os.path.join(abspath, "data", "camera_calibration.yaml")
 BOW_PATH = os.path.join(abspath, "data", "bow")
 
 
@@ -61,7 +63,8 @@ def parallel_map(func, args, num_proc, max_batch_size=1):
 
 # Memory usage
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
+
     class MEMORYSTATUSEX(ctypes.Structure):
         _fields_ = [
             ("dwLength", ctypes.c_ulong),
@@ -93,12 +96,13 @@ if sys.platform == 'win32':
         stat = MEMORYSTATUSEX()
         ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
         return (stat.ullTotalPhys - stat.ullAvailPhys) / 1024
+
+
 else:
     if sys.platform == "darwin":
         rusage_unit = 1
     else:
         rusage_unit = 1024
-
 
     def memory_available() -> Optional[int]:
         """Available memory in MB.
@@ -111,7 +115,6 @@ else:
             return None
         available_mem = int(lines[1].split()[6])
         return available_mem
-
 
     def current_memory_usage():
         return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * rusage_unit

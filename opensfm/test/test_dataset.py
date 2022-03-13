@@ -3,7 +3,7 @@ from opensfm import features
 from opensfm.test import data_generation
 
 
-def test_dataset_load_features_sift(tmpdir):
+def test_dataset_load_features_sift(tmpdir) -> None:
     data = data_generation.create_berlin_test_folder(tmpdir)
 
     assert len(data.images()) == 3

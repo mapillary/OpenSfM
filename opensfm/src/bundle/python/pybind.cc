@@ -6,18 +6,20 @@
 #include <pybind11/stl.h>
 
 PYBIND11_MODULE(pybundle, m) {
-   py::module::import("opensfm.pygeometry");
+  py::module::import("opensfm.pygeometry");
 
-   py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
+  py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
       .def(py::init<const std::string &, const std::string &,
                     const std::string &, const std::string &,
                     const Eigen::Vector3d &, const Eigen::Vector3d &, double>())
       .def_readwrite("reconstruction_i",
                      &bundle::RelativeMotion::reconstruction_id_i)
-      .def_readwrite("shot_i", &bundle::RelativeMotion::shot_id_i)
+      .def_readwrite("rig_instance_i",
+                     &bundle::RelativeMotion::rig_instance_id_i)
       .def_readwrite("reconstruction_j",
                      &bundle::RelativeMotion::reconstruction_id_j)
-      .def_readwrite("shot_j", &bundle::RelativeMotion::shot_id_j)
+      .def_readwrite("rig_instance_j",
+                     &bundle::RelativeMotion::rig_instance_id_j)
       .def_property("r", &bundle::RelativeMotion::GetRotation,
                     &bundle::RelativeMotion::SetRotation)
       .def_property("t", &bundle::RelativeMotion::GetTranslation,
@@ -84,8 +86,8 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_point_prior", &bundle::BundleAdjuster::AddPointPrior)
       .def("get_point", &bundle::BundleAdjuster::GetPoint)
       .def("add_reconstruction", &bundle::BundleAdjuster::AddReconstruction)
-      .def("add_reconstruction_shot",
-           &bundle::BundleAdjuster::AddReconstructionShot)
+      .def("add_reconstruction_instance",
+           &bundle::BundleAdjuster::AddReconstructionInstance)
       .def("add_point_projection_observation",
            &bundle::BundleAdjuster::AddPointProjectionObservation)
       .def("add_relative_motion", &bundle::BundleAdjuster::AddRelativeMotion)
@@ -122,7 +124,6 @@ PYBIND11_MODULE(pybundle, m) {
            &bundle::BundleAdjuster::SetLinearSolverType)
       .def("brief_report", &bundle::BundleAdjuster::BriefReport)
       .def("full_report", &bundle::BundleAdjuster::FullReport);
-
 
   ///////////////////////////////////
   // Reconstruction Aligment

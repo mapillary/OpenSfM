@@ -9,7 +9,7 @@ import xmltodict as x2d
 from opensfm import pygeometry
 from opensfm.dataset_base import DataSetBase
 from opensfm.geo import ecef_from_lla
-from opensfm.sensors import sensor_data
+from opensfm.sensors import sensor_data, camera_calibration
 
 logger = logging.getLogger(__name__)
 
@@ -607,49 +607,21 @@ def hard_coded_calibration(exif):
     fmm35 = int(round(focal * 36.0))
     make = exif["make"].strip().lower()
     model = exif["model"].strip().lower()
-    if "gopro" in make:
-        if fmm35 == 20:
-            # GoPro Hero 3, 7MP medium
-            return {"focal": focal, "k1": -0.37, "k2": 0.28}
-        elif fmm35 == 15:
-            # GoPro Hero 3, 7MP wide
-            # "v2 gopro hero3+ black edition 3000 2250 perspective 0.4166"
-            return {"focal": 0.466, "k1": -0.195, "k2": 0.030}
-        elif fmm35 == 23:
-            # GoPro Hero 2, 5MP medium
-            return {"focal": focal, "k1": -0.38, "k2": 0.24}
-        elif fmm35 == 16:
-            # GoPro Hero 2, 5MP wide
-            return {"focal": focal, "k1": -0.39, "k2": 0.22}
-    elif "bullet5s" in make:
-        return {"focal": 0.57, "k1": -0.30, "k2": 0.06}
-    elif "garmin" == make:
-        if "virb" == model:
-            # "v2 garmin virb 4608 3456 perspective 0"
-            return {"focal": 0.5, "k1": -0.08, "k2": 0.005}
-        elif "virbxe" == model:
-            # "v2 garmin virbxe 3477 1950 perspective 0.3888"
-            # "v2 garmin virbxe 1600 1200 perspective 0.3888"
-            # "v2 garmin virbxe 4000 3000 perspective 0.3888"
-            # Calibration when using camera's undistortion
-            return {"focal": 0.466, "k1": -0.08, "k2": 0.0}
-            # Calibration when not using camera's undistortion
-            # return {'focal': 0.466, 'k1': -0.195, 'k2'; 0.030}
-    elif "drift" == make:
-        if "ghost s" == model:
-            return {"focal": 0.47, "k1": -0.22, "k2": 0.03}
-    elif "xiaoyi" in make:
-        return {"focal": 0.5, "k1": -0.19, "k2": 0.028}
-    elif "geo" == make and "frames" == model:
-        return {"focal": 0.5, "k1": -0.24, "k2": 0.04}
-    elif "sony" == make:
-        if "hdr-as200v" == model:
-            return {"focal": 0.55, "k1": -0.30, "k2": 0.08}
-        elif "hdr-as300" in model:
-            return {"focal": 0.3958, "k1": -0.1496, "k2": 0.0201}
-    elif "PARROT" == make:
-        if "Bebop 2" == model:
-            return {"focal": 0.36666666666666666}
+    raw_calibrations = camera_calibration()[0]
+    if make not in raw_calibrations:
+        return None
+    models = raw_calibrations[make]
+    if "ALL" in models:
+        return models["ALL"]
+    if "MODEL" in models:
+        if model not in models["MODEL"]:
+            return None
+        return models["MODEL"][model]
+    if "FOCAL" in models:
+        if fmm35 not in models["FOCAL"]:
+            return None
+        return models["FOCAL"][fmm35]
+    return None
 
 
 def focal_ratio_calibration(exif):
@@ -731,7 +703,8 @@ def calibration_from_metadata(metadata, data: DataSetBase):
             or focal_ratio_calibration(metadata)
             or default_calibration(data)
         )
-    calib["projection_type"] = pt
+    if "projection_type" not in calib:
+        calib["projection_type"] = pt
     return calib
 
 

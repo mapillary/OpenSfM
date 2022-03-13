@@ -1,7 +1,7 @@
 from opensfm import dataset
 
 
-def get_all_track_observations(gcp_database, track_id):
+def get_all_track_observations(gcp_database, track_id: str):
     print(f"Getting all observations of track {track_id}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()
@@ -9,7 +9,7 @@ def get_all_track_observations(gcp_database, track_id):
     return {shot_id: obs.point for shot_id, obs in track_obs.items()}
 
 
-def get_tracks_visible_in_image(gcp_database, image_key, min_len=5):
+def get_tracks_visible_in_image(gcp_database, image_key, min_len: int=5):
     print(f"Getting track observations visible in {image_key}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()

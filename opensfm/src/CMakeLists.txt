@@ -37,6 +37,9 @@ endif()
 # For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
 
+# Use the version of vlfeat in ./src/third_party/vlfeat
+add_definitions(-DINPLACE_VLFEAT)
+
 if (WIN32)
     # Missing math constant
     add_definitions(-DM_PI=3.14159265358979323846)
@@ -51,10 +54,20 @@ endif()
 
 find_package(LAPACK)
 find_package(SuiteSparse)
-find_package(Eigen REQUIRED)
-find_package(Ceres REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(Ceres)
 find_package(Gflags REQUIRED)
 find_package(Glog REQUIRED)
+
+# Ceres2 exposes Ceres::ceres target.
+# Ceres1 exposes just ceres.
+# - if there's no such target, cmake will convert it into -lceres
+# and the linker will fail
+if(Ceres_ceres_FOUND)
+    set(CERES_LIBRARIES Ceres::ceres)
+else()
+    set(CERES_LIBRARIES ceres)
+endif()
 
 find_package(OpenCV)
 # OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0
@@ -70,6 +83,8 @@ endif()
 add_subdirectory(third_party/pybind11)
 add_subdirectory(third_party/akaze)
 add_subdirectory(third_party/vlfeat)
+
+include_directories(third_party/vlfeat)
 
 ####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)

@@ -4,7 +4,7 @@ from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 
 def test_processing_statistics_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -30,7 +30,7 @@ def test_processing_statistics_normal(
 def test_processing_statistics_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,
@@ -54,7 +54,7 @@ def test_processing_statistics_null(
 
 def test_features_statistics_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -85,7 +85,7 @@ def test_features_statistics_normal(
 def test_features_statistics_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,
@@ -115,7 +115,7 @@ def test_features_statistics_null(
 
 def test_reconstruction_statistics_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -150,7 +150,7 @@ def test_reconstruction_statistics_normal(
 def test_reconstruction_statistics_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,
@@ -183,7 +183,7 @@ def test_reconstruction_statistics_null(
 
 def test_cameras_statistics_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -209,7 +209,7 @@ def test_cameras_statistics_normal(
 def test_cameras_statistics_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,
@@ -223,7 +223,7 @@ def test_cameras_statistics_null(
 
 def test_rig_statistics_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -239,7 +239,7 @@ def test_rig_statistics_normal(
 def test_rig_statistics_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,
@@ -253,7 +253,7 @@ def test_rig_statistics_null(
 
 def test_gps_errors_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     gps_errors = stats.gps_errors([reference])
     assert gps_errors == {}
@@ -262,14 +262,14 @@ def test_gps_errors_normal(
 def test_gps_errors_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     gps_errors = stats.gps_errors([null_scene])
     assert gps_errors == {}
 
 
 def test_gcp_errors_normal(
     scene_synthetic: synthetic_scene.SyntheticInputData,
-):
+) -> None:
     reference = scene_synthetic.reconstruction
     dataset = synthetic_dataset.SyntheticDataSet(
         reference,
@@ -285,7 +285,7 @@ def test_gcp_errors_normal(
 def test_gcp_errors_null(
     scene_synthetic: synthetic_scene.SyntheticInputData,
     null_scene: types.Reconstruction,
-):
+) -> None:
     dataset = synthetic_dataset.SyntheticDataSet(
         null_scene,
         scene_synthetic.exifs,

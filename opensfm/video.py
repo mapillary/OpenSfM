@@ -9,8 +9,9 @@ from opensfm import geotag_from_gpx
 from opensfm import io
 
 
-def video_orientation(video_file):
+def video_orientation(video_file) -> int:
     # Rotation
+    # pyre-fixme[16]: Optional type has no attribute `read`.
     rotation = Popen(
         ["exiftool", "-Rotation", "-b", video_file], stdout=PIPE
     ).stdout.read()
@@ -24,6 +25,8 @@ def video_orientation(video_file):
             orientation = 3
         elif rotation == 270:
             orientation = 8
+        else:
+            raise RuntimeError(f"rotation {rotation} has no valid orientation!")
     else:
         orientation = 1
     return orientation
@@ -32,11 +35,11 @@ def video_orientation(video_file):
 def import_video_with_gpx(
     video_file,
     gpx_file,
-    output_path,
+    output_path: str,
     dx,
     dt=None,
     start_time=None,
-    visual=False,
+    visual: bool=False,
     image_description=None,
 ):
 
@@ -48,6 +51,7 @@ def import_video_with_gpx(
         video_start_time = dateutil.parser.parse(start_time)
     else:
         try:
+            # pyre-fixme[16]: Optional type has no attribute `read`.
             exifdate = Popen(
                 ["exiftool", "-CreateDate", "-b", video_file], stdout=PIPE
             ).stdout.read()

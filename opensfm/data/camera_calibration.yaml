@@ -1,0 +1,89 @@
+[{
+    "gopro":{
+        "MODEL":{
+            "hero8 black":{
+                "focal_x": 0.47720253548498875,
+                "focal_y": 0.4776476227437118,
+                "k1": -0.004417272934201867,
+                "k2": 0.0026456102958567146,
+                "c_x": -0.0017664444590190724,
+                "c_y": 0.006393052002726844,
+                "p1": 0.0, "p2": 0.0, "k3": 0.0,
+                "projection_type": "brown"
+            }
+        },
+        "FOCAL":{
+            # GoPro Hero 3, 7MP medium
+            20: {"focal": 0.625, "k1": -0.37, "k2": 0.28},
+            # GoPro Hero 3, 7MP wide
+            15: {"focal": 0.466, "k1": -0.195, "k2": 0.030},
+            # GoPro Hero 2, 5MP medium
+            23: {"focal": 0.71875, "k1": -0.38, "k2": 0.24},
+            # GoPro Hero 2, 5MP wide
+            16: {"focal": 0.5, "k1": -0.39, "k2": 0.22},
+        }
+    },
+    "garmin":{
+        "MODEL":{
+            # "v2 garmin virb 4608 3456 perspective 0"
+            "virb": {"focal": 0.57, "k1": -0.30, "k2": 0.06},
+            # "v2 garmin virbxe 3477 1950 perspective 0.3888"
+            # "v2 garmin virbxe 1600 1200 perspective 0.3888"
+            # "v2 garmin virbxe 4000 3000 perspective 0.3888"
+            # Calibration when using camera's undistortion
+            "virbxe": {"focal": 0.466, "k1": -0.08, "k2": 0.0}
+        }
+    },
+    "drift":{
+        "MODEL":{
+            "ghost s": {"focal": 0.47, "k1": -0.22, "k2": 0.03}
+        }
+    },
+    "xiaoyi":{
+        "ALL": {"focal": 0.5, "k1": -0.19, "k2": 0.028}
+    },
+    "geo":{
+        "MODEL":{
+            "frames": {"focal": 0.5, "k1": -0.24, "k2": 0.04}
+        }
+    },
+    "bullet5s":{
+        "ALL": {"focal": 0.57, "k1": -0.30, "k2": 0.06}
+    },
+    "sony":{
+        "MODEL":{
+            "hdr-as200v": {"focal": 0.55, "k1": -0.30, "k2": 0.08},
+            "hdr-as300": {"focal": 0.3958, "k1": -0.1496, "k2": 0.0201}
+        }
+    },
+    "PARROT":{
+        "MODEL":{
+            "Bebop 2": {"focal": 0.36666666666666666, "projection_type": "fisheye"}
+        }
+    },
+    "dji":{
+        "MODEL":{
+            "fc300s": {
+                "focal": 0.5930666527479901,
+                "k1": -0.012137318698010527,
+                "k2": 0.016199087342953698
+            }
+        }
+    },
+    "skydio":{
+        "MODEL":{
+            "2": {
+                "focal_x": 0.5890650637205782,
+                "focal_y": 0.5893009528604379,
+                "c_x": 0.006414544008217537,
+                "c_y": 0.007804076177596079,
+                "k1": 0.007400489742572139,
+                "k2": -0.01564249925934293,
+                "p1": -0.007885887470989788,
+                "p2": 0.007514503550147163,
+                "k3": -0.0019150459181816895,
+                "projection_type": "brown"
+            }
+        }
+    }
+}]
