@@ -265,6 +265,10 @@ class BundleAdjuster {
                        double position_std_deviation,
                        double orientation_std_deviation);
 
+  // Gauge fixing
+  void SetGaugeFixShots(const std::string &shot_origin,
+                        const std::string &shot_scale);
+
   // Minimization setup
   void SetPointProjectionLossFunction(std::string name, double threshold);
   void SetRelativeMotionLossFunction(std::string name, double threshold);
@@ -363,6 +367,8 @@ class BundleAdjuster {
   std::string relative_motion_loss_name_;
   double relative_motion_loss_threshold_;
   bool adjust_absolute_position_std_;
+  foundation::OptionalValue<std::pair<std::string, std::string>>
+      gauge_fix_shots_;
 
   bool compute_covariances_;
   bool covariance_estimation_valid_;

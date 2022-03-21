@@ -336,6 +336,13 @@ void BundleAdjuster::AddAbsoluteRoll(const std::string &shot_id, double angle,
   absolute_rolls_.push_back(a);
 }
 
+void BundleAdjuster::SetGaugeFixShots(const std::string &shot_origin,
+                                      const std::string &shot_scale) {
+  Shot *shot = &shots_.at(shot_origin);
+  shot->GetRigInstance()->SetParametersToOptimize({});
+  gauge_fix_shots_.SetValue(std::make_pair(shot_origin, shot_scale));
+}
+
 void BundleAdjuster::SetPointProjectionLossFunction(std::string name,
                                                     double threshold) {
   point_projection_loss_name_ = name;
@@ -1053,6 +1060,24 @@ void BundleAdjuster::Run() {
     }
     problem.AddResidualBlock(cost_function, linear_motion_prior_loss_,
                              parameter_blocks);
+  }
+
+  // Gauge fix
+  if (gauge_fix_shots_.HasValue()) {
+    const auto &gauge_shots = gauge_fix_shots_.Value();
+    auto instance1 = shots_.at(gauge_shots.first).GetRigInstance();
+    auto instance2 = shots_.at(gauge_shots.second).GetRigInstance();
+    const double norm =
+        (instance1->GetValue().GetOrigin() - instance2->GetValue().GetOrigin())
+            .norm();
+
+    ceres::CostFunction *cost_function =
+        new ceres::AutoDiffCostFunction<TranslationPriorError, 1, 6, 6>(
+            new TranslationPriorError(norm));
+
+    problem.AddResidualBlock(cost_function, nullptr,
+                             instance1->GetValueData().data(),
+                             instance2->GetValueData().data());
   }
 
   // Solve

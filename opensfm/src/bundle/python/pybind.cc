@@ -105,6 +105,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_absolute_tilt", &bundle::BundleAdjuster::AddAbsoluteTilt)
       .def("add_absolute_roll", &bundle::BundleAdjuster::AddAbsoluteRoll)
       .def("add_linear_motion", &bundle::BundleAdjuster::AddLinearMotion)
+      .def("set_gauge_fix_shots", &bundle::BundleAdjuster::SetGaugeFixShots)
       .def("set_internal_parameters_prior_sd",
            &bundle::BundleAdjuster::SetInternalParametersPriorSD)
       .def("set_compute_covariances",
