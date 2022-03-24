@@ -81,6 +81,10 @@ class SyntheticDataSet(DataSet):
     def images(self) -> List[str]:
         return self.image_list
 
+    def _raise_if_absent_image(self, image: str):
+        if image not in self.image_list:
+            raise RuntimeError("Image isn't present in the synthetic dataset")
+
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
         return self.reconstruction.cameras
 
@@ -100,12 +104,15 @@ class SyntheticDataSet(DataSet):
         return rig_assignments
 
     def load_exif(self, image: str) -> Dict[str, Any]:
+        self._raise_if_absent_image(image)
         return self.exifs[image]
 
     def exif_exists(self, image: str) -> bool:
-        return True
+        return image in self.image_list
 
     def features_exist(self, image: str) -> bool:
+        if image not in self.image_list:
+            return False
         if self.features is None:
             return False
         feat = self.features
@@ -114,10 +121,12 @@ class SyntheticDataSet(DataSet):
         return image in feat
 
     def load_words(self, image: str):
+        self._raise_if_absent_image(image)
         n_closest = 50
         return [image] * n_closest
 
     def load_features(self, image: str) -> Optional[oft.FeaturesData]:
+        self._raise_if_absent_image(image)
         if not self.features:
             return None
         feat = self.features
@@ -129,12 +138,15 @@ class SyntheticDataSet(DataSet):
         pass
 
     def matches_exists(self, image: str) -> bool:
+        if image not in self.image_list:
+            return False
         self._check_and_create_matches()
         if self.matches is None:
             return False
         return True
 
     def load_matches(self, image: str) -> Dict[str, np.ndarray]:
+        self._raise_if_absent_image(image)
         self._check_and_create_matches()
         if self.matches is not None:
             return self.matches[image]
