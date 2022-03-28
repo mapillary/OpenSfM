@@ -155,7 +155,7 @@ def test_pair(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+            "1", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1, False
         )
     )
 
@@ -202,7 +202,13 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+            "1",
+            "2",
+            np.array([0, 0, 0]),
+            np.array([-1, 0, 0]),
+            1,
+            1,
+            False,
         )
     )
 
@@ -239,9 +245,9 @@ def test_pair_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.add_reconstruction_instance("12", 4, "1")
     sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", False)
-    sa.add_relative_similarity(
-        pybundle.RelativeSimilarity(
-            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1
+    sa.add_relative_motion(
+        pybundle.RelativeMotion(
+            "1", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1, False
         )
     )
 
@@ -256,7 +262,7 @@ def test_pair_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
 
     assert np.allclose(s1.translation, [0, 0, 0], atol=1e-6)
     assert np.allclose(s2.translation, [-2, 0, 0], atol=1e-6)
-    assert np.allclose(r12.get_scale("1"), 0.5)
+    assert np.allclose(r12.get_scale("1"), 4.0)
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
@@ -273,19 +279,40 @@ def test_four_cams_single_reconstruction(
     sa.add_reconstruction_instance("1234", 1, "3")
     sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
+
+    relative_scale = 1
+    robust = 1
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+            "1",
+            "2",
+            np.array([0, 0, 0]),
+            np.array([-1, 0, 0]),
+            relative_scale,
+            robust,
+            False,
         )
     )
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1
+            "1",
+            "3",
+            np.array([0, 0, 0]),
+            np.array([0, -1, 0]),
+            relative_scale,
+            robust,
+            False,
         )
     )
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1
+            "1",
+            "4",
+            np.array([0, 0, 0]),
+            np.array([0, 0, -1]),
+            relative_scale,
+            robust,
+            False,
         )
     )
 
@@ -316,48 +343,58 @@ def test_four_cams_double_reconstruction(
     sa.add_reconstruction("12", False)
     sa.add_reconstruction_instance("12", 1, "1")
     sa.add_reconstruction_instance("12", 1, "2")
-    sa.add_reconstruction_instance("12", 1, "3")
     sa.set_scale_sharing("12", False)
 
     sa.add_reconstruction("34", False)
-    sa.add_reconstruction_instance("34", 1, "2")
     sa.add_reconstruction_instance("34", 1, "3")
     sa.add_reconstruction_instance("34", 1, "4")
     sa.set_scale_sharing("34", False)
 
-    sa.add_relative_similarity(
-        pybundle.RelativeSimilarity(
-            "12",
+    relative_scale = 1
+    robust = 1
+    sa.add_relative_motion(
+        pybundle.RelativeMotion(
             "1",
-            "12",
             "2",
             np.array([0, 0, 0]),
             np.array([-0.5, -0.5, -0.5]),
-            1,
-            1,
+            relative_scale,
+            robust,
+            True,
         )
     )
-    sa.add_relative_similarity(
-        pybundle.RelativeSimilarity(
-            "12",
-            "2",
-            "12",
+    sa.add_relative_motion(
+        pybundle.RelativeMotion(
             "3",
+            "2",
             np.array([0, 0, 0]),
-            np.array([-0.5, -0.5, -0.5]),
-            1,
-            1,
+            np.array([0.5, 0.5, 0.5]),
+            relative_scale,
+            robust,
+            False,
         )
     )
 
-    sa.add_relative_similarity(
-        pybundle.RelativeSimilarity(
-            "34", "3", "34", "4", np.array([0, 0, 0]), np.array([-2, -2, -2]), 1, 1
+    sa.add_relative_motion(
+        pybundle.RelativeMotion(
+            "3",
+            "4",
+            np.array([0, 0, 0]),
+            np.array([-2, -2, -2]),
+            relative_scale,
+            robust,
+            True,
         )
     )
-    sa.add_relative_similarity(
-        pybundle.RelativeSimilarity(
-            "34", "2", "34", "3", np.array([0, 0, 0]), np.array([-2, -2, -2]), 1, 1
+    sa.add_relative_motion(
+        pybundle.RelativeMotion(
+            "2",
+            "3",
+            np.array([0, 0, 0]),
+            np.array([-2, -2, -2]),
+            relative_scale,
+            robust,
+            False,
         )
     )
 
@@ -381,10 +418,8 @@ def test_four_cams_double_reconstruction(
     r12 = sa.get_reconstruction("12")
     assert np.allclose(r12.get_scale("1"), 0.5)
     assert np.allclose(r12.get_scale("2"), 0.5)
-    assert np.allclose(r12.get_scale("3"), 0.5)
 
     r34 = sa.get_reconstruction("34")
-    assert np.allclose(r34.get_scale("2"), 2.0)
     assert np.allclose(r34.get_scale("3"), 2.0)
     assert np.allclose(r34.get_scale("4"), 2.0)
 
@@ -408,19 +443,40 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.add_reconstruction_instance("1234", 1, "3")
     sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
+
+    relative_scale = 1
+    robust = 1
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+            "1",
+            "2",
+            np.array([0, 0, 0]),
+            np.array([-1, 0, 0]),
+            relative_scale,
+            robust,
+            False,
         )
     )
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1
+            "1",
+            "3",
+            np.array([0, 0, 0]),
+            np.array([0, -1, 0]),
+            relative_scale,
+            robust,
+            False,
         )
     )
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1
+            "1",
+            "4",
+            np.array([0, 0, 0]),
+            np.array([0, 0, -1]),
+            relative_scale,
+            robust,
+            False,
         )
     )
 

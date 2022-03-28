@@ -1,20 +1,24 @@
 #pragma once
 
+#include <bundle/data/bias.h>
 #include <bundle/data/pose.h>
 #include <bundle/error/error_utils.h>
 #include <bundle/error/position_functors.h>
+#include <foundation/types.h>
 
 #include <Eigen/Eigen>
 
 namespace bundle {
 
 struct RelativeMotionError {
-  RelativeMotionError(const Eigen::VectorXd& Rtij,
-                      const Eigen::MatrixXd& scale_matrix)
-      : Rtij_(Rtij), scale_matrix_(scale_matrix) {}
+  RelativeMotionError(const Eigen::VectorXd& observed_Rts,
+                      const Eigen::MatrixXd& scale_matrix, bool observed_scale)
+      : observed_Rts_(observed_Rts),
+        scale_matrix_(scale_matrix),
+        observed_scale_(observed_scale) {}
 
   template <typename T>
-  Eigen::Matrix<T, 6, 1> Error(T const* const* p) const {
+  bool operator()(T const* const* p, T* r) const {
     // Get rotation and translation values.
     Vec3<T> Ri =
         ShotRotationFunctor(shot_i_rig_instance_index_, FUNCTOR_NOT_SET)(p);
@@ -24,59 +28,41 @@ struct RelativeMotionError {
         ShotRotationFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
     Vec3<T> tj =
         ShotPositionFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
-    Eigen::Matrix<T, 6, 1> residual;
+    Eigen::Map<VecX<T> > residual(r, Similarity::Parameter::NUM_PARAMS);
 
-    // Compute rotation residual: log( Rij Ri Rj^t )  ->  log( Rij Ri^t Rj)
-    const Eigen::Matrix<T, 3, 1> Rij =
-        Rtij_.segment<3>(Pose::Parameter::RX).cast<T>();
-    residual.segment(0, 3) = MultRotations(Rij, (-Ri).eval(), Rj.eval());
+    // Compute rotation residual: log( Rij Ri^t Rj)
+    const Vec3<T> Rij = observed_Rts_.segment<3>(Pose::Parameter::RX).cast<T>();
+    residual.segment(Pose::Parameter::RX, 3) =
+        MultRotations(Rij, (-Ri).eval(), Rj.eval());
 
-    // Compute translation residual: tij - scale * ( tj - Rj Ri^t ti )  ->  tij
-    // - scale * Rj^t * (ti - tj)
-    const auto scale = p[scale_index_];
-    const auto tij = Rtij_.segment<3>(Pose::Parameter::TX).cast<T>();
-    residual.segment(3, 3) =
-        tij - scale[0] * RotatePoint((-Rj).eval(), (ti - tj).eval());
-    return residual;
-  }
+    // Compute translation residual: tij - sj * Rj^t * (ti - tj)
+    const auto scale_i = p[scale_i_index_];
+    const auto scale_j = p[scale_j_index_];
+    const auto tij = observed_Rts_.segment<3>(Pose::Parameter::TX).cast<T>();
+    residual.segment(Pose::Parameter::TX, 3) =
+        tij - scale_j[0] * RotatePoint((-Rj).eval(), (ti - tj).eval());
 
-  template <typename T>
-  bool operator()(T const* const* p, T* r) const {
-    Eigen::Map<Eigen::Matrix<T, 6, 1> > residual(r);
-    residual = scale_matrix_.cast<T>() * Error(p);
-    return true;
-  }
-
-  Eigen::VectorXd Rtij_;
-  Eigen::MatrixXd scale_matrix_;
-  static constexpr int shot_i_rig_instance_index_ = 0;
-  static constexpr int shot_j_rig_instance_index_ = 1;
-  static constexpr int scale_index_ = 2;
-};
-
-struct RelativeSimilarityError : public RelativeMotionError {
-  RelativeSimilarityError(const Eigen::VectorXd& Rtij, double Sij,
-                          const Eigen::MatrixXd& scale_matrix)
-      : RelativeMotionError(Rtij, scale_matrix), Sij_(Sij) {}
-
-  template <typename T>
-  bool operator()(T const* const* p, T* r) const {
-    auto scale_i = p[scale_i_index_];
-    auto scale_j = p[scale_j_index_];
-
-    Eigen::Map<Eigen::Matrix<T, 7, 1> > residual(r);
-    residual.segment(0, 6) = RelativeMotionError::Error(p);
-    if (scale_i[0] == T(0.0)) {
+    if (scale_i[0] == T(0.0) || scale_j[0] == T(0.0)) {
       return false;
     }
-    residual(6) = (T(Sij_) - scale_j[0] / scale_i[0]);
+
+    if (observed_scale_) {
+      const auto Sij = T(observed_Rts_(Similarity::Parameter::SCALE));
+      residual(Similarity::Parameter::SCALE) = Sij - scale_j[0] / scale_i[0];
+    } else {
+      residual(Similarity::Parameter::SCALE) = T(0.);
+    }
     residual = scale_matrix_.cast<T>() * residual;
     return true;
   }
 
-  double Sij_;
-  static constexpr int scale_i_index_ = 2;
-  static constexpr int scale_j_index_ = 3;
+  Eigen::VectorXd observed_Rts_;
+  Eigen::MatrixXd scale_matrix_;
+  static constexpr int shot_i_rig_instance_index_ = 0;
+  static constexpr int shot_j_rig_instance_index_ = 1;
+  bool observed_scale_;
+  int scale_i_index_{2};
+  int scale_j_index_{2};
 };
 
 struct RelativeRotationError {

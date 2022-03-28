@@ -64,64 +64,34 @@ struct PointProjectionObservation {
 };
 
 struct RelativeMotion {
-  RelativeMotion(const std::string &reconstruction_i,
-                 const std::string &rig_instance_i,
-                 const std::string &reconstruction_j,
+  RelativeMotion(const std::string &rig_instance_i,
                  const std::string &rig_instance_j, const Vec3d &rotation,
-                 const Vec3d &translation, double robust_multiplier) {
-    reconstruction_id_i = reconstruction_i;
+                 const Vec3d &translation, double scale,
+                 double robust_multiplier, bool observed_scale) {
     rig_instance_id_i = rig_instance_i;
-    reconstruction_id_j = reconstruction_j;
     rig_instance_id_j = rig_instance_j;
-    parameters.resize(Pose::Parameter::NUM_PARAMS);
-    parameters.segment(Pose::Parameter::RX, 3) = rotation;
-    parameters.segment(Pose::Parameter::TX, 3) = translation;
-    scale_matrix.resize(Pose::Parameter::NUM_PARAMS,
-                        Pose::Parameter::NUM_PARAMS);
+
+    const int num_parameters = Similarity::Parameter::NUM_PARAMS;
+    parameters.resize(num_parameters);
+    scale_matrix.resize(num_parameters, num_parameters);
+
+    parameters.segment(Similarity::Parameter::RX, 3) = rotation;
+    parameters.segment(Similarity::Parameter::TX, 3) = translation;
+    parameters(Similarity::Parameter::SCALE) = scale;
     scale_matrix.setIdentity();
     this->robust_multiplier = robust_multiplier;
+    this->observed_scale = observed_scale;
   }
 
-  Vec3d GetRotation() const {
-    return parameters.segment(Pose::Parameter::RX, 3);
-  }
-  Vec3d GetTranslation() const {
-    return parameters.segment(Pose::Parameter::TX, 3);
-  }
-  void SetRotation(const Vec3d &r) {
-    parameters.segment(Pose::Parameter::RX, 3) = r;
-  }
-  void SetTranslation(const Vec3d &t) {
-    parameters.segment(Pose::Parameter::TX, 3) = t;
-  }
   void SetScaleMatrix(const MatXd &s) { scale_matrix = s; }
 
-  std::string reconstruction_id_i;
   std::string rig_instance_id_i;
-  std::string reconstruction_id_j;
   std::string rig_instance_id_j;
 
   VecXd parameters;
   MatXd scale_matrix;
   double robust_multiplier;
-};
-
-struct RelativeSimilarity : public RelativeMotion {
-  RelativeSimilarity(const std::string &reconstruction_i,
-                     const std::string &rig_instance_i,
-                     const std::string &reconstruction_j,
-                     const std::string &rig_instance_j, const Vec3d &rotation,
-                     const Vec3d &translation, double s,
-                     double robust_multiplier)
-      : RelativeMotion(reconstruction_i, rig_instance_i, reconstruction_j,
-                       rig_instance_j, rotation, translation,
-                       robust_multiplier),
-        scale(s) {
-    scale_matrix.resize(Pose::Parameter::NUM_PARAMS + 1,
-                        Pose::Parameter::NUM_PARAMS + 1);
-    scale_matrix.setIdentity();
-  }
-  double scale;
+  bool observed_scale;
 };
 
 struct RelativeRotation {
@@ -234,7 +204,6 @@ class BundleAdjuster {
 
   // Relative motion constraints
   void AddRelativeMotion(const RelativeMotion &rm);
-  void AddRelativeSimilarity(const RelativeSimilarity &rm);
   void AddRelativeRotation(const RelativeRotation &rr);
 
   // Absolute motion constraints
@@ -316,9 +285,10 @@ class BundleAdjuster {
 
   // minimized data
   std::map<std::string, Camera> cameras_;
-  std::map<std::string, Bias> bias_;
+  std::map<std::string, Similarity> bias_;
   std::map<std::string, Shot> shots_;
   std::map<std::string, Reconstruction> reconstructions_;
+  std::map<std::string, std::string> reconstructions_assignments_;
   std::map<std::string, Point> points_;
   std::map<std::string, RigCamera> rig_cameras_;
   std::map<std::string, RigInstance> rig_instances_;
@@ -333,7 +303,6 @@ class BundleAdjuster {
 
   // relative motion between shots
   std::vector<RelativeMotion> relative_motions_;
-  std::vector<RelativeSimilarity> relative_similarity_;
   std::vector<RelativeRotation> relative_rotations_;
   std::vector<CommonPosition> common_positions_;
 
