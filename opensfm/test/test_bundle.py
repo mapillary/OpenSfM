@@ -50,7 +50,9 @@ def test_sigleton(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         {"1": "rig_cam1"},
         False,
     )
-    sa.add_rig_instance_position_prior("1", np.array([1, 0, 0]), np.array([1, 1, 1]), "")
+    sa.add_rig_instance_position_prior(
+        "1", np.array([1, 0, 0]), np.array([1, 1, 1]), ""
+    )
     sa.add_absolute_up_vector("1", np.array([0, -1, 0]), 1)
     sa.add_absolute_pan("1", np.radians(180), 1)
 
@@ -70,7 +72,9 @@ def test_singleton_pan_tilt_roll(bundle_adjuster: pybundle.BundleAdjuster) -> No
         {"1": "rig_cam1"},
         False,
     )
-    sa.add_rig_instance_position_prior("1", np.array([1, 0, 0]), np.array([1, 1, 1]), "")
+    sa.add_rig_instance_position_prior(
+        "1", np.array([1, 0, 0]), np.array([1, 1, 1]), ""
+    )
     sa.add_absolute_pan("1", pan, 1)
     sa.add_absolute_tilt("1", tilt, 1)
     sa.add_absolute_roll("1", roll, 1)
@@ -128,32 +132,36 @@ def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
     assert reference.cameras["1"].k2 == orig_camera.k2
 
 
+def create_shots(bundle_adjuster: pybundle.BundleAdjuster, num_shots: int) -> None:
+    for i in range(num_shots):
+        instance_id = str(i + 1)
+        bundle_adjuster.add_rig_instance(
+            instance_id,
+            pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
+            {instance_id: "cam1"},
+            {instance_id: "rig_cam1"},
+            False,
+        )
+
+
 def test_pair(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Simple two camera test"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
+    create_shots(sa, 2)
+
     sa.add_reconstruction("12", False)
     sa.add_reconstruction_instance("12", 4, "1")
     sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
-        pybundle.RelativeMotion("12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1)
+        pybundle.RelativeMotion(
+            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+        )
     )
-    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -169,20 +177,16 @@ def test_pair(bundle_adjuster: pybundle.BundleAdjuster) -> None:
 def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Simple two rigs test with a point constraint for anchoring"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([1e-3, 1e-3, 1e-3]), np.array([1e-3, 1e-3, 1e-3])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([1e-3, 1e-3, 1e-3]), np.array([1e-3, 1e-3, 1e-3])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
+    for i in range(2):
+        instance_id = str(i + 1)
+        sa.add_rig_instance(
+            instance_id,
+            pygeometry.Pose(np.array([1e-3, 1e-3, 1e-3]), np.array([1e-3, 1e-3, 1e-3])),
+            {instance_id: "cam1"},
+            {instance_id: "rig_cam1"},
+            False,
+        )
+
     sa.add_point("p1", np.array([0, 0, 0]), False)
     sa.add_point("p2", np.array([0, 0, 0]), False)
 
@@ -197,16 +201,19 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
 
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
-        pybundle.RelativeMotion("12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1)
+        pybundle.RelativeMotion(
+            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+        )
     )
 
+    std_dev = np.array([1, 1, 1])
     sa.add_point_projection_observation("1", "p1", np.array([0, 0]), 1)
     sa.add_point_projection_observation("2", "p1", np.array([-0.5, 0]), 1)
-    sa.add_point_prior("p1", np.array([-0.5, 2, 2]), np.array([1, 1, 1]), True)
+    sa.add_point_prior("p1", np.array([-0.5, 2, 2]), std_dev, True)
 
     sa.add_point_projection_observation("2", "p2", np.array([0, 0]), 1)
     sa.add_point_projection_observation("1", "p2", np.array([0.5, 0]), 1)
-    sa.add_point_prior("p2", np.array([1.5, 2, 2]), np.array([1, 1, 1]), True)
+    sa.add_point_prior("p2", np.array([1.5, 2, 2]), std_dev, True)
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -226,29 +233,21 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
 def test_pair_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Simple two rigs test"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
+    create_shots(sa, 2)
+
     sa.add_reconstruction("12", False)
     sa.add_reconstruction_instance("12", 4, "1")
     sa.add_reconstruction_instance("12", 4, "2")
     sa.set_scale_sharing("12", False)
     sa.add_relative_similarity(
-        pybundle.RelativeSimilarity("12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1)
+        pybundle.RelativeSimilarity(
+            "12", "1", "12", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1
+        )
     )
-    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -261,37 +260,13 @@ def test_pair_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     assert np.allclose(r12.get_scale("2"), 0.5)
 
 
-def test_four_cams_single_reconstruction(bundle_adjuster: pybundle.BundleAdjuster) -> None:
+def test_four_cams_single_reconstruction(
+    bundle_adjuster: pybundle.BundleAdjuster,
+) -> None:
     """Four rigs, one reconstruction"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "3",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"3": "cam1"},
-        {"3": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "4",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"4": "cam1"},
-        {"4": "rig_cam1"},
-        False,
-    )
+    create_shots(sa, 4)
+
     sa.add_reconstruction("1234", False)
     sa.add_reconstruction_instance("1234", 1, "1")
     sa.add_reconstruction_instance("1234", 1, "2")
@@ -299,17 +274,25 @@ def test_four_cams_single_reconstruction(bundle_adjuster: pybundle.BundleAdjuste
     sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+        )
     )
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1
+        )
     )
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1
+        )
     )
-    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), std_dev, "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -323,134 +306,102 @@ def test_four_cams_single_reconstruction(bundle_adjuster: pybundle.BundleAdjuste
     assert np.allclose(s4.translation, [0, 0, -2], atol=1e-6)
 
 
-def test_four_cams_single_reconstruction_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
-    """Four rigs, one reconstruction"""
+def test_four_cams_double_reconstruction(
+    bundle_adjuster: pybundle.BundleAdjuster,
+) -> None:
+    """Four rigs, two reconstruction"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "3",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"3": "cam1"},
-        {"3": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "4",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"4": "cam1"},
-        {"4": "rig_cam1"},
-        False,
-    )
-    sa.add_reconstruction("1234", False)
-    sa.add_reconstruction_instance("1234", 1, "1")
-    sa.add_reconstruction_instance("1234", 1, "2")
-    sa.add_reconstruction_instance("1234", 1, "3")
-    sa.add_reconstruction_instance("1234", 1, "4")
-    sa.set_scale_sharing("1234", False)
+    create_shots(sa, 4)
+
+    sa.add_reconstruction("12", False)
+    sa.add_reconstruction_instance("12", 1, "1")
+    sa.add_reconstruction_instance("12", 1, "2")
+    sa.add_reconstruction_instance("12", 1, "3")
+    sa.set_scale_sharing("12", False)
+
+    sa.add_reconstruction("34", False)
+    sa.add_reconstruction_instance("34", 1, "2")
+    sa.add_reconstruction_instance("34", 1, "3")
+    sa.add_reconstruction_instance("34", 1, "4")
+    sa.set_scale_sharing("34", False)
 
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234",
+            "12",
             "1",
-            "1234",
+            "12",
             "2",
             np.array([0, 0, 0]),
-            np.array([-1, 0, 0]),
+            np.array([-0.5, -0.5, -0.5]),
             1,
             1,
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234",
+            "12",
             "2",
-            "1234",
+            "12",
             "3",
             np.array([0, 0, 0]),
-            np.array([-1, -1, 0]),
+            np.array([-0.5, -0.5, -0.5]),
             1,
             1,
+        )
+    )
+
+    sa.add_relative_similarity(
+        pybundle.RelativeSimilarity(
+            "34", "3", "34", "4", np.array([0, 0, 0]), np.array([-2, -2, -2]), 1, 1
         )
     )
     sa.add_relative_similarity(
         pybundle.RelativeSimilarity(
-            "1234",
-            "3",
-            "1234",
-            "4",
-            np.array([0, 0, 0]),
-            np.array([0, -1, 0]),
-            1,
-            1,
+            "34", "2", "34", "3", np.array([0, 0, 0]), np.array([-2, -2, -2]), 1, 1
         )
     )
-    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("3", np.array([4, 2, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("4", np.array([4, 4, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("4", np.array([3, 3, 3]), std_dev, "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
     s2 = sa.get_rig_instance_pose("2")
     s3 = sa.get_rig_instance_pose("3")
     s4 = sa.get_rig_instance_pose("4")
+    r12 = sa.get_reconstruction("12")
+    r34 = sa.get_reconstruction("34")
 
-    r1234 = sa.get_reconstruction("1234")
+    assert np.allclose(s1.get_origin(), [0, 0, 0], atol=1e-6)
+    assert np.allclose(s2.get_origin(), [1, 1, 1], atol=1e-6)
+    assert np.allclose(s3.get_origin(), [2, 2, 2], atol=1e-6)
+    assert np.allclose(s4.get_origin(), [3, 3, 3], atol=1e-6)
 
-    assert np.allclose(s1.translation, [0, 0, 0], atol=1e-6)
-    assert np.allclose(s2.translation, [-2, 0, 0], atol=1e-6)
-    assert np.allclose(s3.translation, [-4, -2, 0], atol=1e-6)
-    assert np.allclose(s4.translation, [-4, -4, 0], atol=1e-6)
-    assert np.allclose(r1234.get_scale("1"), 0.5)
-    assert np.allclose(r1234.get_scale("2"), 0.5)
-    assert np.allclose(r1234.get_scale("3"), 0.5)
-    assert np.allclose(r1234.get_scale("4"), 0.5)
+    r12 = sa.get_reconstruction("12")
+    assert np.allclose(r12.get_scale("1"), 0.5)
+    assert np.allclose(r12.get_scale("2"), 0.5)
+    assert np.allclose(r12.get_scale("3"), 0.5)
+
+    r34 = sa.get_reconstruction("34")
+    assert np.allclose(r34.get_scale("2"), 2.0)
+    assert np.allclose(r34.get_scale("3"), 2.0)
+    assert np.allclose(r34.get_scale("4"), 2.0)
 
 
 def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Four rigs, one reconstruction"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        True,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "3",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"3": "cam1"},
-        {"3": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "4",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"4": "cam1"},
-        {"4": "rig_cam1"},
-        False,
-    )
+    for i in range(4):
+        instance_id = str(i + 1)
+        sa.add_rig_instance(
+            instance_id,
+            pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
+            {instance_id: "cam1"},
+            {instance_id: "rig_cam1"},
+            i == 0,
+        )
+
     sa.add_reconstruction("1234", False)
     sa.add_reconstruction_instance("1234", 1, "1")
     sa.add_reconstruction_instance("1234", 1, "2")
@@ -458,17 +409,25 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.add_reconstruction_instance("1234", 1, "4")
     sa.set_scale_sharing("1234", True)
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1
+        )
     )
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "3", np.array([0, 0, 0]), np.array([0, -1, 0]), 1
+        )
     )
     sa.add_relative_motion(
-        pybundle.RelativeMotion("1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1)
+        pybundle.RelativeMotion(
+            "1234", "1", "1234", "4", np.array([0, 0, 0]), np.array([0, 0, -1]), 1
+        )
     )
-    sa.add_rig_instance_position_prior("1", np.array([100, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([100, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), std_dev, "")
 
     sa.run()
     s1 = sa.get_rig_instance_pose("1")
@@ -485,34 +444,17 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
 def test_linear_motion_prior_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Three rigs, middle has no gps info. Translation only"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        True,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "3",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"3": "cam1"},
-        {"3": "rig_cam1"},
-        False,
-    )
+    create_shots(sa, 3)
+
     sa.add_reconstruction("123", False)
     sa.add_reconstruction_instance("123", 1, "1")
     sa.add_reconstruction_instance("123", 1, "2")
     sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
-    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), np.array([1, 1, 1]), "")
-    sa.add_rig_instance_position_prior("3", np.array([2, 0, 0]), np.array([1, 1, 1]), "")
+
+    std_dev = np.array([1, 1, 1])
+    sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    sa.add_rig_instance_position_prior("3", np.array([2, 0, 0]), std_dev, "")
     sa.add_linear_motion("1", "2", "3", 0.5, 0.1, 0.1)
 
     sa.run()
@@ -631,27 +573,16 @@ def test_bundle_alignment_prior() -> None:
 def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     """Three cameras. Same heatmap different offsets"""
     sa = bundle_adjuster
-    sa.add_rig_instance(
-        "1",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"1": "cam1"},
-        {"1": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "2",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"2": "cam1"},
-        {"2": "rig_cam1"},
-        False,
-    )
-    sa.add_rig_instance(
-        "3",
-        pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
-        {"3": "cam1"},
-        {"3": "rig_cam1"},
-        False,
-    )
+    for i in range(3):
+        instance_id = str(i + 1)
+        sa.add_rig_instance(
+            instance_id,
+            pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
+            {instance_id: "cam1"},
+            {instance_id: "rig_cam1"},
+            False,
+        )
+
     sa.add_reconstruction("123", True)
     sa.add_reconstruction_instance("123", 1, "1")
     sa.add_reconstruction_instance("123", 1, "2")
