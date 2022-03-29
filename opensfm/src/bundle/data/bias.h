@@ -7,10 +7,10 @@
 
 namespace bundle {
 
-struct Bias : public Data<geometry::Similarity> {
+struct Similarity : public Data<geometry::Similarity> {
   enum Parameter { RX, RY, RZ, TX, TY, TZ, SCALE, NUM_PARAMS };
 
-  Bias(const std::string &id, const geometry::Similarity &value)
+  Similarity(const std::string &id, const geometry::Similarity &value)
       : Data<geometry::Similarity>(id, value) {
     Init();
   }
@@ -31,14 +31,14 @@ struct Bias : public Data<geometry::Similarity> {
 };
 
 struct SimilarityPriorTransform
-    : public geometry::Functor<Pose::NUM_PARAMS, Bias::NUM_PARAMS,
+    : public geometry::Functor<Pose::NUM_PARAMS, Similarity::NUM_PARAMS,
                                Pose::NUM_PARAMS> {
   template <typename T>
   VecN<T, Pose::NUM_PARAMS> operator()(T const *parameters,
                                        T const *data) const {
     Vec3<T> R = ShotRotationFunctor(0, FUNCTOR_NOT_SET)(&parameters);
     Vec3<T> t = ShotPositionFunctor(0, FUNCTOR_NOT_SET)(&parameters);
-    const T *const scale = parameters + Bias::Parameter::SCALE;
+    const T *const scale = parameters + Similarity::Parameter::SCALE;
 
     VecN<T, Pose::NUM_PARAMS> transformed =
         Eigen::Map<const VecN<T, Pose::NUM_PARAMS>>(data).eval();

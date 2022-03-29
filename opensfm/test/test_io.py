@@ -71,7 +71,7 @@ def test_parse_projection() -> None:
     proj = io._parse_projection("WGS84 UTM 31N")
     easting, northing = 431760, 4582313.7
     lat, lon = 41.38946, 2.18378
-    plon, plat = proj(easting, northing, inverse=True)
+    plat, plon = proj.transform(easting, northing)
     assert np.allclose((lat, lon), (plat, plon))
 
 
