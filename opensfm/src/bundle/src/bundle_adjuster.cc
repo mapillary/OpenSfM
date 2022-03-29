@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "bundle/data/bias.h"
+
 namespace {
 bool IsRigCameraUseful(bundle::RigCamera &rig_camera) {
   return !(rig_camera.GetParametersToOptimize().empty() &&
@@ -100,7 +102,7 @@ void BundleAdjuster::SetCameraBias(const std::string &camera_id,
   if (bias_exists == bias_.end()) {
     throw std::runtime_error("Camera " + camera_id + " doesn't exist.");
   }
-  bias_exists->second = Bias(camera_id, bias);
+  bias_exists->second = Similarity(camera_id, bias);
 }
 
 void BundleAdjuster::AddRigInstance(
@@ -204,6 +206,7 @@ void BundleAdjuster::AddReconstructionInstance(
     return;
   }
   find->second.scales[instance_id] = scale;
+  reconstructions_assignments_[instance_id] = reconstruction_id;
 }
 
 void BundleAdjuster::AddPoint(const std::string &id, const Vec3d &position,
@@ -248,10 +251,6 @@ void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
 
 void BundleAdjuster::AddRelativeMotion(const RelativeMotion &rm) {
   relative_motions_.push_back(rm);
-}
-
-void BundleAdjuster::AddRelativeSimilarity(const RelativeSimilarity &rm) {
-  relative_similarity_.push_back(rm);
 }
 
 void BundleAdjuster::AddRelativeRotation(const RelativeRotation &rr) {
@@ -334,6 +333,13 @@ void BundleAdjuster::AddAbsoluteRoll(const std::string &shot_id, double angle,
   a.angle = angle;
   a.std_deviation = std_deviation;
   absolute_rolls_.push_back(a);
+}
+
+void BundleAdjuster::SetGaugeFixShots(const std::string &shot_origin,
+                                      const std::string &shot_scale) {
+  Shot *shot = &shots_.at(shot_origin);
+  shot->GetRigInstance()->SetParametersToOptimize({});
+  gauge_fix_shots_.SetValue(std::make_pair(shot_origin, shot_scale));
 }
 
 void BundleAdjuster::SetPointProjectionLossFunction(std::string name,
@@ -722,7 +728,7 @@ void BundleAdjuster::Run() {
         new ceres::DynamicAutoDiffCostFunction<PriorType>(position_prior);
     cost_function->SetNumResiduals(3);
     cost_function->AddParameterBlock(Pose::Parameter::NUM_PARAMS);
-    cost_function->AddParameterBlock(Bias::Parameter::NUM_PARAMS);
+    cost_function->AddParameterBlock(Similarity::Parameter::NUM_PARAMS);
     cost_function->AddParameterBlock(1);
     problem.AddResidualBlock(
         cost_function, nullptr, i.second.GetValueData().data(),
@@ -769,59 +775,36 @@ void BundleAdjuster::Run() {
     ceres::LossFunction *relative_motion_loss =
         CreateLossFunction(relative_motion_loss_name_, robust_threshold);
 
-    auto *relative_motion =
-        new RelativeMotionError(rp.parameters, rp.scale_matrix);
+    auto *relative_motion = new RelativeMotionError(
+        rp.parameters, rp.scale_matrix, rp.observed_scale);
     auto *cost_function =
         new ceres::DynamicAutoDiffCostFunction<RelativeMotionError>(
             relative_motion);
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(6);
     cost_function->AddParameterBlock(1);
-    cost_function->SetNumResiduals(6);
+    cost_function->SetNumResiduals(Similarity::Parameter::NUM_PARAMS);
 
     auto &rig_instance_i = rig_instances_.at(rp.rig_instance_id_i);
     auto &rig_instance_j = rig_instances_.at(rp.rig_instance_id_j);
 
-    auto parameter_blocks = std::vector<double *>(
-        {rig_instance_i.GetValueData().data(),
-         rig_instance_j.GetValueData().data(),
-         reconstructions_[rp.reconstruction_id_i].GetScalePtr(
-             rp.rig_instance_id_i)});
+    auto *scale_i =
+        reconstructions_[reconstructions_assignments_.at(rp.rig_instance_id_i)]
+            .GetScalePtr(rp.rig_instance_id_i);
+    auto *scale_j =
+        reconstructions_[reconstructions_assignments_.at(rp.rig_instance_id_j)]
+            .GetScalePtr(rp.rig_instance_id_j);
+    auto parameter_blocks =
+        std::vector<double *>({rig_instance_i.GetValueData().data(),
+                               rig_instance_j.GetValueData().data(), scale_i});
+
+    if (scale_i != scale_j) {
+      cost_function->AddParameterBlock(1);
+      relative_motion->scale_j_index_ = parameter_blocks.size();
+      parameter_blocks.push_back(scale_j);
+    }
 
     problem.AddResidualBlock(cost_function, relative_motion_loss,
-                             parameter_blocks);
-  }
-
-  // Add relative similarity errors
-  for (auto &rp : relative_similarity_) {
-    double robust_threshold =
-        relative_motion_loss_threshold_ * rp.robust_multiplier;
-    ceres::LossFunction *relative_similarity_loss =
-        CreateLossFunction(relative_motion_loss_name_, robust_threshold);
-
-    auto *relative_similarity =
-        new RelativeSimilarityError(rp.parameters, rp.scale, rp.scale_matrix);
-    auto *cost_function =
-        new ceres::DynamicAutoDiffCostFunction<RelativeSimilarityError>(
-            relative_similarity);
-    cost_function->AddParameterBlock(6);
-    cost_function->AddParameterBlock(6);
-    cost_function->AddParameterBlock(1);
-    cost_function->AddParameterBlock(1);
-    cost_function->SetNumResiduals(7);
-
-    auto &rig_instance_i = rig_instances_.at(rp.rig_instance_id_i);
-    auto &rig_instance_j = rig_instances_.at(rp.rig_instance_id_j);
-
-    auto parameter_blocks = std::vector<double *>(
-        {rig_instance_i.GetValueData().data(),
-         rig_instance_j.GetValueData().data(),
-         reconstructions_[rp.reconstruction_id_i].GetScalePtr(
-             rp.rig_instance_id_i),
-         reconstructions_[rp.reconstruction_id_j].GetScalePtr(
-             rp.rig_instance_id_j)});
-
-    problem.AddResidualBlock(cost_function, relative_similarity_loss,
                              parameter_blocks);
   }
 
@@ -1053,6 +1036,24 @@ void BundleAdjuster::Run() {
     }
     problem.AddResidualBlock(cost_function, linear_motion_prior_loss_,
                              parameter_blocks);
+  }
+
+  // Gauge fix
+  if (gauge_fix_shots_.HasValue()) {
+    const auto &gauge_shots = gauge_fix_shots_.Value();
+    auto instance1 = shots_.at(gauge_shots.first).GetRigInstance();
+    auto instance2 = shots_.at(gauge_shots.second).GetRigInstance();
+    const double norm =
+        (instance1->GetValue().GetOrigin() - instance2->GetValue().GetOrigin())
+            .norm();
+
+    ceres::CostFunction *cost_function =
+        new ceres::AutoDiffCostFunction<TranslationPriorError, 1, 6, 6>(
+            new TranslationPriorError(norm));
+
+    problem.AddResidualBlock(cost_function, nullptr,
+                             instance1->GetValueData().data(),
+                             instance2->GetValueData().data());
   }
 
   // Solve

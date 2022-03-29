@@ -334,6 +334,8 @@ class Reconstruction(object):
     def __deepcopy__(self, d):
         # create new reconstruction
         rec_cpy = Reconstruction()
+        rec_cpy.reference = self.reference
+
         copy_observations = False
         # Check if we also need the observations
         if "copy_observations" in d:
@@ -357,6 +359,10 @@ class Reconstruction(object):
                 for shot, obs_id in point.get_observations().items():
                     obs = shot.get_observation(obs_id)
                     rec_cpy.add_observation(shot.id, point.id, obs)
+
+        # Copy the biases
+        for bias_id, bias in self.biases.items():
+            rec_cpy.set_bias(bias_id, bias)
 
         return rec_cpy
 

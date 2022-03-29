@@ -25,6 +25,7 @@ target_link_libraries(map
   PRIVATE
     geo
     geometry
+    foundation
 )
 
 target_include_directories(map
@@ -38,6 +39,7 @@ target_link_libraries(pymap
   PRIVATE
     map
     geometry
+    foundation
     bundle
     pybind11
 )
