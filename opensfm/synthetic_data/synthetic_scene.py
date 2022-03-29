@@ -339,8 +339,11 @@ class SyntheticStreetScene(SyntheticScene):
         sg.perturb_points(instances_positions, position_noise)
         sg.perturb_rotations(instances_rotations, rotation_noise)
 
+        shift = sum(len(s) for s in self.shot_ids)
         shots_ids_per_camera = []
-        for rig_camera_p, rig_camera_r in zip(relative_positions, relative_rotations):
+        for j, (rig_camera_p, rig_camera_r) in enumerate(
+            zip(relative_positions, relative_rotations)
+        ):
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
             pose_rig_camera.set_origin(rig_camera_p)
 
@@ -353,10 +356,11 @@ class SyntheticStreetScene(SyntheticScene):
                 rotations.append(composed.rotation)
                 positions.append(composed.get_origin())
 
-            shift = sum(len(s) for s in shots_ids_per_camera)
-            shots_ids_per_camera.append(
-                [f"Shot {shift+i:04d}" for i in range(len(positions))]
-            )
+            camera_shot_ids = []
+            for i in range(len(positions)):
+                shot_index = i * len(relative_positions) + j
+                camera_shot_ids.append(f"Shot {shift+shot_index:04d}")
+            shots_ids_per_camera.append(camera_shot_ids)
         self.cameras.append(cameras)
         self.shot_ids += shots_ids_per_camera
 

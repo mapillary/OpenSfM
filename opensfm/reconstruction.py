@@ -54,8 +54,9 @@ def _add_gcp_to_bundle(
     shots: Dict[str, pymap.Shot],
     gcp_horizontal_sd: float,
     gcp_vertical_sd: float,
-) -> None:
+) -> int:
     """Add Ground Control Points constraints to the bundle problem."""
+    added_gcps = 0
     gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
     for point in gcp:
         point_id = "gcp-" + point.id
@@ -91,6 +92,8 @@ def _add_gcp_to_bundle(
                     observation.projection,
                     scale,
                 )
+                added_gcps += 1
+    return added_gcps
 
 
 def bundle(

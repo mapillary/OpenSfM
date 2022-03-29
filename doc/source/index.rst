@@ -18,6 +18,7 @@ OpenSfM
    rig
    annotation_tool
    api
+   sensor_database
 
 Indices and tables
 ==================

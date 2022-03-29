@@ -44,7 +44,7 @@ def guess_acceleration_from_orientation_tag(orientation: int) -> List[float]:
     raise RuntimeError(f"Error: Unknown orientation tag: {orientation}")
 
 
-def orientation_from_acceleration_in_image_axis(x:float, y:float) -> int:
+def orientation_from_acceleration_in_image_axis(x: float, y: float) -> int:
     """Return the orientation tag corresponding to an acceleration"""
     if y <= -(np.fabs(x)):
         return 1
@@ -58,7 +58,9 @@ def orientation_from_acceleration_in_image_axis(x:float, y:float) -> int:
         raise RuntimeError(f"Error: Invalid acceleration {x}, {y}!")
 
 
-def transform_acceleration_from_phone_to_image_axis(x:float, y:float, z:float, orientation: int) -> List[float]:
+def transform_acceleration_from_phone_to_image_axis(
+    x: float, y: float, z: float, orientation: int
+) -> List[float]:
     """Compute acceleration in image axis.
 
     Orientation tag is used to ensure that the resulting acceleration points
@@ -125,7 +127,9 @@ def rotation_from_angles(shot: pymap.Shot) -> Optional[np.ndarray]:
     return geometry.rotation_from_opk(*opk_rad)
 
 
-def reconstruction_from_metadata(data: DataSetBase, images: Iterable[str]) -> types.Reconstruction:
+def reconstruction_from_metadata(
+    data: DataSetBase, images: Iterable[str]
+) -> types.Reconstruction:
     """Initialize a reconstruction by using EXIF data for constructing shot poses and cameras."""
     data.init_reference()
     rig_assignments = rig.rig_assignments_per_image(data.load_rig_assignments())
@@ -182,9 +186,6 @@ def exif_to_metadata(
         metadata.gps_accuracy.value = gps.get("dop", 15.0)
         if metadata.gps_accuracy.value == 0.0:
             metadata.gps_accuracy.value = 15.0
-    else:
-        metadata.gps_position.value = np.array([0.0, 0.0, 0.0])
-        metadata.gps_accuracy.value = 999999.0
 
     opk = exif.get("opk")
     if opk and "omega" in opk and "phi" in opk and "kappa" in opk:

@@ -821,14 +821,19 @@ def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
 def _read_gcp_list_lines(
     lines: Iterable[str],
     projection,
-    exif: Dict[str, Dict[str, Any]],
+    exifs: Dict[str, Dict[str, Any]],
 ) -> List[pymap.GroundControlPoint]:
     points = {}
     for line in lines:
         words = line.split(None, 5)
         easting, northing, alt, pixel_x, pixel_y = map(float, words[:5])
-        shot_id = words[5].strip()
         key = (easting, northing, alt)
+
+        shot_tokens = words[5].split(None)
+        shot_id = shot_tokens[0]
+        if shot_id not in exifs:
+            continue
+
 
         if key in points:
             point = points[key]
@@ -840,7 +845,7 @@ def _read_gcp_list_lines(
             else:
                 has_altitude = True
             if projection is not None:
-                lon, lat = projection(easting, northing, inverse=True)
+                lat, lon = projection.transform(easting, northing)
             else:
                 lon, lat = easting, northing
 
@@ -852,7 +857,7 @@ def _read_gcp_list_lines(
             points[key] = point
 
         # Convert 2D coordinates
-        d = exif[shot_id]
+        d = exifs[shot_id]
         coordinates = features.normalized_image_coordinates(
             np.array([[pixel_x, pixel_y]]), d["width"], d["height"]
         )[0]
@@ -885,12 +890,15 @@ def _parse_utm_projection_string(line: str) -> str:
 
 def _parse_projection(line: str):
     """Build a proj4 from the GCP format line."""
+    crs_4326 = pyproj.CRS.from_epsg(4326)
     if line.strip() == "WGS84":
         return None
     elif line.upper().startswith("WGS84 UTM"):
-        return pyproj.Proj(_parse_utm_projection_string(line))
+        return pyproj.Transformer.from_proj(pyproj.CRS(_parse_utm_projection_string(line)), crs_4326)
     elif "+proj" in line:
-        return pyproj.Proj(line)
+        return pyproj.Transformer.from_proj(pyproj.CRS(line), crs_4326)
+    elif line.upper().startswith("EPSG:"):
+        return pyproj.Transformer.from_proj(pyproj.CRS.from_epsg(int(line.split(":")[1])), crs_4326)
     else:
         raise ValueError("Un-supported geo system definition: {}".format(line))
 

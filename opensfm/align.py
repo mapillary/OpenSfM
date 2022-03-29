@@ -68,6 +68,10 @@ def apply_similarity(
     for rig_instance in reconstruction.rig_instances.values():
         apply_similarity_pose(rig_instance.pose, s, A, b)
 
+    # Scale rig cameras
+    for rig_camera in reconstruction.rig_cameras.values():
+        apply_similarity_pose(rig_camera.pose, s, np.eye(3), np.array([0, 0, 0]))
+
 
 def compute_reconstruction_similarity(
     reconstruction: types.Reconstruction,

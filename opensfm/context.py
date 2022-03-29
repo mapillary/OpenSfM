@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 abspath = os.path.dirname(os.path.realpath(__file__))
-SENSOR = os.path.join(abspath, "data", "sensor_data.json")
+SENSOR_DATA = os.path.join(abspath, "data", "sensor_data.json")
+CAMERA_CALIBRATION = os.path.join(abspath, "data", "camera_calibration.yaml")
 BOW_PATH = os.path.join(abspath, "data", "bow")
 
 
