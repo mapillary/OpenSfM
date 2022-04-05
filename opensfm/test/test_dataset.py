@@ -23,12 +23,14 @@ def test_dataset_load_features_sift(tmpdir) -> None:
     before = features.FeaturesData(points, descriptors, colors, semantic_data)
     data.save_features(image, before)
     after = data.load_features(image)
-
+    assert after
     assert np.allclose(points, after.points)
     assert np.allclose(descriptors, after.descriptors)
     assert np.allclose(colors, after.colors)
+    semantic = after.semantic
+    assert semantic
     assert np.allclose(
         segmentations,
-        after.semantic.segmentation,
+        semantic.segmentation,
     )
-    assert np.allclose(instances, after.semantic.instances)
+    assert np.allclose(instances, semantic.instances)

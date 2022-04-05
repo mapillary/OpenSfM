@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from opensfm.dataset import DataSet
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 TRigPatterns = Dict[str, str]
@@ -293,7 +293,7 @@ def create_rig_cameras_from_reconstruction(
     return rig_cameras
 
 
-def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns):
+def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns) -> None:
     """Create rig data (`rig_cameras.json` and `rig_assignments.json`) by performing
     pattern matching to group images belonging to the same instances, followed
     by a bit of ad-hoc SfM to find some initial relative poses.
@@ -397,20 +397,3 @@ def count_reconstructed_instances(
     for s in reconstruction.shots:
         instances_count[instances_map[s]] -= 1
     return len(instances) - sum(1 for i in instances_count.values() if i > 0)
-
-
-def same_rig_shot(meta1, meta2):
-    """True if shots taken at the same time on a rig."""
-    have_gps = (
-        "gps" in meta1
-        and "gps" in meta2
-        and "latitude" in meta1["gps"]
-        and "latitude" in meta2["gps"]
-    )
-    same_gps = (
-        have_gps
-        and meta1["gps"]["latitude"] == meta2["gps"]["latitude"]
-        and meta1["gps"]["longitude"] == meta2["gps"]["longitude"]
-    )
-    same_time = meta1["capture_time"] == meta2["capture_time"]
-    return same_gps and same_time

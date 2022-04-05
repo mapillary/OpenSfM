@@ -38,6 +38,7 @@ import sys
 import tempfile
 import typing as t
 from struct import pack
+from typing import Tuple
 
 import numpy as np
 from opensfm import features
@@ -166,26 +167,26 @@ CREATE_ALL: str = "; ".join(
 )
 
 
-def image_ids_to_pair_id(image_id1, image_id2):
+def image_ids_to_pair_id(image_id1, image_id2) -> int:
     if image_id1 > image_id2:
         image_id1, image_id2 = image_id2, image_id1
     return image_id1 * MAX_IMAGE_ID + image_id2
 
 
-def pair_id_to_image_ids(pair_id):
+def pair_id_to_image_ids(pair_id) -> Tuple[int, int]:
     image_id2 = pair_id % MAX_IMAGE_ID
     image_id1 = (pair_id - image_id2) // MAX_IMAGE_ID
     return image_id1, image_id2
 
 
-def array_to_blob(array):
+def array_to_blob(array) -> bytes:
     if IS_PYTHON3:
         return array.tobytes()
     else:
         return np.getbuffer(array)
 
 
-def blob_to_array(blob, dtype, shape=(-1,)):
+def blob_to_array(blob, dtype, shape: Tuple[int] = (-1,)):
     if IS_PYTHON3:
         return np.fromstring(blob, dtype=dtype).reshape(*shape)
     else:
@@ -194,10 +195,10 @@ def blob_to_array(blob, dtype, shape=(-1,)):
 
 class COLMAPDatabase(sqlite3.Connection):
     @staticmethod
-    def connect(database_path):
+    def connect(database_path) -> t.Any:
         return sqlite3.connect(database_path, factory=COLMAPDatabase)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super(COLMAPDatabase, self).__init__(*args, **kwargs)
 
         self.create_tables = lambda: self.executescript(CREATE_ALL)
@@ -215,7 +216,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_camera(
         self, model, width, height, params, prior_focal_length=False, camera_id=None
-    ):
+    ) -> t.Any:
         params = np.asarray(params, np.float64)
         cursor = self.execute(
             "INSERT INTO cameras VALUES (?, ?, ?, ?, ?, ?)",
@@ -232,7 +233,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_image(
         self, name, camera_id, prior_q=(0, 0, 0, 0), prior_t=(0, 0, 0), image_id=None
-    ):
+    ) -> t.Any:
         cursor = self.execute(
             "INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -250,7 +251,7 @@ class COLMAPDatabase(sqlite3.Connection):
         )
         return cursor.lastrowid
 
-    def add_keypoints(self, image_id, keypoints):
+    def add_keypoints(self, image_id, keypoints) -> None:
         assert len(keypoints.shape) == 2
         assert keypoints.shape[1] in [2, 4, 6]
 
@@ -260,14 +261,14 @@ class COLMAPDatabase(sqlite3.Connection):
             (image_id,) + keypoints.shape + (array_to_blob(keypoints),),
         )
 
-    def add_descriptors(self, image_id, descriptors):
+    def add_descriptors(self, image_id, descriptors) -> None:
         descriptors = np.ascontiguousarray(descriptors, np.uint8)
         self.execute(
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
             (image_id,) + descriptors.shape + (array_to_blob(descriptors),),
         )
 
-    def add_matches(self, image_id1, image_id2, matches):
+    def add_matches(self, image_id1, image_id2, matches) -> None:
         assert len(matches.shape) == 2
         assert matches.shape[1] == 2
 
@@ -283,7 +284,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_two_view_geometry(
         self, image_id1, image_id2, matches, F=I_3, E=I_3, H=I_3, config=2
-    ):
+    ) -> None:
         assert len(matches.shape) == 2
         assert matches.shape[1] == 2
 
@@ -352,7 +353,7 @@ def camera_to_colmap_params(camera) -> t.Tuple[float, ...]:
         raise ValueError("Can't convert {camera.projection_type} to COLMAP")
 
 
-def export_cameras(data, db):
+def export_cameras(data, db) -> t.Tuple[t.Dict[str, int], t.Dict[str, int]]:
     camera_map = {}
     for camera_model, camera in data.load_camera_models().items():
         if data.camera_models_overrides_exists():
@@ -378,7 +379,7 @@ def export_cameras(data, db):
     return images_map, camera_map
 
 
-def export_features(data, db, images_map):
+def export_features(data, db, images_map) -> t.Dict[str, np.ndarray]:
     features_map = {}
     for image in data.images():
         width = data.load_exif(image)["width"]
@@ -422,7 +423,7 @@ def export_matches(data, db, features_map, images_map) -> None:
             db.add_matches(images_map[pair[0]], images_map[pair[1]], inliers)
 
 
-def export_cameras_reconstruction(data, path, camera_map, binary: bool=False) -> None:
+def export_cameras_reconstruction(data, path, camera_map, binary: bool = False) -> None:
     reconstructions = data.load_reconstruction()
     cameras = {}
     for reconstruction in reconstructions:
@@ -455,7 +456,7 @@ def export_cameras_reconstruction(data, path, camera_map, binary: bool=False) ->
 
 
 def export_images_reconstruction(
-    data, path, camera_map, images_map, features_map, points_map, binary: bool=False
+    data, path, camera_map, images_map, features_map, points_map, binary: bool = False
 ) -> None:
     reconstructions = data.load_reconstruction()
     tracks_manager = data.load_tracks_manager()
@@ -529,7 +530,7 @@ def export_images_reconstruction(
     fout.close()
 
 
-def export_points_reconstruction(data, path, images_map, binary: bool=False):
+def export_points_reconstruction(data, path, images_map, binary: bool = False):
     reconstructions = data.load_reconstruction()
     tracks_manager = data.load_tracks_manager()
 
@@ -587,7 +588,7 @@ def export_points_reconstruction(data, path, images_map, binary: bool=False):
     return points_map
 
 
-def angle_axis_to_quaternion(angle_axis):
+def angle_axis_to_quaternion(angle_axis: np.ndarray) -> t.List[float]:
     angle = np.linalg.norm(angle_axis)
 
     x = angle_axis[0] / angle

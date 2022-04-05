@@ -1,10 +1,12 @@
 import numpy as np
+from numpy import ndarray
+from typing import Tuple
 
 WGS84_a = 6378137.0
 WGS84_b = 6356752.314245
 
 
-def ecef_from_lla(lat, lon, alt: float):
+def ecef_from_lla(lat, lon, alt: float) -> Tuple[float, ...]:
     """
     Compute ECEF XYZ from latitude, longitude and altitude.
 
@@ -50,7 +52,7 @@ def lla_from_ecef(x, y, z):
     return np.degrees(lat), np.degrees(lon), alt
 
 
-def ecef_from_topocentric_transform(lat, lon, alt: float):
+def ecef_from_topocentric_transform(lat, lon, alt: float) -> ndarray:
     """
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -77,7 +79,7 @@ def ecef_from_topocentric_transform(lat, lon, alt: float):
     )
 
 
-def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float):
+def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float) -> ndarray:
     """
     Transformation from a topocentric frame at reference position to ECEF.
 

@@ -12,7 +12,7 @@ from opensfm.context import parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_features_processing(data: DataSetBase, images: List[str], force: bool) -> None:
@@ -124,15 +124,15 @@ class Counter(object):
     some reason, joblib doesn't like a good old threading.Lock (everything is stuck)
     """
 
-    def __init__(self):
+    def __init__(self) ->None:
         self.number_of_read = 0
         self.counter = itertools.count()
         self.read_lock = threading.Lock()
 
-    def increment(self):
+    def increment(self) -> None:
         next(self.counter)
 
-    def value(self):
+    def value(self) -> int:
         with self.read_lock:
             value = next(self.counter) - self.number_of_read
             self.number_of_read += 1

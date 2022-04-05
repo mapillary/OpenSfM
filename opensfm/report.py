@@ -9,7 +9,7 @@ from opensfm import io
 from opensfm.dataset import DataSet
 from typing import Any, Dict
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class Report:

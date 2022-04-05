@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass, asdict
 
 import yaml
+from typing import Any, Dict, IO, Union
 
 
 @dataclass
@@ -361,12 +362,12 @@ class OpenSfMConfig:
     submodel_images_relpath_template: str = "submodels/submodel_%04d/images"
 
 
-def default_config():
+def default_config() -> Dict[str, Any]:
     """Return default configuration"""
     return asdict(OpenSfMConfig())
 
 
-def load_config(filepath):
+def load_config(filepath) -> Dict[str, Any]:
     """DEPRECATED: = Load config from a config.yaml filepath"""
     if not os.path.isfile(filepath):
         return default_config()
@@ -375,7 +376,7 @@ def load_config(filepath):
         return load_config_from_fileobject(fin)
 
 
-def load_config_from_fileobject(f):
+def load_config_from_fileobject(f: Union[IO[bytes], IO[str], bytes, str]) -> Dict[str, Any]:
     """Load config from a config.yaml fileobject"""
     config = default_config()
 

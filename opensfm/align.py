@@ -10,7 +10,7 @@ import numpy as np
 from opensfm import multiview, transformations as tf, types, pygeometry, pymap
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def align_reconstruction(

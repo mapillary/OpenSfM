@@ -6,9 +6,10 @@ import numpy as np
 from opensfm import pymap
 from opensfm.dataset_base import DataSetBase
 from opensfm.unionfind import UnionFind
+from opensfm.pymap import TracksManager
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def load_features(
@@ -64,7 +65,7 @@ def create_tracks_manager(
     instances: t.Dict[str, np.ndarray],
     matches: t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]],
     min_length: int,
-):
+) -> TracksManager:
     """Link matches into tracks."""
     logger.debug("Merging features onto tracks")
     uf = UnionFind()

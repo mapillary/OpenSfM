@@ -18,9 +18,10 @@ from opensfm import (
     features as oft,
     geometry,
 )
+from opensfm.types import Reconstruction
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -169,8 +170,8 @@ def generate_exifs(
     previous_time = 0
     exifs = {}
 
-    def _gps_dop(shot):
-        gps_dop = 15
+    def _gps_dop(shot: pymap.Shot) -> float:
+        gps_dop = 15.0
         if isinstance(gps_noise, float):
             gps_dop = gps_noise
         if isinstance(gps_noise, dict):
@@ -256,7 +257,7 @@ def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
 
 def add_points_to_reconstruction(
     points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
-):
+) -> None:
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
         point = reconstruction.create_point(str(shift + i), points[i, :])
@@ -271,7 +272,7 @@ def add_shots_to_reconstruction(
     cameras: List[pygeometry.Camera],
     reconstruction: types.Reconstruction,
     sequence_key: str,
-):
+) -> None:
     for camera in cameras:
         reconstruction.add_camera(camera)
 
@@ -307,7 +308,7 @@ def create_reconstruction(
     rig_rotations: List[np.ndarray],
     rig_cameras: List[List[pymap.RigCamera]],
     reference: Optional[geo.TopocentricConverter],
-):
+) -> Reconstruction:
     reconstruction = types.Reconstruction()
     if reference is not None:
         reconstruction.reference = reference

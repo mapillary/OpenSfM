@@ -21,7 +21,7 @@ from opensfm import (
 from opensfm.dataset_base import DataSetBase
 from PIL.PngImagePlugin import PngImageFile
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class DataSet(DataSetBase):

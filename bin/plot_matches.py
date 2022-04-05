@@ -10,9 +10,11 @@ import numpy as np
 from opensfm import dataset
 from opensfm import features
 from opensfm import io
+from numpy import ndarray
+from typing import List
 
 
-def plot_matches(im1, im2, p1, p2):
+def plot_matches(im1, im2, p1: ndarray, p2: ndarray) -> None:
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1, h2), w1 + w2, 3), dtype=im1.dtype)
@@ -29,7 +31,7 @@ def plot_matches(im1, im2, p1, p2):
     pl.plot(p2[:, 0] + w1, p2[:, 1], "ob")
 
 
-def plot_graph(data):
+def plot_graph(data) -> None:
     cmap = cm.get_cmap("viridis")
     connectivity = {}
     for im1 in images:
@@ -70,7 +72,7 @@ def plot_graph(data):
     pl.savefig(os.path.join(data.data_path, "matchgraph.png"))
 
 
-def plot_matches_for_images(data, image, images):
+def plot_matches_for_images(data, image, images) -> None:
     if image:
         pairs = [(image, o) for o in images if o != image]
     elif images:
@@ -122,10 +124,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--save_figs", help="save figures instead of showing them", action="store_true"
     )
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    images = data.images()
+    images: List[str] = data.images()
 
     if args.graph:
         plot_graph(data)

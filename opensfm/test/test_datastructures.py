@@ -1,4 +1,8 @@
 import copy
+from opensfm.pymap import RigCamera, RigInstance, Shot
+from opensfm.types import Reconstruction
+from typing import Tuple
+
 import random
 
 import numpy as np
@@ -638,7 +642,7 @@ def test_pano_shot_create_remove_create() -> None:
     assert len(rec.pano_shots) == n_shots
 
 
-def _create_rig_camera():
+def _create_rig_camera() -> RigCamera:
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
     rig_camera.pose = pygeometry.Pose(
@@ -647,7 +651,7 @@ def _create_rig_camera():
     return rig_camera
 
 
-def _create_rig_instance():
+def _create_rig_instance() -> Tuple[Reconstruction, RigInstance, Shot]:
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
     rig_instance = pymap.RigInstance("1")

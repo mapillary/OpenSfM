@@ -6,7 +6,7 @@ import numpy as np
 from opensfm import upright
 from opensfm.dataset_base import DataSetBase
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def mask_from_segmentation(

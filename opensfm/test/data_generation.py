@@ -13,7 +13,7 @@ except ImportError:
     DATA_PATH = os.path.abspath("data")
 
 
-def create_berlin_test_folder(tmpdir):
+def create_berlin_test_folder(tmpdir) -> opensfm.dataset.DataSet:
     src = os.path.join(DATA_PATH, "berlin")
     dst = str(tmpdir.mkdir("berlin"))
     files = ["images", "masks", "config.yaml", "ground_control_points.json"]

@@ -9,7 +9,7 @@ from opensfm import tracking
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_dataset(data: DataSet, points, image_list, output, undistorted) -> None:

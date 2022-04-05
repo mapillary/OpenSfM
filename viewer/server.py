@@ -22,7 +22,7 @@ datapath = None
 
 
 @app.route("/")
-def index():
+def index() -> Response:
     return send_file(os.path.join(app.static_folder, "index.html"))
 
 

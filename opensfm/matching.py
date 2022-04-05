@@ -1,6 +1,6 @@
 import logging
 from timeit import default_timer as timer
-from typing import Optional, Dict, Any, Tuple, List, Generator
+from typing import Sized, Optional, Dict, Any, Tuple, List, Generator
 
 import cv2
 import numpy as np
@@ -16,7 +16,7 @@ from opensfm import (
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def clear_cache() -> None:
@@ -448,7 +448,7 @@ def _match_descriptors_impl(
     if overriden_config["matching_use_filters"]:
         matches = apply_adhoc_filters(
             data,
-            matches,
+            list(matches),
             im1,
             camera1,
             features_data1.points,
@@ -467,7 +467,7 @@ def _match_descriptors_impl(
 def match_robust(
     im1: str,
     im2: str,
-    matches,
+    matches: Sized,
     camera1: pygeometry.Camera,
     camera2: pygeometry.Camera,
     data: DataSetBase,
@@ -797,7 +797,7 @@ def robust_match_fundamental(
 
 
 def compute_inliers_bearings(
-    b1: np.ndarray, b2: np.ndarray, R: np.ndarray, t: np.ndarray, threshold=0.01
+    b1: np.ndarray, b2: np.ndarray, R: np.ndarray, t: np.ndarray, threshold: float=0.01
 ) -> List[bool]:
     """Compute points that can be triangulated.
 
@@ -925,7 +925,7 @@ def unfilter_matches(matches, m1, m2) -> np.ndarray:
 
 def apply_adhoc_filters(
     data: DataSetBase,
-    matches,
+    matches: List[Tuple[int, int]],
     im1: str,
     camera1: pygeometry.Camera,
     p1: np.ndarray,
@@ -1023,7 +1023,7 @@ def _vermont_valid_mask(p: np.ndarray) -> bool:
 
 
 def _not_on_blackvue_watermark(
-    p1: np.ndarray, p2: np.ndarray, matches, im1: str, im2: str, data: DataSetBase
+    p1: np.ndarray, p2: np.ndarray, matches: List[Tuple[int, int]], im1: str, im2: str, data: DataSetBase
 ) -> List[Tuple[int, int]]:
     """Filter Blackvue's watermark."""
     meta1 = data.load_exif(im1)

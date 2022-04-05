@@ -17,7 +17,7 @@ from opensfm.context import parallel_map
 from opensfm.dataset import UndistortedDataSet
 from opensfm.dataset_base import DataSetBase
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def undistort_reconstruction(

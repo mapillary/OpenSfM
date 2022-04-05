@@ -15,7 +15,7 @@ from opensfm import (
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def guess_acceleration_from_orientation_tag(orientation: int) -> List[float]:

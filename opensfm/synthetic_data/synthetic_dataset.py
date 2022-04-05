@@ -2,13 +2,13 @@ import collections
 import logging
 import os
 import shelve
-from typing import Optional, Dict, Any, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from opensfm import tracking, features as oft, types, pymap, pygeometry, io, geo
 from opensfm.dataset import DataSet
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SyntheticFeatures(collections.abc.MutableMapping):
@@ -30,19 +30,19 @@ class SyntheticFeatures(collections.abc.MutableMapping):
         else:
             database.sync()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> oft.FeaturesData:
         return self.database.__getitem__(key)
 
-    def __setitem__(self, key, item):
+    def __setitem__(self, key, item) -> None:
         return self.database.__setitem__(key, item)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         return self.database.__delitem__(key)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self.database.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.database.__len__()
 
 

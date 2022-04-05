@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import datetime
+from typing import List, Union
+
 import math
 import os
 import shutil
@@ -55,7 +57,7 @@ def utc_to_localtime(utc_time):
     return utc_time - utc_offset_timedelta
 
 
-def get_lat_lon_time(gpx_file, gpx_time="utc"):
+def get_lat_lon_time(gpx_file, gpx_time: str="utc"):
     """
     Read location and time stamps from a track in a GPX file.
 
@@ -82,7 +84,7 @@ def get_lat_lon_time(gpx_file, gpx_time="utc"):
     return points
 
 
-def compute_bearing(start_lat, start_lon, end_lat, end_lon):
+def compute_bearing(start_lat: float, start_lon: float, end_lat: float, end_lon: float) -> float:
     """
     Get the compass bearing from start to end.
 
@@ -168,7 +170,7 @@ def to_deg(value, loc):
     return (deg, mint, sec, loc_value)
 
 
-def gpx_lerp(alpha, a, b):
+def gpx_lerp(alpha: int, a, b):
     """Interpolate gpx point as (1 - alpha) * a + alpha * b"""
     dt = alpha * (b[0] - a[0]).total_seconds()
     t = a[0] + datetime.timedelta(seconds=dt)
@@ -209,15 +211,15 @@ def time_next_point(a, b, last, dt):
     return gpx_lerp(alpha, a, b)
 
 
-def time_distance(a, b):
+def time_distance(a, b) -> int:
     return (b[0] - a[0]).total_seconds()
 
 
-def space_distance(a, b):
+def space_distance(a, b) -> float:
     return geo.gps_distance(a[1:3], b[1:3])
 
 
-def sample_gpx(points, dx, dt=None):
+def sample_gpx(points, dx: float, dt=None):
     if dt is not None:
         dx = float(dt)
         print("Sampling GPX file every {0} seconds".format(dx))
@@ -243,14 +245,14 @@ def sample_gpx(points, dx, dt=None):
 
 
 def add_gps_to_exif(
-    filename,
+    filename: Union[os.PathLike[str], str],
     lat,
     lon,
     bearing,
     elevation,
-    updated_filename=None,
-    remove_image_description=True,
-):
+    updated_filename: Union[None, os.PathLike[str], str]=None,
+    remove_image_description: bool=True,
+) -> None:
     """
     Given lat, lon, bearing, elevation, write to EXIF
     """
@@ -302,11 +304,11 @@ def add_gps_to_exif(
 def add_exif_using_timestamp(
     filename,
     points,
-    offset_time=0,
+    offset_time: int=0,
     timestamp=None,
-    orientation=1,
+    orientation: int=1,
     image_description=None,
-):
+) -> None:
     """
     Find lat, lon and bearing of filename and write to EXIF.
     """
@@ -385,8 +387,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 4:
         print("Usage: python geotag_from_gpx.py path gpx_file time_offset")
         raise IOError("Bad input parameters.")
-    path = sys.argv[1]
-    gpx_filename = sys.argv[2]
+    path: str = sys.argv[1]
+    gpx_filename: str = sys.argv[2]
 
     if len(sys.argv) == 4:
         time_offset = int(sys.argv[3])
@@ -395,10 +397,10 @@ if __name__ == "__main__":
 
     if path.lower().endswith(".jpg"):
         # single file
-        file_list = [path]
+        file_list: List[str] = [path]
     else:
         # folder(s)
-        file_list = []
+        file_list: List[str] = []
         for root, _, files in os.walk(path):
             file_list += [
                 os.path.join(root, filename)
@@ -407,7 +409,7 @@ if __name__ == "__main__":
             ]
 
     # start time
-    t = time.time()
+    t: float = time.time()
 
     # read gpx file to get track locations
     gpx = get_lat_lon_time(gpx_filename)

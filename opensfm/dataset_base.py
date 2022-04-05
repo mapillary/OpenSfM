@@ -12,7 +12,7 @@ from opensfm import (
     pymap,
 )
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class DataSetBase(ABC):

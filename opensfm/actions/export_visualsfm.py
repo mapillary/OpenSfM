@@ -7,10 +7,10 @@ from opensfm import transformations as tf
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSet, points, image_list):
+def run_dataset(data: DataSet, points, image_list) -> None:
     udata = data.undistorted_dataset()
 
     validate_image_names(data, udata)
@@ -31,7 +31,7 @@ def run_dataset(data: DataSet, points, image_list):
 
 def export(
     reconstruction, tracks_manager, udata: UndistortedDataSet, with_points, export_only
-):
+) -> None:
     lines = ["NVM_V3", "", str(len(reconstruction.shots))]
     shot_size_cache = {}
     shot_index = {}
@@ -124,13 +124,13 @@ def export(
         fout.write("\n".join(lines))
 
 
-def image_path(image, udata: UndistortedDataSet):
+def image_path(image: str, udata: UndistortedDataSet) -> str:
     """Path to the undistorted image relative to the dataset path."""
     path = udata._undistorted_image_file(image)
     return os.path.relpath(path, udata.data_path)
 
 
-def validate_image_names(data: DataSet, udata: UndistortedDataSet):
+def validate_image_names(data: DataSet, udata: UndistortedDataSet) -> None:
     """Check that image files do not have spaces."""
     for image in data.images():
         filename = image_path(image, udata)

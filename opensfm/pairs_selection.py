@@ -10,7 +10,7 @@ import scipy.spatial as spatial
 from opensfm import bow, context, feature_loader, vlad, geo, geometry
 from opensfm.dataset_base import DataSetBase
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def has_gps_info(exif: Dict[str, Any]) -> bool:
@@ -209,7 +209,7 @@ def match_candidates_by_distance(
     return pairs
 
 
-def norm_2d(vec: np.ndarray):
+def norm_2d(vec: np.ndarray) -> float:
     """Return the 2D norm of a vector."""
     return math.sqrt(vec[0] ** 2 + vec[1] ** 2)
 
@@ -220,7 +220,7 @@ def match_candidates_by_graph(
     exifs: Dict[str, Any],
     reference: geo.TopocentricConverter,
     rounds: int,
-):
+) -> Set[Tuple[str, str]]:
     """Find by triangulating the GPS points on X/Y axises"""
     if len(images_cand) == 0 or rounds < 1:
         return set()

@@ -200,19 +200,19 @@ class TestLinearKernel:
 
     required_samples = 1
 
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.x: np.ndarray = x
+        self.y: np.ndarray = y
 
-    def num_samples(self):
+    def num_samples(self) -> int:
         return len(self.x)
 
-    def fit(self, samples):
+    def fit(self, samples: np.ndarray)->List[float]:
         x = self.x[samples[0]]
         y = self.y[samples[0]]
         return [y / x]
 
-    def evaluate(self, model):
+    def evaluate(self, model: np.ndarray) -> np.ndarray:
         return self.y - model * self.x
 
 
@@ -223,7 +223,7 @@ class PlaneKernel:
 
     def __init__(
         self, points, vectors, verticals, point_threshold=1.0, vector_threshold=5.0
-    ):
+    ) -> None:
         self.points = points
         self.vectors = vectors
         self.verticals = verticals
@@ -231,10 +231,10 @@ class PlaneKernel:
         self.point_threshold = point_threshold
         self.vector_threshold = vector_threshold
 
-    def num_samples(self):
+    def num_samples(self) -> int:
         return len(self.points)
 
-    def sampling(self):
+    def sampling(self) -> Dict[str, Any]:
         samples = {}
         if len(self.vectors) > 0:
             samples["points"] = self.points[
@@ -250,11 +250,11 @@ class PlaneKernel:
             samples["vectors"] = None
         return samples
 
-    def fit(self, samples):
+    def fit(self, samples: Dict[str, np.ndarray]) -> List[np.ndarray]:
         model = fit_plane(samples["points"], samples["vectors"], self.verticals)
         return [model]
 
-    def evaluate(self, model):
+    def evaluate(self, model) -> np.ndarray:
         # only evaluate on points
         normal = model[0:3]
         normal_norm = np.linalg.norm(normal) + 1e-10

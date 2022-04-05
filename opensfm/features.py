@@ -9,7 +9,7 @@ import numpy as np
 from opensfm import context, pyfeatures
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SemanticData:

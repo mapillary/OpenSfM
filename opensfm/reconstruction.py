@@ -8,7 +8,7 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from itertools import combinations
 from timeit import default_timer as timer
-from typing import Dict, Any, List, Tuple, Set, Optional
+from typing import Dict, Any, List, Tuple, Set, Optional, Union
 
 import cv2
 import numpy as np
@@ -30,7 +30,7 @@ from opensfm.context import current_memory_usage, parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ReconstructionAlgorithm(str, enum.Enum):
@@ -1476,7 +1476,7 @@ def grow_reconstruction(
             )
 
             logger.info(f"Adding {' and '.join(new_shots)} to the reconstruction")
-            step = {
+            step: Dict[str, Union[List[int], List[str], int, List[int], Any]] = {
                 "images": list(new_shots),
                 "resection": resrep,
                 "memory_usage": current_memory_usage(),

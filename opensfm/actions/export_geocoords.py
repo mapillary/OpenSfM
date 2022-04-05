@@ -9,7 +9,7 @@ from opensfm.dataset import DataSet, UndistortedDataSet
 from opensfm.geo import TopocentricConverter
 from typing import List, Sequence
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_dataset(
