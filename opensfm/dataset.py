@@ -79,10 +79,7 @@ class DataSet(DataSetBase):
             self._set_image_path(image_list_path)
 
         if self.data_path and not self.image_list:
-            raise IOError(
-                "No Images found in {}"
-                .format(image_list_path)
-                )
+            raise IOError("No Images found in {}".format(image_list_path))
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
@@ -986,14 +983,15 @@ def invent_reference_from_gps_and_gcp(
 
     if not wlat and not wlon:
         for gcp in data.load_ground_control_points():
-            lat += gcp.lla["latitude"]
-            lon += gcp.lla["longitude"]
-            wlat += 1
-            wlon += 1
+            if gcp.lla:
+                lat += gcp.lla["latitude"]
+                lon += gcp.lla["longitude"]
+                wlat += 1
+                wlon += 1
 
-            if gcp.has_altitude:
-                alt += gcp.lla["altitude"]
-                walt += 1
+                if gcp.has_altitude:
+                    alt += gcp.lla["altitude"]
+                    walt += 1
 
     if wlat:
         lat /= wlat
