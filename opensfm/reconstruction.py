@@ -56,7 +56,7 @@ def _add_gcp_to_bundle(
     gcp_vertical_sd: float,
 ) -> int:
     """Add Ground Control Points constraints to the bundle problem."""
-    added_gcps = 0
+    total_gcp_observations = 0
     gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
     for point in gcp:
         point_id = "gcp-" + point.id
@@ -78,10 +78,13 @@ def _add_gcp_to_bundle(
 
         ba.add_point(point_id, coordinates, False)
 
+        current_error = 0
         if point.lla:
             point_enu = reference.to_topocentric(*point.lla_vec)
             ba.add_point_prior(point_id, point_enu, gcp_sd, point.has_altitude)
+            current_error = np.linalg.norm(np.array(point_enu)-np.array(coordinates))
 
+        gcp_observations = 0
         for observation in point.observations:
             if observation.shot_id in shots:
                 # TODO(pau): move this to a config or per point parameter.
@@ -92,8 +95,11 @@ def _add_gcp_to_bundle(
                     observation.projection,
                     scale,
                 )
-                added_gcps += 1
-    return added_gcps
+                gcp_observations += 1
+        total_gcp_observations += gcp_observations
+
+        logger.warning(f"Adding GCP {point_id} with {gcp_observations} observations with current error of {current_error} meters")
+    return total_gcp_observations
 
 
 def bundle(
