@@ -30,6 +30,6 @@ PYBIND11_MODULE(pysfm, m) {
       .def_static("detect_alignment_constraints",
                   &sfm::BAHelpers::DetectAlignmentConstraints);
 
-  m.def("realign_points", &sfm::retriangulation::RealignPoints,
+  m.def("realign_maps", &sfm::retriangulation::RealignMaps,
         py::call_guard<py::gil_scoped_release>());
 }

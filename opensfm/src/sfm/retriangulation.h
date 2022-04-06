@@ -4,7 +4,7 @@
 
 namespace sfm {
 namespace retriangulation {
-void RealignPoints(const map::Map& reference,
-                   map::Map& to_align);
+void RealignMaps(const map::Map& reference, map::Map& to_align,
+                 bool update_points);
 }  // namespace retriangulation
 }  // namespace sfm

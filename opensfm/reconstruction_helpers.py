@@ -4,6 +4,7 @@ from typing import Optional, List, Dict, Any, Iterable
 
 import numpy as np
 from opensfm import (
+    geo,
     multiview,
     pygeometry,
     pymap,

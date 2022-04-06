@@ -88,10 +88,10 @@ void BundleAdjuster::AddCamera(const std::string &id,
   // identity bias by default
   auto &bias_data =
       bias_
-          .emplace(
-              std::piecewise_construct, std::forward_as_tuple(id),
-              std::forward_as_tuple(
-                  id, geometry::Similarity(Vec3d::Zero(), Vec3d::Zero(), 1.0)))
+          .emplace(std::piecewise_construct, std::forward_as_tuple(id),
+                   std::forward_as_tuple(
+                       id, geometry::Similarity(Vec3d::Zero().eval(),
+                                                Vec3d::Zero().eval(), 1.0)))
           .first->second;
   bias_data.SetParametersToOptimize({});
 }
