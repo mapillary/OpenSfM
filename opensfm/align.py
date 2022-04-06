@@ -375,6 +375,9 @@ def estimate_ground_plane(
     onplane, verticals = [], []
     for shot in reconstruction.shots.values():
         R = shot.pose.get_rotation_matrix()
+        if not shot.metadata.orientation.has_value:
+            continue
+
         x, y, z = get_horizontal_and_vertical_directions(
             R, shot.metadata.orientation.value
         )

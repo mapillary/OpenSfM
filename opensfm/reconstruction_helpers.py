@@ -87,8 +87,11 @@ def transform_acceleration_from_phone_to_image_axis(
     return [ix, iy, iz]
 
 
-def shot_acceleration_in_image_axis(shot: pymap.Shot) -> List[float]:
+def shot_acceleration_in_image_axis(shot: pymap.Shot) -> Optional[List[float]]:
     """Get or guess shot's acceleration."""
+    if not shot.metadata.orientation.has_value:
+        return None
+
     orientation = shot.metadata.orientation.value
     if not 1 <= orientation <= 8:
         logger.error(
@@ -103,15 +106,17 @@ def shot_acceleration_in_image_axis(shot: pymap.Shot) -> List[float]:
     return guess_acceleration_from_orientation_tag(orientation)
 
 
-def rotation_from_shot_metadata(shot: pymap.Shot) -> np.ndarray:
+def rotation_from_shot_metadata(shot: pymap.Shot) -> Optional[np.ndarray]:
     rotation = rotation_from_angles(shot)
     if rotation is None:
         rotation = rotation_from_orientation_compass(shot)
     return rotation
 
 
-def rotation_from_orientation_compass(shot: pymap.Shot) -> np.ndarray:
+def rotation_from_orientation_compass(shot: pymap.Shot) -> Optional[np.ndarray]:
     up_vector = shot_acceleration_in_image_axis(shot)
+    if up_vector is None:
+        return None
     if shot.metadata.compass_angle.has_value:
         angle = shot.metadata.compass_angle.value
     else:
@@ -162,7 +167,9 @@ def reconstruction_from_metadata(
             continue
         gps_pos = shot.metadata.gps_position.value
 
-        shot.pose.set_rotation_matrix(rotation_from_shot_metadata(shot))
+        rotation = rotation_from_shot_metadata(shot)
+        if rotation is not None:
+            shot.pose.set_rotation_matrix(rotation)
         shot.pose.set_origin(gps_pos)
         shot.scale = 1.0
     return reconstruction
