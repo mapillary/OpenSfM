@@ -91,7 +91,7 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
 def load_sequence_database_from_file(
     root: Path,
-    fname: Union[PathLike[str], str] = "sequence_database.json",
+    fname: Union["PathLike[str]", str] = "sequence_database.json",
     skip_missing: bool = False,
 ):
     """

@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
 import datetime
-from typing import List, Union
-
 import math
 import os
 import shutil
 import sys
 import time
+from typing import List, Union
 
 import numpy as np
 from opensfm import geo
@@ -16,6 +15,7 @@ from opensfm import geo
 try:
     # pyre-fixme[21]: Could not find module `pyexiv2`.
     import pyexiv2
+
     # pyre-fixme[21]: Could not find module `pyexiv2.utils`.
     from pyexiv2.utils import make_fraction
 except ImportError:
@@ -57,7 +57,7 @@ def utc_to_localtime(utc_time):
     return utc_time - utc_offset_timedelta
 
 
-def get_lat_lon_time(gpx_file, gpx_time: str="utc"):
+def get_lat_lon_time(gpx_file, gpx_time: str = "utc"):
     """
     Read location and time stamps from a track in a GPX file.
 
@@ -84,7 +84,9 @@ def get_lat_lon_time(gpx_file, gpx_time: str="utc"):
     return points
 
 
-def compute_bearing(start_lat: float, start_lon: float, end_lat: float, end_lon: float) -> float:
+def compute_bearing(
+    start_lat: float, start_lon: float, end_lat: float, end_lon: float
+) -> float:
     """
     Get the compass bearing from start to end.
 
@@ -245,13 +247,13 @@ def sample_gpx(points, dx: float, dt=None):
 
 
 def add_gps_to_exif(
-    filename: Union[os.PathLike[str], str],
+    filename: Union["os.PathLike[str]", str],
     lat,
     lon,
     bearing,
     elevation,
-    updated_filename: Union[None, os.PathLike[str], str]=None,
-    remove_image_description: bool=True,
+    updated_filename: Union[None, "os.PathLike[str]", str] = None,
+    remove_image_description: bool = True,
 ) -> None:
     """
     Given lat, lon, bearing, elevation, write to EXIF
@@ -304,9 +306,9 @@ def add_gps_to_exif(
 def add_exif_using_timestamp(
     filename,
     points,
-    offset_time: int=0,
+    offset_time: int = 0,
     timestamp=None,
-    orientation: int=1,
+    orientation: int = 1,
     image_description=None,
 ) -> None:
     """
