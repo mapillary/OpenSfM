@@ -4,7 +4,7 @@ flask==1.1.2
 fpdf2==2.4.6
 joblib==0.14.1
 matplotlib
-networkx==1.11
+networkx==2.7.1
 numpy
 Pillow>=8.1.1
 pyproj>=1.9.5.1
