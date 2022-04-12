@@ -100,7 +100,7 @@ def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
     camera_priors = dict(reference.cameras.items())
     rig_priors = dict(reference.rig_cameras.items())
     graph = tracking.as_graph(scene_synthetic.tracks_manager)
-    # Create the connnections in the reference
+    # Create the connections in the reference
     for point_id in reference.points.keys():
         if point_id in graph:
             for shot_id, g_obs in graph[point_id].items():

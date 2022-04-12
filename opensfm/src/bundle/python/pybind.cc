@@ -109,7 +109,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def("full_report", &bundle::BundleAdjuster::FullReport);
 
   ///////////////////////////////////
-  // Reconstruction Aligment
+  // Reconstruction Alignment
   //
   py::class_<ReconstructionAlignment>(m, "ReconstructionAlignment")
       .def(py::init())

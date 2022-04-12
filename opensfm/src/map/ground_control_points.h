@@ -20,7 +20,7 @@ struct GroundControlPoint {
   /**A ground control point with its observations.
 
      Attributes:
-         lla: latitue, longitude and altitude
+         lla: latitude, longitude and altitude
          has_altitude: true if z coordinate is known
          observations: list of observations of the point on images
      */

@@ -11,7 +11,7 @@ class OpenSfMConfig:
     # Params for metadata
     ##################################
     use_exif_size: bool = True
-    # Treat images from unknown camera models as comming from different cameras
+    # Treat images from unknown camera models as coming from different cameras
     unknown_camera_models_are_different: bool = False
     default_focal_prior: float = 0.85
 
@@ -84,7 +84,7 @@ class OpenSfMConfig:
     lowes_ratio: float = 0.8
     # FLANN, BRUTEFORCE, or WORDS
     matcher_type: str = "FLANN"
-    # Match symmetricly or one-way
+    # Match symmetrically or one-way
     symmetric_matching: bool = True
 
     ##################################

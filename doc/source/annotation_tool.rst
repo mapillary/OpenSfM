@@ -138,7 +138,7 @@ Detailed documentation for this is not available as the feature is experimental,
 - Start from a dataset containing more than one reconstruction in ``reconstruction.json``.
 
 - Launch the tool:
-    - If the two reconstructions come from different sequences, lauch as usual.
+    - If the two reconstructions come from different sequences, launch as usual.
     - If the two reconstructions come from the same sequence, launch using the ``--group-by-reconstruction`` argument.
       This will split the images into two windows, one for each reconstruction.
 
@@ -150,7 +150,7 @@ Use the 'Rigid', 'Flex' or 'Full' buttons to run the alignment using the annotat
 - The 'Rigid' option triangulates the control points in each reconstruction independently and finds a rigid transform to align them.
 - The 'Flex' option additionally re-runs bundle adjustment, allowing for some deformation of both reconstructions to fit the annotations.
 - The 'Full' option attempts to obtain positional covariances for each camera pose.
-  If succesful, the frame list on the image views is populated with the positional covariance norm. Lower is better.
+  If successful, the frame list on the image views is populated with the positional covariance norm. Lower is better.
 
 After running analysis, the reprojection errors are overlaid on the image views as shown in :ref:`running-alignment`.
 The aligned reconstructions are saved with new filenames in the root folder and can be viewed in 3D with the OpenSfM viewer.

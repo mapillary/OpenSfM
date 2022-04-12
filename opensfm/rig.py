@@ -338,7 +338,7 @@ def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns) -> None:
 
         reconstructions = subset_data.load_reconstruction()
         if len(reconstructions) == 0:
-            logger.error("Couldn't run sucessful SfM on the subset of images.")
+            logger.error("Couldn't run successful SfM on the subset of images.")
             continue
 
         reconstruction = reconstructions[0]
@@ -381,7 +381,7 @@ def create_rigs_with_pattern(data: "DataSet", patterns: TRigPatterns) -> None:
         data.save_rig_assignments(instances_per_rig)
     else:
         logger.error(
-            "Could not run any sucessful SfM on images subset for rig calibration"
+            "Could not run any successful SfM on images subset for rig calibration"
         )
 
 

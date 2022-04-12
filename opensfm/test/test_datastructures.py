@@ -748,7 +748,7 @@ def test_shot_metadata_different() -> None:
     shot2 = rec.shots["1"]
     _helper_populate_metadata(shot1.metadata)
 
-    # When getting their metdata object, they should be different
+    # When getting their metadata object, they should be different
     assert shot1.metadata is not shot2.metadata
 
 
@@ -823,7 +823,7 @@ def test_single_point_coordinates() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging coordinates
+    # When assigning coordinates
     coord = np.random.rand(3)
     pt.coordinates = coord
 
@@ -836,7 +836,7 @@ def test_single_point_color() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging color
+    # When assigning color
     color = np.random.randint(low=0, high=255, size=(3,))
     pt.color = color
 

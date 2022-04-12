@@ -114,7 +114,7 @@ TEST_F(CovarianceFixture, EvaluatesPointCovarianceOK) {
                         {observation, observation}, point_tmp)
                         .first;
 
-  // Two pose looking with an angle of 90 degres
+  // Two pose looking with an angle of 90 degrees
   ASSERT_TRUE(covariance.determinant() > 1e-12);
 }
 

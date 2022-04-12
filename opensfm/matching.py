@@ -171,7 +171,7 @@ def match_arguments(
     None,
     None,
 ]:
-    """Generate arguments for parralel processing of pair matching"""
+    """Generate arguments for parallel processing of pair matching"""
     for im1, im2 in pairs:
         yield im1, im2, cameras, exifs, data, config_override, poses
 

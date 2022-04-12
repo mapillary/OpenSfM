@@ -47,7 +47,7 @@ PYBIND11_MODULE(pymap, m) {
   py::module::import("opensfm.pygeometry");
   py::module::import("opensfm.pygeo");
 
-  // Some initial defintions to resolve cyclic dependencies
+  // Some initial definitions to resolve cyclic dependencies
   // Landmark <> Shot
   py::class_<map::Shot> shotCls(m, "Shot");
   // Landmark/Shot/...View <> Map
