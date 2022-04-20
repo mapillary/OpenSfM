@@ -1,8 +1,8 @@
 import os
 from dataclasses import dataclass, asdict
+from typing import Any, Dict, IO, Union
 
 import yaml
-from typing import Any, Dict, IO, Union
 
 
 @dataclass
@@ -287,7 +287,7 @@ class OpenSfMConfig:
     # Enforce GPS position in bundle adjustment
     bundle_use_gps: bool = True
     # Enforce Ground Control Point position in bundle adjustment
-    bundle_use_gcp: bool = False
+    bundle_use_gcp: bool = True
     # Compensate GPS with a per-camera similarity transform
     bundle_compensate_gps_bias: bool = False
 
@@ -376,7 +376,9 @@ def load_config(filepath) -> Dict[str, Any]:
         return load_config_from_fileobject(fin)
 
 
-def load_config_from_fileobject(f: Union[IO[bytes], IO[str], bytes, str]) -> Dict[str, Any]:
+def load_config_from_fileobject(
+    f: Union[IO[bytes], IO[str], bytes, str]
+) -> Dict[str, Any]:
     """Load config from a config.yaml fileobject"""
     config = default_config()
 
