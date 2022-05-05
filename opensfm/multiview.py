@@ -207,7 +207,7 @@ class TestLinearKernel:
     def num_samples(self) -> int:
         return len(self.x)
 
-    def fit(self, samples: np.ndarray) -> List[float]:
+    def fit(self, samples: np.ndarray)->List[float]:
         x = self.x[samples[0]]
         y = self.y[samples[0]]
         return [y / x]
@@ -682,8 +682,8 @@ def relative_pose_optimize_nonlinear(
 def triangulate_gcp(
     point: pymap.GroundControlPoint,
     shots: Dict[str, pymap.Shot],
-    reproj_threshold: float = 0.02,
-    min_ray_angle_degrees: float = 1.0,
+    reproj_threshold: float,
+    min_ray_angle_degrees: float,
 ) -> Optional[np.ndarray]:
     """Compute the reconstructed position of a GCP from observations."""
 
