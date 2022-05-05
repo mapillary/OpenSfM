@@ -854,7 +854,11 @@ void BundleAdjuster::Run() {
   }
 
   // Add common position errors
+  ceres::LossFunction *common_position_loss = nullptr;
   for (auto &c : common_positions_) {
+    if (common_position_loss == nullptr) {
+      common_position_loss = new ceres::TukeyLoss(1);
+    }
     auto *common_position = new CommonPositionError(c.margin, c.std_deviation);
     auto *cost_function =
         new ceres::DynamicAutoDiffCostFunction<CommonPositionError>(
@@ -888,7 +892,8 @@ void BundleAdjuster::Run() {
             common_position->shot_i_rig_camera_index_;
       }
     }
-    problem.AddResidualBlock(cost_function, nullptr, parameter_blocks);
+    problem.AddResidualBlock(cost_function, common_position_loss,
+                             parameter_blocks);
   }
 
   // Add heatmap cost
