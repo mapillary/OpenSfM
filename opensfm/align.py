@@ -449,8 +449,12 @@ def triangulate_all_gcp(
             reproj_threshold=0.004,
             min_ray_angle_degrees=2.0,
         )
-        if x is not None:
+        if x is not None and len(point.lla):
+            point_enu = np.array(
+                reconstruction.reference.to_topocentric(*point.lla_vec)
+            )
+            if not point.has_altitude:
+                point_enu[2] = x[2] = 0.0
             triangulated.append(x)
-            point_enu = reconstruction.reference.to_topocentric(*point.lla_vec)
             measured.append(point_enu)
     return triangulated, measured
