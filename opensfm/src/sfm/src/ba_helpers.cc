@@ -345,26 +345,6 @@ size_t BAHelpers::AddGCPToBundle(
     const AlignedVector<map::GroundControlPoint>& gcp, const py::dict& config) {
   const auto& reference = map.GetTopocentricConverter();
   const auto& shots = map.GetShots();
-
-  const auto dominant_terms = ba.GetRigInstances().size() +
-                              ba.GetProjectionsCount() +
-                              ba.GetRelativeMotionsCount();
-
-  size_t total_terms = 0;
-  for (const auto& point : gcp) {
-    Vec3d coordinates;
-    if (TriangulateGCP(point, shots, coordinates) || !point.lla_.empty()) {
-      ++total_terms;
-    }
-    for (const auto& obs : point.observations_) {
-      total_terms += (shots.count(obs.shot_id_) > 0);
-    }
-  }
-
-  const double global_weight = config["gcp_global_weight"].cast<double>() *
-                               dominant_terms /
-                               std::max<size_t>(1, total_terms);
-
   size_t added_gcp_observations = 0;
   for (const auto& point : gcp) {
     const auto point_id = "gcp-" + point.id_;
@@ -383,16 +363,16 @@ size_t BAHelpers::AddGCPToBundle(
                                    config["gcp_horizontal_sd"].cast<double>(),
                                    config["gcp_vertical_sd"].cast<double>());
       ba.AddPointPrior(point_id, reference.ToTopocentric(point.GetLlaVec3d()),
-                       point_std / global_weight, point.has_altitude_);
+                       point_std, point.has_altitude_);
     }
 
     // Now iterate through the observations
     for (const auto& obs : point.observations_) {
       const auto& shot_id = obs.shot_id_;
       if (shots.count(shot_id) > 0) {
-        constexpr double scale{0.001};
+        constexpr double scale{0.0001};
         ba.AddPointProjectionObservation(shot_id, point_id, obs.projection_,
-                                         scale / global_weight);
+                                         scale);
         ++added_gcp_observations;
       }
     }

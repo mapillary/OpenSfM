@@ -265,8 +265,6 @@ class BundleAdjuster {
   void ComputeReprojectionErrors();
 
   // Getters
-  int GetProjectionsCount() const;
-  int GetRelativeMotionsCount() const;
   geometry::Camera GetCamera(const std::string &id) const;
   geometry::Similarity GetBias(const std::string &id) const;
   Reconstruction GetReconstruction(const std::string &reconstruction_id) const;
