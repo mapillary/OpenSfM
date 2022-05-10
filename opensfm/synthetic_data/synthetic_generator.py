@@ -195,7 +195,7 @@ def generate_exifs(
 
         pose = shot.pose.get_origin()
         if previous_pose is not None:
-            previous_time += np.linalg.norm(pose - previous_pose) * speed_ms
+            previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         exif["capture_time"] = previous_time
 
