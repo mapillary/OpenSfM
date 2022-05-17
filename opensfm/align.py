@@ -446,8 +446,6 @@ def triangulate_all_gcp(
         x = multiview.triangulate_gcp(
             point,
             reconstruction.shots,
-            reproj_threshold=0.004,
-            min_ray_angle_degrees=2.0,
         )
         if x is not None and len(point.lla):
             point_enu = np.array(

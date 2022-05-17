@@ -1165,6 +1165,14 @@ void BundleAdjuster::ComputeReprojectionErrors() {
   }
 }
 
+int BundleAdjuster::GetProjectionsCount() const {
+  return point_projection_observations_.size();
+}
+
+int BundleAdjuster::GetRelativeMotionsCount() const {
+  return relative_motions_.size();
+}
+
 geometry::Camera BundleAdjuster::GetCamera(const std::string &id) const {
   if (cameras_.find(id) == cameras_.end()) {
     throw std::runtime_error("Camera " + id + " doesn't exists");
