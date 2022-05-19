@@ -1194,6 +1194,10 @@ Point BundleAdjuster::GetPoint(const std::string &id) const {
   return points_.at(id);
 }
 
+bool BundleAdjuster::HasPoint(const std::string &id) const {
+  return points_.find(id) != points_.end();
+}
+
 Reconstruction BundleAdjuster::GetReconstruction(
     const std::string &reconstruction_id) const {
   const auto it = reconstructions_.find(reconstruction_id);
