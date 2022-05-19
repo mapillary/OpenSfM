@@ -250,19 +250,19 @@ def compute_orientation_prior_similarity(
      - horizontal: assumes cameras are looking towards the horizon
      - vertical: assumes cameras are looking down towards the ground
     """
-    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
-    X = np.array(X)
-    Xp = np.array(Xp)
-
-    if len(X) < 1:
-        return None
-
     p = estimate_ground_plane(reconstruction, config)
     if p is None:
         return None
     Rplane = multiview.plane_horizontalling_rotation(p)
     if Rplane is None:
         return None
+
+    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
+    X = np.array(X)
+    Xp = np.array(Xp)
+    if len(X) < 1:
+        return 1.0, Rplane, np.zeros(3)
+
     X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
