@@ -197,7 +197,7 @@ def bake_segmentation(
     exif_height, exif_width, exif_orientation = (
         exif["height"],
         exif["width"],
-        exif["orientation"],
+        exif.get("orientation", 1),
     )
     height, width = image.shape[:2]
     if exif_height != height or exif_width != width:

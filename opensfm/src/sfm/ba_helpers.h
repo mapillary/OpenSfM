@@ -52,15 +52,15 @@ class BAHelpers {
       const map::Map& map, const py::dict& config,
       const AlignedVector<map::GroundControlPoint>& gcp);
 
+  static size_t AddGCPToBundle(
+      bundle::BundleAdjuster& ba, const map::Map& map,
+      const AlignedVector<map::GroundControlPoint>& gcp,
+      const py::dict& config);
+
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
       map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
       const size_t min_common_points, const size_t max_neighbors);
-  static void AddGCPToBundle(
-      bundle::BundleAdjuster& ba, const geo::TopocentricConverter& reference,
-      const AlignedVector<map::GroundControlPoint>& gcp,
-      const std::unordered_map<map::ShotId, map::Shot>& shots,
-      const double& horizontal_sigma, const double& vertical_sigma);
   static bool TriangulateGCP(
       const map::GroundControlPoint& point,
       const std::unordered_map<map::ShotId, map::Shot>& shots,

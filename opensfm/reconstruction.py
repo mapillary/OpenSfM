@@ -47,61 +47,6 @@ def _get_camera_from_bundle(
         camera.set_parameter_value(k, v)
 
 
-def _add_gcp_to_bundle(
-    ba: pybundle.BundleAdjuster,
-    reference: types.TopocentricConverter,
-    gcp: List[pymap.GroundControlPoint],
-    shots: Dict[str, pymap.Shot],
-    gcp_horizontal_sd: float,
-    gcp_vertical_sd: float,
-) -> int:
-    """Add Ground Control Points constraints to the bundle problem."""
-    total_gcp_observations = 0
-    gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
-    for point in gcp:
-        point_id = "gcp-" + point.id
-
-        coordinates = multiview.triangulate_gcp(
-            point,
-            shots,
-            reproj_threshold=1,
-            min_ray_angle_degrees=0.1,
-        )
-        if coordinates is None:
-            if point.lla:
-                coordinates = reference.to_topocentric(*point.lla_vec)
-            else:
-                logger.warning(
-                    "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
-                )
-                continue
-
-        ba.add_point(point_id, coordinates, False)
-
-        current_error = 0
-        if point.lla:
-            point_enu = reference.to_topocentric(*point.lla_vec)
-            ba.add_point_prior(point_id, point_enu, gcp_sd, point.has_altitude)
-            current_error = np.linalg.norm(np.array(point_enu)-np.array(coordinates))
-
-        gcp_observations = 0
-        for observation in point.observations:
-            if observation.shot_id in shots:
-                # TODO(pau): move this to a config or per point parameter.
-                scale = 0.0001
-                ba.add_point_projection_observation(
-                    observation.shot_id,
-                    point_id,
-                    observation.projection,
-                    scale,
-                )
-                gcp_observations += 1
-        total_gcp_observations += gcp_observations
-
-        logger.warning(f"Adding GCP {point_id} with {gcp_observations} observations with current error of {current_error} meters")
-    return total_gcp_observations
-
-
 def bundle(
     reconstruction: types.Reconstruction,
     camera_priors: Dict[str, pygeometry.Camera],
