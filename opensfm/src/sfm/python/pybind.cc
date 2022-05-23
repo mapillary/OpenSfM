@@ -28,7 +28,8 @@ PYBIND11_MODULE(pysfm, m) {
       .def_static("bundle_to_map", &sfm::BAHelpers::BundleToMap)
       .def_static("shot_neighborhood_ids", &sfm::BAHelpers::ShotNeighborhoodIds)
       .def_static("detect_alignment_constraints",
-                  &sfm::BAHelpers::DetectAlignmentConstraints);
+                  &sfm::BAHelpers::DetectAlignmentConstraints)
+      .def_static("add_gcp_to_bundle", &sfm::BAHelpers::AddGCPToBundle);
 
   m.def("realign_maps", &sfm::retriangulation::RealignMaps,
         py::call_guard<py::gil_scoped_release>());

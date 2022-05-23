@@ -347,8 +347,28 @@ class DataSet(DataSetBase):
         return self.io_handler.isfile(self._matches_file(image))
 
     def load_matches(self, image: str) -> Dict[str, np.ndarray]:
+        # Prevent pickling of anything except what we strictly need
+        # as 'pickle.load' is RCE-prone. Will raise on any class other
+        # than the numpy ones we allow.
+        class MatchingUnpickler(pickle.Unpickler):
+            modules_map = {
+                "numpy.core.multiarray._reconstruct": np.core.multiarray,
+                "numpy.core.multiarray.scalar": np.core.multiarray,
+                "numpy.ndarray": np,
+                "numpy.dtype": np,
+            }
+
+            def find_class(self, module, name):
+                classname = f"{module}.{name}"
+                allowed_module = classname in self.modules_map
+                if not allowed_module:
+                    raise pickle.UnpicklingError(
+                        "global '%s.%s' is forbidden" % (module, name)
+                    )
+                return getattr(self.modules_map[classname], name)
+
         with self.io_handler.open(self._matches_file(image), "rb") as fin:
-            matches = pickle.load(BytesIO(gzip.decompress(fin.read())))
+            matches = MatchingUnpickler(BytesIO(gzip.decompress(fin.read()))).load()
         return matches
 
     def save_matches(self, image: str, matches: Dict[str, np.ndarray]) -> None:

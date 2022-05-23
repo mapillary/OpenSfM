@@ -14,8 +14,8 @@ def test_dataset_load_features_sift(tmpdir) -> None:
     points = np.random.random((3, 4))
     descriptors = np.random.random((128, 4))
     colors = np.random.random((3, 4))
-    segmentations = np.random.random((3, 4))
-    instances = np.random.random((3, 4))
+    segmentations = np.random.randint(low=0, high=255, size=(3, 4))
+    instances = np.random.randint(low=0, high=255, size=(3, 4))
 
     semantic_data = features.SemanticData(
         segmentations, instances, data.segmentation_labels()

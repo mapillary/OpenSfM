@@ -250,19 +250,19 @@ def compute_orientation_prior_similarity(
      - horizontal: assumes cameras are looking towards the horizon
      - vertical: assumes cameras are looking down towards the ground
     """
-    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
-    X = np.array(X)
-    Xp = np.array(Xp)
-
-    if len(X) < 1:
-        return None
-
     p = estimate_ground_plane(reconstruction, config)
     if p is None:
         return None
     Rplane = multiview.plane_horizontalling_rotation(p)
     if Rplane is None:
         return None
+
+    X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
+    X = np.array(X)
+    Xp = np.array(Xp)
+    if len(X) < 1:
+        return 1.0, Rplane, np.zeros(3)
+
     X = Rplane.dot(X.T).T
 
     # Estimate 2d similarity to align to GPS
@@ -446,11 +446,13 @@ def triangulate_all_gcp(
         x = multiview.triangulate_gcp(
             point,
             reconstruction.shots,
-            reproj_threshold=0.004,
-            min_ray_angle_degrees=2.0,
         )
-        if x is not None:
+        if x is not None and len(point.lla):
+            point_enu = np.array(
+                reconstruction.reference.to_topocentric(*point.lla_vec)
+            )
+            if not point.has_altitude:
+                point_enu[2] = x[2] = 0.0
             triangulated.append(x)
-            point_enu = reconstruction.reference.to_topocentric(*point.lla_vec)
             measured.append(point_enu)
     return triangulated, measured
