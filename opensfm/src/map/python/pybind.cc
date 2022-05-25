@@ -247,12 +247,14 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init())
       .def(py::init<const map::ShotId &, const Vec2d &>())
       .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
+      .def_readwrite("uid", &map::GroundControlPointObservation::uid_)
       .def_readwrite("projection",
                      &map::GroundControlPointObservation::projection_);
 
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
+      .def_readwrite("survey_point_id", &map::GroundControlPoint::survey_point_id_)
       .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
       .def_readwrite("lla", &map::GroundControlPoint::lla_)
       .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
