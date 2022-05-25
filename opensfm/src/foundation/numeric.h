@@ -1,6 +1,7 @@
 #pragma once
 
 #include <foundation/types.h>
+
 #include <Eigen/Dense>
 #include <array>
 
@@ -48,7 +49,8 @@ void SkewMatrixT(const V& v, M* matrix) {
 
 Eigen::Matrix3d ClosestRotationMatrix(const Eigen::Matrix3d& matrix);
 
-std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients);
+bool SolveQuartic(const std::array<double, 5>& coefficients,
+                  std::array<double, 4>& roots);
 std::array<double, 4> RefineQuarticRoots(
     const std::array<double, 5>& coefficients,
     const std::array<double, 4>& roots);
