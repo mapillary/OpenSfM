@@ -543,7 +543,11 @@ def motion_from_plane_homography(
     Report. INRIA, June 1988. https://hal.inria.fr/inria-00075698/document
     """
 
-    u, l, vh = np.linalg.svd(H)
+    try:
+        u, l, vh = np.linalg.svd(H)
+    except ValueError:
+        return None
+
     d1, d2, d3 = l
     s = np.linalg.det(u) * np.linalg.det(vh)
 
