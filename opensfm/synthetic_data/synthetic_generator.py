@@ -2,7 +2,7 @@ import logging
 import math
 import time
 from collections import defaultdict
-from typing import Callable, Tuple, List, Dict, Any, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -10,13 +10,13 @@ import opensfm.synthetic_data.synthetic_dataset as sd
 import scipy.signal as signal
 import scipy.spatial as spatial
 from opensfm import (
+    features as oft,
     geo,
+    geometry,
     pygeometry,
+    pymap,
     reconstruction as rc,
     types,
-    pymap,
-    features as oft,
-    geometry,
 )
 from opensfm.types import Reconstruction
 
@@ -151,7 +151,7 @@ def generate_causal_noise(
     dims = [np.arange(-scale, scale) for _ in range(dimensions)]
     mesh = np.meshgrid(*dims)
     dist = np.linalg.norm(mesh, axis=0)
-    filter_kernel = np.exp(-(dist ** 2) / (2 * scale))
+    filter_kernel = np.exp(-(dist**2) / (2 * scale))
 
     noise = np.random.randn(dimensions, n) * sigma
     return signal.fftconvolve(noise, filter_kernel, mode="same")
@@ -459,6 +459,7 @@ def generate_track_data(
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
+            gcp.survey_point_id = int(gcp_id)
             enu = point.coordinates + gcp_shift + sigmas_gcp[i]
             lat, lon, alt = reconstruction.reference.to_lla(*enu)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
@@ -467,6 +468,7 @@ def generate_track_data(
                 o = pymap.GroundControlPointObservation()
                 o.shot_id = shot_id
                 o.projection = obs.point
+                o.uid = obs.id
                 gcp.add_observation(o)
             gcps[gcp.id] = gcp
 
