@@ -100,7 +100,7 @@ def test_triangulate_two_bearings_midpoint_failed() -> None:
     b1 = unit_vector([0.0, 0, 1])
     o2 = np.array([1.0, 0, 0])
 
-    # almost parralel. 1e-5 will make it triangulate again.
+    # almost parallel. 1e-5 will make it triangulate again.
     b2 = b1 + np.array([-1e-10, 0, 0])
 
     ok, X = pygeometry.triangulate_two_bearings_midpoint(

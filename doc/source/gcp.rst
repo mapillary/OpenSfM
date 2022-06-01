@@ -6,7 +6,7 @@ When EXIF data contains GPS location, it is used by OpenSfM to georeference the 
 
 Ground control points (GCP) are landmarks visible on the images for which the geospatial position (latitude, longitude and altitude) is known.  A single GCP can be observed in one or more images.
 
-OpenSfM uses GCP in two steps of the reconstruction process: alignment and bundle adjustment.  In the alignment step, points are used to globaly move the reconstruction so that the observed GCP align with their GPS position.  Two or more observations for each GCP are required for it to be used during the aligment step.
+OpenSfM uses GCP in two steps of the reconstruction process: alignment and bundle adjustment.  In the alignment step, points are used to globaly move the reconstruction so that the observed GCP align with their GPS position.  Two or more observations for each GCP are required for it to be used during the alignment step.
 
 In the bundle adjustment step, GCP observations are used as a constraint to refine the reconstruction.  In this step, all ground control points are used.  No minimum number of observation is required.
 

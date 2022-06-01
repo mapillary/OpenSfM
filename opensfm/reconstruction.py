@@ -231,7 +231,7 @@ def add_shot(
     shot_id: str,
     pose: pygeometry.Pose,
 ) -> Set[str]:
-    """Add a shot to the recontruction.
+    """Add a shot to the reconstruction.
 
     In case of a shot belonging to a rig instance, the pose of
     shot will drive the initial pose setup of the rig instance.

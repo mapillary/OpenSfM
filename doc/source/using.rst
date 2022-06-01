@@ -148,13 +148,13 @@ The following data is extracted for each image:
 - ``camera``: The camera ID string. Used to identify a camera.  When multiple images have the same camera ID string, they will be assumed to be taken with the same camera and will share its parameters.
 
 
-Once the metadata for all images has been extracted, a list of camera models is created and stored in ``camera_models.json``.  A camera model is created for each diferent camera ID string found on the images.
+Once the metadata for all images has been extracted, a list of camera models is created and stored in ``camera_models.json``.  A camera model is created for each different camera ID string found on the images.
 
 For each camera ID, the cammera model parameters are chosen using the following procedure.
 
 - If the camera ID exists in the ``camera_models_overrides.json`` then the parameters are taken from that file.
 - Otherwise, if the camera ID exists in an internal calibration database, then the camera parameters are taken from the database.
-- Otherwise, the camera parameters are inferred from the avalable EXIF metadata.
+- Otherwise, the camera parameters are inferred from the available EXIF metadata.
 
 
 Providing additional metadata

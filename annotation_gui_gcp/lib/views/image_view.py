@@ -104,7 +104,7 @@ class ImageView(WebView):
             "add_or_update_point_observation",
             "remove_point_observation",
         ):
-            raise ValueError(f"Unknown commmand {command}")
+            raise ValueError(f"Unknown command {command}")
 
         if data["point_id"] != self.main_ui.curr_point:
             print(data["point_id"], self.main_ui.curr_point)

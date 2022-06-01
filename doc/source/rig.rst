@@ -23,7 +23,7 @@ The following terms define such assembly and capture in OpenSfM terminology :
     },
     ...
 
- - A `RigInstance` is a list of `Shots`, each of which correspond to a `RigCamera` of the `RigModel` and the actual pose of the `RigModel` in the world : it's indeed an instanciation of the `RigModel` by combining `Shots`. These instances are defined in the `rig_assignments.json` file as follows::
+ - A `RigInstance` is a list of `Shots`, each of which correspond to a `RigCamera` of the `RigModel` and the actual pose of the `RigModel` in the world : it's indeed an instantiation of the `RigModel` by combining `Shots`. These instances are defined in the `rig_assignments.json` file as follows::
 
     {
         "RIG_INSTANCE_ID1": {

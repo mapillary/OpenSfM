@@ -108,7 +108,7 @@ class FeaturesData:
             feature_data_type = np.float32
         descriptors = self.descriptors
         if descriptors is None:
-            raise RuntimeError("No descriptors found, canot save features data.")
+            raise RuntimeError("No descriptors found, cannot save features data.")
         semantic = self.semantic
         if semantic:
             instances = semantic.instances

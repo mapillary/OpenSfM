@@ -25,7 +25,7 @@
 #include <Eigen/SVD>
 
 // In the following code, polynomials are expressed as vectors containing
-// their coeficients in the basis of monomials:
+// their coefficients in the basis of monomials:
 //
 //   [xxx xxy xyy yyy xxz xyz yyz xzz yzz zzz xx xy yy xz yz zz x y z 1]
 //

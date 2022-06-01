@@ -34,7 +34,7 @@ class Reconstruction(object):
     """
 
     def __init__(self) -> None:
-        """Defaut constructor"""
+        """Default constructor"""
         self.map = pymap.Map()
         self.camera_view = pymap.CameraView(self.map)
         self.bias_view = pymap.BiasView(self.map)

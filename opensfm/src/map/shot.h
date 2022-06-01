@@ -167,7 +167,7 @@ class Shot {
   RigInstance* rig_instance_;
   RigCamera* rig_camera_;
 
-  // Camera pointer (can optionaly belong to the shot)
+  // Camera pointer (can optionally belong to the shot)
   foundation::OptionalValue<geometry::Camera> own_camera_;
   const geometry::Camera* const shot_camera_;
 

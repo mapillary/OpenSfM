@@ -303,7 +303,7 @@ def fit_plane_ransac(
 def fit_plane(
     points: np.ndarray, vectors: Optional[np.ndarray], verticals: Optional[np.ndarray]
 ) -> np.ndarray:
-    """Estimate a plane fron on-plane points and vectors.
+    """Estimate a plane from on-plane points and vectors.
 
     >>> x = [[0,0,0], [1,0,0], [0,1,0]]
     >>> p = fit_plane(x, None, None)

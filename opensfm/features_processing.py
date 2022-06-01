@@ -30,7 +30,7 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
             f"Planning to use {mem_available} MB of RAM for both processing queue and parallel processing."
         )
 
-        # 50% for the queue / 50% for parralel processing
+        # 50% for the queue / 50% for parallel processing
         expected_mb = mem_available / 2
         expected_images = min(
             max_queue_size, int(expected_mb / average_image_size(data))
