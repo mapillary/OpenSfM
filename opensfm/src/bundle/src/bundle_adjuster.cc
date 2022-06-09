@@ -915,19 +915,13 @@ void BundleAdjuster::Run() {
         up_vector_loss = new ceres::CauchyLoss(1);
       }
 
-      auto &shot = shots_.at(a.shot_id);
-
-      auto *up_vector_cost_function =
-          new ceres::DynamicAutoDiffCostFunction<UpVectorError>(
+      ceres::CostFunction *up_cost_function =
+          new ceres::AutoDiffCostFunction<UpVectorError, 3, 6, 6>(
               new UpVectorError(a.up_vector, a.std_deviation));
-      up_vector_cost_function->AddParameterBlock(6);
-      up_vector_cost_function->SetNumResiduals(3);
-
-      auto camera_data = shot.GetRigCamera()->GetValueData().data();
-      auto instance_data = shot.GetRigInstance()->GetValueData().data();
-      up_vector_cost_function->AddParameterBlock(6);
-      problem.AddResidualBlock(up_vector_cost_function, up_vector_loss,
-                               instance_data, camera_data);
+      auto &shot = shots_.at(a.shot_id);
+      problem.AddResidualBlock(up_cost_function, up_vector_loss,
+                               shot.GetRigInstance()->GetValueData().data(),
+                               shot.GetRigCamera()->GetValueData().data());
     }
   }
 

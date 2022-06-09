@@ -14,9 +14,11 @@ struct UpVectorError {
   }
 
   template <typename T>
-  bool operator()(T const* const* p, T* r) const {
-    Vec3<T> R = ShotRotationFunctor(0, 1)(p);
-    Eigen::Map<Vec3<T>> residual(r);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> R = ShotRotationFunctor(0, 1)(params);
+    Eigen::Map<Vec3<T>> residual(residuals);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
     const Vec3<T> z_world = RotatePoint(R, acceleration);
