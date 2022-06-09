@@ -3,23 +3,14 @@ import math
 from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
-from opensfm import (
-    exif as oexif,
-    geo,
-    geometry,
-    multiview,
-    pygeometry,
-    pymap,
-    rig,
-    types,
-)
+from opensfm import exif as oexif, geometry, multiview, pygeometry, pymap, rig, types
 from opensfm.dataset_base import DataSetBase
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def guess_acceleration_from_orientation_tag(orientation: int) -> List[float]:
+def guess_gravity_up_from_orientation_tag(orientation: int) -> np.ndarray:
     """Guess upward vector in camera coordinates given the orientation tag.
 
     Assumes camera is looking towards the horizon and horizon is horizontal
@@ -27,69 +18,29 @@ def guess_acceleration_from_orientation_tag(orientation: int) -> List[float]:
     """
     # See http://sylvana.net/jpegcrop/exif_orientation.html
     if orientation == 1:
-        return [0, -1, 0]
+        return np.array([0, -1, 0])
     if orientation == 2:
-        return [0, -1, 0]
+        return np.array([0, -1, 0])
     if orientation == 3:
-        return [0, 1, 0]
+        return np.array([0, 1, 0])
     if orientation == 4:
-        return [0, 1, 0]
+        return np.array([0, 1, 0])
     if orientation == 5:
-        return [-1, 0, 0]
+        return np.array([-1, 0, 0])
     if orientation == 6:
-        return [-1, 0, 0]
+        return np.array([-1, 0, 0])
     if orientation == 7:
-        return [1, 0, 0]
+        return np.array([1, 0, 0])
     if orientation == 8:
-        return [1, 0, 0]
+        return np.array([1, 0, 0])
     raise RuntimeError(f"Error: Unknown orientation tag: {orientation}")
 
 
-def orientation_from_acceleration_in_image_axis(x: float, y: float) -> int:
-    """Return the orientation tag corresponding to an acceleration"""
-    if y <= -(np.fabs(x)):
-        return 1
-    elif y >= np.fabs(x):
-        return 3
-    elif x <= -(np.fabs(y)):
-        return 6
-    elif x >= np.fabs(y):
-        return 8
-    else:
-        raise RuntimeError(f"Error: Invalid acceleration {x}, {y}!")
+def shot_gravity_up_in_image_axis(shot: pymap.Shot) -> Optional[np.ndarray]:
+    """Get or guess shot's gravity up direction."""
+    if shot.metadata.gravity_down.has_value:
+        return -shot.metadata.gravity_down.value
 
-
-def transform_acceleration_from_phone_to_image_axis(
-    x: float, y: float, z: float, orientation: int
-) -> List[float]:
-    """Compute acceleration in image axis.
-
-    Orientation tag is used to ensure that the resulting acceleration points
-    downwards in the image.  This validation is not needed if the orientation
-    tag is the one from the original picture.  It is only required when
-    the image has been rotated with respect to the original and the orientation
-    tag modified accordingly.
-    """
-    assert orientation in [1, 3, 6, 8]
-
-    # Orientation in image axis assuming image has not been transformed
-    length = np.sqrt(x * x + y * y + z * z)
-    if length < 3:  # Assume IOS device since gravity is 1 in there
-        ix, iy, iz = y, -x, z
-    else:  # Assume Android device since gravity is 9.8 in there
-        ix, iy, iz = -y, -x, -z
-
-    for _ in range(4):
-        if orientation == orientation_from_acceleration_in_image_axis(ix, iy):
-            break
-        else:
-            ix, iy = -iy, ix
-
-    return [ix, iy, iz]
-
-
-def shot_acceleration_in_image_axis(shot: pymap.Shot) -> Optional[List[float]]:
-    """Get or guess shot's acceleration."""
     if not shot.metadata.orientation.has_value:
         return None
 
@@ -99,12 +50,7 @@ def shot_acceleration_in_image_axis(shot: pymap.Shot) -> Optional[List[float]]:
             "Unknown orientation tag {} for image {}".format(orientation, shot.id)
         )
         orientation = 1
-
-    if shot.metadata.gravity_down.has_value:
-        x, y, z = shot.metadata.gravity_down.value
-        if x != 0 or y != 0 or z != 0:
-            return transform_acceleration_from_phone_to_image_axis(x, y, z, orientation)
-    return guess_acceleration_from_orientation_tag(orientation)
+    return guess_gravity_up_from_orientation_tag(orientation)
 
 
 def rotation_from_shot_metadata(shot: pymap.Shot) -> Optional[np.ndarray]:
@@ -115,14 +61,14 @@ def rotation_from_shot_metadata(shot: pymap.Shot) -> Optional[np.ndarray]:
 
 
 def rotation_from_orientation_compass(shot: pymap.Shot) -> Optional[np.ndarray]:
-    up_vector = shot_acceleration_in_image_axis(shot)
+    up_vector = shot_gravity_up_in_image_axis(shot)
     if up_vector is None:
         return None
     if shot.metadata.compass_angle.has_value:
         angle = shot.metadata.compass_angle.value
     else:
         angle = 0.0
-    return multiview.rotation_matrix_from_up_vector_and_compass(up_vector, angle)
+    return multiview.rotation_matrix_from_up_vector_and_compass(list(up_vector), angle)
 
 
 def rotation_from_angles(shot: pymap.Shot) -> Optional[np.ndarray]:
