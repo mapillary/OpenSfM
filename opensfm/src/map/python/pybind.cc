@@ -106,7 +106,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
-      .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer_)
+      .def_readwrite("gravity_down", &map::ShotMeasurements::gravity_down_)
       .def_readwrite("compass_angle", &map::ShotMeasurements::compass_angle_)
       .def_readwrite("compass_accuracy",
                      &map::ShotMeasurements::compass_accuracy_)
@@ -119,7 +119,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(
                 s.gps_accuracy_, s.gps_position_, s.orientation_,
-                s.capture_time_, s.accelerometer_, s.compass_angle_,
+                s.capture_time_, s.gravity_down_, s.compass_angle_,
                 s.compass_accuracy_, s.opk_angles_, s.opk_accuracy_,
                 s.sequence_key_, s.GetAttributes());
           },
@@ -129,7 +129,7 @@ PYBIND11_MODULE(pymap, m) {
             sm.gps_position_ = s[1].cast<decltype(sm.gps_position_)>();
             sm.orientation_ = s[2].cast<decltype(sm.orientation_)>();
             sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
-            sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
+            sm.gravity_down_ = s[4].cast<decltype(sm.gravity_down_)>();
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.compass_accuracy_ = s[6].cast<decltype(sm.compass_accuracy_)>();
             sm.opk_angles_ = s[7].cast<decltype(sm.opk_angles_)>();

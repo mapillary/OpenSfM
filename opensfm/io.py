@@ -525,8 +525,8 @@ def pymap_metadata_to_json(metadata: pymap.ShotMeasurements) -> Dict[str, Any]:
         obj["gps_dop"] = metadata.gps_accuracy.value
     if metadata.gps_position.has_value:
         obj["gps_position"] = list(metadata.gps_position.value)
-    if metadata.accelerometer.has_value:
-        obj["accelerometer"] = list(metadata.accelerometer.value)
+    if metadata.gravity_down.has_value:
+        obj["gravity_down"] = list(metadata.gravity_down.value)
     if metadata.compass_angle.has_value and metadata.compass_accuracy.has_value:
         obj["compass"] = {
             "angle": metadata.compass_angle.value,
@@ -554,8 +554,8 @@ def json_to_pymap_metadata(obj: Dict[str, Any]) -> pymap.ShotMeasurements:
         metadata.gps_position.value = obj.get("gps_position")
     if obj.get("skey") is not None:
         metadata.sequence_key.value = obj.get("skey")
-    if obj.get("accelerometer") is not None:
-        metadata.accelerometer.value = obj.get("accelerometer")
+    if obj.get("gravity_down") is not None:
+        metadata.gravity_down.value = obj.get("gravity_down")
     if obj.get("compass") is not None:
         compass = obj.get("compass")
         if "angle" in compass:

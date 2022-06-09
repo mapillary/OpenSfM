@@ -350,7 +350,7 @@ def test_shot_measurement_setter_and_getter() -> None:
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
     _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "opk_angles", np.random.rand(3))
-    _help_measurement_test(m1, "accelerometer", np.random.rand(3))
+    _help_measurement_test(m1, "gravity_down", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
 
@@ -363,7 +363,7 @@ def _helper_populate_metadata(m) -> None:
     m.compass_angle.value = np.random.rand(1)
     m.opk_accuracy.value = np.random.rand(1)
     m.opk_angles.value = np.random.rand(3)
-    m.accelerometer.value = np.random.rand(3)
+    m.gravity_down.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
 

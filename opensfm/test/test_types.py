@@ -31,7 +31,7 @@ def test_reconstruction_class_initialization() -> None:
         -0.96510451436708888,
         1.2042133903991235,
     ])
-    metadata.accelerometer.value = np.array([0.1, 0.9, 0.0])
+    metadata.gravity_down.value = np.array([0.1, 0.9, 0.0])
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0
     metadata.sequence_key.value = "a_sequence_key"

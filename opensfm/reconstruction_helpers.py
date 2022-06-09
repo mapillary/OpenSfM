@@ -1,17 +1,17 @@
 import logging
 import math
-from typing import Optional, List, Dict, Any, Iterable
+from typing import Any, Dict, Iterable, List, Optional
 
 import numpy as np
 from opensfm import (
+    exif as oexif,
     geo,
+    geometry,
     multiview,
     pygeometry,
     pymap,
-    geometry,
-    types,
-    exif as oexif,
     rig,
+    types,
 )
 from opensfm.dataset_base import DataSetBase
 
@@ -100,8 +100,8 @@ def shot_acceleration_in_image_axis(shot: pymap.Shot) -> Optional[List[float]]:
         )
         orientation = 1
 
-    if shot.metadata.accelerometer.has_value:
-        x, y, z = shot.metadata.accelerometer.value
+    if shot.metadata.gravity_down.has_value:
+        x, y, z = shot.metadata.gravity_down.value
         if x != 0 or y != 0 or z != 0:
             return transform_acceleration_from_phone_to_image_axis(x, y, z, orientation)
     return guess_acceleration_from_orientation_tag(orientation)
@@ -204,7 +204,13 @@ def exif_to_metadata(
     metadata.orientation.value = exif.get("orientation", 1)
 
     if "accelerometer" in exif:
-        metadata.accelerometer.value = exif["accelerometer"]
+        logger.warning(
+            "'accelerometer' EXIF tag is deprecated in favor of 'gravity_down', which expresses "
+            "the gravity down direction in the image coordinate frame."
+        )
+
+    if "gravity_down" in exif:
+        metadata.gravity_down.value = exif["gravity_down"]
 
     if "compass" in exif:
         metadata.compass_angle.value = exif["compass"]["angle"]

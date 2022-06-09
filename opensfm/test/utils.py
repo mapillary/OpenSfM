@@ -1,6 +1,6 @@
 # Test utils for python
 import numpy as np
-from opensfm import pymap, pygeometry, types
+from opensfm import pygeometry, pymap, types
 
 
 def assert_cameras_equal(cam1: pygeometry.Camera, cam2: pygeometry.Camera) -> None:
@@ -34,9 +34,9 @@ def assert_metadata_equal(
     if m1.compass_angle.has_value:
         assert m1.compass_angle.value == m2.compass_angle.value
 
-    assert m1.accelerometer.has_value == m2.accelerometer.has_value
-    if m1.accelerometer.has_value:
-        assert np.allclose(m1.accelerometer.value, m2.accelerometer.value)
+    assert m1.gravity_down.has_value == m2.gravity_down.has_value
+    if m1.gravity_down.has_value:
+        assert np.allclose(m1.gravity_down.value, m2.gravity_down.value)
 
     assert m1.orientation.has_value == m2.orientation.has_value
     if m1.orientation.has_value:

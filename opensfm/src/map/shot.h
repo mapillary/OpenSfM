@@ -31,7 +31,7 @@ struct ShotMeasurements {
   foundation::OptionalValue<double> gps_accuracy_;
   foundation::OptionalValue<double> compass_accuracy_;
   foundation::OptionalValue<double> compass_angle_;
-  foundation::OptionalValue<Vec3d> accelerometer_;
+  foundation::OptionalValue<Vec3d> gravity_down_;
   foundation::OptionalValue<double> opk_accuracy_;
   foundation::OptionalValue<Vec3d> opk_angles_;
   foundation::OptionalValue<int> orientation_;
