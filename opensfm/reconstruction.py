@@ -926,6 +926,7 @@ class TrackTriangulator:
                 bs_t,
                 thresholds,
                 np.radians(min_ray_angle_degrees),
+                np.radians(180.0 - min_ray_angle_degrees),
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
@@ -942,6 +943,7 @@ class TrackTriangulator:
                         bs[inliers],
                         len(inliers) * [reproj_threshold],
                         np.radians(min_ray_angle_degrees),
+                        np.radians(180.0 - min_ray_angle_degrees),
                     )
                     new_X = pygeometry.point_refinement(
                         os[inliers], bs[inliers], X, iterations
@@ -1000,6 +1002,7 @@ class TrackTriangulator:
                 np.asarray(bs),
                 thresholds,
                 np.radians(min_ray_angle_degrees),
+                np.radians(180.0 - min_ray_angle_degrees),
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
