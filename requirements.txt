@@ -12,7 +12,7 @@ pytest==3.0.7
 python-dateutil>=2.7
 pyyaml==5.4
 scipy
-Sphinx==4.0.2
+Sphinx==4.2.0
 six
 xmltodict==0.10.2
 wheel
