@@ -28,7 +28,7 @@ rows = []
 for reconstruction in reconstructions:
     for shot in reconstruction.shots.values():
         lla = rc.shot_lla_and_compass(shot, reference)
-        rows.append([shot.id, ] + map(str, lla))
+        rows.append([shot.id, ] + list(map(str, lla)))
 rows.sort()
 rows.insert(0, ['image', 'latitude', 'longitude', 'altitude', 'compass_angle'])
 tsv = '\n'.join(['\t'.join(row) for row in rows])
