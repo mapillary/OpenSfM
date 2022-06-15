@@ -3,11 +3,11 @@
 import logging
 import math
 from collections import defaultdict
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
-from opensfm import multiview, transformations as tf, types, pygeometry, pymap
+from opensfm import multiview, pygeometry, pymap, transformations as tf, types
 
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -61,8 +61,7 @@ def apply_similarity(
     """
     # Align points.
     for point in reconstruction.points.values():
-        Xp = s * A.dot(point.coordinates) + b
-        point.coordinates = Xp.tolist()
+        point.coordinates = s * A.dot(point.coordinates) + b
 
     # Align rig instances
     for rig_instance in reconstruction.rig_instances.values():
@@ -372,11 +371,12 @@ def estimate_ground_plane(
     horizontally or vertically.
     """
     orientation_type = config["align_orientation_prior"]
-    onplane, verticals = [], []
+    onplane, verticals, ground_points = [], [], []
     for shot in reconstruction.shots.values():
-        R = shot.pose.get_rotation_matrix()
+        ground_points.append(shot.pose.get_origin())
         if not shot.metadata.orientation.has_value:
             continue
+        R = shot.pose.get_rotation_matrix()
 
         x, y, z = get_horizontal_and_vertical_directions(
             R, shot.metadata.orientation.value
@@ -393,9 +393,6 @@ def estimate_ground_plane(
             onplane.append(y)
             verticals.append(-z)
 
-    ground_points = []
-    for shot in reconstruction.shots.values():
-        ground_points.append(shot.pose.get_origin())
     ground_points = np.array(ground_points)
     ground_points -= ground_points.mean(axis=0)
 
