@@ -11,7 +11,7 @@ from opensfm import pygeometry
 from opensfm import pymap
 from opensfm import types
 from opensfm.test.utils import (
-    assert_metadata_equal,
+    assert_maps_equal, assert_metadata_equal,
     assert_cameras_equal,
     assert_shots_equal,
 )
@@ -1102,42 +1102,7 @@ def test_rec_deepcopy() -> None:
     assert len(rec2.pano_shots) == 50
     assert len(rec2.points) == 200
 
-    # Cameras are different objects of same value
-    for k in rec.cameras:
-        cam, cam_cpy = rec.cameras[k], rec2.cameras[k]
-        assert cam != cam_cpy
-        assert_cameras_equal(cam, cam_cpy)
-
-    # Shots are different objects of same value
-    for shot_id in rec2.shots.keys():
-        shot1, shot2 = rec.shots[shot_id], rec2.shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Pano shots are different objects of same value
-    for shot_id in rec2.pano_shots.keys():
-        shot1, shot2 = rec.pano_shots[shot_id], rec2.pano_shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Points are different objects of same value
-    for pt_id in rec2.points:
-        pt, pt_cpy = rec.points[pt_id], rec2.points[pt_id]
-        assert pt != pt_cpy
-        assert pt.id == pt_cpy.id
-        assert np.allclose(pt.coordinates, pt_cpy.coordinates)
-        assert np.allclose(pt.color, pt_cpy.color)
-        obs = pt.get_observations()
-        obs_cpy = pt_cpy.get_observations()
-        assert len(obs) == len(obs_cpy)
-
-        # Observations are different objects of same value
-        for shot, obs_id in obs.items():
-            obs1 = shot.get_observation(obs_id)
-            shot_cpy = rec2.shots[shot.id]
-            obs_cpy = shot_cpy.get_observation(obs_id)
-            assert obs1 is not obs_cpy
-
+    assert_maps_equal(rec.map, rec2.map)
 
 def test_gcp() -> None:
     gcp = []

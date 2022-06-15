@@ -216,4 +216,4 @@ def test_panoshots_consistency() -> None:
     json_data = io.reconstructions_to_json([rec_before])
     rec_after = io.reconstructions_from_json(json_data)[0]
 
-    utils.assert_reconstructions_equal(rec_before, rec_after)
+    utils.assert_maps_equal(rec_before.map, rec_after.map)
