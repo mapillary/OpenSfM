@@ -562,8 +562,10 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::RigInstanceView::HasRigInstance);
 
-  mapCls
-      .def(py::init())
+  mapCls.def(py::init())
+      .def_static("deep_copy", &map::Map::DeepCopy,
+                  py::return_value_policy::reference_internal,
+                  py::call_guard<py::gil_scoped_release>())
       // Camera
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
            py::return_value_policy::reference_internal)
