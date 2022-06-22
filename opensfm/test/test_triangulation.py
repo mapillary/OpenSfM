@@ -78,6 +78,7 @@ def test_triangulate_bearings_midpoint() -> None:
         np.asarray([b1, b2]),
         2 * [max_reprojection],
         min_ray_angle,
+        np.pi - min_ray_angle,
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert valid_triangulation is True

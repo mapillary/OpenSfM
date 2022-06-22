@@ -22,6 +22,10 @@ class Map {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+  // Deep-Copy
+  static std::unique_ptr<Map> DeepCopy(const Map& map,
+                                       bool copy_observations = false);
+
   // Camera Methods
   geometry::Camera& GetCamera(const CameraId& cam_id);
   const geometry::Camera& GetCamera(const CameraId& cam_id) const;
@@ -195,7 +199,7 @@ class Map {
   GetValidObservations(const TracksManager& tracks_manager) const;
 
  private:
-  void UpdateShotWithRig(const Shot& other_shot);
+  void UpdateShotWithRig(const Shot& other_shot, bool is_panoshot = false);
 
   std::unordered_map<CameraId, geometry::Camera> cameras_;
   std::unordered_map<CameraId, geometry::Similarity> bias_;

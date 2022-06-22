@@ -6,6 +6,7 @@
 #include <map/shot.h>
 
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -18,6 +19,50 @@ void AssignShot(map::Shot& to, const map::Shot& from) {
 }
 }  // namespace
 namespace map {
+
+std::unique_ptr<Map> Map::DeepCopy(const Map& map, bool copy_observations) {
+  auto map_copy = std::make_unique<Map>();
+  map_copy->topo_conv_ = map.topo_conv_;
+
+  for (const auto& camera : map.GetCameras()) {
+    map_copy->CreateCamera(camera.second);
+  }
+
+  const auto& shots = map.GetShots();
+  for (const auto& shot : shots) {
+    if (map_copy->HasShot(shot.first)) {
+      continue;
+    }
+    map_copy->UpdateShotWithRig(shot.second, false);
+  }
+
+  const auto& pano_shots = map.GetPanoShots();
+  for (const auto& pano_shot : pano_shots) {
+    if (map_copy->HasPanoShot(pano_shot.first)) {
+      continue;
+    }
+    map_copy->UpdateShotWithRig(pano_shot.second, true);
+  }
+
+  for (const auto& landmark : map.GetLandmarks()) {
+    map_copy->CreateLandmark(landmark.first, landmark.second.GetGlobalPos());
+  }
+
+  if (copy_observations) {
+    for (const auto& shot : shots) {
+      for (const auto& landmark_n_obs : shot.second.GetLandmarkObservations()) {
+        map_copy->AddObservation(shot.first, landmark_n_obs.first->id_,
+                                 landmark_n_obs.second);
+      }
+    }
+  }
+
+  for (const auto& bias : map.GetBiases()) {
+    map_copy->SetBias(bias.first, bias.second);
+  }
+
+  return map_copy;
+}
 
 void Map::AddObservation(Shot* const shot, Landmark* const lm,
                          const Observation& obs) {
@@ -296,7 +341,7 @@ const geometry::Camera& Map::GetCamera(const CameraId& cam_id) const {
   return it->second;
 }
 
-void Map::UpdateShotWithRig(const Shot& other_shot) {
+void Map::UpdateShotWithRig(const Shot& other_shot, bool is_panoshot) {
   const auto rig_instance = other_shot.GetRigInstance();
   const auto& instance_id = rig_instance->id;
   const bool has_instance = HasRigInstance(instance_id);
@@ -319,10 +364,17 @@ void Map::UpdateShotWithRig(const Shot& other_shot) {
       CreateRigCamera(*rig_camera);
     }
 
-    if (!HasShot(shot_id)) {
-      auto& new_shot = CreateShot(shot_id, camera_id, rig_camera_id,
-                                  instance_id, *shot->GetPose());
-      AssignShot(new_shot, *shot);
+    const bool has_shot = is_panoshot ? HasPanoShot(shot_id) : HasShot(shot_id);
+    if (!has_shot) {
+      Shot* new_shot = nullptr;
+      if (is_panoshot) {
+        new_shot = &CreatePanoShot(shot_id, camera_id, rig_camera_id,
+                                   instance_id, *shot->GetPose());
+      } else {
+        new_shot = &CreateShot(shot_id, camera_id, rig_camera_id, instance_id,
+                               *shot->GetPose());
+      }
+      AssignShot(*new_shot, *shot);
     }
   }
   GetRigInstance(instance_id)
@@ -335,7 +387,7 @@ Shot& Map::UpdateShot(const Shot& other_shot) {
     throw std::runtime_error("Shot " + other_shot.id_ + " does not exists.");
   } else {
     auto& shot = it_exist->second;
-    UpdateShotWithRig(other_shot);
+    UpdateShotWithRig(other_shot, false);
     AssignShot(shot, other_shot);
     return shot;
   }
@@ -348,11 +400,9 @@ Shot& Map::UpdatePanoShot(const Shot& other_shot) {
                              " does not exists.");
   } else {
     auto& shot = it_exist->second;
-    shot.merge_cc = other_shot.merge_cc;
-    shot.scale = other_shot.scale;
-    shot.SetShotMeasurements(other_shot.GetShotMeasurements());
-    shot.SetCovariance(other_shot.GetCovariance());
-    shot.SetPose(*other_shot.GetPose());
+    UpdateShotWithRig(other_shot, true);
+    AssignShot(shot, other_shot);
+
     return shot;
   }
 }
