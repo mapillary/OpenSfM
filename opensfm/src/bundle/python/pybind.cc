@@ -10,29 +10,13 @@ PYBIND11_MODULE(pybundle, m) {
 
   py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
       .def(py::init<const std::string &, const std::string &,
-                    const std::string &, const std::string &,
-                    const Eigen::Vector3d &, const Eigen::Vector3d &, double>())
-      .def_readwrite("reconstruction_i",
-                     &bundle::RelativeMotion::reconstruction_id_i)
+                    const Eigen::Vector3d &, const Eigen::Vector3d &, double,
+                    double, bool>())
       .def_readwrite("rig_instance_i",
                      &bundle::RelativeMotion::rig_instance_id_i)
-      .def_readwrite("reconstruction_j",
-                     &bundle::RelativeMotion::reconstruction_id_j)
       .def_readwrite("rig_instance_j",
                      &bundle::RelativeMotion::rig_instance_id_j)
-      .def_property("r", &bundle::RelativeMotion::GetRotation,
-                    &bundle::RelativeMotion::SetRotation)
-      .def_property("t", &bundle::RelativeMotion::GetTranslation,
-                    &bundle::RelativeMotion::SetTranslation)
       .def("set_scale_matrix", &bundle::RelativeMotion::SetScaleMatrix);
-
-  py::class_<bundle::RelativeSimilarity>(m, "RelativeSimilarity")
-      .def(py::init<const std::string &, const std::string &,
-                    const std::string &, const std::string &,
-                    const Eigen::Vector3d &, const Eigen::Vector3d &, double,
-                    double>())
-      .def_readwrite("scale", &bundle::RelativeSimilarity::scale)
-      .def("set_scale_matrix", &bundle::RelativeSimilarity::SetScaleMatrix);
 
   py::class_<bundle::RelativeRotation>(m, "RelativeRotation")
       .def(py::init<const std::string &, const std::string &,
@@ -85,14 +69,13 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_point", &bundle::BundleAdjuster::AddPoint)
       .def("add_point_prior", &bundle::BundleAdjuster::AddPointPrior)
       .def("get_point", &bundle::BundleAdjuster::GetPoint)
+      .def("has_point", &bundle::BundleAdjuster::HasPoint)
       .def("add_reconstruction", &bundle::BundleAdjuster::AddReconstruction)
       .def("add_reconstruction_instance",
            &bundle::BundleAdjuster::AddReconstructionInstance)
       .def("add_point_projection_observation",
            &bundle::BundleAdjuster::AddPointProjectionObservation)
       .def("add_relative_motion", &bundle::BundleAdjuster::AddRelativeMotion)
-      .def("add_relative_similarity",
-           &bundle::BundleAdjuster::AddRelativeSimilarity)
       .def("add_relative_rotation",
            &bundle::BundleAdjuster::AddRelativeRotation)
       .def("add_common_position", &bundle::BundleAdjuster::AddCommonPosition)
@@ -105,6 +88,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_absolute_tilt", &bundle::BundleAdjuster::AddAbsoluteTilt)
       .def("add_absolute_roll", &bundle::BundleAdjuster::AddAbsoluteRoll)
       .def("add_linear_motion", &bundle::BundleAdjuster::AddLinearMotion)
+      .def("set_gauge_fix_shots", &bundle::BundleAdjuster::SetGaugeFixShots)
       .def("set_internal_parameters_prior_sd",
            &bundle::BundleAdjuster::SetInternalParametersPriorSD)
       .def("set_compute_covariances",
@@ -126,7 +110,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def("full_report", &bundle::BundleAdjuster::FullReport);
 
   ///////////////////////////////////
-  // Reconstruction Aligment
+  // Reconstruction Alignment
   //
   py::class_<ReconstructionAlignment>(m, "ReconstructionAlignment")
       .def(py::init())

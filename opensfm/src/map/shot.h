@@ -31,7 +31,7 @@ struct ShotMeasurements {
   foundation::OptionalValue<double> gps_accuracy_;
   foundation::OptionalValue<double> compass_accuracy_;
   foundation::OptionalValue<double> compass_angle_;
-  foundation::OptionalValue<Vec3d> accelerometer_;
+  foundation::OptionalValue<Vec3d> gravity_down_;
   foundation::OptionalValue<double> opk_accuracy_;
   foundation::OptionalValue<Vec3d> opk_angles_;
   foundation::OptionalValue<int> orientation_;
@@ -167,7 +167,7 @@ class Shot {
   RigInstance* rig_instance_;
   RigCamera* rig_camera_;
 
-  // Camera pointer (can optionaly belong to the shot)
+  // Camera pointer (can optionally belong to the shot)
   foundation::OptionalValue<geometry::Camera> own_camera_;
   const geometry::Camera* const shot_camera_;
 

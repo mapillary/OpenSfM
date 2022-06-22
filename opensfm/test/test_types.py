@@ -26,28 +26,22 @@ def test_reconstruction_class_initialization() -> None:
     metadata.orientation.value = 1
     metadata.capture_time.value = 0.0
     metadata.gps_accuracy.value = 5.0
-    # pyre-fixme[8]: Attribute has type `ndarray`; used as `List[float]`.
-    metadata.gps_position.value = [
+    metadata.gps_position.value = np.array([
         1.0815875281451939,
         -0.96510451436708888,
         1.2042133903991235,
-    ]
-    # pyre-fixme[8]: Attribute has type `ndarray`; used as `List[float]`.
-    metadata.accelerometer.value = [0.1, 0.9, 0.0]
+    ])
+    metadata.gravity_down.value = np.array([0.1, 0.9, 0.0])
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0
     metadata.sequence_key.value = "a_sequence_key"
 
     # Instantiate shots
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
-    pose0 = pygeometry.Pose([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+    pose0 = pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]))
     shot0 = reconstruction.create_shot("0", camera.id, pose0)
     shot0.metadata = metadata
 
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[float]`.
-    pose1 = pygeometry.Pose([0.0, 0.0, 0.0], [-1.0, 0.0, 0.0])
+    pose1 = pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0]))
     shot1 = reconstruction.create_shot("1", camera.id, pose1)
     shot1.metadata = metadata
 

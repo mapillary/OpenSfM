@@ -241,10 +241,7 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    const auto& reference = map.GetTopocentricConverter();
-    AddGCPToBundle(ba, reference, gcp, map.GetShots(),
-                   config["gcp_horizontal_sd"].cast<double>(),
-                   config["gcp_vertical_sd"].cast<double>());
+    AddGCPToBundle(ba, map, gcp, config);
   }
 
   ba.SetPointProjectionLossFunction(
@@ -314,6 +311,7 @@ bool BAHelpers::TriangulateGCP(
     Vec3d& coordinates) {
   constexpr auto reproj_threshold{1.0};
   constexpr auto min_ray_angle = 0.1 * M_PI / 180.0;
+  constexpr auto max_ray_angle = M_PI - min_ray_angle;
   MatX3d os, bs;
   size_t added = 0;
   coordinates = Vec3d::Zero();
@@ -335,7 +333,7 @@ bool BAHelpers::TriangulateGCP(
   if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
     const auto& res = geometry::TriangulateBearingsMidpoint(os, bs, thresholds,
-                                                            min_ray_angle);
+                                                            min_ray_angle, max_ray_angle);
     coordinates = res.second;
     return res.first;
   }
@@ -343,12 +341,31 @@ bool BAHelpers::TriangulateGCP(
 }
 
 // Add Ground Control Points constraints to the bundle problem
-void BAHelpers::AddGCPToBundle(
-    bundle::BundleAdjuster& ba,
-    const geo::TopocentricConverter& reference,
-    const AlignedVector<map::GroundControlPoint>& gcp,
-    const std::unordered_map<map::ShotId, map::Shot>& shots,
-    const double& horizontal_sigma, const double& vertical_sigma) {
+size_t BAHelpers::AddGCPToBundle(
+    bundle::BundleAdjuster& ba, const map::Map& map,
+    const AlignedVector<map::GroundControlPoint>& gcp, const py::dict& config) {
+  const auto& reference = map.GetTopocentricConverter();
+  const auto& shots = map.GetShots();
+
+  const auto dominant_terms = ba.GetRigInstances().size() +
+                              ba.GetProjectionsCount() +
+                              ba.GetRelativeMotionsCount();
+
+  size_t total_terms = 0;
+  for (const auto& point : gcp) {
+    Vec3d coordinates;
+    if (TriangulateGCP(point, shots, coordinates) || !point.lla_.empty()) {
+      ++total_terms;
+    }
+    for (const auto& obs : point.observations_) {
+      total_terms += (shots.count(obs.shot_id_) > 0);
+    }
+  }
+
+  double global_weight = config["gcp_global_weight"].cast<double>() *
+                         dominant_terms / std::max<size_t>(1, total_terms);
+
+  size_t added_gcp_observations = 0;
   for (const auto& point : gcp) {
     const auto point_id = "gcp-" + point.id_;
     Vec3d coordinates;
@@ -362,22 +379,25 @@ void BAHelpers::AddGCPToBundle(
     constexpr auto point_constant{false};
     ba.AddPoint(point_id, coordinates, point_constant);
     if (!point.lla_.empty()) {
-      ba.AddPointPrior(
-          point_id, reference.ToTopocentric(point.GetLlaVec3d()),
-          Vec3d(horizontal_sigma, horizontal_sigma, vertical_sigma),
-          point.has_altitude_);
+      const auto point_std = Vec3d(config["gcp_horizontal_sd"].cast<double>(),
+                                   config["gcp_horizontal_sd"].cast<double>(),
+                                   config["gcp_vertical_sd"].cast<double>());
+      ba.AddPointPrior(point_id, reference.ToTopocentric(point.GetLlaVec3d()),
+                       point_std / global_weight, point.has_altitude_);
     }
 
     // Now iterate through the observations
     for (const auto& obs : point.observations_) {
       const auto& shot_id = obs.shot_id_;
       if (shots.count(shot_id) > 0) {
-        constexpr double scale{0.0001};
+        constexpr double scale{0.001};
         ba.AddPointProjectionObservation(shot_id, point_id, obs.projection_,
-                                         scale);
+                                         scale / global_weight);
+        ++added_gcp_observations;
       }
     }
   }
+  return added_gcp_observations;
 }
 
 py::dict BAHelpers::BundleShotPoses(
@@ -669,11 +689,8 @@ py::dict BAHelpers::Bundle(
     }
   }
 
-  const auto& reference = map.GetTopocentricConverter();
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
-    AddGCPToBundle(ba, reference, gcp, map.GetShots(),
-                   config["gcp_horizontal_sd"].cast<double>(),
-                   config["gcp_vertical_sd"].cast<double>());
+    AddGCPToBundle(ba, map, gcp, config);
   }
 
   if (config["bundle_compensate_gps_bias"].cast<bool>()) {

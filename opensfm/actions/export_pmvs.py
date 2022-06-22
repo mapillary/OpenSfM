@@ -9,10 +9,10 @@ from opensfm import tracking
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSet, points, image_list, output, undistorted):
+def run_dataset(data: DataSet, points, image_list, output, undistorted) -> None:
     """Export reconstruction to PLY format
 
     Args:
@@ -45,6 +45,7 @@ def run_dataset(data: DataSet, points, image_list, output, undistorted):
         image_graph = tracking.as_weighted_graph(tracks_manager)
     except IOError:
         image_graph = None
+        tracks_manager = None
 
     export_only = None
     if image_list:
@@ -58,7 +59,6 @@ def run_dataset(data: DataSet, points, image_list, output, undistorted):
             reconstruction,
             h,
             image_graph,
-            # pyre-fixme[61]: `tracks_manager` may not be initialized here.
             tracks_manager,
             base_output_path,
             data,
@@ -80,7 +80,7 @@ def export(
     udata: UndistortedDataSet,
     with_points,
     export_only,
-):
+) -> None:
     logger.info("Reconstruction %d" % index)
     output_path = os.path.join(base_output_path, "recon%d" % index)
     io.mkdir_p(output_path)

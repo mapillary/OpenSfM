@@ -14,9 +14,11 @@ struct UpVectorError {
   }
 
   template <typename T>
-  bool operator()(T const* const* p, T* r) const {
-    Vec3<T> R = ShotRotationFunctor(0, 1)(p);
-    Eigen::Map<Vec3<T>> residual(r);
+  bool operator()(const T* const rig_instance, const T* const rig_camera,
+                  T* residuals) const {
+    T const* const params[] = {rig_instance, rig_camera};
+    Vec3<T> R = ShotRotationFunctor(0, 1)(params);
+    Eigen::Map<Vec3<T>> residual(residuals);
 
     const Vec3<T> acceleration = acceleration_.cast<T>();
     const Vec3<T> z_world = RotatePoint(R, acceleration);
@@ -169,5 +171,21 @@ struct HeatmapdCostFunctor {
   const double width_;
   const double resolution_;
   const double scale_;
+};
+
+struct TranslationPriorError {
+  explicit TranslationPriorError(const double prior_norm)
+      : prior_norm_(prior_norm) {}
+
+  template <typename T>
+  bool operator()(const T* const rig_instance1, const T* const rig_instance2,
+                  T* residuals) const {
+    auto t1 = Eigen::Map<const Vec3<T>>(rig_instance1 + Pose::Parameter::TX);
+    auto t2 = Eigen::Map<const Vec3<T>>(rig_instance2 + Pose::Parameter::TX);
+    residuals[0] = log((t1 - t2).norm() / T(prior_norm_));
+    return true;
+  }
+
+  double prior_norm_;
 };
 }  // namespace bundle

@@ -3,7 +3,7 @@ import os.path
 from io import StringIO
 
 import numpy as np
-from opensfm import pygeometry, geo, io, types
+from opensfm import io, pygeometry, types
 from opensfm.test import data_generation, utils
 
 
@@ -71,7 +71,8 @@ def test_parse_projection() -> None:
     proj = io._parse_projection("WGS84 UTM 31N")
     easting, northing = 431760, 4582313.7
     lat, lon = 41.38946, 2.18378
-    plon, plat = proj(easting, northing, inverse=True)
+    assert proj
+    plat, plon = proj.transform(easting, northing)
     assert np.allclose((lat, lon), (plat, plon))
 
 
@@ -128,7 +129,7 @@ def test_read_write_ground_control_points() -> None:
 }
     """
 
-    def check_points(points):
+    def check_points(points) -> None:
         assert len(points) == 2
         p1, p2 = points
         if p1.id != "1":
@@ -160,7 +161,7 @@ def test_json_to_and_from_metadata() -> None:
         "gps_dop": 2,
         "gps_position": [4, 5, 6],
         "skey": "test",
-        "accelerometer": [7, 8, 9],
+        "gravity_down": [7, 8, 9],
         "compass": {"angle": 10, "accuracy": 45},
     }
     m = io.json_to_pymap_metadata(obj)
@@ -169,7 +170,7 @@ def test_json_to_and_from_metadata() -> None:
     assert m.gps_accuracy.value == 2
     assert np.allclose(m.gps_position.value, [4, 5, 6])
     assert m.sequence_key.value == "test"
-    assert np.allclose(m.accelerometer.value, [7, 8, 9])
+    assert np.allclose(m.gravity_down.value, [7, 8, 9])
     assert m.compass_angle.value == 10
     assert m.compass_accuracy.value == 45
     assert obj == io.pymap_metadata_to_json(m)
@@ -215,4 +216,4 @@ def test_panoshots_consistency() -> None:
     json_data = io.reconstructions_to_json([rec_before])
     rec_after = io.reconstructions_from_json(json_data)[0]
 
-    utils.assert_reconstructions_equal(rec_before, rec_after)
+    utils.assert_maps_equal(rec_before.map, rec_after.map)

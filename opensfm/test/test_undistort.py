@@ -11,9 +11,7 @@ def test_perspective_views_of_a_panorama() -> None:
     camera.width = 8000
     camera.height = 4000
     reconstruction.add_camera(camera)
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[int]`.
-    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[int]`.
-    pose = pygeometry.Pose([1, 2, 3], [4, 5, 6])
+    pose = pygeometry.Pose(np.array([1, 2, 3]), np.array([4, 5, 6]))
     spherical_shot = reconstruction.create_shot("shot1", camera.id, pose=pose)
 
     urec = types.Reconstruction()

@@ -8,7 +8,7 @@ function initialize_event_source(handlers) {
         if (this.readyState == EventSource.CONNECTING) {
             console.log(`Reconnecting (readyState=${this.readyState})...`);
         } else {
-            console.log("Error has occured.", err);
+            console.log("Error has occurred.", err);
         }
     };
 

@@ -12,28 +12,42 @@ from opensfm.context import parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_features_processing(data: DataSetBase, images: List[str], force: bool) -> None:
     """Main entry point for running features extraction on a list of images."""
     default_queue_size = 10
     max_queue_size = 200
+
     mem_available = log.memory_available()
+    processes = data.config["processes"]
     if mem_available:
+        # Use 90% of available memory
+        ratio_use = 0.9
+        mem_available *= ratio_use
+        logger.info(
+            f"Planning to use {mem_available} MB of RAM for both processing queue and parallel processing."
+        )
+
+        # 50% for the queue / 50% for parallel processing
         expected_mb = mem_available / 2
         expected_images = min(
             max_queue_size, int(expected_mb / average_image_size(data))
         )
-        logger.info(f"Capping memory usage to ~ {expected_mb} MB")
+        processing_size = average_processing_size(data)
+        logger.info(
+            f"Scale-space expected size of a single image : {processing_size} MB"
+        )
+        processes = min(max(1, int(expected_mb / processing_size)), processes)
     else:
         expected_images = default_queue_size
-    logger.info(f"Expecting to process {expected_images} images.")
+    logger.info(
+        f"Expecting to queue at most {expected_images} images while parallel processing of {processes} images."
+    )
 
     process_queue = queue.Queue(expected_images)
     arguments: List[Tuple[str, Any]] = []
-
-    processes = data.config["processes"]
 
     if processes == 1:
         for image in images:
@@ -72,6 +86,21 @@ def average_image_size(data: DataSetBase) -> float:
     return average_size_mb / max(1, len(data.load_camera_models()))
 
 
+def average_processing_size(data: DataSetBase) -> float:
+    processing_size = data.config["feature_process_size"]
+
+    min_octave_size = 16  # from covdet.c
+    octaveResolution = 3  # from covdet.c
+    start_size = processing_size * processing_size * 4 / 1024 / 1024
+    last_octave = math.floor(math.log2(processing_size / min_octave_size))
+
+    total_size = 0
+    for _ in range(last_octave + 1):
+        total_size += start_size * octaveResolution
+        start_size /= 2
+    return total_size
+
+
 def is_high_res_panorama(
     data: DataSetBase, image_key: str, image_array: np.ndarray
 ) -> bool:
@@ -95,15 +124,15 @@ class Counter(object):
     some reason, joblib doesn't like a good old threading.Lock (everything is stuck)
     """
 
-    def __init__(self):
+    def __init__(self) ->None:
         self.number_of_read = 0
         self.counter = itertools.count()
         self.read_lock = threading.Lock()
 
-    def increment(self):
+    def increment(self) -> None:
         next(self.counter)
 
-    def value(self):
+    def value(self) -> int:
         with self.read_lock:
             value = next(self.counter) - self.number_of_read
             self.number_of_read += 1
@@ -168,7 +197,7 @@ def bake_segmentation(
     exif_height, exif_width, exif_orientation = (
         exif["height"],
         exif["width"],
-        exif["orientation"],
+        exif.get("orientation", 1),
     )
     height, width = image.shape[:2]
     if exif_height != height or exif_width != width:

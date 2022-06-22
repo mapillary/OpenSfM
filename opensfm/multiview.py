@@ -1,10 +1,10 @@
 import math
 import random
-from typing import Dict, Any, Tuple, Optional, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
-from opensfm import pygeometry, pyrobust, transformations as tf, pymap
+from opensfm import pygeometry, pymap, pyrobust, transformations as tf
 
 
 def nullspace(A: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -136,7 +136,7 @@ def ransac_max_iterations(
         return 0
     inlier_ratio = float(len(inliers)) / kernel.num_samples()
     n = kernel.required_samples
-    return math.log(failure_probability) / math.log(1.0 - inlier_ratio ** n)
+    return math.log(failure_probability) / math.log(1.0 - inlier_ratio**n)
 
 
 TRansacSolution = Tuple[np.ndarray, np.ndarray, float]
@@ -200,19 +200,19 @@ class TestLinearKernel:
 
     required_samples = 1
 
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, x: np.ndarray, y: np.ndarray) -> None:
+        self.x: np.ndarray = x
+        self.y: np.ndarray = y
 
-    def num_samples(self):
+    def num_samples(self) -> int:
         return len(self.x)
 
-    def fit(self, samples):
+    def fit(self, samples: np.ndarray) -> List[float]:
         x = self.x[samples[0]]
         y = self.y[samples[0]]
         return [y / x]
 
-    def evaluate(self, model):
+    def evaluate(self, model: np.ndarray) -> np.ndarray:
         return self.y - model * self.x
 
 
@@ -223,7 +223,7 @@ class PlaneKernel:
 
     def __init__(
         self, points, vectors, verticals, point_threshold=1.0, vector_threshold=5.0
-    ):
+    ) -> None:
         self.points = points
         self.vectors = vectors
         self.verticals = verticals
@@ -231,10 +231,10 @@ class PlaneKernel:
         self.point_threshold = point_threshold
         self.vector_threshold = vector_threshold
 
-    def num_samples(self):
+    def num_samples(self) -> int:
         return len(self.points)
 
-    def sampling(self):
+    def sampling(self) -> Dict[str, Any]:
         samples = {}
         if len(self.vectors) > 0:
             samples["points"] = self.points[
@@ -250,11 +250,11 @@ class PlaneKernel:
             samples["vectors"] = None
         return samples
 
-    def fit(self, samples):
+    def fit(self, samples: Dict[str, np.ndarray]) -> List[np.ndarray]:
         model = fit_plane(samples["points"], samples["vectors"], self.verticals)
         return [model]
 
-    def evaluate(self, model):
+    def evaluate(self, model) -> np.ndarray:
         # only evaluate on points
         normal = model[0:3]
         normal_norm = np.linalg.norm(normal) + 1e-10
@@ -303,7 +303,7 @@ def fit_plane_ransac(
 def fit_plane(
     points: np.ndarray, vectors: Optional[np.ndarray], verticals: Optional[np.ndarray]
 ) -> np.ndarray:
-    """Estimate a plane fron on-plane points and vectors.
+    """Estimate a plane from on-plane points and vectors.
 
     >>> x = [[0,0,0], [1,0,0], [0,1,0]]
     >>> p = fit_plane(x, None, None)
@@ -329,8 +329,9 @@ def fit_plane(
         A = np.vstack((x, v))
     else:
         A = x
-    _, p = nullspace(A)
-    p[3] /= s
+    evalues, evectors = np.linalg.eig(A.T.dot(A))
+    smallest_evalue_idx = min(enumerate(evalues), key=lambda x: x[1])[0]
+    p = evectors[:, smallest_evalue_idx]
 
     if np.allclose(p[:3], [0, 0, 0]):
         return np.array([0.0, 0.0, 1.0, 0])
@@ -543,7 +544,11 @@ def motion_from_plane_homography(
     Report. INRIA, June 1988. https://hal.inria.fr/inria-00075698/document
     """
 
-    u, l, vh = np.linalg.svd(H)
+    try:
+        u, l, vh = np.linalg.svd(H)
+    except ValueError:
+        return None
+
     d1, d2, d3 = l
     s = np.linalg.det(u) * np.linalg.det(vh)
 
@@ -551,8 +556,8 @@ def motion_from_plane_homography(
     if d1 / d2 < 1.0001 or d2 / d3 < 1.0001:
         return None
 
-    abs_x1 = np.sqrt((d1 ** 2 - d2 ** 2) / (d1 ** 2 - d3 ** 2))
-    abs_x3 = np.sqrt((d2 ** 2 - d3 ** 2) / (d1 ** 2 - d3 ** 2))
+    abs_x1 = np.sqrt((d1**2 - d2**2) / (d1**2 - d3**2))
+    abs_x3 = np.sqrt((d2**2 - d3**2) / (d1**2 - d3**2))
     possible_x1_x3 = [
         (abs_x1, abs_x3),
         (abs_x1, -abs_x3),
@@ -564,7 +569,7 @@ def motion_from_plane_homography(
     # Case d' > 0
     for x1, x3 in possible_x1_x3:
         sin_theta = (d1 - d3) * x1 * x3 / d2
-        cos_theta = (d1 * x3 ** 2 + d3 * x1 ** 2) / d2
+        cos_theta = (d1 * x3**2 + d3 * x1**2) / d2
         Rp = np.array(
             [[cos_theta, 0, -sin_theta], [0, 1, 0], [sin_theta, 0, cos_theta]]
         )
@@ -579,7 +584,7 @@ def motion_from_plane_homography(
     # Case d' < 0
     for x1, x3 in possible_x1_x3:
         sin_phi = (d1 + d3) * x1 * x3 / d2
-        cos_phi = (d3 * x1 ** 2 - d1 * x3 ** 2) / d2
+        cos_phi = (d3 * x1**2 - d1 * x3**2) / d2
         Rp = np.array([[cos_phi, 0, sin_phi], [0, -1, 0], [sin_phi, 0, -cos_phi]])
         tp = (d1 + d3) * np.array([x1, 0, x3])
         np_ = np.array([x1, 0, x3])
@@ -682,8 +687,8 @@ def relative_pose_optimize_nonlinear(
 def triangulate_gcp(
     point: pymap.GroundControlPoint,
     shots: Dict[str, pymap.Shot],
-    reproj_threshold: float,
-    min_ray_angle_degrees: float,
+    reproj_threshold: float = 0.02,
+    min_ray_angle_degrees: float = 1.0,
 ) -> Optional[np.ndarray]:
     """Compute the reconstructed position of a GCP from observations."""
 
@@ -706,6 +711,7 @@ def triangulate_gcp(
             np.asarray(bs),
             thresholds,
             np.radians(min_ray_angle_degrees),
+            np.radians(180.0 - min_ray_angle_degrees),
         )
         if valid_triangulation:
             return X

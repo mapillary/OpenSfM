@@ -2,13 +2,13 @@ import collections
 import logging
 import os
 import shelve
-from typing import Optional, Dict, Any, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from opensfm import tracking, features as oft, types, pymap, pygeometry, io, geo
 from opensfm.dataset import DataSet
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SyntheticFeatures(collections.abc.MutableMapping):
@@ -30,19 +30,19 @@ class SyntheticFeatures(collections.abc.MutableMapping):
         else:
             database.sync()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> oft.FeaturesData:
         return self.database.__getitem__(key)
 
-    def __setitem__(self, key, item):
+    def __setitem__(self, key, item) -> None:
         return self.database.__setitem__(key, item)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key) -> None:
         return self.database.__delitem__(key)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self.database.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.database.__len__()
 
 
@@ -81,6 +81,10 @@ class SyntheticDataSet(DataSet):
     def images(self) -> List[str]:
         return self.image_list
 
+    def _raise_if_absent_image(self, image: str):
+        if image not in self.image_list:
+            raise RuntimeError("Image isn't present in the synthetic dataset")
+
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
         return self.reconstruction.cameras
 
@@ -100,12 +104,15 @@ class SyntheticDataSet(DataSet):
         return rig_assignments
 
     def load_exif(self, image: str) -> Dict[str, Any]:
+        self._raise_if_absent_image(image)
         return self.exifs[image]
 
     def exif_exists(self, image: str) -> bool:
-        return True
+        return image in self.image_list
 
     def features_exist(self, image: str) -> bool:
+        if image not in self.image_list:
+            return False
         if self.features is None:
             return False
         feat = self.features
@@ -114,10 +121,12 @@ class SyntheticDataSet(DataSet):
         return image in feat
 
     def load_words(self, image: str):
+        self._raise_if_absent_image(image)
         n_closest = 50
         return [image] * n_closest
 
     def load_features(self, image: str) -> Optional[oft.FeaturesData]:
+        self._raise_if_absent_image(image)
         if not self.features:
             return None
         feat = self.features
@@ -129,12 +138,15 @@ class SyntheticDataSet(DataSet):
         pass
 
     def matches_exists(self, image: str) -> bool:
+        if image not in self.image_list:
+            return False
         self._check_and_create_matches()
         if self.matches is None:
             return False
         return True
 
     def load_matches(self, image: str) -> Dict[str, np.ndarray]:
+        self._raise_if_absent_image(image)
         self._check_and_create_matches()
         if self.matches is not None:
             return self.matches[image]

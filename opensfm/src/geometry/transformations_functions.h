@@ -172,7 +172,7 @@ struct PoseFunctor : Functor<3, 6, 3> {
         }
       }
 
-      /* R.(x-t) derivatives are pretty straightfoward : dR00, dR01, ... dR22,
+      /* R.(x-t) derivatives are pretty straightforward : dR00, dR01, ... dR22,
        * dx, dy, dz, dtx, dty, dtz */
       const T xyz[] = {point[0] - rt[Tx], point[1] - rt[Ty], point[2] - rt[Tz]};
       Eigen::Matrix<T, 3, 15, Eigen::RowMajor> point_rotation =

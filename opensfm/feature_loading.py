@@ -7,7 +7,7 @@ from opensfm import pygeometry, features as ft, masking
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 SEGMENTATION_IN_DESCRIPTOR_MULT = (

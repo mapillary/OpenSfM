@@ -8,7 +8,7 @@ from abc import abstractmethod, ABC
 from collections import defaultdict
 from itertools import combinations
 from timeit import default_timer as timer
-from typing import Dict, Any, List, Tuple, Set, Optional
+from typing import Dict, Any, List, Tuple, Set, Optional, Union
 
 import cv2
 import numpy as np
@@ -30,7 +30,7 @@ from opensfm.context import current_memory_usage, parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class ReconstructionAlgorithm(str, enum.Enum):
@@ -45,52 +45,6 @@ def _get_camera_from_bundle(
     c = ba.get_camera(camera.id)
     for k, v in c.get_parameters_map().items():
         camera.set_parameter_value(k, v)
-
-
-def _add_gcp_to_bundle(
-    ba: pybundle.BundleAdjuster,
-    reference: types.TopocentricConverter,
-    gcp: List[pymap.GroundControlPoint],
-    shots: Dict[str, pymap.Shot],
-    gcp_horizontal_sd: float,
-    gcp_vertical_sd: float,
-) -> None:
-    """Add Ground Control Points constraints to the bundle problem."""
-    gcp_sd = np.array([gcp_horizontal_sd, gcp_horizontal_sd, gcp_vertical_sd])
-    for point in gcp:
-        point_id = "gcp-" + point.id
-
-        coordinates = multiview.triangulate_gcp(
-            point,
-            shots,
-            reproj_threshold=1,
-            min_ray_angle_degrees=0.1,
-        )
-        if coordinates is None:
-            if point.lla:
-                coordinates = reference.to_topocentric(*point.lla_vec)
-            else:
-                logger.warning(
-                    "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
-                )
-                continue
-
-        ba.add_point(point_id, coordinates, False)
-
-        if point.lla:
-            point_enu = reference.to_topocentric(*point.lla_vec)
-            ba.add_point_prior(point_id, point_enu, gcp_sd, point.has_altitude)
-
-        for observation in point.observations:
-            if observation.shot_id in shots:
-                # TODO(pau): move this to a config or per point parameter.
-                scale = 0.0001
-                ba.add_point_projection_observation(
-                    observation.shot_id,
-                    point_id,
-                    observation.projection,
-                    scale,
-                )
 
 
 def bundle(
@@ -277,7 +231,7 @@ def add_shot(
     shot_id: str,
     pose: pygeometry.Pose,
 ) -> Set[str]:
-    """Add a shot to the recontruction.
+    """Add a shot to the reconstruction.
 
     In case of a shot belonging to a rig instance, the pose of
     shot will drive the initial pose setup of the rig instance.
@@ -956,6 +910,8 @@ class TrackTriangulator:
         all_combinations = list(combinations(range(len(ids)), 2))
 
         thresholds = len(os) * [reproj_threshold]
+        min_ray_angle_radians = np.radians(min_ray_angle_degrees)
+        max_ray_angle_radians = np.pi - min_ray_angle_radians
         for i in range(ransac_tries):
             random_id = int(np.random.rand() * (len(all_combinations) - 1))
             if random_id in combinatiom_tried:
@@ -971,7 +927,8 @@ class TrackTriangulator:
                 os_t,
                 bs_t,
                 thresholds,
-                np.radians(min_ray_angle_degrees),
+                min_ray_angle_radians,
+                max_ray_angle_radians,
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
@@ -987,7 +944,8 @@ class TrackTriangulator:
                         os[inliers],
                         bs[inliers],
                         len(inliers) * [reproj_threshold],
-                        np.radians(min_ray_angle_degrees),
+                        min_ray_angle_radians,
+                        max_ray_angle_radians,
                     )
                     new_X = pygeometry.point_refinement(
                         os[inliers], bs[inliers], X, iterations
@@ -1041,11 +999,13 @@ class TrackTriangulator:
 
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
+            min_ray_angle_radians = np.radians(min_ray_angle_degrees)
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
                 np.asarray(os),
                 np.asarray(bs),
                 thresholds,
-                np.radians(min_ray_angle_degrees),
+                min_ray_angle_radians,
+                np.pi - min_ray_angle_radians,
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
@@ -1473,7 +1433,7 @@ def grow_reconstruction(
             )
 
             logger.info(f"Adding {' and '.join(new_shots)} to the reconstruction")
-            step = {
+            step: Dict[str, Union[List[int], List[str], int, List[int], Any]] = {
                 "images": list(new_shots),
                 "resection": resrep,
                 "memory_usage": current_memory_usage(),

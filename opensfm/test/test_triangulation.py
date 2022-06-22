@@ -48,7 +48,7 @@ def test_track_triangulator_spherical() -> None:
     assert len(rec.points["1"].get_observations()) == 2
 
 
-def unit_vector(x: object):
+def unit_vector(x: object) -> np.ndarray:
     return np.array(x) / np.linalg.norm(x)
 
 
@@ -60,8 +60,7 @@ def test_triangulate_bearings_dlt() -> None:
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
     res, X = pygeometry.triangulate_bearings_dlt(
-        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[typing.Any]`.
-        [rt1, rt2], [b1, b2], max_reprojection, min_ray_angle
+        [rt1, rt2], np.asarray([b1, b2]), max_reprojection, min_ray_angle
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert res is True
@@ -75,9 +74,11 @@ def test_triangulate_bearings_midpoint() -> None:
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
     valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-        # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[ndarray]`.
-        # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[typing.Any]`.
-        [o1, o2], [b1, b2], 2 * [max_reprojection], min_ray_angle
+        np.asarray([o1, o2]),
+        np.asarray([b1, b2]),
+        2 * [max_reprojection],
+        min_ray_angle,
+        np.pi - min_ray_angle,
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert valid_triangulation is True
@@ -88,9 +89,9 @@ def test_triangulate_two_bearings_midpoint() -> None:
     b1 = unit_vector([0.0, 0, 1])
     o2 = np.array([1.0, 0, 0])
     b2 = unit_vector([-1.0, 0, 1])
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[ndarray]`.
-    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[typing.Any]`.
-    ok, X = pygeometry.triangulate_two_bearings_midpoint([o1, o2], [b1, b2])
+    ok, X = pygeometry.triangulate_two_bearings_midpoint(
+        np.asarray([o1, o2]), np.asarray([b1, b2])
+    )
     assert ok is True
     assert np.allclose(X, [0, 0, 1.0])
 
@@ -100,10 +101,10 @@ def test_triangulate_two_bearings_midpoint_failed() -> None:
     b1 = unit_vector([0.0, 0, 1])
     o2 = np.array([1.0, 0, 0])
 
-    # almost parralel. 1e-5 will make it triangulate again.
+    # almost parallel. 1e-5 will make it triangulate again.
     b2 = b1 + np.array([-1e-10, 0, 0])
 
-    # pyre-fixme[6]: For 1st param expected `ndarray` but got `List[ndarray]`.
-    # pyre-fixme[6]: For 2nd param expected `ndarray` but got `List[typing.Any]`.
-    ok, X = pygeometry.triangulate_two_bearings_midpoint([o1, o2], [b1, b2])
+    ok, X = pygeometry.triangulate_two_bearings_midpoint(
+        np.asarray([o1, o2]), np.asarray([b1, b2])
+    )
     assert ok is False

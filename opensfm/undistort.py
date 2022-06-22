@@ -11,12 +11,13 @@ from opensfm import (
     pymap,
     transformations as tf,
     types,
+    features_processing,
 )
 from opensfm.context import parallel_map
 from opensfm.dataset import UndistortedDataSet
 from opensfm.dataset_base import DataSetBase
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def undistort_reconstruction(
@@ -55,9 +56,7 @@ def undistort_reconstruction(
                 shot, subshot_width, urec, image_format, rig_instance_count
             )
         else:
-            logger.warning(
-                f"Not undistorting {shot.id} with unknown camera type."
-            )
+            logger.warning(f"Not undistorting {shot.id} with unknown camera type.")
             continue
 
         for subshot in subshots:
@@ -95,6 +94,25 @@ def undistort_reconstruction_with_images(
             arguments.append((reconstruction.shots[shot_id], subshots, data, udata))
 
         processes = data.config["processes"]
+
+        # trim processes to available memory, otherwise, pray
+        mem_available = log.memory_available()
+        if mem_available:
+            # Use 90% of available memory
+            ratio_use = 0.9
+            mem_available *= ratio_use
+
+            processing_size = data.config["depthmap_resolution"]
+            output_size = processing_size * processing_size * 4 / 1024 / 1024
+
+            undistort_factor = 3  # 1 for original image, 2 for (U,V) remapping
+            input_size = features_processing.average_image_size(data) * undistort_factor
+            processing_size = output_size + input_size
+            processes = min(max(1, int(mem_available / processing_size)), processes)
+            logger.info(
+                f"Undistorting in parallel with {processes} processes ({processing_size} MB per image)"
+            )
+
         parallel_map(undistort_image_and_masks, arguments, processes)
     return undistorted_shots
 

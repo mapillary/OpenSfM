@@ -47,7 +47,7 @@ PYBIND11_MODULE(pymap, m) {
   py::module::import("opensfm.pygeometry");
   py::module::import("opensfm.pygeo");
 
-  // Some initial defintions to resolve cyclic dependencies
+  // Some initial definitions to resolve cyclic dependencies
   // Landmark <> Shot
   py::class_<map::Shot> shotCls(m, "Shot");
   // Landmark/Shot/...View <> Map
@@ -106,7 +106,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("gps_position", &map::ShotMeasurements::gps_position_)
       .def_readwrite("orientation", &map::ShotMeasurements::orientation_)
       .def_readwrite("capture_time", &map::ShotMeasurements::capture_time_)
-      .def_readwrite("accelerometer", &map::ShotMeasurements::accelerometer_)
+      .def_readwrite("gravity_down", &map::ShotMeasurements::gravity_down_)
       .def_readwrite("compass_angle", &map::ShotMeasurements::compass_angle_)
       .def_readwrite("compass_accuracy",
                      &map::ShotMeasurements::compass_accuracy_)
@@ -119,7 +119,7 @@ PYBIND11_MODULE(pymap, m) {
           [](const map::ShotMeasurements &s) {
             return py::make_tuple(
                 s.gps_accuracy_, s.gps_position_, s.orientation_,
-                s.capture_time_, s.accelerometer_, s.compass_angle_,
+                s.capture_time_, s.gravity_down_, s.compass_angle_,
                 s.compass_accuracy_, s.opk_angles_, s.opk_accuracy_,
                 s.sequence_key_, s.GetAttributes());
           },
@@ -129,7 +129,7 @@ PYBIND11_MODULE(pymap, m) {
             sm.gps_position_ = s[1].cast<decltype(sm.gps_position_)>();
             sm.orientation_ = s[2].cast<decltype(sm.orientation_)>();
             sm.capture_time_ = s[3].cast<decltype(sm.capture_time_)>();
-            sm.accelerometer_ = s[4].cast<decltype(sm.accelerometer_)>();
+            sm.gravity_down_ = s[4].cast<decltype(sm.gravity_down_)>();
             sm.compass_angle_ = s[5].cast<decltype(sm.compass_angle_)>();
             sm.compass_accuracy_ = s[6].cast<decltype(sm.compass_accuracy_)>();
             sm.opk_angles_ = s[7].cast<decltype(sm.opk_angles_)>();
@@ -247,12 +247,14 @@ PYBIND11_MODULE(pymap, m) {
       .def(py::init())
       .def(py::init<const map::ShotId &, const Vec2d &>())
       .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
+      .def_readwrite("uid", &map::GroundControlPointObservation::uid_)
       .def_readwrite("projection",
                      &map::GroundControlPointObservation::projection_);
 
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
+      .def_readwrite("survey_point_id", &map::GroundControlPoint::survey_point_id_)
       .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
       .def_readwrite("lla", &map::GroundControlPoint::lla_)
       .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
@@ -560,8 +562,10 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("__contains__", &map::RigInstanceView::HasRigInstance);
 
-  mapCls
-      .def(py::init())
+  mapCls.def(py::init())
+      .def_static("deep_copy", &map::Map::DeepCopy,
+                  py::return_value_policy::reference_internal,
+                  py::call_guard<py::gil_scoped_release>())
       // Camera
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
            py::return_value_policy::reference_internal)

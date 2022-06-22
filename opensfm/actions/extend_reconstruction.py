@@ -1,8 +1,9 @@
-from opensfm import io, reconstruction, types
+from opensfm import io, reconstruction
 from opensfm.dataset_base import DataSetBase
+from typing import Optional
 
 
-def run_dataset(data: DataSetBase, input, output) -> None:
+def run_dataset(data: DataSetBase, input: Optional[str], output: Optional[str]) -> None:
     recs_base = data.load_reconstruction(input)
     if len(recs_base) == 0:
         return

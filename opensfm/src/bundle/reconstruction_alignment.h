@@ -479,7 +479,7 @@ class ReconstructionAlignment {
   void Run() {
     ceres::Problem problem;
 
-    // Init paramater blocks.
+    // Init parameter blocks.
     for (auto &i : shots_) {
       if (i.second.constant) {
         problem.AddParameterBlock(i.second.parameters, RA_SHOT_NUM_PARAMS);

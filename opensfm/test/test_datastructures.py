@@ -1,4 +1,8 @@
 import copy
+from opensfm.pymap import RigCamera, RigInstance, Shot
+from opensfm.types import Reconstruction
+from typing import Tuple
+
 import random
 
 import numpy as np
@@ -7,7 +11,7 @@ from opensfm import pygeometry
 from opensfm import pymap
 from opensfm import types
 from opensfm.test.utils import (
-    assert_metadata_equal,
+    assert_maps_equal, assert_metadata_equal,
     assert_cameras_equal,
     assert_shots_equal,
 )
@@ -20,7 +24,7 @@ def _create_reconstruction(
     n_points: int=0,
     dist_to_shots: bool=False,
     dist_to_pano_shots: bool=False,
-):
+) -> types.Reconstruction:
     """Creates a reconstruction with n_cameras random cameras and
     shots, where n_shots_cam is a dictionary, containing the
     camera_id and the number of shots.
@@ -161,9 +165,7 @@ def test_brown_camera() -> None:
     p2 = 0.002
     k3 = 0.01
     cam_cpp = pygeometry.Camera.create_brown(
-        # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-        # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
-        focal_x, focal_y / focal_x, [c_x, c_y], [k1, k2, k3, p1, p2]
+        focal_x, focal_y / focal_x, np.array([c_x, c_y]), np.array([k1, k2, k3, p1, p2])
     )
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -204,10 +206,8 @@ def test_fisheye_opencv_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01])
     cam_cpp = pygeometry.Camera.create_fisheye_opencv(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -228,10 +228,8 @@ def test_fisheye62_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2]  # [k1-k6, p1, p2]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2])  # [k1-k6, p1, p2]
     cam_cpp = pygeometry.Camera.create_fisheye62(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -254,10 +252,8 @@ def test_fisheye624_camera() -> None:
     rec = types.Reconstruction()
     focal = 0.6
     aspect_ratio = 0.7
-    ppoint = [0.51, 0.52]
-    dist = [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]  # [k1-k6, p1, p2, s0-s3]
-    # pyre-fixme[6]: For 3rd param expected `ndarray` but got `List[float]`.
-    # pyre-fixme[6]: For 4th param expected `ndarray` but got `List[float]`.
+    ppoint = np.array([0.51, 0.52])
+    dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007])  # [k1-k6, p1, p2, s0-s3]
     cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -354,7 +350,7 @@ def test_shot_measurement_setter_and_getter() -> None:
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
     _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "opk_angles", np.random.rand(3))
-    _help_measurement_test(m1, "accelerometer", np.random.rand(3))
+    _help_measurement_test(m1, "gravity_down", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
 
@@ -367,7 +363,7 @@ def _helper_populate_metadata(m) -> None:
     m.compass_angle.value = np.random.rand(1)
     m.opk_accuracy.value = np.random.rand(1)
     m.opk_angles.value = np.random.rand(3)
-    m.accelerometer.value = np.random.rand(3)
+    m.gravity_down.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
 
@@ -646,7 +642,7 @@ def test_pano_shot_create_remove_create() -> None:
     assert len(rec.pano_shots) == n_shots
 
 
-def _create_rig_camera():
+def _create_rig_camera() -> RigCamera:
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
     rig_camera.pose = pygeometry.Pose(
@@ -655,7 +651,7 @@ def _create_rig_camera():
     return rig_camera
 
 
-def _create_rig_instance():
+def _create_rig_instance() -> Tuple[Reconstruction, RigInstance, Shot]:
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
     rig_instance = pymap.RigInstance("1")
@@ -752,7 +748,7 @@ def test_shot_metadata_different() -> None:
     shot2 = rec.shots["1"]
     _helper_populate_metadata(shot1.metadata)
 
-    # When getting their metdata object, they should be different
+    # When getting their metadata object, they should be different
     assert shot1.metadata is not shot2.metadata
 
 
@@ -827,7 +823,7 @@ def test_single_point_coordinates() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging coordinates
+    # When assigning coordinates
     coord = np.random.rand(3)
     pt.coordinates = coord
 
@@ -840,7 +836,7 @@ def test_single_point_color() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging color
+    # When assigning color
     color = np.random.randint(low=0, high=255, size=(3,))
     pt.color = color
 
@@ -1106,42 +1102,7 @@ def test_rec_deepcopy() -> None:
     assert len(rec2.pano_shots) == 50
     assert len(rec2.points) == 200
 
-    # Cameras are different objects of same value
-    for k in rec.cameras:
-        cam, cam_cpy = rec.cameras[k], rec2.cameras[k]
-        assert cam != cam_cpy
-        assert_cameras_equal(cam, cam_cpy)
-
-    # Shots are different objects of same value
-    for shot_id in rec2.shots.keys():
-        shot1, shot2 = rec.shots[shot_id], rec2.shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Pano shots are different objects of same value
-    for shot_id in rec2.pano_shots.keys():
-        shot1, shot2 = rec.pano_shots[shot_id], rec2.pano_shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Points are different objects of same value
-    for pt_id in rec2.points:
-        pt, pt_cpy = rec.points[pt_id], rec2.points[pt_id]
-        assert pt != pt_cpy
-        assert pt.id == pt_cpy.id
-        assert np.allclose(pt.coordinates, pt_cpy.coordinates)
-        assert np.allclose(pt.color, pt_cpy.color)
-        obs = pt.get_observations()
-        obs_cpy = pt_cpy.get_observations()
-        assert len(obs) == len(obs_cpy)
-
-        # Observations are different objects of same value
-        for shot, obs_id in obs.items():
-            obs1 = shot.get_observation(obs_id)
-            shot_cpy = rec2.shots[shot.id]
-            obs_cpy = shot_cpy.get_observation(obs_id)
-            assert obs1 is not obs_cpy
-
+    assert_maps_equal(rec.map, rec2.map)
 
 def test_gcp() -> None:
     gcp = []

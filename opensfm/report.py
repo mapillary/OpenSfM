@@ -9,7 +9,7 @@ from opensfm import io
 from opensfm.dataset import DataSet
 from typing import Any, Dict
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class Report:
@@ -39,6 +39,7 @@ class Report:
         self.stats = self._read_stats_file("stats.json")
 
     def save_report(self, filename: str) -> None:
+        # pyre-fixme[28]: Unexpected keyword argument `dest`.
         bytestring = self.pdf.output(dest="S")
         if isinstance(bytestring, str):
             bytestring = bytestring.encode("utf8")

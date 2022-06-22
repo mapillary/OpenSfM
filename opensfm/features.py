@@ -9,7 +9,7 @@ import numpy as np
 from opensfm import context, pyfeatures
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SemanticData:
@@ -51,7 +51,7 @@ class FeaturesData:
     colors: np.ndarray
     semantic: Optional[SemanticData]
 
-    FEATURES_VERSION: int = 2
+    FEATURES_VERSION: int = 3
     FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
 
     def __init__(
@@ -108,19 +108,19 @@ class FeaturesData:
             feature_data_type = np.float32
         descriptors = self.descriptors
         if descriptors is None:
-            raise RuntimeError("No descriptors found, canot save features data.")
+            raise RuntimeError("No descriptors found, cannot save features data.")
         semantic = self.semantic
         if semantic:
+            instances = semantic.instances
             np.savez_compressed(
                 fileobject,
                 points=self.points.astype(np.float32),
                 descriptors=descriptors.astype(feature_data_type),
                 colors=self.colors,
-                segmentations=semantic.segmentation,
-                instances=semantic.instances,
-                segmentation_labels=semantic.labels,
+                segmentations=semantic.segmentation.astype(np.uint8),
+                instances=instances.astype(np.int16) if instances is not None else [],
+                segmentation_labels=np.array(semantic.labels).astype(np.str),
                 OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
-                allow_pickle=True,
             )
         else:
             np.savez_compressed(
@@ -128,17 +128,16 @@ class FeaturesData:
                 points=self.points.astype(np.float32),
                 descriptors=descriptors.astype(feature_data_type),
                 colors=self.colors,
-                segmentations=None,
-                instances=None,
-                segmentation_labels=None,
+                segmentations=[],
+                instances=[],
+                segmentation_labels=[],
                 OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
-                allow_pickle=True,
             )
 
     @classmethod
     def from_file(cls, fileobject: Any, config: Dict[str, Any]) -> "FeaturesData":
         """Load features from file (path like or file object like)"""
-        s = np.load(fileobject, allow_pickle=True)
+        s = np.load(fileobject, allow_pickle=False)
         version = cls._features_file_version(s)
         return getattr(cls, "_from_file_v%d" % version)(s, config)
 
@@ -190,17 +189,71 @@ class FeaturesData:
         data: Dict[str, Any],
         config: Dict[str, Any],
     ) -> "FeaturesData":
-        """Version 2 of features file
+        """
+        Version 2 of features file
 
-        Added segmentation and segmentation labels.
+        Added segmentation, instances and segmentation labels. This version has been introduced at
+        e5da878bea455a1e4beac938cb30b796acfe3c8c, but has been superseded by version 3 as this version
+        uses 'allow_pickle=True' which isn't safe (RCE vulnerability)
         """
         feature_type = config["feature_type"]
         if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
             descriptors = data["descriptors"].astype(np.float32)
         else:
             descriptors = data["descriptors"]
-        has_segmentation = (data["segmentations"] != None).all()
-        has_instances = (data["instances"] != None).all()
+
+        # luckily, because os lazy loading, we can still load 'segmentations' and 'instances' ...
+        pickle_message = (
+            "Cannot load {} as these were generated with "
+            "version 2 which isn't supported anymore because of RCE vulnerablity."
+            "Please consider re-extracting features data for this dataset"
+        )
+        try:
+            has_segmentation = (data["segmentations"] != None).all()
+            has_instances = (data["instances"] != None).all()
+        except ValueError:
+            logger.warning(pickle_message.format("segmentations and instances"))
+            has_segmentation, has_instances = False, False
+
+        # ... whereas 'labels' can't be loaded anymore, as it is a plain 'list' object. Not an
+        # issue since these labels are used for description only and not actual filtering.
+        try:
+            labels = data["segmentation_labels"]
+        except ValueError:
+            logger.warning(pickle_message.format("labels"))
+            labels = []
+
+        if has_segmentation or has_instances:
+            semantic_data = SemanticData(
+                data["segmentations"] if has_segmentation else None,
+                data["instances"] if has_instances else None,
+                labels,
+            )
+        else:
+            semantic_data = None
+        return FeaturesData(
+            data["points"], descriptors, data["colors"].astype(float), semantic_data
+        )
+
+    @classmethod
+    def _from_file_v3(
+        cls,
+        data: Dict[str, Any],
+        config: Dict[str, Any],
+    ) -> "FeaturesData":
+        """
+        Version 3 of features file
+
+        Same as version 2, except that
+        """
+        feature_type = config["feature_type"]
+        if feature_type == "HAHOG" and config["hahog_normalize_to_uchar"]:
+            descriptors = data["descriptors"].astype(np.float32)
+        else:
+            descriptors = data["descriptors"]
+
+        has_segmentation = len(data["segmentations"]) > 0
+        has_instances = len(data["instances"]) > 0
 
         if has_segmentation or has_instances:
             semantic_data = SemanticData(
