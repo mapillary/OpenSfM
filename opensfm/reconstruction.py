@@ -910,6 +910,8 @@ class TrackTriangulator:
         all_combinations = list(combinations(range(len(ids)), 2))
 
         thresholds = len(os) * [reproj_threshold]
+        min_ray_angle_radians = np.radians(min_ray_angle_degrees)
+        max_ray_angle_radians = np.pi - min_ray_angle_radians
         for i in range(ransac_tries):
             random_id = int(np.random.rand() * (len(all_combinations) - 1))
             if random_id in combinatiom_tried:
@@ -925,8 +927,8 @@ class TrackTriangulator:
                 os_t,
                 bs_t,
                 thresholds,
-                np.radians(min_ray_angle_degrees),
-                np.radians(180.0 - min_ray_angle_degrees),
+                min_ray_angle_radians,
+                max_ray_angle_radians,
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
@@ -942,8 +944,8 @@ class TrackTriangulator:
                         os[inliers],
                         bs[inliers],
                         len(inliers) * [reproj_threshold],
-                        np.radians(min_ray_angle_degrees),
-                        np.radians(180.0 - min_ray_angle_degrees),
+                        min_ray_angle_radians,
+                        max_ray_angle_radians,
                     )
                     new_X = pygeometry.point_refinement(
                         os[inliers], bs[inliers], X, iterations
@@ -997,12 +999,13 @@ class TrackTriangulator:
 
         if len(os) >= 2:
             thresholds = len(os) * [reproj_threshold]
+            min_ray_angle_radians = np.radians(min_ray_angle_degrees)
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
                 np.asarray(os),
                 np.asarray(bs),
                 thresholds,
-                np.radians(min_ray_angle_degrees),
-                np.radians(180.0 - min_ray_angle_degrees),
+                min_ray_angle_radians,
+                np.pi - min_ray_angle_radians,
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
