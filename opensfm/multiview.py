@@ -566,33 +566,43 @@ def motion_from_plane_homography(
     ]
     solutions = []
 
-    # Case d' > 0
+    # Compute solutions for the two cases (1) case d' > 0 and
+    # (2) case d' < 0
+
     for x1, x3 in possible_x1_x3:
-        sin_theta = (d1 - d3) * x1 * x3 / d2
-        cos_theta = (d1 * x3**2 + d3 * x1**2) / d2
-        Rp = np.array(
+        # compute sin and cos for d'>0 (theta, _n) and d'<0 (phi, _n) cases
+        sin_term = x1 * x3 / d2
+        sin_theta = (d1 - d3) * sin_term
+        sin_phi = (d1 + d3) * sin_term
+
+        d1_x3_2 = (d1 * x3**2)
+        d3_x1_2 = (d3 * x1**2)
+        cos_theta = (d3_x1_2 + d1_x3_2) / d2
+        cos_phi = (d3_x1_2 - d1_x3_2) / d2
+
+        # define rotation matrices for both cases
+        Rp_p = np.array(
             [[cos_theta, 0, -sin_theta], [0, 1, 0], [sin_theta, 0, cos_theta]]
-        )
-        tp = (d1 - d3) * np.array([x1, 0, -x3])
+        )  # case d' > 0
+        Rp_n = np.array(
+            [[cos_phi, 0, sin_phi], [0, -1, 0], [sin_phi, 0, -cos_phi]]
+        )  # case d' < 0
+
+        # compute transformations
         np_ = np.array([x1, 0, x3])
-        R = s * np.dot(np.dot(u, Rp), vh)
-        t = np.dot(u, tp)
+
+        tp_p = (d1 - d3) * np.array([x1, 0, -x3])  # case d' > 0
+        tp_n = (d1 + d3) * np_  # case d' < 0
+
+        R_p = s * np.dot(np.dot(u, Rp_p), vh)  # case d' > 0
+        R_n = s * np.dot(np.dot(u, Rp_n), vh)  # case d' < 0
+        t_p = np.dot(u, tp_p)  # case d' > 0
+        t_n = np.dot(u, tp_n)  # case d' < 0
         n = -np.dot(vh.T, np_)
         d = s * d2
-        solutions.append((R, t, n, d))
 
-    # Case d' < 0
-    for x1, x3 in possible_x1_x3:
-        sin_phi = (d1 + d3) * x1 * x3 / d2
-        cos_phi = (d3 * x1**2 - d1 * x3**2) / d2
-        Rp = np.array([[cos_phi, 0, sin_phi], [0, -1, 0], [sin_phi, 0, -cos_phi]])
-        tp = (d1 + d3) * np.array([x1, 0, x3])
-        np_ = np.array([x1, 0, x3])
-        R = s * np.dot(np.dot(u, Rp), vh)
-        t = np.dot(u, tp)
-        n = -np.dot(vh.T, np_)
-        d = -s * d2
-        solutions.append((R, t, n, d))
+        solutions.append((R_p, t_p, n, d))  # case d' > 0
+        solutions.append((R_n, t_n, n, -d))  # case d' < 0
 
     return solutions
 
