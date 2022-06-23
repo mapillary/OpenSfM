@@ -104,10 +104,10 @@ void ShotMeasurements::Set(const ShotMeasurements& other) {
   } else {
     compass_angle_.Reset();
   }
-  if (other.accelerometer_.HasValue()) {
-    accelerometer_.SetValue(other.accelerometer_.Value());
+  if (other.gravity_down_.HasValue()) {
+    gravity_down_.SetValue(other.gravity_down_.Value());
   } else {
-    accelerometer_.Reset();
+    gravity_down_.Reset();
   }
   if (other.orientation_.HasValue()) {
     orientation_.SetValue(other.orientation_.Value());

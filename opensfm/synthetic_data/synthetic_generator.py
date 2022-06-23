@@ -2,7 +2,7 @@ import logging
 import math
 import time
 from collections import defaultdict
-from typing import Callable, Tuple, List, Dict, Any, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -10,17 +10,18 @@ import opensfm.synthetic_data.synthetic_dataset as sd
 import scipy.signal as signal
 import scipy.spatial as spatial
 from opensfm import (
+    features as oft,
     geo,
+    geometry,
     pygeometry,
+    pymap,
     reconstruction as rc,
     types,
-    pymap,
-    features as oft,
-    geometry,
 )
+from opensfm.types import Reconstruction
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
@@ -150,7 +151,7 @@ def generate_causal_noise(
     dims = [np.arange(-scale, scale) for _ in range(dimensions)]
     mesh = np.meshgrid(*dims)
     dist = np.linalg.norm(mesh, axis=0)
-    filter_kernel = np.exp(-(dist ** 2) / (2 * scale))
+    filter_kernel = np.exp(-(dist**2) / (2 * scale))
 
     noise = np.random.randn(dimensions, n) * sigma
     return signal.fftconvolve(noise, filter_kernel, mode="same")
@@ -169,8 +170,8 @@ def generate_exifs(
     previous_time = 0
     exifs = {}
 
-    def _gps_dop(shot):
-        gps_dop = 15
+    def _gps_dop(shot: pymap.Shot) -> float:
+        gps_dop = 15.0
         if isinstance(gps_noise, float):
             gps_dop = gps_noise
         if isinstance(gps_noise, dict):
@@ -194,7 +195,7 @@ def generate_exifs(
 
         pose = shot.pose.get_origin()
         if previous_pose is not None:
-            previous_time += np.linalg.norm(pose - previous_pose) * speed_ms
+            previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         exif["capture_time"] = previous_time
 
@@ -256,7 +257,7 @@ def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
 
 def add_points_to_reconstruction(
     points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
-):
+) -> None:
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
         point = reconstruction.create_point(str(shift + i), points[i, :])
@@ -271,7 +272,7 @@ def add_shots_to_reconstruction(
     cameras: List[pygeometry.Camera],
     reconstruction: types.Reconstruction,
     sequence_key: str,
-):
+) -> None:
     for camera in cameras:
         reconstruction.add_camera(camera)
 
@@ -307,7 +308,7 @@ def create_reconstruction(
     rig_rotations: List[np.ndarray],
     rig_cameras: List[List[pymap.RigCamera]],
     reference: Optional[geo.TopocentricConverter],
-):
+) -> Reconstruction:
     reconstruction = types.Reconstruction()
     if reference is not None:
         reconstruction.reference = reference
@@ -458,6 +459,7 @@ def generate_track_data(
             point = reconstruction.points[gcp_id]
             gcp = pymap.GroundControlPoint()
             gcp.id = f"gcp-{gcp_id}"
+            gcp.survey_point_id = int(gcp_id)
             enu = point.coordinates + gcp_shift + sigmas_gcp[i]
             lat, lon, alt = reconstruction.reference.to_lla(*enu)
             gcp.lla = {"latitude": lat, "longitude": lon, "altitude": alt}
@@ -466,6 +468,7 @@ def generate_track_data(
                 o = pymap.GroundControlPointObservation()
                 o.shot_id = shot_id
                 o.projection = obs.point
+                o.uid = obs.id
                 gcp.add_observation(o)
             gcps[gcp.id] = gcp
 

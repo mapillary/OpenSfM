@@ -1,18 +1,19 @@
 import argparse
 import os.path
-from typing import Any, Dict
+from typing import Any, Dict, Generator
 
 import numpy as np
 import pytest
 from opensfm import commands, dataset, feature_loader, pairs_selection, geo
 from opensfm.test import data_generation
+from opensfm.dataset_base import DataSetBase
 
 
 NEIGHBORS = 6
 
 
 @pytest.fixture(scope="module", autouse=True)
-def clear_cache():
+def clear_cache() -> Generator[None, Any, Any]:
     """
     Clear feature loader cache to avoid using cached
     masks etc from berlin dataset which has the same
@@ -47,7 +48,7 @@ def lund_path(tmpdir_factory) -> str:
 
 
 def match_candidates_from_metadata(
-    data, neighbors: int = NEIGHBORS, assert_count: int = NEIGHBORS
+    data: DataSetBase, neighbors: int = NEIGHBORS, assert_count: int = NEIGHBORS
 ) -> None:
     assert neighbors >= assert_count
 

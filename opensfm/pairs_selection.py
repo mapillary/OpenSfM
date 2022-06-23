@@ -10,7 +10,7 @@ import scipy.spatial as spatial
 from opensfm import bow, context, feature_loader, vlad, geo, geometry
 from opensfm.dataset_base import DataSetBase
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def has_gps_info(exif: Dict[str, Any]) -> bool:
@@ -209,7 +209,7 @@ def match_candidates_by_distance(
     return pairs
 
 
-def norm_2d(vec: np.ndarray):
+def norm_2d(vec: np.ndarray) -> float:
     """Return the 2D norm of a vector."""
     return math.sqrt(vec[0] ** 2 + vec[1] ** 2)
 
@@ -220,7 +220,7 @@ def match_candidates_by_graph(
     exifs: Dict[str, Any],
     reference: geo.TopocentricConverter,
     rounds: int,
-):
+) -> Set[Tuple[str, str]]:
     """Find by triangulating the GPS points on X/Y axises"""
     if len(images_cand) < 4 or rounds < 1:
         return set()
@@ -315,7 +315,7 @@ def compute_bow_affinity(
     max_gps_distance: float,
     max_gps_neighbors: int,
 ) -> List[Tuple[str, List[float], List[str]]]:
-    """Compute afinity scores between references and candidates
+    """Compute affinity scores between references and candidates
     images using BoW-based distance.
     """
     preempted_candidates, need_load = preempt_candidates(
@@ -388,7 +388,7 @@ def compute_vlad_affinity(
     max_gps_neighbors: int,
     histograms: Dict[str, np.ndarray],
 ) -> List[Tuple[str, List[float], List[str]]]:
-    """Compute afinity scores between references and candidates
+    """Compute affinity scores between references and candidates
     images using VLAD-based distance.
     """
     preempted_candidates, need_load = preempt_candidates(
@@ -397,7 +397,7 @@ def compute_vlad_affinity(
 
     if len(preempted_candidates) == 0:
         logger.warning(
-            f"Couln't preempt any candidate with GPS, using ALL {len(images_cand)} as candidates"
+            f"Couldn't preempt any candidate with GPS, using ALL {len(images_cand)} as candidates"
         )
         preempted_candidates = {image: images_cand for image in images_ref}
         need_load = set(images_ref + images_cand)
@@ -493,7 +493,7 @@ def create_parallel_matching_args(
 def match_bow_unwrap_args(
     args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
 ) -> Tuple[str, List[float], List[str]]:
-    """Wrapper for parralel processing of BoW"""
+    """Wrapper for parallel processing of BoW"""
     image, other_images, histograms = args
     return bow_distances(image, other_images, histograms)
 
@@ -501,7 +501,7 @@ def match_bow_unwrap_args(
 def match_vlad_unwrap_args(
     args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
 ) -> Tuple[str, List[float], List[str]]:
-    """Wrapper for parralel processing of VLAD"""
+    """Wrapper for parallel processing of VLAD"""
     image, other_images, histograms = args
     return vlad.vlad_distances(image, other_images, histograms)
 
@@ -725,7 +725,7 @@ def vlad_histogram_unwrap_args(
     if vlad_descriptor is not None:
         return image, vlad_descriptor
     else:
-        logger.warning(f"Couln't compute VLAD descriptor for image {image}")
+        logger.warning(f"Couldn't compute VLAD descriptor for image {image}")
         return None
 
 

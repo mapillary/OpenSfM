@@ -48,7 +48,7 @@ if __name__ == "__main__":
         if not features_data:
             continue
         points = features_data.points
-        print("ploting {0} points".format(len(points)))
+        print("plotting {0} points".format(len(points)))
         plt.figure()
         plt.title('Image: ' + image + ', features: ' + str(len(points)))
         fig = plot_features(data.load_image(image), points)

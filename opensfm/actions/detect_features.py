@@ -5,10 +5,10 @@ from opensfm import features_processing, io
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSetBase):
+def run_dataset(data: DataSetBase) -> None:
     """Compute features for all images."""
 
     start = timer()
@@ -17,7 +17,7 @@ def run_dataset(data: DataSetBase):
     write_report(data, end - start)
 
 
-def write_report(data: DataSetBase, wall_time: float):
+def write_report(data: DataSetBase, wall_time: float) -> None:
     image_reports = []
     for image in data.images():
         try:

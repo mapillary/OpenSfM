@@ -186,7 +186,7 @@ True
 """
 
 import math
-from typing import Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple
 
 import numpy
 
@@ -195,7 +195,7 @@ __docformat__ = "restructuredtext en"
 __all__ = []
 
 
-def identity_matrix():
+def identity_matrix() -> numpy.ndarray:
     """Return 4x4 identity/unit matrix.
 
     >>> I = identity_matrix()
@@ -1591,10 +1591,10 @@ def random_rotation_matrix(rand: Optional[numpy.ndarray] = None) -> numpy.ndarra
 
 
 # epsilon for testing whether a number is close to zero
-_EPS = numpy.finfo(float).eps * 4.0
+_EPS: float = numpy.finfo(float).eps * 4.0
 
 # axis sequences for Euler angles
-_NEXT_AXIS = [1, 2, 0, 1]
+_NEXT_AXIS: List[int] = [1, 2, 0, 1]
 
 # map axes strings to/from tuples of inner axis, parity, repetition, frame
 _AXES2TUPLE = {
@@ -1624,7 +1624,7 @@ _AXES2TUPLE = {
     "rzyz": (2, 1, 1, 1),
 }
 
-_TUPLE2AXES = dict((v, k) for k, v in _AXES2TUPLE.items())
+_TUPLE2AXES: Dict[Tuple[int, ...], str] = {v: k for k, v in _AXES2TUPLE.items()}
 
 
 def vector_norm(
@@ -1833,7 +1833,7 @@ def is_same_transform(matrix0: numpy.ndarray, matrix1: numpy.ndarray) -> numpy.n
     return numpy.allclose(matrix0, matrix1)
 
 
-def _import_module(name, package=None, warn=True, prefix="_py_", ignore="_"):
+def _import_module(name: str, package: Optional[str]=None, warn: bool=True, prefix: str="_py_", ignore: str="_") -> Optional[bool]:
     """Try import all public attributes from module into global namespace.
 
     Existing attributes with name clashes are renamed with prefix.

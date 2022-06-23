@@ -8,12 +8,12 @@ import scipy.spatial
 from opensfm import pygeometry, pymap, types
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def triangle_mesh(
     shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
-):
+) -> Tuple[List[Any], List[Any]]:
     """
     Create triangle meshes in a list
     """
@@ -143,7 +143,7 @@ def triangle_mesh_fisheye(
     faces = tri.simplices.tolist()
 
     # Remove faces having only boundary vertices
-    def good_face(face):
+    def good_face(face: List[Any]) -> bool:
         return (
             face[0] >= num_circle_points
             or face[1] >= num_circle_points

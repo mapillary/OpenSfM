@@ -44,14 +44,14 @@ class RigInstance {
   explicit RigInstance(const RigInstanceId instance_id) : id(instance_id) {}
 
   // Getters
-  std::unordered_map<map::ShotId, map::Shot*> GetShots() const {
+  const std::unordered_map<map::ShotId, map::Shot*>& GetShots() const {
     return shots_;
   }
   std::unordered_map<map::ShotId, map::Shot*>& GetShots() { return shots_; }
   std::unordered_map<map::ShotId, map::RigCamera*>& GetRigCameras() {
     return shots_rig_cameras_;
   }
-  std::unordered_map<map::ShotId, map::RigCamera*> GetRigCameras() const {
+  const std::unordered_map<map::ShotId, map::RigCamera*>& GetRigCameras() const {
     return shots_rig_cameras_;
   }
   std::set<map::ShotId> GetShotIDs() const;

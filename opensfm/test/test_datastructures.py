@@ -1,4 +1,8 @@
 import copy
+from opensfm.pymap import RigCamera, RigInstance, Shot
+from opensfm.types import Reconstruction
+from typing import Tuple
+
 import random
 
 import numpy as np
@@ -7,7 +11,7 @@ from opensfm import pygeometry
 from opensfm import pymap
 from opensfm import types
 from opensfm.test.utils import (
-    assert_metadata_equal,
+    assert_maps_equal, assert_metadata_equal,
     assert_cameras_equal,
     assert_shots_equal,
 )
@@ -346,7 +350,7 @@ def test_shot_measurement_setter_and_getter() -> None:
     _help_measurement_test(m1, "compass_angle", np.random.rand(1))
     _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
     _help_measurement_test(m1, "opk_angles", np.random.rand(3))
-    _help_measurement_test(m1, "accelerometer", np.random.rand(3))
+    _help_measurement_test(m1, "gravity_down", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")
 
@@ -359,7 +363,7 @@ def _helper_populate_metadata(m) -> None:
     m.compass_angle.value = np.random.rand(1)
     m.opk_accuracy.value = np.random.rand(1)
     m.opk_angles.value = np.random.rand(3)
-    m.accelerometer.value = np.random.rand(3)
+    m.gravity_down.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
 
@@ -638,7 +642,7 @@ def test_pano_shot_create_remove_create() -> None:
     assert len(rec.pano_shots) == n_shots
 
 
-def _create_rig_camera():
+def _create_rig_camera() -> RigCamera:
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
     rig_camera.pose = pygeometry.Pose(
@@ -647,7 +651,7 @@ def _create_rig_camera():
     return rig_camera
 
 
-def _create_rig_instance():
+def _create_rig_instance() -> Tuple[Reconstruction, RigInstance, Shot]:
     rec = _create_reconstruction(1, {"0": 2})
     rig_camera = rec.add_rig_camera(_create_rig_camera())
     rig_instance = pymap.RigInstance("1")
@@ -744,7 +748,7 @@ def test_shot_metadata_different() -> None:
     shot2 = rec.shots["1"]
     _helper_populate_metadata(shot1.metadata)
 
-    # When getting their metdata object, they should be different
+    # When getting their metadata object, they should be different
     assert shot1.metadata is not shot2.metadata
 
 
@@ -819,7 +823,7 @@ def test_single_point_coordinates() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging coordinates
+    # When assigning coordinates
     coord = np.random.rand(3)
     pt.coordinates = coord
 
@@ -832,7 +836,7 @@ def test_single_point_color() -> None:
     rec = types.Reconstruction()
     pt = rec.create_point("0")
 
-    # When assiging color
+    # When assigning color
     color = np.random.randint(low=0, high=255, size=(3,))
     pt.color = color
 
@@ -1098,42 +1102,7 @@ def test_rec_deepcopy() -> None:
     assert len(rec2.pano_shots) == 50
     assert len(rec2.points) == 200
 
-    # Cameras are different objects of same value
-    for k in rec.cameras:
-        cam, cam_cpy = rec.cameras[k], rec2.cameras[k]
-        assert cam != cam_cpy
-        assert_cameras_equal(cam, cam_cpy)
-
-    # Shots are different objects of same value
-    for shot_id in rec2.shots.keys():
-        shot1, shot2 = rec.shots[shot_id], rec2.shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Pano shots are different objects of same value
-    for shot_id in rec2.pano_shots.keys():
-        shot1, shot2 = rec.pano_shots[shot_id], rec2.pano_shots[shot_id]
-        assert shot1 is not shot2
-        assert_shots_equal(shot1, shot2)
-
-    # Points are different objects of same value
-    for pt_id in rec2.points:
-        pt, pt_cpy = rec.points[pt_id], rec2.points[pt_id]
-        assert pt != pt_cpy
-        assert pt.id == pt_cpy.id
-        assert np.allclose(pt.coordinates, pt_cpy.coordinates)
-        assert np.allclose(pt.color, pt_cpy.color)
-        obs = pt.get_observations()
-        obs_cpy = pt_cpy.get_observations()
-        assert len(obs) == len(obs_cpy)
-
-        # Observations are different objects of same value
-        for shot, obs_id in obs.items():
-            obs1 = shot.get_observation(obs_id)
-            shot_cpy = rec2.shots[shot.id]
-            obs_cpy = shot_cpy.get_observation(obs_id)
-            assert obs1 is not obs_cpy
-
+    assert_maps_equal(rec.map, rec2.map)
 
 def test_gcp() -> None:
     gcp = []

@@ -8,6 +8,7 @@ class Similarity {
  public:
   Similarity() = default;
   Similarity(const Vec3d& R, const Vec3d& t, double s) : Rt_(R, t), scale_(s) {}
+  Similarity(const Mat3d& R, const Vec3d& t, double s) : Rt_(R, t), scale_(s) {}
 
   Vec3d Translation() const { return Rt_.TranslationWorldToCamera(); }
   void SetTranslation(const Vec3d& t) { Rt_.SetWorldToCamTranslation(t); }

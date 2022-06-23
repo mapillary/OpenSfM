@@ -9,23 +9,28 @@ struct GroundControlPointObservation {
        Attributes:
            shot_id: the shot where the point is observed
            projection: 2d coordinates of the observation
+           uid: a unique id for this observation
   **/
   GroundControlPointObservation() = default;
   GroundControlPointObservation(const ShotId& shot_id, const Vec2d& proj)
       : shot_id_(shot_id), projection_(proj) {}
   ShotId shot_id_ = "";
   Vec2d projection_ = Vec2d::Zero();
+  LandmarkUniqueId uid_ = 0;
 };
 struct GroundControlPoint {
   /**A ground control point with its observations.
 
      Attributes:
-         lla: latitue, longitude and altitude
+         lla: latitude, longitude and altitude
          has_altitude: true if z coordinate is known
          observations: list of observations of the point on images
+         id: a unique id for this point group (survey point + image observations)
+         survey_point_id: a unique id for the point on the ground
      */
   GroundControlPoint() = default;
   LandmarkId id_ = "";
+  LandmarkUniqueId survey_point_id_ = 0;
   bool has_altitude_ = false;
   AlignedVector<GroundControlPointObservation> observations_;
   std::map<std::string, double> lla_;

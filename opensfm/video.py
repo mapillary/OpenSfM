@@ -1,6 +1,7 @@
 import datetime
 import os
 from subprocess import Popen, PIPE
+from typing import List
 
 import cv2
 import dateutil.parser
@@ -36,12 +37,12 @@ def import_video_with_gpx(
     video_file,
     gpx_file,
     output_path: str,
-    dx,
+    dx: float,
     dt=None,
     start_time=None,
-    visual: bool=False,
+    visual: bool = False,
     image_description=None,
-):
+) -> List[str]:
 
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
 
@@ -59,17 +60,6 @@ def import_video_with_gpx(
         except Exception:
             print("Video recording timestamp not found. Using first GPS point time.")
             video_start_time = points[0][0]
-        try:
-            duration = Popen(
-                ["exiftool", "-MediaDuration", "-b", video_file], stdout=PIPE
-            ).stdout.read()
-            video_duration = float(duration)
-            video_end_time = video_start_time + datetime.timedelta(
-                seconds=video_duration
-            )
-        except Exception:
-            print("Video end time not found. Using last GPS point time.")
-            video_end_time = points[-1][0]
 
     print("GPS track starts at: {}".format(points[0][0]))
     print("Video starts at: {}".format(video_start_time))

@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass, asdict
+from typing import Any, Dict, IO, Union
 
 import yaml
 
@@ -10,7 +11,7 @@ class OpenSfMConfig:
     # Params for metadata
     ##################################
     use_exif_size: bool = True
-    # Treat images from unknown camera models as comming from different cameras
+    # Treat images from unknown camera models as coming from different cameras
     unknown_camera_models_are_different: bool = False
     default_focal_prior: float = 0.85
 
@@ -83,7 +84,7 @@ class OpenSfMConfig:
     lowes_ratio: float = 0.8
     # FLANN, BRUTEFORCE, or WORDS
     matcher_type: str = "FLANN"
-    # Match symmetricly or one-way
+    # Match symmetrically or one-way
     symmetric_matching: bool = True
 
     ##################################
@@ -239,6 +240,8 @@ class OpenSfMConfig:
     gcp_horizontal_sd: float = 0.01
     # The default vertical standard deviation of the GCPs (in meters)
     gcp_vertical_sd: float = 0.1
+    # Global weight for GCPs, expressed a ratio of the sum of (# projections) + (# shots) + (# relative motions)
+    gcp_global_weight: float = 0.01
     # The standard deviation of the rig translation
     rig_translation_sd: float = 0.1
     # The standard deviation of the rig rotation
@@ -286,7 +289,7 @@ class OpenSfMConfig:
     # Enforce GPS position in bundle adjustment
     bundle_use_gps: bool = True
     # Enforce Ground Control Point position in bundle adjustment
-    bundle_use_gcp: bool = False
+    bundle_use_gcp: bool = True
     # Compensate GPS with a per-camera similarity transform
     bundle_compensate_gps_bias: bool = False
 
@@ -361,12 +364,12 @@ class OpenSfMConfig:
     submodel_images_relpath_template: str = "submodels/submodel_%04d/images"
 
 
-def default_config():
+def default_config() -> Dict[str, Any]:
     """Return default configuration"""
     return asdict(OpenSfMConfig())
 
 
-def load_config(filepath):
+def load_config(filepath) -> Dict[str, Any]:
     """DEPRECATED: = Load config from a config.yaml filepath"""
     if not os.path.isfile(filepath):
         return default_config()
@@ -375,7 +378,9 @@ def load_config(filepath):
         return load_config_from_fileobject(fin)
 
 
-def load_config_from_fileobject(f):
+def load_config_from_fileobject(
+    f: Union[IO[bytes], IO[str], bytes, str]
+) -> Dict[str, Any]:
     """Load config from a config.yaml fileobject"""
     config = default_config()
 

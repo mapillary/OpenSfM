@@ -1,5 +1,6 @@
-#include <foundation/numeric.h>
 #include <foundation/newton_raphson.h>
+#include <foundation/numeric.h>
+
 #include <iostream>
 
 namespace foundation {
@@ -28,7 +29,8 @@ static std::complex<double> ComplexCbrt(const std::complex<double>& z) {
   return pow(z, 1. / 3.);
 }
 
-std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients) {
+bool SolveQuartic(const std::array<double, 5>& coefficients,
+                  std::array<double, 4>& roots) {
   constexpr double eps = std::numeric_limits<double>::epsilon();
   const double a = std::abs(coefficients[4]) > eps
                        ? coefficients[4]
@@ -44,12 +46,16 @@ std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients) {
   const double Q3 = 8. * b * c - 16. * d - 2. * b * b * b;
   const double Q4 = 3. * b * b - 8. * c;
 
+  if (std::abs(Q1) < eps && std::abs(Q2) < eps && std::abs(Q3) < eps &&
+      std::abs(Q4) < eps) {
+    return false;
+  }
+
   const std::complex<double> Q5 =
       ComplexCbrt(Q2 / 2. + ComplexSqrt(Q2 * Q2 / 4. - Q1 * Q1 * Q1));
   const std::complex<double> Q6 = (Q1 / Q5 + Q5) / 3.;
   const std::complex<double> Q7 = 2. * ComplexSqrt(Q4 / 12. + Q6);
 
-  std::array<double, 4> roots;
   roots[0] =
       (-b - Q7 - ComplexSqrt(4. * Q4 / 6. - 4. * Q6 - Q3 / Q7)).real() / 4.;
   roots[1] =
@@ -58,7 +64,7 @@ std::array<double, 4> SolveQuartic(const std::array<double, 5>& coefficients) {
       (-b + Q7 - ComplexSqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)).real() / 4.;
   roots[3] =
       (-b + Q7 + ComplexSqrt(4. * Q4 / 6. - 4. * Q6 + Q3 / Q7)).real() / 4.;
-  return roots;
+  return true;
 }
 
 std::array<double, 4> RefineQuarticRoots(

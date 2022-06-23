@@ -26,9 +26,9 @@ Processing Summary
  - Reconstructed Images : reconstructed images over total number of images
  - Reconstructed Points : reconstructed points over total number of points in the `tracks.csv` file (`create_tracks`)
  - Reconstructed Components : number of continously reconstructed sets of images
- - Detected Features : median number (accross images) of detected features
- - Reconstructed Features : median number (accross images) of reconstructed features
- - Geographic Reference : indicated wether GPS and/or GCP have been used for geo-alignment
+ - Detected Features : median number (across images) of detected features
+ - Reconstructed Features : median number (across images) of reconstructed features
+ - Geographic Reference : indicated whether GPS and/or GCP have been used for geo-alignment
  - GPS / GCP errors : GPS and/or GCP RMS errors
 
 |topview|
@@ -45,7 +45,7 @@ The heatmap represent the density of detected features : the gradient goes from 
 
 |feat2|
 
-The table below lists minimum/maximum/mean and median detected and reconstructed features accross images.
+The table below lists minimum/maximum/mean and median detected and reconstructed features across images.
 
 Reconstruction Details
 ~~~~~~~~~~~~~~~~~~~~~~

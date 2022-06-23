@@ -92,7 +92,8 @@ TriangulateTwoBearingsMidpointMany(
 std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
     const Eigen::Matrix<double, Eigen::Dynamic, 3> &centers,
     const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
-    const std::vector<double> &threshold_list, double min_angle);
+    const std::vector<double> &threshold_list,
+    double min_angle, double max_angle);
 
 Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>
 EpipolarAngleTwoBearingsMany(

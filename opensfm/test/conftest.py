@@ -1,18 +1,22 @@
 from collections import defaultdict
 from distutils.version import LooseVersion
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pytest
-from opensfm import multiview, types, geo
-from opensfm.synthetic_data import synthetic_examples
-from opensfm.synthetic_data import synthetic_scene
+from opensfm import multiview, types, geo, pygeometry, pymap
+from opensfm.synthetic_data import (
+    synthetic_examples,
+    synthetic_scene,
+    synthetic_dataset as sd,
+)
 
 
-def pytest_configure(config):
+def pytest_configure(config) -> None:
     use_legacy_numpy_printoptions()
 
 
-def use_legacy_numpy_printoptions():
+def use_legacy_numpy_printoptions() -> None:
     """Ensure numpy use legacy print formant."""
     if LooseVersion(np.__version__).version[:2] > [1, 13]:
         np.set_printoptions(legacy="1.13")
@@ -54,7 +58,7 @@ def scene_synthetic() -> synthetic_scene.SyntheticInputData:
 
 
 @pytest.fixture(scope="session")
-def scene_synthetic_cube():
+def scene_synthetic_cube() -> Tuple[types.Reconstruction, pymap.TracksManager]:
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
 
@@ -120,7 +124,14 @@ def scene_synthetic_triangulation() -> synthetic_scene.SyntheticInputData:
 
 
 @pytest.fixture(scope="module")
-def pairs_and_poses():
+def pairs_and_poses() -> Tuple[
+    Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
+    Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
+    pygeometry.Camera,
+    sd.SyntheticFeatures,
+    pymap.TracksManager,
+    types.Reconstruction,
+]:
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
 
@@ -147,10 +158,12 @@ def pairs_and_poses():
 
 
 @pytest.fixture(scope="module")
-def pairs_and_their_E(pairs_and_poses):
+def pairs_and_their_E(
+    pairs_and_poses,
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
     pairs, poses, camera, _, _, _ = pairs_and_poses
 
-    pairs = list(sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0])))
+    pairs = sorted(zip(pairs.values(), poses.values()), key=lambda x: -len(x[0]))
 
     num_pairs = 20
     indices = [np.random.randint(0, len(pairs) - 1) for i in range(num_pairs)]
@@ -177,7 +190,9 @@ def pairs_and_their_E(pairs_and_poses):
 
 
 @pytest.fixture(scope="module")
-def shots_and_their_points(pairs_and_poses):
+def shots_and_their_points(
+    pairs_and_poses,
+) -> List[Tuple[pygeometry.Pose, np.ndarray, np.ndarray]]:
     _, _, _, _, tracks_manager, reconstruction = pairs_and_poses
 
     ret_shots = []

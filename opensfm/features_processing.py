@@ -12,7 +12,7 @@ from opensfm.context import parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_features_processing(data: DataSetBase, images: List[str], force: bool) -> None:
@@ -30,7 +30,7 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
             f"Planning to use {mem_available} MB of RAM for both processing queue and parallel processing."
         )
 
-        # 50% for the queue / 50% for parralel processing
+        # 50% for the queue / 50% for parallel processing
         expected_mb = mem_available / 2
         expected_images = min(
             max_queue_size, int(expected_mb / average_image_size(data))
@@ -124,15 +124,15 @@ class Counter(object):
     some reason, joblib doesn't like a good old threading.Lock (everything is stuck)
     """
 
-    def __init__(self):
+    def __init__(self) ->None:
         self.number_of_read = 0
         self.counter = itertools.count()
         self.read_lock = threading.Lock()
 
-    def increment(self):
+    def increment(self) -> None:
         next(self.counter)
 
-    def value(self):
+    def value(self) -> int:
         with self.read_lock:
             value = next(self.counter) - self.number_of_read
             self.number_of_read += 1
@@ -197,7 +197,7 @@ def bake_segmentation(
     exif_height, exif_width, exif_orientation = (
         exif["height"],
         exif["width"],
-        exif["orientation"],
+        exif.get("orientation", 1),
     )
     height, width = image.shape[:2]
     if exif_height != height or exif_width != width:

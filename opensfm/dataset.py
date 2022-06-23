@@ -21,7 +21,7 @@ from opensfm import (
 from opensfm.dataset_base import DataSetBase
 from PIL.PngImagePlugin import PngImageFile
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class DataSet(DataSetBase):
@@ -79,10 +79,7 @@ class DataSet(DataSetBase):
             self._set_image_path(image_list_path)
 
         if self.data_path and not self.image_list:
-            raise IOError(
-                "No Images found in {}"
-                .format(image_list_path)
-                )
+            raise IOError("No Images found in {}".format(image_list_path))
 
     def images(self) -> List[str]:
         """List of file names of all images in the dataset."""
@@ -350,8 +347,28 @@ class DataSet(DataSetBase):
         return self.io_handler.isfile(self._matches_file(image))
 
     def load_matches(self, image: str) -> Dict[str, np.ndarray]:
+        # Prevent pickling of anything except what we strictly need
+        # as 'pickle.load' is RCE-prone. Will raise on any class other
+        # than the numpy ones we allow.
+        class MatchingUnpickler(pickle.Unpickler):
+            modules_map = {
+                "numpy.core.multiarray._reconstruct": np.core.multiarray,
+                "numpy.core.multiarray.scalar": np.core.multiarray,
+                "numpy.ndarray": np,
+                "numpy.dtype": np,
+            }
+
+            def find_class(self, module, name):
+                classname = f"{module}.{name}"
+                allowed_module = classname in self.modules_map
+                if not allowed_module:
+                    raise pickle.UnpicklingError(
+                        "global '%s.%s' is forbidden" % (module, name)
+                    )
+                return getattr(self.modules_map[classname], name)
+
         with self.io_handler.open(self._matches_file(image), "rb") as fin:
-            matches = pickle.load(BytesIO(gzip.decompress(fin.read())))
+            matches = MatchingUnpickler(BytesIO(gzip.decompress(fin.read()))).load()
         return matches
 
     def save_matches(self, image: str, matches: Dict[str, np.ndarray]) -> None:
@@ -986,14 +1003,15 @@ def invent_reference_from_gps_and_gcp(
 
     if not wlat and not wlon:
         for gcp in data.load_ground_control_points():
-            lat += gcp.lla["latitude"]
-            lon += gcp.lla["longitude"]
-            wlat += 1
-            wlon += 1
+            if gcp.lla:
+                lat += gcp.lla["latitude"]
+                lon += gcp.lla["longitude"]
+                wlat += 1
+                wlon += 1
 
-            if gcp.has_altitude:
-                alt += gcp.lla["altitude"]
-                walt += 1
+                if gcp.has_altitude:
+                    alt += gcp.lla["altitude"]
+                    walt += 1
 
     if wlat:
         lat /= wlat

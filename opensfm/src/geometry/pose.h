@@ -148,7 +148,7 @@ class Pose {
   Pose Compose(const Pose& base_pose) const {
     /*
       This is the C++ version of the original Python version
-      The relation to relativeTo ist the following
+      The relation to relativeTo is the following
       pose1.compose(pose2.inverse()) == pose1.RelativeTo(pose2)
     */
     const Mat3d& selfR = RotationWorldToCamera();
