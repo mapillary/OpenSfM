@@ -47,10 +47,9 @@ struct LinearMotionError {
         T(position_scale_) * MultRotations(R2_R0t.eval(), R0_R1t);
     return true;
   }
-  double alpha_;
-  Vec3d acceleration_;
-  double position_scale_;
-  double orientation_scale_;
+  const double alpha_;
+  const double position_scale_;
+  const double orientation_scale_;
 
   int shot0_rig_camera_index{FUNCTOR_NOT_SET};
   int shot1_rig_camera_index{FUNCTOR_NOT_SET};

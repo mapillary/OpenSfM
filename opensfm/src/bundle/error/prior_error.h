@@ -107,7 +107,7 @@ struct DataPriorError {
   VecXd scales_;
 
   // Are scale being adjusted for (global multiplier) ?
-  bool adjust_scales_;
+  const bool adjust_scales_;
   static constexpr int parameter_index = 0;
   static constexpr int transform_index = 1;
   static constexpr int scale_index = 2;

@@ -22,10 +22,10 @@ class ReprojectionError {
         use_rig_camera_(use_rig_camera) {}
 
  protected:
-  geometry::ProjectionType type_;
-  Vec2d observed_;
-  double scale_;
-  bool use_rig_camera_;
+  const geometry::ProjectionType type_;
+  const Vec2d observed_;
+  const double scale_;
+  const bool use_rig_camera_;
 };
 
 class ReprojectionError2D : public ReprojectionError {
@@ -215,8 +215,8 @@ class ReprojectionError3D : public ReprojectionError {
                       const Vec2d& observed, double std_deviation,
                       bool use_rig_camera)
       : ReprojectionError(type, observed, std_deviation, use_rig_camera) {
-    double lon = observed[0] * 2 * M_PI;
-    double lat = -observed[1] * 2 * M_PI;
+    const double lon = observed[0] * 2 * M_PI;
+    const double lat = -observed[1] * 2 * M_PI;
     bearing_vector_[0] = std::cos(lat) * std::sin(lon);
     bearing_vector_[1] = -std::sin(lat);
     bearing_vector_[2] = std::cos(lat) * std::cos(lon);

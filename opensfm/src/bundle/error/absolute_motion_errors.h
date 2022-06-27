@@ -28,7 +28,7 @@ struct UpVectorError {
   }
 
   Vec3d acceleration_;
-  double scale_;
+  const double scale_;
 };
 
 struct PanAngleError {
@@ -53,8 +53,8 @@ struct PanAngleError {
     return true;
   }
 
-  double angle_;
-  double scale_;
+  const double angle_;
+  const double scale_;
 };
 
 struct TiltAngleError {
@@ -77,8 +77,8 @@ struct TiltAngleError {
     return true;
   }
 
-  double angle_;
-  double scale_;
+  const double angle_;
+  const double scale_;
 };
 
 struct RollAngleError {
@@ -122,8 +122,8 @@ struct RollAngleError {
     return true;
   }
 
-  double angle_;
-  double scale_;
+  const double angle_;
+  const double scale_;
 };
 
 struct HeatmapdCostFunctor {
@@ -180,12 +180,12 @@ struct TranslationPriorError {
   template <typename T>
   bool operator()(const T* const rig_instance1, const T* const rig_instance2,
                   T* residuals) const {
-    auto t1 = Eigen::Map<const Vec3<T>>(rig_instance1 + Pose::Parameter::TX);
-    auto t2 = Eigen::Map<const Vec3<T>>(rig_instance2 + Pose::Parameter::TX);
+    const auto t1 = Eigen::Map<const Vec3<T>>(rig_instance1 + Pose::Parameter::TX);
+    const auto t2 = Eigen::Map<const Vec3<T>>(rig_instance2 + Pose::Parameter::TX);
     residuals[0] = log((t1 - t2).norm() / T(prior_norm_));
     return true;
   }
 
-  double prior_norm_;
+  const double prior_norm_;
 };
 }  // namespace bundle

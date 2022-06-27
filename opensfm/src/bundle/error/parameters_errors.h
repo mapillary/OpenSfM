@@ -30,8 +30,8 @@ struct ParameterBarrier {
     return true;
   }
 
-  double lower_bound_;
-  double upper_bound_;
-  int index_;
+  const double lower_bound_;
+  const double upper_bound_;
+  const int index_;
 };
 }  // namespace bundle
