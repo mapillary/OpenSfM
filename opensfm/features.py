@@ -94,7 +94,7 @@ class FeaturesData:
 
     def save(self, fileobject: Any, config: Dict[str, Any]):
         """Save features from file (path like or file object like)"""
-        feature_type = config["feature_type"]
+        feature_type = config["feature_type"].upper()
         if (
             (
                 feature_type == "AKAZE"
