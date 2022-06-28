@@ -2,8 +2,13 @@
 # Do not manually edit
 # To regenerate:
 #   $ buck run //mapillary/opensfm/opensfm/src/features:pyfeatures_stubgen
-# Use proper mode, e.g. @arvr/mode/linux/dev for arvr
 # @generated
+#
+# Tip: Be sure to run this with the build mode you use for your project, e.g.,
+# @//arvr/mode/linux/opt (or dev) in arvr.
+#
+# Ignore errors for [5] global variable types and [24] untyped generics.
+# pyre-ignore-all-errors[5,24]
 
 import numpy
 from typing import *
