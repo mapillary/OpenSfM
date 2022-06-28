@@ -222,7 +222,7 @@ def match_candidates_by_graph(
     rounds: int,
 ) -> Set[Tuple[str, str]]:
     """Find by triangulating the GPS points on X/Y axises"""
-    if len(images_cand) == 0 or rounds < 1:
+    if len(images_cand) < 4 or rounds < 1:
         return set()
 
     images_cand_set = set(images_cand)
