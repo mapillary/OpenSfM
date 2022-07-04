@@ -281,7 +281,7 @@ class OpenSfMConfig:
     # Params for GPS alignment
     ##################################
     # Use or ignore EXIF altitude tag
-    use_altitude_tag: bool = False
+    use_altitude_tag: bool = True
     # orientation_prior or naive
     align_method: str = "auto"
     # horizontal, vertical or no_roll
