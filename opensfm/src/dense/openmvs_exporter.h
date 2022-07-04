@@ -21,7 +21,7 @@ class OpenMVSExporter {
     scene_.platforms.push_back(platform);
   }
 
-  void AddShot(const std::string &path, const std::string &shot_id,
+  void AddShot(const std::string &path, const std::string &maskPath, const std::string &shot_id,
                const std::string &camera_id, pyarray_d R, pyarray_d C) {
     const double *C_data = C.data();
 
@@ -36,6 +36,7 @@ class OpenMVSExporter {
 
     MVS::Interface::Image image;
     image.name = path;
+    image.maskName = maskPath;
     image.platformID = platform_id;
     image.cameraID = 0;
     image.poseID = pose_id;

@@ -1,6 +1,6 @@
 cloudpickle==0.4.0
 exifread==2.1.2
-flask==1.1.2
+flask==2.1.2
 fpdf2==2.4.6
 joblib==0.14.1
 matplotlib
@@ -17,3 +17,4 @@ six
 xmltodict==0.10.2
 wheel
 opencv-python==4.5.1.48 ; sys_platform == "win32"
+opencv-python ; sys_platform == "linux"
