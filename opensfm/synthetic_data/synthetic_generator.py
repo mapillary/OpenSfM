@@ -165,10 +165,6 @@ def generate_exifs(
     causal_gps_noise: bool = False,
 ) -> Dict[str, Any]:
     """Generate fake exif metadata from the reconstruction."""
-    speed_ms = 10.0
-    previous_pose = None
-    previous_time = 0
-    exifs = {}
 
     def _gps_dop(shot: pymap.Shot) -> float:
         gps_dop = 15.0
@@ -178,6 +174,7 @@ def generate_exifs(
             gps_dop = gps_noise[shot.camera.id]
         return gps_dop
 
+    exifs = {}
     per_sequence = defaultdict(list)
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
@@ -193,13 +190,20 @@ def generate_exifs(
         if shot.camera.projection_type in ["perspective", "fisheye"]:
             exif["focal_ratio"] = shot.camera.focal
 
-        pose = shot.pose.get_origin()
+        exifs[shot_name] = exif
+
+    speed_ms = 10.0
+    previous_pose = None
+    previous_time = 0
+    for rig_instance in sorted(
+        reconstruction.rig_instances.values(), key=lambda x: x.id
+    ):
+        pose = rig_instance.pose.get_origin()
         if previous_pose is not None:
             previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
-        exif["capture_time"] = previous_time
-
-        exifs[shot_name] = exif
+        for shot_id in rig_instance.shots:
+            exifs[shot_id]["capture_time"] = previous_time
 
     for sequence_images in per_sequence.values():
         if causal_gps_noise:

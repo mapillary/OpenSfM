@@ -37,14 +37,29 @@ struct LinearMotionError {
     Eigen::Map<Eigen::Matrix<T, 6, 1> > residual(r);
 
     // Position residual : op is translation
-    residual.segment(0, 3) =
-        T(position_scale_) * (T(alpha_) * (t2 - t0) + (t0 - t1));
+    const auto eps = T(1e-15);
+    const auto t2_t0 = (t2 - t0);
+    const auto t1_t0 = (t1 - t0);
+    const auto t2_t0_norm = t2_t0.norm();
+    const auto t1_t0_norm = t1_t0.norm();
+    for (int i = 0; i < 3; ++i) {
+      // in case of non-zero speed, use speed ratio as it isn't subject
+      //  to collapse when used together with position variance estimation
+      if (t2_t0_norm > eps) {
+        residual(i) =
+            T(position_scale_) * (T(alpha_) - t1_t0_norm / t2_t0_norm);
+        // otherwise, use classic difference between speeds, so one can still
+        // drag away position if they're coincident
+      } else {
+        residual(i) = T(position_scale_) * (T(alpha_) * t2_t0(i) - t1_t0(i));
+      }
+    }
 
     // Rotation residual : op is rotation
     const Vec3<T> R2_R0t = T(alpha_) * MultRotations(R2.eval(), (-R0).eval());
     const Vec3<T> R0_R1t = MultRotations(R0.eval(), (-R1).eval());
     residual.segment(3, 3) =
-        T(position_scale_) * MultRotations(R2_R0t.eval(), R0_R1t);
+        T(orientation_scale_) * MultRotations(R2_R0t.eval(), R0_R1t);
     return true;
   }
   const double alpha_;
