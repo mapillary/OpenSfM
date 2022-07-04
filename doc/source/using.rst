@@ -8,7 +8,7 @@ Using
 Quickstart
 ----------
 
-An example dataset is available at ``data/berlin``.  You can reconstruct it using by running::
+An example dataset is available at ``data/berlin``.  You can reconstruct it by running::
 
     bin/opensfm_run_all data/berlin
 
