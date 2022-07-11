@@ -629,8 +629,13 @@ py::dict BAHelpers::Bundle(
 
   // setup rig cameras
   constexpr size_t kMinRigInstanceForAdjust{10};
+  const size_t shots_per_rig_cameras =
+      map.GetRigCameras().size() > 0
+          ? static_cast<size_t>(map.GetShots().size() /
+                                map.GetRigCameras().size())
+          : 1;
   const auto lock_rig_camera =
-      map.GetRigInstances().size() <= kMinRigInstanceForAdjust;
+      shots_per_rig_cameras <= kMinRigInstanceForAdjust;
   for (const auto& camera_pair : map.GetRigCameras()) {
     // could be set to false (not locked) the day we expose leverarm adjustment
     const bool is_leverarm =
