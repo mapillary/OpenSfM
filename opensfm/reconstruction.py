@@ -4,11 +4,11 @@ import datetime
 import enum
 import logging
 import math
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import combinations
 from timeit import default_timer as timer
-from typing import Dict, Any, List, Tuple, Set, Optional, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import cv2
 import numpy as np
@@ -20,10 +20,10 @@ from opensfm import (
     pygeometry,
     pymap,
     pysfm,
+    reconstruction_helpers as helpers,
     rig,
     tracking,
     types,
-    reconstruction_helpers as helpers,
 )
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import current_memory_usage, parallel_map
@@ -47,6 +47,18 @@ def _get_camera_from_bundle(
         camera.set_parameter_value(k, v)
 
 
+def log_bundle_stats(bundle_type: str, bundle_report: Dict[str, Any]) -> None:
+    times = bundle_report["wall_times"]
+    time_secs = times["run"] + times["setup"] + times["teardown"]
+    num_images, num_points, num_reprojections = bundle_report["num_images"], bundle_report["num_points"], bundle_report["num_reprojections"]
+
+    msg = f"Ran {bundle_type} bundle in {time_secs:.2f} secs."
+    if num_points > 0 :
+        msg += f"with {num_images}/{num_points}/{num_reprojections} ({num_reprojections/num_points:.2f}) "
+        msg += "shots/points/proj. (avg. length)"
+
+    logger.info(msg)
+
 def bundle(
     reconstruction: types.Reconstruction,
     camera_priors: Dict[str, pygeometry.Camera],
@@ -62,7 +74,7 @@ def bundle(
         gcp if gcp is not None else [],
         config,
     )
-
+    log_bundle_stats("GLOBAL", report)
     logger.debug(report["brief_report"])
     return report
 
@@ -102,6 +114,7 @@ def bundle_local(
         central_shot_id,
         config,
     )
+    log_bundle_stats("LOCAL", report)
     logger.debug(report["brief_report"])
     return pt_ids, report
 

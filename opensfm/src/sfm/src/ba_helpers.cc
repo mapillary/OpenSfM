@@ -215,6 +215,8 @@ py::tuple BAHelpers::BundleLocal(
     }
   }
 
+  size_t added_landmarks = 0;
+  size_t added_reprojections = 0;
   for (auto* shot : interior) {
     // Add all points of the shots that are in the interior
     for (const auto& lm_obs : shot->GetLandmarkObservations()) {
@@ -223,10 +225,12 @@ py::tuple BAHelpers::BundleLocal(
         points.insert(lm);
         pt_ids.append(lm->id_);
         ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
+        ++added_landmarks;
       }
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_, obs.point,
                                        obs.scale);
+      ++added_reprojections;
     }
   }
   for (auto* shot : boundary) {
@@ -236,6 +240,7 @@ py::tuple BAHelpers::BundleLocal(
         const auto& obs = lm_obs.second;
         ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
                                          obs.point, obs.scale);
+        ++added_reprojections;
       }
     }
   }
@@ -298,10 +303,13 @@ py::tuple BAHelpers::BundleLocal(
                                                             timer_run)
           .count() /
       1000000.0;
+  report["num_images"] = interior.size();
   report["num_interior_images"] = interior.size();
   report["num_boundary_images"] = boundary.size();
   report["num_other_images"] =
       map.NumberOfShots() - interior.size() - boundary.size();
+  report["num_points"] = added_landmarks;
+  report["num_reprojections"] = added_reprojections;
   return py::make_tuple(pt_ids, report);
 }
 
@@ -332,8 +340,8 @@ bool BAHelpers::TriangulateGCP(
   os.conservativeResize(added, Eigen::NoChange);
   if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
-    const auto& res = geometry::TriangulateBearingsMidpoint(os, bs, thresholds,
-                                                            min_ray_angle, max_ray_angle);
+    const auto& res = geometry::TriangulateBearingsMidpoint(
+        os, bs, thresholds, min_ray_angle, max_ray_angle);
     coordinates = res.second;
     return res.first;
   }
@@ -672,6 +680,7 @@ py::dict BAHelpers::Bundle(
     }
   }
 
+  size_t added_reprojections = 0;
   for (const auto& shot_pair : map.GetShots()) {
     const auto& shot = shot_pair.second;
 
@@ -686,6 +695,7 @@ py::dict BAHelpers::Bundle(
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
                                        obs.scale);
+      ++added_reprojections;
     }
   }
 
@@ -746,6 +756,9 @@ py::dict BAHelpers::Bundle(
                                                             timer_run)
           .count() /
       1000000.0;
+  report["num_images"] = map.GetShots().size();
+  report["num_points"] = map.GetLandmarks().size();
+  report["num_reprojections"] = added_reprojections;
   return report;
 }
 
