@@ -432,10 +432,16 @@ py::dict BAHelpers::BundleShotPoses(
     rig_instances_ids.insert(shot.GetRigInstanceId());
   }
   std::unordered_set<map::RigCameraId> rig_cameras_ids;
+  std::unordered_set<map::CameraId> cameras_ids;
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
-      rig_cameras_ids.insert(shot_n_rig_camera.second->id);
+      const auto rig_camera_id = shot_n_rig_camera.second->id;
+      rig_cameras_ids.insert(rig_camera_id);
+
+      const auto shot_id = shot_n_rig_camera.first;
+      const auto camera_id = map.GetShot(shot_id).GetCamera()->id;
+      cameras_ids.insert(camera_id);
     }
   }
 
@@ -446,16 +452,10 @@ py::dict BAHelpers::BundleShotPoses(
                     rig_camera_priors.at(rig_camera_id).pose, fix_rig_camera);
   }
 
-  std::unordered_set<map::CameraId> added_cameras;
-  for (const auto& shot_id : shot_ids) {
-    const auto& shot = map.GetShot(shot_id);
-    const auto& cam = *shot.GetCamera();
-    if (added_cameras.find(cam.id) != added_cameras.end()) {
-      continue;
-    }
-    const auto& cam_prior = camera_priors.at(cam.id);
-    ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
-    added_cameras.insert(cam.id);
+  for (const auto& camera_id : cameras_ids) {
+    const auto& cam = map.GetCamera(camera_id);
+    const auto& cam_prior = camera_priors.at(camera_id);
+    ba.AddCamera(camera_id, cam, cam_prior, fix_cameras);
   }
 
   std::unordered_set<map::Landmark*> landmarks;
