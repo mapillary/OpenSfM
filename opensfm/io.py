@@ -1033,9 +1033,9 @@ def ply_header(
             "property float nx",
             "property float ny",
             "property float nz",
-            "property uchar diffuse_red",
-            "property uchar diffuse_green",
-            "property uchar diffuse_blue",
+            "property uchar red",      
+            "property uchar green",     
+            "property uchar blue",      
         ]
     else:
         header = [
@@ -1045,9 +1045,9 @@ def ply_header(
             "property float x",
             "property float y",
             "property float z",
-            "property uchar diffuse_red",
-            "property uchar diffuse_green",
-            "property uchar diffuse_blue",
+            "property uchar red",    
+            "property uchar green",   
+            "property uchar blue", 
         ]
 
     if point_num_views:
@@ -1146,9 +1146,9 @@ def point_cloud_to_ply(
     fp.write("property float nx\n")
     fp.write("property float ny\n")
     fp.write("property float nz\n")
-    fp.write("property uchar diffuse_red\n")
-    fp.write("property uchar diffuse_green\n")
-    fp.write("property uchar diffuse_blue\n")
+    fp.write("property uchar red\n")
+    fp.write("property uchar green\n")
+    fp.write("property uchar blue\n")
     fp.write("property uchar class\n")
     fp.write("end_header\n")
 
