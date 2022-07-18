@@ -163,34 +163,50 @@ Identifier `fisheye`
     v = f\ d\ \theta\ \frac{y}{r}
     \end{array}
 
-Fisheye 62
-~~~~~~~~~~~
-Identifier `fisheye62`
-
-.. math::
-    \begin{array}{l}
-    r^2 = x^2 + y^2 \\
-    \theta = \arctan(r / z) \\
-    d_r = 1 + k_1\theta + k_2\theta^2 + k_3\theta^3 + k_4\theta^4 + k_5\theta^5 + k_6\theta^6\\
-    d^t_x = 2p_1\ x_n\ y_n + p_2\ (r^2 + 2x)\\
-    d^t_y = 2p_2\ x_n\ y_n + p_1\ (r^2 + 2y)\\
-    u = f\ (d_r\ \theta\ \frac{x}{r} + d^t_x) + c_x \\
-    v = f\ (d_r\ \theta\ \frac{y}{r} + d^t_y) + c_y
-    \end{array}
-
 Fisheye OpenCV
 ~~~~~~~~~~~~~~
 Identifier `fisheye_opencv`
 
 .. math::
     \begin{array}{l}
-    r^2 = x^2 + y^2 \\
+    r = \sqrt(x^2 + y^2) \\
     \theta = \arctan(r / z) \\
-    d_r = 1 + k_1\theta^2 + k_2\theta^4 + k_3\theta^6\\
-    d^t_x = 2p_1\ x_n\ y_n + p_2\ (r^2 + 2x)\\
-    d^t_y = 2p_2\ x_n\ y_n + p_1\ (r^2 + 2y)\\
-    u = f\ (d\ \theta\ \frac{x}{r} + d^t_x) + c_x \\
-    v = f\ (d\ \theta\ \frac{y}{r} + d^t_y) + c_y
+    d_r = 1 + k_1\theta^2 + k_2\theta^4 + k_3\theta^6 + k_4\theta^8\\
+    u = f\ (d\ \theta\ \frac{x}{r}) + c_x \\
+    v = f\ (d\ \theta\ \frac{y}{r}) + c_y
+    \end{array}
+
+
+Fisheye 62
+~~~~~~~~~~~
+Identifier `fisheye62`
+
+.. math::
+    \begin{array}{l}
+    r = \sqrt(x^2 + y^2) \\
+    \theta = \arctan(r / z) \\
+    d_r = 1 + k_1\theta^2 + k_2\theta^4 + k_3\theta^6 + k_4\theta^8 + k_5\theta^10 + k_6\theta^12\\
+    d^t_x = 2p_1\ x_n\ y_n + p_2\ (\theta^2 + 2\ x_n^2)\\
+    d^t_y = 2p_2\ x_n\ y_n + p_1\ (\theta^2 + 2\ y_n^2)\\
+    u = f\ (d_r\ \theta\ \frac{x}{r} + d^t_x) + c_x \\
+    v = f\ (d_r\ \theta\ \frac{y}{r} + d^t_y) + c_y
+    \end{array}
+
+Fisheye 624
+~~~~~~~~~~~
+Identifier `fisheye624`
+
+.. math::
+    \begin{array}{l}
+    r = \sqrt(x^2 + y^2) \\
+    \theta = \arctan(r / z) \\
+    d_r = 1 + k_1\theta^2 + k_2\theta^4 + k_3\theta^6 + k_4\theta^8 + k_5\theta^10 + k_6\theta^12\\
+    d^t_x = 2p_1\ x_n\ y_n + p_2\ (\theta^2 + 2\ x_n^2)\\
+    d^t_y = 2p_2\ x_n\ y_n + p_1\ (\theta^2 + 2\ y_n^2)\\
+    d^s_x = s_0 * theta^2 + s_1 * theta^4\\
+    d^s_y = s_2 * theta^2 + s_3 * theta^4\\
+    u = f\ (d_r\ \theta\ \frac{x}{r} + d^t_x + d^p_x) + c_x \\
+    v = f\ (d_r\ \theta\ \frac{y}{r} + d^t_y + d^p_y) + c_y
     \end{array}
 
 Spherical Camera
