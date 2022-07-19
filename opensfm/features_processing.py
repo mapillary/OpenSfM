@@ -4,10 +4,10 @@ import math
 import queue
 import threading
 from timeit import default_timer as timer
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from opensfm import bow, features, io, log, pygeometry, upright, masking
+from opensfm import bow, features, io, log, masking, pygeometry, upright
 from opensfm.context import parallel_map
 from opensfm.dataset_base import DataSetBase
 
@@ -124,7 +124,7 @@ class Counter(object):
     some reason, joblib doesn't like a good old threading.Lock (everything is stuck)
     """
 
-    def __init__(self) ->None:
+    def __init__(self) -> None:
         self.number_of_read = 0
         self.counter = itertools.count()
         self.read_lock = threading.Lock()
@@ -157,7 +157,7 @@ def read_images(
     expected: int,
     force: bool,
 ) -> None:
-    full_queue_timeout = 120
+    full_queue_timeout = 600
     for image in images:
         logger.info(f"Reading data for image {image} (queue-size={queue.qsize()}")
         image_array = data.load_image(image)
