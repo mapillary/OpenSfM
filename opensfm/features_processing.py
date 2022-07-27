@@ -214,7 +214,7 @@ def bake_segmentation(
             points[:, :2],
             width,
             height,
-            exif["orientation"],
+            exif_orientation,
             new_width=new_width,
             new_height=new_height,
         ).astype(int)
