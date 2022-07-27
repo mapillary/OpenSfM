@@ -1,6 +1,6 @@
 import logging
 from timeit import default_timer as timer
-from typing import Sized, Optional, Dict, Any, Tuple, List, Generator
+from typing import Any, Dict, Generator, List, Optional, Sized, Tuple
 
 import cv2
 import numpy as np
@@ -472,6 +472,7 @@ def match_robust(
     camera2: pygeometry.Camera,
     data: DataSetBase,
     config_override: Dict[str, Any],
+    input_is_masked: bool = True,
 ) -> np.ndarray:
     """Perform robust geometry matching on a set of matched descriptors indexes."""
     # Override parameters
@@ -483,10 +484,16 @@ def match_robust(
         "matching_use_segmentation"
     ]  # unused but keep using the same cache
     features_data1 = feature_loader.instance.load_all_data(
-        data, im1, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+        data,
+        im1,
+        masked=input_is_masked,
+        segmentation_in_descriptor=segmentation_in_descriptor,
     )
     features_data2 = feature_loader.instance.load_all_data(
-        data, im2, masked=True, segmentation_in_descriptor=segmentation_in_descriptor
+        data,
+        im2,
+        masked=input_is_masked,
+        segmentation_in_descriptor=segmentation_in_descriptor,
     )
     if (
         features_data1 is None
@@ -516,8 +523,10 @@ def match_robust(
     rmatches_unfiltered = []
     m1 = feature_loader.instance.load_mask(data, im1)
     m2 = feature_loader.instance.load_mask(data, im2)
-    if m1 is not None and m2 is not None:
+    if m1 is not None and m2 is not None and input_is_masked:
         rmatches_unfiltered = unfilter_matches(rmatches, m1, m2)
+    else:
+        rmatches_unfiltered = rmatches
 
     robust_matching_min_match = overriden_config["robust_matching_min_match"]
     logger.debug(
@@ -797,7 +806,11 @@ def robust_match_fundamental(
 
 
 def compute_inliers_bearings(
-    b1: np.ndarray, b2: np.ndarray, R: np.ndarray, t: np.ndarray, threshold: float=0.01
+    b1: np.ndarray,
+    b2: np.ndarray,
+    R: np.ndarray,
+    t: np.ndarray,
+    threshold: float = 0.01,
 ) -> List[bool]:
     """Compute points that can be triangulated.
 
@@ -956,7 +969,7 @@ def _non_static_matches(
     res = []
     for match in matches:
         d = p1[match[0]] - p2[match[1]]
-        if d[0] ** 2 + d[1] ** 2 >= threshold ** 2:
+        if d[0] ** 2 + d[1] ** 2 >= threshold**2:
             res.append(match)
 
     static_ratio_threshold = 0.85
@@ -1023,7 +1036,12 @@ def _vermont_valid_mask(p: np.ndarray) -> bool:
 
 
 def _not_on_blackvue_watermark(
-    p1: np.ndarray, p2: np.ndarray, matches: List[Tuple[int, int]], im1: str, im2: str, data: DataSetBase
+    p1: np.ndarray,
+    p2: np.ndarray,
+    matches: List[Tuple[int, int]],
+    im1: str,
+    im2: str,
+    data: DataSetBase,
 ) -> List[Tuple[int, int]]:
     """Filter Blackvue's watermark."""
     meta1 = data.load_exif(im1)
