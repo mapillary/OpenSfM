@@ -248,10 +248,18 @@ create_tracks
 ~~~~~~~~~~~~~
 This command links the matches between pairs of images to build feature point tracks.  The tracks are stored in the `tracks.csv` file.  A track is a set of feature points from different images that have been recognized to correspond to the same pysical point.
 
+Format of the data in the genrated tracks.csv file is as follows:
+
+image_name track_id feature_index normalized_x normalized_y scale       R   G   B   
+02.jpg	   1479	    2594	      0.0379803	   -0.0481853	0.00155505	155	145	143	
+
+
+
 
 reconstruct
 ~~~~~~~~~~~
 This command runs the incremental reconstruction process.  The goal of the reconstruction process is to find the 3D position of tracks (the `structure`) together with the position of the cameras (the `motion`).  The computed reconstruction is stored in the ``reconstruction.json`` file.
+
 
 
 mesh
