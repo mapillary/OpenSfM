@@ -250,11 +250,18 @@ This command links the matches between pairs of images to build feature point tr
 
 Format of the data in the genrated tracks.csv file is as follows:
 
-image_name track_id feature_index normalized_x normalized_y scale       R   G   B   
-02.jpg	   1479	    2594	      0.0379803	   -0.0481853	0.00155505	155	145	143	
+image_name track_id feature_index normalized_x normalized_y size       R   G   B   
+02.jpg	   1479	    2594	      0.0379803	   -0.0481853	0.00155505	155	145	143 
 
-
-
+image_name -- name of the image file from which the data was extracted
+track_id -- id to keep 'track' of the tracks 
+feature_index -- index of the keypoint from which this track is associated
+normalized_x -- x coordinate of the normalized images coordinate system
+normalized_y -- y coordinate of the normalized images coordinate system
+size -- size value according to the normalized images coordinate system
+R -- pixel value for Red channel
+G -- pixel value for Green channel
+B -- pixel value for Blue channel
 
 reconstruct
 ~~~~~~~~~~~
