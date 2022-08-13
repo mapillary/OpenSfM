@@ -159,7 +159,7 @@ def read_images(
 ) -> None:
     full_queue_timeout = 600
     for image in images:
-        logger.info(f"Reading data for image {image} (queue-size={queue.qsize()}")
+        logger.info(f"Reading data for image {image} (queue-size={queue.qsize()})")
         image_array = data.load_image(image)
         if data.config["features_bake_segmentation"]:
             segmentation_array = data.load_segmentation(image)
