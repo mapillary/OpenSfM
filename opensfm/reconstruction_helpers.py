@@ -160,7 +160,7 @@ def exif_to_metadata(
 
     if "compass" in exif:
         metadata.compass_angle.value = exif["compass"]["angle"]
-        if "accuracy" in exif["compass"]:
+        if exif["compass"].get("accuracy") is not None:
             metadata.compass_accuracy.value = exif["compass"]["accuracy"]
 
     if "capture_time" in exif:

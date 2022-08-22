@@ -1352,7 +1352,6 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def exists(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.exists(path)
 
     @classmethod
@@ -1361,12 +1360,10 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def isfile(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.isfile(path)
 
     @classmethod
     def isdir(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.isdir(path)
 
     @classmethod
@@ -1422,5 +1419,4 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def timestamp(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `float`.
         return os.path.getmtime(path)
