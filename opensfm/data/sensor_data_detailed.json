@@ -4779,6 +4779,13 @@
         "Sensor res. (width)": 6016.0, 
         "Sensor res. (height)": 3376.0
     }, 
+    "DJI ZENMUSEP1": {
+        "Sensor height (mm)": 24, 
+        "Sensor width (mm)": 35.9, 
+        "Sensor res. (width)": 8192.0, 
+        "Sensor": "35.9 x 24 mm", 
+        "Sensor res. (height)": 5460.0
+    }, 
     "Epson L-500V": {
         "Sensor height (mm)": 4.32, 
         "Sensor width (mm)": 5.75, 
