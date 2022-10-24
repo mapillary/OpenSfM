@@ -47,8 +47,11 @@ def undistort_reconstruction(
         elif shot.camera.projection_type == "brown":
             urec.add_camera(perspective_camera_from_brown(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
-        elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
+        elif shot.camera.projection_type == "fisheye":
             urec.add_camera(perspective_camera_from_fisheye(shot.camera))
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
+        elif shot.camera.projection_type == "fisheye_opencv":
+            urec.add_camera(perspective_camera_from_fisheye_opencv(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
         elif shot.camera.projection_type == "fisheye62":
             urec.add_camera(perspective_camera_from_fisheye62(shot.camera))
