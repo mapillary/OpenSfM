@@ -38,6 +38,8 @@ def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_onl
             )
             exporter.add_camera(str(camera.id), K, w, h)
 
+    shots_map = {}
+
     for shot in reconstruction.shots.values():
         if export_only is not None and shot.id not in export_only:
             continue
@@ -48,6 +50,8 @@ def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_onl
             if not os.path.isfile(mask_path):
                 mask_path = ""
 
+            shots_map[str(shot.id)] = shot
+
             exporter.add_shot(
                 str(os.path.abspath(image_path)),
                 str(os.path.abspath(mask_path)),
@@ -57,6 +61,15 @@ def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_onl
                 shot.pose.get_origin(),
             )
 
+    def positive_point_depth(point, shot_id):
+        if not shot_id in shots_map:
+            return False
+
+        shot = shots_map[shot_id]
+
+        # Is point in front of the camera?
+        return shot.pose.transform(point.coordinates)[2] > 0
+
     for point in reconstruction.points.values():
         observations = tracks_manager.get_track_observations(point.id)
 
@@ -64,6 +77,9 @@ def export(reconstruction, tracks_manager, udata: UndistortedDataSet, export_onl
             shots = [k for k in observations if k in export_only]
         else:
             shots = list(observations)
+
+        if shots:
+            shots = [s for s in shots if positive_point_depth(point, s)]
 
         if shots:
             coordinates = np.array(point.coordinates, dtype=np.float64)
