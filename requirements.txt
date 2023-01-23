@@ -2,7 +2,7 @@ cloudpickle==0.4.0
 exifread==2.1.2
 flask==2.1.2
 fpdf2==2.4.6
-joblib==0.14.1
+joblib==1.2.0
 matplotlib
 networkx==2.5
 numpy>=1.19
