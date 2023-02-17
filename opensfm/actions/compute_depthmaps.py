@@ -16,7 +16,7 @@ def run_dataset(data: DataSet, subfolder, interactive) -> None:
 
     udata_path = os.path.join(data.data_path, subfolder)
     udataset = dataset.UndistortedDataSet(data, udata_path, io_handler=data.io_handler)
-    data.config["interactive"] = interactive
+    udataset.config["interactive"] = interactive
     reconstructions = udataset.load_undistorted_reconstruction()
     tracks_manager = udataset.load_undistorted_tracks_manager()
     dense.compute_depthmaps(udataset, tracks_manager, reconstructions[0])
