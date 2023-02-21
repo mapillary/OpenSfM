@@ -251,6 +251,11 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("projection",
                      &map::GroundControlPointObservation::projection_);
 
+  py::enum_<map::GroundControlPointRole>(m, "GroundControlPointRole")
+      .value("OPTIMIZATION", map::GroundControlPointRole::OPTIMIZATION)
+      .value("METRICS_ONLY", map::GroundControlPointRole::METRICS_ONLY)
+      .export_values();
+
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
@@ -259,6 +264,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("lla", &map::GroundControlPoint::lla_)
       .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
                     &map::GroundControlPoint::SetLla)
+      .def_readwrite("role", &map::GroundControlPoint::role_)
       .def_property("observations", &map::GroundControlPoint::GetObservations,
                     &map::GroundControlPoint::SetObservations)
       .def("add_observation", &map::GroundControlPoint::AddObservation);
