@@ -47,8 +47,14 @@ def undistort_reconstruction(
         elif shot.camera.projection_type == "brown":
             urec.add_camera(perspective_camera_from_brown(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
-        elif shot.camera.projection_type in ["fisheye", "fisheye_opencv"]:
+        elif shot.camera.projection_type == "fisheye":
             urec.add_camera(perspective_camera_from_fisheye(shot.camera))
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
+        elif shot.camera.projection_type == "fisheye_opencv":
+            urec.add_camera(perspective_camera_from_fisheye_opencv(shot.camera))
+            subshots = [get_shot_with_different_camera(urec, shot, image_format)]
+        elif shot.camera.projection_type == "fisheye62":
+            urec.add_camera(perspective_camera_from_fisheye62(shot.camera))
             subshots = [get_shot_with_different_camera(urec, shot, image_format)]
         elif pygeometry.Camera.is_panorama(shot.camera.projection_type):
             subshot_width = int(data.config["depthmap_resolution"])
@@ -173,7 +179,7 @@ def undistort_image(
         return {}
 
     projection_type = shot.camera.projection_type
-    if projection_type in ["perspective", "brown", "fisheye", "fisheye_opencv"]:
+    if projection_type in ["perspective", "brown", "fisheye", "fisheye_opencv", "fisheye62"]:
         [undistorted_shot] = undistorted_shots
         new_camera = undistorted_shot.camera
         height, width = original.shape[:2]

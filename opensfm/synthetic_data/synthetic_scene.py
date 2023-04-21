@@ -395,7 +395,7 @@ class SyntheticStreetScene(SyntheticScene):
         wall_color = [10, 90, 130]
 
         return sg.create_reconstruction(
-            points=np.asarray([self.floor_points, self.wall_points]),
+            points=np.asarray([self.floor_points, self.wall_points], dtype=object),
             colors=np.asarray([floor_color, wall_color]),
             cameras=self.cameras,
             shot_ids=self.shot_ids,

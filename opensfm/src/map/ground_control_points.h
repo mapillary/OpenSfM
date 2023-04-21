@@ -3,6 +3,17 @@
 #include <map/defines.h>
 #include <map/map.h>
 namespace map {
+enum GroundControlPointRole {
+  /*    A ground control point role in SfM cluster merge and bundle adjuster
+
+       Attributes:
+           OPTIMIZATION: used in the optimization of map chunks and logging metrics
+           METRICS_ONLY: only used in logging metrics
+
+  **/
+  OPTIMIZATION = 0,
+  METRICS_ONLY = 1
+};
 struct GroundControlPointObservation {
   /*    A ground control point observation.
 
@@ -27,6 +38,8 @@ struct GroundControlPoint {
          observations: list of observations of the point on images
          id: a unique id for this point group (survey point + image observations)
          survey_point_id: a unique id for the point on the ground
+         role: OPTIMIZATION if gcp is used in SfM optimization, METRICS_ONLY if the
+         ground control point is used for computing map merging metrics
      */
   GroundControlPoint() = default;
   LandmarkId id_ = "";
@@ -34,6 +47,7 @@ struct GroundControlPoint {
   bool has_altitude_ = false;
   AlignedVector<GroundControlPointObservation> observations_;
   std::map<std::string, double> lla_;
+  GroundControlPointRole role_;
 
   Vec3d GetLlaVec3d() const {
     return {

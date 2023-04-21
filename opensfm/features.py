@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Tuple, Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -119,7 +119,7 @@ class FeaturesData:
                 colors=self.colors,
                 segmentations=semantic.segmentation.astype(np.uint8),
                 instances=instances.astype(np.int16) if instances is not None else [],
-                segmentation_labels=np.array(semantic.labels).astype(np.str),
+                segmentation_labels=np.array(semantic.labels).astype(str),
                 OPENSFM_FEATURES_VERSION=self.FEATURES_VERSION,
             )
         else:
