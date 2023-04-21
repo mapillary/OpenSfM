@@ -630,6 +630,7 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_COMPOSITE = 3
     # FLANN_INDEX_KDTREE_SINGLE = 4
     # FLANN_INDEX_HIERARCHICAL = 5
+    FLANN_INDEX_LSH = 6
 
     if descriptors.dtype.type is np.float32:
         algorithm_type = config["flann_algorithm"].upper()
@@ -645,9 +646,16 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
             "iterations": config["flann_iterations"],
             "tree": config["flann_tree"],
         }
+    elif descriptors.dtype.type is np.uint8:
+        flann_params = {
+            "algorithm": FLANN_INDEX_LSH,
+            "table_number": 10,
+            "key_size": 24,
+            "multi_probe_level": 1,
+        }
     else:
         raise ValueError(
-            "FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead."
+            f"FLANN isn't supported for feature type {descriptors.dtype.type}."
         )
 
     return context.flann_Index(descriptors, flann_params)

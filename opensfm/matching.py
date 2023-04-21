@@ -369,14 +369,6 @@ def _match_descriptors_impl(
     if d1 is None or d2 is None:
         return dummy_ret
 
-    # Prevent using FLANN + Binary (np.uint8)
-    binary_matcher_override = "BRUTEFORCE"
-    if matcher_type == "FLANN" and d1.dtype == np.uint8:
-        logger.warning(
-            f"{matcher_type} for binary descriptors offers poor performance. Switching to {binary_matcher_override}."
-        )
-        matcher_type = binary_matcher_override
-
     symmetric_matching = overriden_config["symmetric_matching"]
     if matcher_type == "WORDS":
         words1 = feature_loader.instance.load_words(data, im1, masked=True)
