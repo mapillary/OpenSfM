@@ -16,6 +16,8 @@ def test_reconstruction_incremental(
 
     dataset.config["bundle_compensate_gps_bias"] = True
     dataset.config["bundle_use_gcp"] = True
+    dataset.config["bundle_max_iterations"] = 20
+    dataset.config["processes"] = 4
     _, reconstructed_scene = reconstruction.incremental_reconstruction(
         dataset, scene_synthetic.tracks_manager
     )
