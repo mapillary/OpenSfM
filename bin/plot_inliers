@@ -128,7 +128,7 @@ def create_subplot(figure, rows, columns, index, title, x_lim, y_lim, font_size=
         subplot.set_aspect(aspect)
 
     if grid:
-        pl.grid(b=True, which='major', color='0.3')
+        pl.grid(visible=True, which='major', color='0.3')
 
     return subplot
 
@@ -231,21 +231,21 @@ def reprojection_errors(reprojections, observations, scale):
     return errors, mean, std, min_norm, max_norm, corr
 
 
-def triangulate_tracks(tracks, reconstruction, graph, min_ray_angle):
+def triangulate_tracks(tracks, reconstruction, tracks_manager, min_ray_angle):
     """ Triangulates a list of tracks.
 
     :param tracks: The array of tracks.
     :param reconstruction: The reconstruction.
-    :param: graph, The tracks graph.
+    :param: tracks_manager, The tracks manager.
     :param: min_ray_angle: The minimum ray angle difference for a triangulation to be considered valid.
     :return: An array of booleans determining if each track was successfully triangulated or not.
     """
     succeeded = []
-    triangulator = reconstruct.TrackTriangulator(reconstruction, reconstruct.TrackHandlerTrackManager(graph, reconstruction)
+    triangulator = reconstruct.TrackTriangulator(reconstruction, reconstruct.TrackHandlerTrackManager(tracks_manager, reconstruction))
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
-        triangulator.triangulate(str(track), 1, min_ray_angle)
+        triangulator.triangulate(str(track), 1, min_ray_angle, iterations=10)
         succeeded.append(True) if str(track) in reconstruction.points else succeeded.append(False)
 
     return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
@@ -319,8 +319,8 @@ def load_common_tracks(im1, im2, tracks_manager):
     :param tracks_manager: The track manager.
     :return: An array with rows containing a track id and the corresponding feature id for the first and second image.
     """
-    t1 = tracks_manager.get_shot_observations(im1).items()
-    t2 = tracks_manager.get_shot_observations(im2).items()
+    t1 = tracks_manager.get_shot_observations(im1)
+    t2 = tracks_manager.get_shot_observations(im2)
     tc, p1, p2 = tracking.common_tracks(tracks_manager, im1, im2)
 
     common_tracks = []
@@ -417,7 +417,7 @@ def create_matches_figure(im1, im2, data, save_figs=False, single_column=False):
     p1 = features_data1.points
     p2 = features_data2.points
 
-    symmetric_matches = matching.match_brute_force_symmetric(f1, f2, data.config)
+    symmetric_matches = matching.match_brute_force_symmetric(p1, p2, data.config)
     symmetric_matches = np.array(symmetric_matches)
 
     if symmetric_matches.shape[0] < 8:
@@ -519,7 +519,7 @@ def plot_opencv_find_homography(fw, ip, index, tracks, track_points1, track_poin
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'homography_threshold', 0.004, data)
     H, inliers = cv2.findHomography(track_points1, track_points2, cv2.RANSAC, threshold)
 
-    inliers = np.array(np.squeeze(inliers), np.bool)
+    inliers = np.array(np.squeeze(inliers), bool)
 
     inliers1 = track_points1[inliers, :]
     inliers2 = track_points2[inliers, :]
@@ -554,7 +554,7 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'five_point_algo_threshold', 0.006, data)
     iterations = data.config['five_point_refine_rec_iterations']
-    R, t, inliers = reconstruct.two_view_reconstruction(track_points1, track_points2, camera1, camera2, threshold, iterations)
+    R, t, inliers, _ = reconstruct.two_view_reconstruction_general(track_points1, track_points2, camera1, camera2, threshold, iterations)
 
     inliers1 = track_points1[inliers, :]
     inliers2 = track_points2[inliers, :]
@@ -573,7 +573,7 @@ def plot_two_view_reconstruction(fw, ip, index, track_points1, track_points2, da
     plot_matches(subplot, ip.im1_array, ip.im2_array, outliers1, outliers2, 'r', 'om')
 
 
-def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linked_tracks, graph, data):
+def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linked_tracks, tracks_manager, data):
     """ Plot successfully reconstructed and failed 3D points by bootstrapping a reconstruction.
 
     :param fw: Figure wrapper.
@@ -583,13 +583,13 @@ def plot_bootstrapped_reconstruction(fw, ip, index, p1, p2, robust_tracks, linke
     :param p2: Feature points for the second image.
     :param robust_tracks: Tracks corresponding to robust matches.
     :param linked_tracks: Common tracks linked by other image correspondences.
-    :param graph: Tracks graph.
+    :param tracks_manager: The tracks manager.
     :param data: Data set.
     """
 
     print_reset = redirect_print()
-    _, pm1, pm2 = tracking.common_tracks(graph, ip.im1, ip.im2)
-    reconstruction, _, _ = reconstruct.bootstrap_reconstruction(data, graph, ip.im1, ip.im2, pm1, pm2)
+    _, pm1, pm2 = tracking.common_tracks(tracks_manager, ip.im1, ip.im2)
+    reconstruction, _ = reconstruct.bootstrap_reconstruction(data, tracks_manager, ip.im1, ip.im2, pm1, pm2)
     reset_print(print_reset)
 
     threshold, pixels1, pixels2 = thresholds(ip.im1_array, ip.im2_array, 'triangulation_threshold', 0.004, data)
@@ -667,7 +667,7 @@ def create_tracks_figure(im1, im2, data, save_figs=False, single_column=False):
     plot_common_tracks(fw, ip, 1, p1, p2, tracks, robust_tracks, linked_tracks, robust_matches)
     plot_opencv_find_homography(fw, ip, 2, tracks, track_points1, track_points2, data)
     plot_two_view_reconstruction(fw, ip, 3, track_points1, track_points2, data)
-    plot_bootstrapped_reconstruction(fw, ip, 4, p1, p2, robust_tracks, linked_tracks, graph, data)
+    plot_bootstrapped_reconstruction(fw, ip, 4, p1, p2, robust_tracks, linked_tracks, tracks_manager, data)
 
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_tracks.jpg'.format(im1, im2, data.feature_type()))
 
@@ -704,7 +704,7 @@ def plot_reconstructed_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec
     plot_matches(subplot, ip.im1_array, ip.im2_array, non_rec_track_points1, non_rec_track_points2, 'r', 'om')
 
 
-def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_tracks, reconstruction, graph, data):
+def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_tracks, reconstruction, tracks_manager, data):
     """ Reprojects tracks included in and excluded from reconstruction and plots reprojections on top of observations.
 
     :param fw: Figure wrapper.
@@ -716,7 +716,7 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
     :param rec_tracks: Common tracks included in the reconstruction.
     :param non_rec_tracks: Common tracks not included in the reconstruction.
     :param reconstruction: Reconstruction.
-    :param graph: Tracks graph.
+    :param tracks_manager: The tracks manager.
     :param data: Data set
     """
 
@@ -727,7 +727,7 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
     rp2 = reproject_tracks(ip.im2, rec_tracks[:, 0], reconstruction)
 
     min_ray_angle = data.config['triangulation_min_ray_angle']
-    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, tracks_manager, min_ray_angle)
     reprojected1 = reproject_tracks(ip.im1, non_rec_tracks[succeeded, 0], reconstruction)
     reprojected2 = reproject_tracks(ip.im2, non_rec_tracks[succeeded, 0], reconstruction)
 
@@ -786,7 +786,7 @@ def create_reconstruction_matches_figure(im1, im2, data, save_figs=False):
     rec_tracks, non_rec_tracks = reconstruction_tracks(tracks, reconstruction)
 
     plot_reconstructed_tracks(fw, ip, 1, p1, p2, tracks, rec_tracks, non_rec_tracks)
-    plot_reprojected_tracks(fw, ip, 2, p1, p2, tracks, rec_tracks, non_rec_tracks, reconstruction, graph, data)
+    plot_reprojected_tracks(fw, ip, 2, p1, p2, tracks, rec_tracks, non_rec_tracks, reconstruction, tracks_manager, data)
 
     display_figure(fig, save_figs, data, '{0}_{1}_{2}_reconstruction.jpg'.format(im1, im2, data.feature_type()))
 
@@ -833,7 +833,7 @@ def create_complete_reconstruction_figure(im, data, save_figs=False, single_colu
     plot_points(rec_plot, im_array, rp, '+w')
 
     min_ray_angle = data.config['triangulation_min_ray_angle']
-    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, tracks_manager, min_ray_angle)
     reprojected = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
     triangulated_points = p[non_rec_tracks[succeeded, 1]]
@@ -887,7 +887,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     reproj_rec = reproject_tracks(im, rec_tracks[:, 0], reconstruction)
 
     min_ray_angle = data.config['triangulation_min_ray_angle']
-    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, graph, min_ray_angle)
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, tracks_manager, min_ray_angle)
     reproj_non = reproject_tracks(im, non_rec_tracks[succeeded, 0], reconstruction)
 
     triang_non = p[non_rec_tracks[succeeded, 1]]
@@ -897,7 +897,7 @@ def create_reprojection_error_figure(im, data, save_figs=False, single_column=Fa
     non_errors, non_mean, non_std, non_min, non_max, non_corr = reprojection_errors(reproj_non, triang_non, scale)
 
     triang_thld = data.config['triangulation_threshold']
-    bundle_thld = data.config['bundle_outlier_threshold']
+    bundle_thld = data.config['bundle_outlier_fixed_threshold']
     axis_max = np.max(np.abs(np.vstack((rec_errors, non_errors))))
     axis_max = 1.05 * np.max([axis_max, scale * triang_thld, scale * bundle_thld])
 
