@@ -327,8 +327,14 @@ def create_reconstruction(
         s_cameras,
     ) in enumerate(zip(rig_shots, rig_positions, rig_rotations, rig_cameras, cameras)):
         add_shots_to_reconstruction(
+            # pyre-fixme[6]: For 1st argument expected `List[List[str]]` but got
+            #  `List[List[Tuple[str, str]]]`.
             s_rig_shots,
+            # pyre-fixme[6]: For 2nd argument expected `List[ndarray]` but got
+            #  `ndarray`.
             s_rig_positions,
+            # pyre-fixme[6]: For 3rd argument expected `List[ndarray]` but got
+            #  `ndarray`.
             s_rig_rotations,
             s_rig_cameras,
             s_cameras,
