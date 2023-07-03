@@ -13,7 +13,7 @@ from opensfm import (
     types,
     features_processing,
 )
-from opensfm.context import parallel_map
+from opensfm.context import parallel_map, lru_cache
 from opensfm.dataset import UndistortedDataSet
 from opensfm.dataset_base import DataSetBase
 
@@ -156,6 +156,7 @@ def undistort_image_and_masks(arguments) -> None:
         for k, v in undistorted.items():
             udata.save_undistorted_segmentation(k, v)
 
+compute_camera_mapping_lru = lru_cache(maxsize=100)(pygeometry.compute_camera_mapping)
 
 def undistort_image(
     shot: pymap.Shot,
@@ -183,7 +184,7 @@ def undistort_image(
         [undistorted_shot] = undistorted_shots
         new_camera = undistorted_shot.camera
         height, width = original.shape[:2]
-        map1, map2 = pygeometry.compute_camera_mapping(
+        map1, map2 = compute_camera_mapping_lru(
             shot.camera, new_camera, width, height
         )
         undistorted = cv2.remap(original, map1, map2, interpolation)

@@ -14,6 +14,7 @@ set(ROBUST_FILES
     src/relative_pose_model.cc
     src/line_model.cc
     src/instanciations.cc
+    src/similarity_model.cc
 )
 add_library(robust ${ROBUST_FILES})
 target_link_libraries(robust

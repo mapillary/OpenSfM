@@ -11,7 +11,9 @@ from typing import Optional
 
 import cv2
 from joblib import Parallel, delayed, parallel_backend
-
+from multiprocessing import Lock as ProcessLock, Manager as ProcessManager
+from multiprocessing.dummy import Lock as ThreadLock
+import functools
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -60,7 +62,38 @@ def parallel_map(func, args, num_proc: int, max_batch_size: int = 1):
     cv2.setNumThreads(threads_used)
     return res
 
+def lru_cache(maxsize=128, use_multiprocessing=False):
+    """Least-recently-used cache decorator."""
+    def decorator(func):
+        if use_multiprocessing:
+            manager = ProcessManager()
+            cache = manager.dict()
+            keys = manager.list()
+            lock = ProcessLock()
+        else:
+            cache = {}
+            keys = []
+            lock = ThreadLock()
 
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            key = (args, tuple(kwargs.items()))
+            with lock:
+                if key in cache:
+                    keys.remove(key)
+                    keys.append(key)
+                    return cache[key]
+                result = func(*args, **kwargs)
+                if len(keys) >= maxsize:
+                    old_key = keys.pop(0)
+                    del cache[old_key]
+                keys.append(key)
+                cache[key] = result
+                return result
+
+        return wrapper
+
+    return decorator
 # Memory usage
 
 if sys.platform == "win32":
