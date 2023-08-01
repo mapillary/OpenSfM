@@ -23,6 +23,8 @@ datapath = None
 
 @app.route("/")
 def index() -> Response:
+    # pyre-fixme[6]: For 1st argument expected `typing_extensions.LiteralString` but
+    #  got `Optional[str]`.
     return send_file(os.path.join(app.static_folder, "index.html"))
 
 
@@ -83,7 +85,6 @@ def verified_send(file) -> Response:
     if os.path.isfile(file):
         return send_file(file)
     else:
-        # pyre-fixme[7]: Expected `Response` but got implicit return value of `None`.
         abort(404)
 
 
