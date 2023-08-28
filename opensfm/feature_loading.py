@@ -15,7 +15,7 @@ SEGMENTATION_IN_DESCRIPTOR_MULT = (
 )
 
 
-class FeatureLoader(object):
+class FeatureLoader:
     def clear_cache(self) -> None:
         self.load_mask.cache_clear()
         self.load_points_colors_segmentations_instances.cache_clear()

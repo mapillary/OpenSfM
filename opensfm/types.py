@@ -9,7 +9,7 @@ from opensfm.geo import TopocentricConverter
 PANOSHOT_RIG_PREFIX = "panoshot_"
 
 
-class ShotMesh(object):
+class ShotMesh:
     """Triangular mesh of points visible in a shot
 
     Attributes:
@@ -22,7 +22,7 @@ class ShotMesh(object):
         self.faces = None
 
 
-class Reconstruction(object):
+class Reconstruction:
     """Defines the reconstructed scene.
 
     Attributes:

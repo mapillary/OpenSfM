@@ -75,7 +75,7 @@ def camera_pose(
     return pose
 
 
-class SyntheticScene(object):
+class SyntheticScene:
     def get_reconstruction(self) -> types.Reconstruction:
         raise NotImplementedError()
 

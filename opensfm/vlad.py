@@ -47,7 +47,7 @@ def vlad_distances(
     return image, distances, others
 
 
-class VladCache(object):
+class VladCache:
     def clear_cache(self) -> None:
         self.load_words.cache_clear()
         self.vlad_histogram.cache_clear()

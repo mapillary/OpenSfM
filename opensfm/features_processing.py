@@ -118,7 +118,7 @@ def is_high_res_panorama(
     return w == 2 * h or exif_pano
 
 
-class Counter(object):
+class Counter:
     """Lock-less counter from https://julien.danjou.info/atomic-lock-free-counters-in-python/
     that relies on the CPython impl. of itertools.count() that is thread-safe. Used, as for
     some reason, joblib doesn't like a good old threading.Lock (everything is stuck)
