@@ -440,14 +440,12 @@ def _match_descriptors_impl(
             matches = match_brute_force_symmetric(d1, d2, overriden_config)
         else:
             matches = match_brute_force(d1, d2, overriden_config)
-    # CUSTOM CHANGES #7 BEGIN
+# CUSTOM CHANGES #7 BEGIN
     elif matcher_type == "LIGHTGLUE":
         p1 = features_data1.points.astype(np.float32)
         p2 = features_data2.points.astype(np.float32)
-        matches = match_lightglue(
-            d1, d2, p1, p2, overriden_config["feature_type"].upper()
-        )
-    # CUSTOM CHANGES #7 END
+        matches = match_lightglue(d1, d2, p1, p2, overriden_config["feature_type"].upper())
+# CUSTOM CHANGES #7 END
     else:
         raise ValueError("Invalid matcher_type: {}".format(matcher_type))
 
@@ -469,7 +467,6 @@ def _match_descriptors_impl(
         np.array(matches, dtype=int),
         matcher_type,
     )
-
 
 def match_robust(
     im1: str,
@@ -787,28 +784,22 @@ def match_brute_force_symmetric(
 
     return list(set(matches_ij).intersection(set(matches_ji)))
 
-
 # CUSTOM CHANGES #6 BEGIN
 
-
-def match_lightglue(
-    d1: np.ndarray, d2: np.ndarray, p1: np.ndarray, p2: np.ndarray, feature_type: str
-) -> List[Tuple[int, int]]:
+def match_lightglue(d1: np.ndarray, d2: np.ndarray, p1: np.ndarray, p2: np.ndarray, feature_type: str) -> List[Tuple[int, int]]:
     if (
         not hasattr(match_lightglue, "lightglue")
         or match_lightglue.feature_type != feature_type.lower()
     ):
         if feature_type.lower() not in ("disk", "superpoint"):
-            raise RuntimeError(
-                f"LightGlue: Unsupported feature type {feature_type}. LightGlue only supports DISK and SUPERPOINT"
-            )
+            raise RuntimeError(f"LightGlue: Unsupported feature type {feature_type}. LightGlue only supports DISK and SUPERPOINT")
         if not torch.cuda.is_available():
             logger.error("LightGlue requires CUDA")
             raise RuntimeError("LightGlue requires CUDA")
         feature_type = feature_type.lower()
         match_lightglue.lightglue = (
             LightGlue(
-                features=feature_type, depth_confidence=0.9, width_confidence=0.95
+                features=feature_type
             )
             .eval()
             .cuda()
@@ -829,7 +820,9 @@ def match_lightglue(
         "descriptors": torch.tensor(d2)[None, :].cuda(),
     }
 
-    matches01 = match_lightglue.lightglue({"image0": feats0full, "image1": feats1full})
+    matches01 = match_lightglue.lightglue(
+        {"image0": feats0full, "image1": feats1full}
+    )
 
     # in opensfm matches are of type List[Tuple[int, int]], where each tuple is a pair of indices into the keypoints
     # in lightglue matches are of type torch.Tensor, where each row is a pair of indices into the keypoints
@@ -838,6 +831,7 @@ def match_lightglue(
     matches = [tuple(x) for x in matches01]
 
     return matches
+
 
 
 # CUSTOM CHANGES #6 END

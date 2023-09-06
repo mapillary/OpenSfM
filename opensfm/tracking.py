@@ -90,7 +90,11 @@ def create_tracks_manager(
         for image, featureid in track:
             if image not in features:
                 continue
-            x, y, s = features[image][featureid]
+            if len(features[image][featureid]) == 2:
+                x, y = features[image][featureid]
+                s = 1.0
+            else:
+                x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
             segmentation, instance = (
                 segmentations[image][featureid] if image in segmentations else NO_VALUE,
