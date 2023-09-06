@@ -8,6 +8,14 @@ import cv2
 import numpy as np
 from opensfm import context, pyfeatures
 
+# CUSTOM CHANGES #1 BEGIN
+# imports for SuperPoint and DISK
+from lightglue import SuperPoint, DISK
+from lightglue.utils import numpy_image_to_torch
+import torch
+import threading
+# CUSTOM CHANGES #1 END
+
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -554,6 +562,118 @@ def extract_features_orb(
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
     return points, desc
 
+# CUSTOM CHANGES #2 BEGIN
+# Implementation of SuperPoint and DISK
+
+def extract_features_superpoint(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    descriptor_dim = config.get(
+        "descriptor_dim", SuperPoint.default_conf["descriptor_dim"]
+    )
+    nms_radius = config.get("nms_radius", SuperPoint.default_conf["nms_radius"])
+    detection_threshold = config.get(
+        "detection_threshold", SuperPoint.default_conf["detection_threshold"]
+    )
+
+    if (
+        not hasattr(extract_features_superpoint, "superpoint_detector")
+        or extract_features_superpoint.superpoint_detector.conf[
+            "max_num_keypoints"
+        ]
+        != features_count
+        or extract_features_superpoint.superpoint_detector.conf[
+            "descriptor_dim"
+        ]
+        != descriptor_dim
+        or extract_features_superpoint.superpoint_detector.conf["nms_radius"]
+        != nms_radius
+        or extract_features_superpoint.superpoint_detector.conf[
+            "detection_threshold"
+        ]
+        != detection_threshold
+    ):
+        logger.debug("Initializing SuperPoint...")
+        if not torch.cuda.is_available():
+            logger.error("SuperPoint requires CUDA")
+            raise RuntimeError("SuperPoint requires CUDA")
+        extract_features_superpoint.superpoint_detector = (
+            SuperPoint(
+                max_num_keypoints=features_count,
+                descriptor_dim=descriptor_dim,
+                nms_radius=nms_radius,
+                detection_threshold=detection_threshold,
+            )
+            .eval()
+            .cuda()
+        )
+        logger.debug("Initialized SuperPoint.")
+
+    logger.debug("Computing SuperPoint")
+    t = time.time()
+    image_cuda = numpy_image_to_torch(image).cuda()
+    feats = extract_features_superpoint.superpoint_detector.extract(image_cuda)
+
+    points = (
+        feats["keypoints"].detach().cpu().numpy().squeeze()
+    )  # original shape: (1, N, 2). Squeeze to remove batch dimension.
+    desc = (
+        feats["descriptors"].detach().cpu().numpy().squeeze()
+    )  # original shape: (1, N, descriptor_dim) Squeeze to remove batch dimension.
+
+    logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
+    return points, desc
+
+
+def extract_features_disk(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    desc_dim = config.get("desc_dim", DISK.default_conf["desc_dim"])
+    nms_window_size = config.get(
+        "nms_window_size", DISK.default_conf["nms_window_size"]
+    )
+    detection_threshold = config.get(
+        "detection_threshold", DISK.default_conf["detection_threshold"]
+    )
+    if (
+        not hasattr(extract_features_disk, "disk_detector")
+        or extract_features_disk.disk_detector.conf.max_num_keypoints
+        != features_count
+        or extract_features_disk.disk_detector.conf.desc_dim != desc_dim
+        or extract_features_disk.disk_detector.conf.nms_window_size
+        != nms_window_size
+        or extract_features_disk.disk_detector.conf.detection_threshold
+        != detection_threshold
+    ):
+        logger.debug("Initializing DISK...")
+        if not torch.cuda.is_available():
+            logger.error("DISK requires CUDA")
+            raise RuntimeError("DISK requires CUDA")
+
+        extract_features_disk.disk_detector = (
+            DISK(
+                max_num_keypoints=features_count,
+                desc_dim=desc_dim,
+                nms_window_size=nms_window_size,
+                detection_threshold=detection_threshold,
+            )
+            .eval()
+            .cuda()
+        )
+        logger.debug("Initialized DISK.")
+
+    logger.debug("Computing DISK")
+    t = time.time()
+    image_cuda = numpy_image_to_torch(image).cuda()
+    feats = extract_features_disk.disk_detector.extract(image_cuda)
+
+    points = feats["keypoints"].detach().cpu().numpy().squeeze()
+    desc = feats["descriptors"].detach().cpu().numpy().squeeze()
+
+    logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
+    return points, desc
+
+# CUSTOM CHANGES #2 END
 
 def extract_features(
     image: np.ndarray, config: Dict[str, Any], is_panorama: bool
@@ -609,10 +729,16 @@ def extract_features(
         points, desc = extract_features_hahog(image_gray, config, features_count)
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
+    # CUSTOM CHANGES #3 BEGIN
+    elif feature_type == "SUPERPOINT":
+        points, desc = extract_features_superpoint(image, config, features_count)
+    elif feature_type == "DISK":
+        points, desc = extract_features_disk(image_gray, config, features_count)
     else:
         raise ValueError(
-            "Unknown feature type " "(must be SURF, SIFT, AKAZE, HAHOG or ORB)"
+            f"Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG, ORB, SUPERPOINT or DISK) but got {feature_type}"
         )
+    # CUSTOM CHANGES #3 END
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
