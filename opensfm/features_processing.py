@@ -277,20 +277,34 @@ def detect(
     if len(p_unsorted) == 0:
         logger.warning("No features found in image {}".format(image))
 
-    size = p_unsorted[:, 2]
-    order = np.argsort(size)
-    p_sorted = p_unsorted[order, :]
-    f_sorted = f_unsorted[order, :]
-    c_sorted = c_unsorted[order, :]
-    if s_unsorted is not None:
-        semantic_data = features.SemanticData(
-            s_unsorted[order],
-            i_unsorted[order] if i_unsorted is not None else None,
-            data.segmentation_labels(),
-        )
-    else:
-        semantic_data = None
-    features_data = features.FeaturesData(p_sorted, f_sorted, c_sorted, semantic_data)
+    # CUSTOM CHANGES #4 BEGIN
+    # Handling the case where features have 2 columns instead of 4. i.e. no size and no orientation information which is the case for DISK and SUPERPOINT
+
+    if p_unsorted.shape[1] == 2:
+        # No size available so no need to sort.
+        p_sorted = p_unsorted
+        f_sorted = f_unsorted
+        c_sorted = c_unsorted
+        features_data = features.FeaturesData(p_unsorted, f_unsorted, c_unsorted, semantic=None)
+
+    else: # should be p_unsorted.shape[1] == 4
+        size = p_unsorted[:, 2]
+        order = np.argsort(size)
+        p_sorted = p_unsorted[order, :]
+        f_sorted = f_unsorted[order, :]
+        c_sorted = c_unsorted[order, :]
+        if s_unsorted is not None:
+            semantic_data = features.SemanticData(
+                s_unsorted[order],
+                i_unsorted[order] if i_unsorted is not None else None,
+                data.segmentation_labels(),
+            )
+        else:
+            semantic_data = None
+        features_data = features.FeaturesData(p_sorted, f_sorted, c_sorted, semantic_data)
+
+    # CUSTOM CHANGES #4 END
+
     data.save_features(image, features_data)
 
     if need_words:
