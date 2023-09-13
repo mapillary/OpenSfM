@@ -13,7 +13,8 @@ from opensfm import context, pyfeatures
 from lightglue import SuperPoint, DISK
 from lightglue.utils import numpy_image_to_torch
 import torch
-import threading
+import pypopsift
+from nets.aliked import ALIKED
 # CUSTOM CHANGES #1 END
 
 
@@ -354,7 +355,6 @@ def _in_mask(point: np.ndarray, width: int, height: int, mask: np.ndarray) -> bo
     v = mask.shape[0] * (point[1] + 0.5) / height
     return mask[int(v), int(u)] != 0
 
-
 def extract_features_sift(
     image: np.ndarray, config: Dict[str, Any], features_count: int
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -563,7 +563,48 @@ def extract_features_orb(
     return points, desc
 
 # CUSTOM CHANGES #2 BEGIN
-# Implementation of SuperPoint and DISK
+# Implementation of POPSIFT, SUPERPOINT and DISK
+
+def extract_features_popsift(
+    image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
+
+    sift_edge_threshold = float(config["sift_edge_threshold"])
+    sift_peak_threshold = float(config["sift_peak_threshold"])
+    use_root = bool(config["feature_root"])
+
+    logger.debug("Computing sift with threshold {0}".format(sift_peak_threshold))
+    t = time.time()
+    points, desc = pypopsift.popsift(image, peak_threshold=sift_peak_threshold,
+                                edge_threshold=sift_edge_threshold,
+                                target_num_features=features_count,
+                                use_root=use_root)
+    
+    logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
+    return points, desc    
+
+def extract_features_aliked(
+        image: np.ndarray, config: Dict[str, Any], features_count: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    
+    if not hasattr(extract_features_aliked, "aliked"):
+        logger.debug("Initializing ALIKED...")
+        if not torch.cuda.is_available():
+            logger.error("ALIKED requires CUDA")
+            raise RuntimeError("SuperPoint requires CUDA")
+        extract_features_aliked.aliked = ALIKED("aliked-n16rot", n_limit = features_count)
+        logger.debug("Compilling ALIKED...")
+        extract_features_aliked.aliked = torch.compile(extract_features_aliked.aliked, mode="reduce-overhead")
+        logger.debug("Initialized ALIKED.")
+
+    logger.debug("Computing ALIKED")
+    t = time.time()
+    pred_ref =  extract_features_aliked.aliked.run(image)
+    points = pred_ref['keypoints']
+    desc = pred_ref['descriptors']
+    logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
+    return points, desc
+
 
 def extract_features_superpoint(
     image: np.ndarray, config: Dict[str, Any], features_count: int
@@ -607,6 +648,7 @@ def extract_features_superpoint(
             .eval()
             .cuda()
         )
+        extract_features_superpoint.superpoint_detector = torch.compile(extract_features_superpoint.superpoint_detector, mode="reduce-overhead")
         logger.debug("Initialized SuperPoint.")
 
     logger.debug("Computing SuperPoint")
@@ -660,6 +702,7 @@ def extract_features_disk(
             .eval()
             .cuda()
         )
+        extract_features_disk.disk_detector = torch.compile(extract_features_disk.disk_detector, mode="reduce-overhead")
         logger.debug("Initialized DISK.")
 
     logger.debug("Computing DISK")
@@ -730,13 +773,17 @@ def extract_features(
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
     # CUSTOM CHANGES #3 BEGIN
+    elif feature_type == "ALIKED":
+        points, desc = extract_features_aliked(image, config, features_count)
     elif feature_type == "SUPERPOINT":
-        points, desc = extract_features_superpoint(image, config, features_count)
+        points, desc = extract_features_superpoint(image_gray, config, features_count)
     elif feature_type == "DISK":
         points, desc = extract_features_disk(image_gray, config, features_count)
+    elif feature_type == "POPSIFT":
+        points, desc = extract_features_popsift(image_gray, config, features_count)
     else:
         raise ValueError(
-            f"Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG, ORB, SUPERPOINT or DISK) but got {feature_type}"
+            f"Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG, ORB, SUPERPOINT, DISK, POPSIFT or ALIKED) but got {feature_type}"
         )
     # CUSTOM CHANGES #3 END
 
