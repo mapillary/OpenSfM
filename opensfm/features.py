@@ -589,10 +589,14 @@ def extract_features(
         else config["feature_min_frames"]
     )
 
-    assert len(image.shape) == 3 or len(image.shape) == 2
+    assert image.ndim == 2 or image.ndim == 3 and image.shape[2] in [1, 3]
+    assert image.shape[0] > 2 and image.shape[1] > 2
+    assert np.issubdtype(image.dtype, np.uint8)
+
     image = resized_image(image, extraction_size)
-    if len(image.shape) == 2:  # convert (h, w) to (h, w, 1)
+    if image.ndim == 2:  # convert (h, w) to (h, w, 1)
         image = np.expand_dims(image, axis=2)
+
     # convert color to gray-scale if necessary
     if image.shape[2] == 3:
         image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -610,9 +614,8 @@ def extract_features(
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
     else:
-        raise ValueError(
-            "Unknown feature type " "(must be SURF, SIFT, AKAZE, HAHOG or ORB)"
-        )
+        raise ValueError("Unknown feature type "
+                         + "(must be SURF, SIFT, AKAZE, HAHOG or ORB)")
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
