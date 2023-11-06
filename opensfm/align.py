@@ -123,13 +123,13 @@ def alignment_constraints(
     """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
-
+    logger.info(f"Collecting alignment constraints - bundle_use_gps:{config['bundle_use_gps']} bundle_use_gcp: {config['bundle_use_gcp']}")
     # Get Ground Control Point correspondences
     if gcp and config["bundle_use_gcp"]:
         triangulated, measured = triangulate_all_gcp(reconstruction, gcp)
         X.extend(triangulated)
         Xp.extend(measured)
-
+    logger.info(f"GCP constraints X ({len(X)}) - Xp ({len(Xp)})")
     # Get camera center correspondences
     if use_gps and config["bundle_use_gps"]:
         for rig_instance in reconstruction.rig_instances.values():
@@ -141,7 +141,7 @@ def alignment_constraints(
             if len(gpses) > 0:
                 X.append(rig_instance.pose.get_origin())
                 Xp.append(np.average(gpses, axis=0))
-
+    logger.info(f"GPS constraints X ({len(X)}) - Xp ({len(Xp)})")
     return X, Xp
 
 
