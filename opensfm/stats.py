@@ -958,12 +958,14 @@ def save_residual_grids(
         cmap = cm.get_cmap("viridis_r")
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
+        sub_ax = plt.axes([0.96, 0.55, 0.02, 0.3]) # add a small custom axis
         plt.colorbar(
             mappable=sm,
             orientation="horizontal",
             label="Residual Norm",
             pad=0.08,
             aspect=40,
+            cax=sub_ax,
         )
 
         plt.xticks(
