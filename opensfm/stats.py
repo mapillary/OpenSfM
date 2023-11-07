@@ -528,11 +528,13 @@ def save_matchgraph(
     norm = colors.Normalize(vmin=lowest, vmax=highest)
     sm = cm.ScalarMappable(norm=norm, cmap=cmap.reversed())
     sm.set_array([])
+    sub_ax = plt.axes([0.96, 0.55, 0.02, 0.3]) # add a small custom axis
     plt.colorbar(
         sm,
         orientation="horizontal",
         label="Number of matches between images",
         pad=0.0,
+        cax=sub_ax,
     )
 
     with io_handler.open(os.path.join(output_path, "matchgraph.png"), "wb") as fwb:
