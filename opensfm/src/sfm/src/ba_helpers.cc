@@ -205,8 +205,15 @@ py::tuple BAHelpers::BundleLocal(
     ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
                       shot_rig_cameras, fix_instance);
 
+    LOG(INFO) << "bundle_use_gps: " << config["bundle_use_gps"].cast<bool>();
     // only add averaged rig position constraints to moving instances
     if (!fix_instance && gps_count > 0) {
+      LOG(INFO) << "bundle_use_gps: " << config["bundle_use_gps"].cast<bool>()
+                << ", adding average GPS prior to rig instance " << rig_instance_id
+                << ", count: " << gps_count
+                << ", avg pos: " << average_position.transpose()
+                << ", avg std: " << average_std
+                << ", scale group: " << gps_scale_group;
       average_position /= gps_count;
       average_std /= gps_count;
       ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
