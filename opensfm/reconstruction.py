@@ -1494,6 +1494,8 @@ def grow_reconstruction(
                 remove_outliers(reconstruction, config, bundled_points)
                 step["local_bundle"] = brep
 
+            logger.info(f"Reconstruction now has {len(reconstruction.shots)} shots.")
+
             break
         else:
             logger.info("Some images can not be added")
