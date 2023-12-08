@@ -165,7 +165,7 @@ TopocentricConverter::TopocentricConverter(const double lat,
     : lat_(lat), long_(longitude), alt_(alt) {}
 
 TopocentricConverter::TopocentricConverter(const Vec3d& lla)
-    : TopocentricConverter(lla[0], lla[1], lla[2]){};
+    : TopocentricConverter(lla[0], lla[1], lla[2]){}
 
 Vec3d TopocentricConverter::ToTopocentric(const double lat, const double lon,
                                           const double alt) const {
