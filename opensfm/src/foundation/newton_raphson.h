@@ -65,7 +65,7 @@ typename TypeTraits<N, M>::Values SolveDecr(
     const typename TypeTraits<N, M>::Jacobian& d,
     const typename TypeTraits<N, M>::Values& f) {
   return (d.transpose() * d).inverse() * d.transpose() * f;
-};
+}
 
 template <>
 typename TypeTraits<1, 1>::Values SolveDecr<1, 1>(
