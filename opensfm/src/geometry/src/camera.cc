@@ -366,7 +366,7 @@ MatX2d Camera::PixelToNormalizedCoordinatesMany(const MatX2d& px_coords,
     norm_coords.row(i) =
         PixelToNormalizedCoordinates(px_coords.row(i), width, height);
   }
-  return px_coords;
+  return norm_coords;
 }
 
 Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord) const {
