@@ -561,17 +561,17 @@ void BundleAdjuster::Run() {
   ceres::Problem problem;
 
   // Add cameras
-  for (auto &i : cameras_) {
-    auto &data = i.second.GetValueData();
+  for (auto &[_, cam] : cameras_) {
+    auto &data = cam.GetValueData();
     problem.AddParameterBlock(data.data(), data.size());
 
     // Lock parameters based on bitmask of parameters : only constant for now
-    if (i.second.GetParametersToOptimize().empty()) {
+    if (cam.GetParametersToOptimize().empty()) {
       problem.SetParameterBlockConstant(data.data());
     }
 
     // Add a barrier for constraining transition of dual to stay in [0, 1]
-    const auto camera = i.second.GetValue();
+    const auto camera = cam.GetValue();
     if (camera.GetProjectionType() == geometry::ProjectionType::DUAL) {
       const auto types = camera.GetParametersTypes();
       int index = -1;
