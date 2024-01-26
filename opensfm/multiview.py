@@ -165,6 +165,7 @@ def ransac(kernel: Any, threshold: float) -> TRansacSolution:
         try:
             samples = kernel.sampling()
         except AttributeError:
+            # pyre-fixme[20]: Argument `k` expected.
             samples = random.sample(
                 range(kernel.num_samples()), kernel.required_samples
             )
@@ -238,13 +239,16 @@ class PlaneKernel:
         samples = {}
         if len(self.vectors) > 0:
             samples["points"] = self.points[
+                # pyre-fixme[20]: Argument `k` expected.
                 random.sample(range(len(self.points)), 2), :
             ]
             samples["vectors"] = [
+                # pyre-fixme[20]: Argument `k` expected.
                 self.vectors[i] for i in random.sample(range(len(self.vectors)), 1)
             ]
         else:
             samples["points"] = self.points[
+                # pyre-fixme[20]: Argument `k` expected.
                 :, random.sample(range(len(self.points)), 3)
             ]
             samples["vectors"] = None
