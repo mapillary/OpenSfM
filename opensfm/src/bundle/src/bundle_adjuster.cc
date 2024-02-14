@@ -18,7 +18,7 @@ bool IsRigCameraUseful(bundle::RigCamera &rig_camera) {
   return !(rig_camera.GetParametersToOptimize().empty() &&
            rig_camera.GetValueData().isConstant(0.));
 }
-};  // namespace
+}  // namespace
 
 namespace bundle {
 BundleAdjuster::BundleAdjuster() {
@@ -140,7 +140,7 @@ void BundleAdjuster::AddRigInstance(
                                          &rig_camera_exists->second,
                                          &rig_instances_.at(rig_instance_id)));
   }
-};
+}
 
 void BundleAdjuster::AddRigCamera(const std::string &rig_camera_id,
                                   const geometry::Pose &pose,
@@ -161,7 +161,7 @@ void BundleAdjuster::AddRigCamera(const std::string &rig_camera_id,
   if (fixed) {
     rig_camera.SetParametersToOptimize({});
   }
-};
+}
 
 void BundleAdjuster::AddRigInstancePositionPrior(
     const std::string &instance_id, const Vec3d &position,
