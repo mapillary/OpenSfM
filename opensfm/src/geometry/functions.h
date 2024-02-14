@@ -109,4 +109,4 @@ static void ComposeFunctions(const T* in, const T* parameters, T* out) {
   constexpr int Index = ComposeIndex<FUNC2, FUNCS...>();
   FUNC1::template Apply<T>(&tmp[0], parameters + Index, out);
 }
-};  // namespace geometry
+}  // namespace geometry

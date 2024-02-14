@@ -118,4 +118,4 @@ class Camera {
 std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
                                              const Camera& to, int width,
                                              int height);
-};  // namespace geometry
+}  // namespace geometry
