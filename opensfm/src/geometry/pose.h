@@ -49,7 +49,7 @@ class Pose {
 
   Vec3d TranslationCameraToWorld() const {
     return cam_to_world_.block<3, 1>(0, 3);
-  };
+  }
 
   Vec3d GetOrigin() const { return TranslationCameraToWorld(); }
   virtual void SetOrigin(const Vec3d& origin) {
