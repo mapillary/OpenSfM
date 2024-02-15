@@ -17,7 +17,6 @@ class Pose {
   virtual ~Pose() = default;
 
   Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero()) {
-    Mat4d T_cw = Mat4d::Identity();
     SetFromWorldToCamera(R, t);
   }
   Pose(const Mat3d& R, const Vec3d& t = Vec3d::Zero()) {
