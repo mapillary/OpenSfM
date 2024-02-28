@@ -13,7 +13,7 @@ double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
     return 0.0;
   } else {
     return acos(c);
-}
+  }
 }
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(

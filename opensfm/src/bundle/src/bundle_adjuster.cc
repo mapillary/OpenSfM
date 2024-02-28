@@ -1128,8 +1128,9 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
         break;
       }
       // stop after first Nan value
-      if (!computed) { break;
-}
+      if (!computed) {
+        break;
+      }
     }
   }
 

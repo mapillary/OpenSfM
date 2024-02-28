@@ -35,11 +35,11 @@ void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst, size_t ksize_x,
   // The kernel size must be and odd number
   if ((ksize_x % 2) == 0) {
     ksize_x += 1;
-}
+  }
 
   if ((ksize_y % 2) == 0) {
     ksize_y += 1;
-}
+  }
 
   // Perform the Gaussian Smoothing with border replication
   cv::GaussianBlur(src, dst, cv::Size(ksize_x, ksize_y), sigma, sigma, cv::BORDER_REPLICATE);
@@ -62,7 +62,7 @@ void pm_g1(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float k) {
     float* dst_row = dst.ptr<float>(y);
     for (int x = 0; x < sz.width; x++) {
       dst_row[x] = (-inv_k*(Lx_row[x]*Lx_row[x] + Ly_row[x]*Ly_row[x]));
-}
+    }
   }
 
   cv::exp(dst, dst);
@@ -79,7 +79,7 @@ void pm_g2(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float k) {
     float* dst_row = dst.ptr<float>(y);
     for (int x = 0; x < sz.width; x++) {
       dst_row[x] = 1.0 / (1.0+inv_k*(Lx_row[x]*Lx_row[x] + Ly_row[x]*Ly_row[x]));
-}
+    }
   }
 }
 
@@ -158,7 +158,7 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
       // Get the maximum
       if (modg > hmax) {
         hmax = modg;
-}
+     }
     }
   }
 
@@ -191,13 +191,13 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
 
   for (k = 0; nelements < nthreshold && k < nbins; k++) {
     nelements = nelements + hist[k];
-}
+  }
 
   if (nelements < nthreshold) {
     kperc = 0.03;
   } else {
     kperc = hmax*((float)(k)/(float)nbins);
-}
+  }
 
   delete [] hist;
   return kperc;
@@ -353,7 +353,7 @@ void compute_derivative_kernels(cv::OutputArray kx_, cv::OutputArray ky_,
 
     for (int t = 0; t<ksize; t++) {
       kerI[t] = 0;
-}
+    }
 
     if (order == 0) {
       kerI[0] = norm;

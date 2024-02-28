@@ -38,7 +38,7 @@ void compute_min_32F(const cv::Mat &src, float& value) {
     for (int j = 0; j < src.cols; j++) {
       if (src.at<float>(i,j) < aux) {
         aux = src.at<float>(i,j);
-}
+      }
     }
   }
   value = aux;
@@ -52,7 +52,7 @@ void compute_max_32F(const cv::Mat &src, float& value) {
     for (int j = 0; j < src.cols; j++) {
       if (src.at<float>(i,j) > aux) {
         aux = src.at<float>(i,j);
-}
+      }
     }
   }
   value = aux;
@@ -190,7 +190,7 @@ void compute_inliers_ransac(const std::vector<cv::Point2f>& matches,
       H = cv::findFundamentalMat(points1,points2,cv::FM_RANSAC,error,0.99,status);
     } else {
       H = cv::findHomography(points1,points2,cv::RANSAC,error,status);
-}
+    }
 
     for (int i = 0; i < npoints; i++) {
       if (status.at<unsigned char>(i) == 1) {
@@ -335,7 +335,7 @@ void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
       cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(255,0,0), 2);
     } else if (color == 2) {
       cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(0,0,255), 2);
-}
+    }
   }
 }
 
@@ -357,7 +357,7 @@ bool read_homography(const string& hFile, cv::Mat& H1toN) {
 
   if (!pf.is_open()) {
     return false;
-}
+  }
 
   pf.getline(tmp_buf,tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h11,&h12,&h13);
@@ -414,12 +414,12 @@ void show_input_options_help(int example) {
   else if (example == 2) {
     cout << "./akaze_compare img1.jpg img2.pgm [homography.txt] [options]" << endl;
   }
-  
+
   cout << endl;
   cout_help() << "homography.txt is optional. If the txt file is not provided a planar homography will be estimated using RANSAC" << endl;
 
   cout << endl;
-  cout_help() << "Options below are not mandatory. Unless specified, default arguments are used." << endl << endl;  
+  cout_help() << "Options below are not mandatory. Unless specified, default arguments are used." << endl << endl;
 
   // Justify on the left
   cout << left;

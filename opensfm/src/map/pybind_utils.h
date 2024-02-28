@@ -72,7 +72,7 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                  ++s.it;
                } else {
                  s.first_or_done = false;
-}
+               }
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -104,7 +104,7 @@ iterator make_ref_value_iterator(Iterator first, Sentinel last,
                  ++s.it;
                } else {
                  s.first_or_done = false;
-}
+               }
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -137,7 +137,7 @@ iterator make_ref_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                  ++s.it;
                } else {
                  s.first_or_done = false;
-}
+               }
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -167,7 +167,7 @@ iterator make_ptr_iterator(Iterator first, Sentinel last, Extra &&... extra) {
                  ++s.it;
                } else {
                  s.first_or_done = false;
-}
+               }
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();

@@ -39,7 +39,7 @@ bool SolveAX0(const MAT& A, VEC* solution) {
     return true;
   } else {
     return false;
-}
+  }
 }
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);

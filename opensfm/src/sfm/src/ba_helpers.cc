@@ -852,8 +852,9 @@ void BAHelpers::AlignmentConstraints(
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {
-      if (point.lla_.empty()) { continue;
-}
+      if (point.lla_.empty()) {
+        continue;
+      }
       Vec3d coordinates;
       if (TriangulateGCP(point, shots, coordinates)) {
         Xp.row(idx) = topocentricConverter.ToTopocentric(point.GetLlaVec3d());

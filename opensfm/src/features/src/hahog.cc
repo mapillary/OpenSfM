@@ -49,8 +49,9 @@ vl_size run_non_maxima_suppression(VlCovDet *covdet, vl_size num_features,
       double dy_ = features[j].frame.y - y;
       double sigma_ = features[j].frame.a11;
       double score_ = features[j].peakScore;
-      if (score_ == 0) { continue;
-}
+      if (score_ == 0) {
+        continue;
+      }
       if (sigma < (1 + tol) * sigma_ && sigma_ < (1 + tol) * sigma &&
           vl_abs_d(dx_) < tol * sigma && vl_abs_d(dy_) < tol * sigma &&
           vl_abs_d(score) > vl_abs_d(score_)) {

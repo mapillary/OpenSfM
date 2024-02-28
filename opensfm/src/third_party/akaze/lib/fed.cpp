@@ -68,14 +68,14 @@ int fed_tau_internal(const int n, const float scale, const float tau_max,
 
   if (n <= 0) {
     return 0;
-}
+  }
 
   // Allocate memory for the time step size
   tau = vector<float>(n);
 
   if (reordering) {
     tauh = vector<float>(n);
-}
+  }
 
   // Compute time saver
   c = 1.0f / (4.0f * (float)n + 2.0f);
@@ -89,7 +89,7 @@ int fed_tau_internal(const int n, const float scale, const float tau_max,
       tauh[k] = d / (h * h);
     } else {
       tau[k] = d / (h * h);
-}
+    }
   }
 
   // Permute list of time steps according to chosen reordering function

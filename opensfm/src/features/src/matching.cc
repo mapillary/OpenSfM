@@ -66,8 +66,9 @@ void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
         }
         checks++;
       }
-      if (checks >= max_checks) { break;
-}
+      if (checks >= max_checks) {
+        break;
+      }
     }
     if (best_distance[i] < lowes_ratio * second_best_distance[i]) {
       tmp_match.at<int>(0, 0) = i;
