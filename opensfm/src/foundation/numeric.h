@@ -35,10 +35,11 @@ bool SolveAX0(const MAT& A, VEC* solution) {
 
   // Some nullspace will make a solution
   const bool some_nullspace = ratio > minimum_ratio;
-  if (some_nullspace)
+  if (some_nullspace) {
     return true;
-  else
+  } else {
     return false;
+}
 }
 
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v);

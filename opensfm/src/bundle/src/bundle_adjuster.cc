@@ -424,7 +424,7 @@ ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   } else if (name.compare("ArctanLoss") == 0) {
     return new ceres::ArctanLoss(threshold);
   }
-  return NULL;
+  return nullptr;
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
@@ -1094,9 +1094,8 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 
     std::vector<std::pair<const double *, const double *>> covariance_blocks;
     for (auto &i : shots_) {
-      covariance_blocks.push_back(
-          std::make_pair(i.second.GetRigInstance()->GetValueData().data(),
-                         i.second.GetRigInstance()->GetValueData().data()));
+      covariance_blocks.emplace_back(i.second.GetRigInstance()->GetValueData().data(),
+                         i.second.GetRigInstance()->GetValueData().data());
     }
 
     bool worked = covariance.Compute(covariance_blocks, problem);
@@ -1129,7 +1128,8 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
         break;
       }
       // stop after first Nan value
-      if (!computed) break;
+      if (!computed) { break;
+}
     }
   }
 

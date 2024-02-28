@@ -33,11 +33,13 @@ void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst, size_t ksize_x,
   }
 
   // The kernel size must be and odd number
-  if ((ksize_x % 2) == 0)
+  if ((ksize_x % 2) == 0) {
     ksize_x += 1;
+}
 
-  if ((ksize_y % 2) == 0)
+  if ((ksize_y % 2) == 0) {
     ksize_y += 1;
+}
 
   // Perform the Gaussian Smoothing with border replication
   cv::GaussianBlur(src, dst, cv::Size(ksize_x, ksize_y), sigma, sigma, cv::BORDER_REPLICATE);
@@ -58,8 +60,9 @@ void pm_g1(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float k) {
     const float* Lx_row = Lx.ptr<float>(y);
     const float* Ly_row = Ly.ptr<float>(y);
     float* dst_row = dst.ptr<float>(y);
-    for (int x = 0; x < sz.width; x++)
+    for (int x = 0; x < sz.width; x++) {
       dst_row[x] = (-inv_k*(Lx_row[x]*Lx_row[x] + Ly_row[x]*Ly_row[x]));
+}
   }
 
   cv::exp(dst, dst);
@@ -74,8 +77,9 @@ void pm_g2(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float k) {
     const float* Lx_row = Lx.ptr<float>(y);
     const float* Ly_row = Ly.ptr<float>(y);
     float* dst_row = dst.ptr<float>(y);
-    for (int x = 0; x < sz.width; x++)
+    for (int x = 0; x < sz.width; x++) {
       dst_row[x] = 1.0 / (1.0+inv_k*(Lx_row[x]*Lx_row[x] + Ly_row[x]*Ly_row[x]));
+}
   }
 }
 
@@ -130,8 +134,9 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
   cv::Mat Ly = cv::Mat::zeros(img.rows, img.cols, CV_32F);
 
   // Set the histogram to zero
-  for (size_t i = 0; i < nbins; i++)
+  for (size_t i = 0; i < nbins; i++) {
     hist[i] = 0.0;
+}
 
   // Perform the Gaussian convolution
   gaussian_2D_convolution(img, gaussian, ksize_x, ksize_y, gscale);
@@ -151,8 +156,9 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
       modg = sqrt(Lx_row[x]*Lx_row[x] + Ly_row[x]*Ly_row[x]);
 
       // Get the maximum
-      if (modg > hmax)
+      if (modg > hmax) {
         hmax = modg;
+}
     }
   }
 
@@ -183,13 +189,15 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
   // Now find the perc of the histogram percentile
   nthreshold = (size_t)(npoints*perc);
 
-  for (k = 0; nelements < nthreshold && k < nbins; k++)
+  for (k = 0; nelements < nthreshold && k < nbins; k++) {
     nelements = nelements + hist[k];
+}
 
-  if (nelements < nthreshold)
+  if (nelements < nthreshold) {
     kperc = 0.03;
-  else
+  } else {
     kperc = hmax*((float)(k)/(float)nbins);
+}
 
   delete [] hist;
   return kperc;
@@ -343,8 +351,9 @@ void compute_derivative_kernels(cv::OutputArray kx_, cv::OutputArray ky_,
     int order = k == 0 ? dx : dy;
     float kerI[1000];
 
-    for (int t = 0; t<ksize; t++)
+    for (int t = 0; t<ksize; t++) {
       kerI[t] = 0;
+}
 
     if (order == 0) {
       kerI[0] = norm;

@@ -25,7 +25,7 @@ struct GroundControlPointObservation {
   GroundControlPointObservation() = default;
   GroundControlPointObservation(const ShotId& shot_id, const Vec2d& proj)
       : shot_id_(shot_id), projection_(proj) {}
-  ShotId shot_id_ = "";
+  ShotId shot_id_;
   Vec2d projection_ = Vec2d::Zero();
   LandmarkUniqueId uid_ = 0;
 };
@@ -42,7 +42,7 @@ struct GroundControlPoint {
          ground control point is used for computing map merging metrics
      */
   GroundControlPoint() = default;
-  LandmarkId id_ = "";
+  LandmarkId id_;
   LandmarkUniqueId survey_point_id_ = 0;
   bool has_altitude_ = false;
   AlignedVector<GroundControlPointObservation> observations_;

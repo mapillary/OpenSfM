@@ -128,10 +128,10 @@ class DepthmapPrunerWrapper {
 
     py::list retn;
     int n = int(points.size()) / 3;
-    retn.append(py_array_from_data(&points[0], n, 3));
-    retn.append(py_array_from_data(&normals[0], n, 3));
-    retn.append(py_array_from_data(&colors[0], n, 3));
-    retn.append(py_array_from_data(&labels[0], n));
+    retn.append(py_array_from_data(points.data(), n, 3));
+    retn.append(py_array_from_data(normals.data(), n, 3));
+    retn.append(py_array_from_data(colors.data(), n, 3));
+    retn.append(py_array_from_data(labels.data(), n));
     return std::move(retn);
   }
 

@@ -68,10 +68,11 @@ iterator make_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
         .def("__iter__", [](state &s) -> state & { return s; })
         .def("__next__",
              [](state &s) -> KeyType {
-               if (!s.first_or_done)
+               if (!s.first_or_done) {
                  ++s.it;
-               else
+               } else {
                  s.first_or_done = false;
+}
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -99,10 +100,11 @@ iterator make_ref_value_iterator(Iterator first, Sentinel last,
         .def("__iter__", [](state &s) -> state & { return s; })
         .def("__next__",
              [](state &s) -> KeyType {
-               if (!s.first_or_done)
+               if (!s.first_or_done) {
                  ++s.it;
-               else
+               } else {
                  s.first_or_done = false;
+}
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -131,10 +133,11 @@ iterator make_ref_iterator(Iterator first, Sentinel last, Extra &&... extra) {
         .def("__iter__", [](state &s) -> state & { return s; })
         .def("__next__",
              [](state &s) -> KeyType {
-               if (!s.first_or_done)
+               if (!s.first_or_done) {
                  ++s.it;
-               else
+               } else {
                  s.first_or_done = false;
+}
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();
@@ -160,10 +163,11 @@ iterator make_ptr_iterator(Iterator first, Sentinel last, Extra &&... extra) {
         .def("__iter__", [](state &s) -> state & { return s; })
         .def("__next__",
              [](state &s) -> ValueType {
-               if (!s.first_or_done)
+               if (!s.first_or_done) {
                  ++s.it;
-               else
+               } else {
                  s.first_or_done = false;
+}
                if (s.it == s.end) {
                  s.first_or_done = true;
                  throw stop_iteration();

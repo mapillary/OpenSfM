@@ -305,7 +305,7 @@ class CameraDerivativesFixture : public ::testing::Test {
   Vec2d principal_point;
 
   double point[3];
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<VecXd>;
   AScalar point_adiff[3];
   VecX<AScalar> camera_adiff;
 
