@@ -1,3 +1,4 @@
+# pyre-unsafe
 from collections import defaultdict
 from distutils.version import LooseVersion
 from typing import Dict, List, Tuple

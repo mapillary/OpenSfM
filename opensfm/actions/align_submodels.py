@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.large import metadataset
 from opensfm.large import tools
 from opensfm.dataset import DataSet

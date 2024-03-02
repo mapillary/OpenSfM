@@ -1,3 +1,4 @@
+# pyre-unsafe
 import datetime
 import logging
 from codecs import encode, decode

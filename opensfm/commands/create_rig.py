@@ -1,3 +1,4 @@
+# pyre-unsafe
 import json
 
 from opensfm.actions import create_rig

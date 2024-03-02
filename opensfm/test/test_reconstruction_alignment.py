@@ -1,3 +1,4 @@
+# pyre-unsafe
 import numpy as np
 from opensfm import pybundle
 from opensfm import pygeometry

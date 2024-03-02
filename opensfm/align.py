@@ -1,3 +1,4 @@
+# pyre-unsafe
 """Tools to align a reconstruction to GPS and GCP data."""
 
 import logging

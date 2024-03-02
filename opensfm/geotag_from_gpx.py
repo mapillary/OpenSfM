@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# pyre-unsafe
+
 import datetime
 import math
 import os

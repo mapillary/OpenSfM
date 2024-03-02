@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import dataset
 from numpy import ndarray
 from typing import Dict, Tuple

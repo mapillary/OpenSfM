@@ -1,3 +1,4 @@
+# pyre-unsafe
 """Incremental reconstruction pipeline"""
 
 import datetime

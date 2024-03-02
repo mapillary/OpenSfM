@@ -1,3 +1,4 @@
+# pyre-unsafe
 import copy
 import logging
 import math

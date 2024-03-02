@@ -1,3 +1,4 @@
+# pyre-unsafe
 from timeit import default_timer as timer
 
 from opensfm import io
