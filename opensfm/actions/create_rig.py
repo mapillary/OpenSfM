@@ -1,3 +1,4 @@
+# pyre-unsafe
 import logging
 
 from opensfm import pymap, rig, reconstruction_helpers as helpers, types

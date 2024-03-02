@@ -1,3 +1,4 @@
+# pyre-unsafe
 from . import (
     align_submodels,
     bundle,

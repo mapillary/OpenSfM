@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import extend_reconstruction
 
 from . import command

@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import reconstruct_from_prior
 
 from . import command

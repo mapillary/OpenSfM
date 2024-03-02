@@ -1,3 +1,4 @@
+# pyre-unsafe
 import argparse
 import os
 from typing import List

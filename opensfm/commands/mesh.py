@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import mesh
 
 from . import command

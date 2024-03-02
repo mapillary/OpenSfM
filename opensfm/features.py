@@ -1,3 +1,4 @@
+# pyre-unsafe
 """Tools to extract features."""
 
 import logging

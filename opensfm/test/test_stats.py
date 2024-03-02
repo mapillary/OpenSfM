@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import stats, types
 from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 

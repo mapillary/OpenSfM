@@ -1,3 +1,4 @@
+# pyre-unsafe
 import functools
 import math
 from typing import Dict, Optional, List, Any, Union, Tuple, Callable

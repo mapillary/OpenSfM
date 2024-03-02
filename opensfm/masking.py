@@ -1,3 +1,4 @@
+# pyre-unsafe
 import logging
 from typing import List, Tuple, Optional
 

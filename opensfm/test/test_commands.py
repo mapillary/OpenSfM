@@ -1,3 +1,4 @@
+# pyre-unsafe
 import argparse
 from os.path import join
 

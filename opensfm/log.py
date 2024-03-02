@@ -1,3 +1,4 @@
+# pyre-unsafe
 import logging
 import os
 from typing import Optional
