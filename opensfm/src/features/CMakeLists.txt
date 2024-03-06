@@ -22,7 +22,7 @@ target_link_libraries(pyfeatures
   PRIVATE
     features
     foundation
-    pybind11
+    pybind11::headers
     akaze
 )
 set_target_properties(pyfeatures PROPERTIES

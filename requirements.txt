@@ -10,7 +10,7 @@ Pillow>=8.1.1
 pyproj>=1.9.5.1
 pytest==3.0.7
 python-dateutil>=2.7
-pyyaml==5.4
+pyyaml==6.0.1
 scipy>=1.10.0
 Sphinx==4.2.0
 six
