@@ -269,7 +269,7 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   double t1 = 0.0, t2 = 0.0;
   float value = 0.0;
   float dist = 0.0, ratio = 0.0, smax = 0.0;
-  int npoints = 0, id_repeated = 0;
+  int id_repeated = 0;
   int sigma_size_ = 0, left_x = 0, right_x = 0, up_y = 0, down_y = 0;
   bool is_extremum = false, is_repeated = false, is_out = false;
   cv::KeyPoint point;
@@ -357,7 +357,6 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
                 point.pt.x *= ratio;
                 point.pt.y *= ratio;
                 kpts_aux.push_back(point);
-                npoints++;
               }
               else {
                 point.pt.x *= ratio;
