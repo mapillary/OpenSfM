@@ -24,7 +24,6 @@ from . import (
     reconstruct_from_prior,
     undistort,
 )
-# pyre-fixme[21]: Could not find module `opensfm.commands.command_runner`.
 from .command_runner import command_runner
 
 
