@@ -17,7 +17,8 @@ This will run the entire SfM pipeline and produce the file ``data/berlin/reconst
 Running in Docker
 '''''''''''''''''
 
-First, build the OpenSfM Docker image, as described under building_. 
+First, build the OpenSfM Docker image, as described under "Building".
+
 
 Then, start a Docker container. The following command mounts the `data/` folder to `/data/` inside the Docker container::
 
