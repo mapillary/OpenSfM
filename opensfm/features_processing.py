@@ -1,3 +1,4 @@
+# pyre-unsafe
 import itertools
 import logging
 import math

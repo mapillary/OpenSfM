@@ -1,3 +1,4 @@
+# pyre-unsafe
 import gzip
 import json
 import logging

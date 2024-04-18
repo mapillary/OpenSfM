@@ -1,3 +1,4 @@
+# pyre-unsafe
 import argparse
 import os.path
 from typing import Any, Dict, Generator

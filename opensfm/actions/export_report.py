@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import report
 from opensfm.dataset import DataSet
 

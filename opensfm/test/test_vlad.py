@@ -1,3 +1,4 @@
+# pyre-unsafe
 import numpy as np
 import pytest
 from opensfm import vlad

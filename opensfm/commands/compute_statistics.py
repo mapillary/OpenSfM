@@ -1,3 +1,4 @@
+# pyre-unsafe
 from . import command
 import argparse
 from opensfm.dataset import DataSet

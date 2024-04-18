@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import feature_loading
 
 

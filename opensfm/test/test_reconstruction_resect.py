@@ -1,3 +1,4 @@
+# pyre-unsafe
 import numpy as np
 from opensfm import config, multiview, pymap, reconstruction, types
 from typing import Tuple

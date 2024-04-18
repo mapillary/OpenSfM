@@ -1,3 +1,4 @@
+# pyre-unsafe
 from typing import Any, Dict, List, Set, Tuple
 
 import numpy as np

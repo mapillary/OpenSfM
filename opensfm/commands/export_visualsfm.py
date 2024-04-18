@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import export_visualsfm
 
 from . import command
