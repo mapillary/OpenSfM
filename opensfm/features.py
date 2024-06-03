@@ -353,45 +353,36 @@ def extract_features_sift(
 ) -> Tuple[np.ndarray, np.ndarray]:
     sift_edge_threshold = config["sift_edge_threshold"]
     sift_peak_threshold = float(config["sift_peak_threshold"])
-    # SIFT support is in cv2 main from version 4.4.0
-    if context.OPENCV44 or context.OPENCV5:
-        # OpenCV versions concerned /** 3.4.11, >= 4.4.0 **/  ==> Sift became free since March 2020
-        detector = cv2.SIFT_create(
-            edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
-        )
-        descriptor = detector
-    elif context.OPENCV3 or context.OPENCV4:
-        try:
-            # OpenCV versions concerned /** 3.2.x, 3.3.x, 3.4.0, 3.4.1, 3.4.2, 3.4.10, 4.3.0, 4.4.0 **/
-            detector = cv2.xfeatures2d.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
-            )
-        except AttributeError as ae:
-            # OpenCV versions concerned /** 3.4.3, 3.4.4, 3.4.5, 3.4.6, 3.4.7, 3.4.8, 3.4.9, 4.0.x, 4.1.x, 4.2.x **/
-            if "no attribute 'xfeatures2d'" in str(ae):
-                logger.error(
-                    "OpenCV Contrib modules are required to extract SIFT features"
-                )
-            raise
-        descriptor = detector
-    else:
-        detector = cv2.FeatureDetector_create("SIFT")
-        descriptor = cv2.DescriptorExtractor_create("SIFT")
-        detector.setDouble("edgeThreshold", sift_edge_threshold)
+    sift_nfeatures = config["sift_nfeatures"]
+    sift_octave_layers = config["sift_octave_layers"]
+    sift_sigma = float(config["sift_sigma"])
     while True:
         logger.debug("Computing sift with threshold {0}".format(sift_peak_threshold))
         t = time.time()
         # SIFT support is in cv2 main from version 4.4.0
         if context.OPENCV44 or context.OPENCV5:
             detector = cv2.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
+                nfeatures=sift_nfeatures,
+                nOctaveLayers=sift_octave_layers,
+                contrastThreshold=sift_peak_threshold,
+                edgeThreshold=sift_edge_threshold,
+                sigma=sift_sigma,
             )
+            descriptor = detector
         elif context.OPENCV3:
             detector = cv2.xfeatures2d.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
+                nfeatures=sift_nfeatures,
+                nOctaveLayers=sift_octave_layers,
+                contrastThreshold=sift_peak_threshold,
+                edgeThreshold=sift_edge_threshold,
+                sigma=sift_sigma,
             )
+            descriptor = detector
         else:
-            detector.setDouble("contrastThreshold", sift_peak_threshold)
+            detector = cv2.FeatureDetector_create("SIFT")
+            descriptor = cv2.DescriptorExtractor_create("SIFT")
+            detector.setDouble("edgeThreshold", sift_edge_threshold)
+        
         points = detector.detect(image)
         logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
         if len(points) < features_count and sift_peak_threshold > 0.0001:
@@ -400,6 +391,7 @@ def extract_features_sift(
         else:
             logger.debug("done")
             break
+
     points, desc = descriptor.compute(image, points)
 
     if desc is not None:
