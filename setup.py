@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import platform
 import multiprocessing
 import os
 import subprocess
@@ -9,7 +9,8 @@ import setuptools
 from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
 
-VERSION = (0, 5, 2)
+
+VERSION = (0, 5, 2, "post6")
 
 
 def version_str(version):
@@ -35,6 +36,25 @@ def configure_c_extension():
         "../opensfm/src",
         "-DPYTHON_EXECUTABLE=" + sys.executable,
     ]
+
+    # if platform.system() == 'Darwin':
+    #     # Проверяем архитектуру процессора
+    #     if platform.machine() == 'arm64':
+    #         print('Detected Apple Silicon processor')
+    #
+    #         # Define the compilers
+    #         c_compiler = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/gcc-12')
+    #         cxx_compiler = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/g++-12')
+    #         c_compiler_arg = f'-DCMAKE_C_COMPILER={c_compiler}'
+    #         cxx_compiler_arg = f'-DCMAKE_CXX_COMPILER={cxx_compiler}'
+    #
+    #         cmake_command += [
+    #             c_compiler_arg,
+    #             cxx_compiler_arg,
+    #         ]
+    #         print(cmake_command)
+    #         raise RuntimeError()
+
     if sys.platform == "win32":
         cmake_command += [
             "-DVCPKG_TARGET_TRIPLET=x64-windows",
@@ -52,12 +72,19 @@ def build_c_extension():
         )
     else:
         subprocess.check_call(
-            ["make", "-j" + str(multiprocessing.cpu_count())], cwd="cmake_build"
+            ["make", "-s", "-j" + str(multiprocessing.cpu_count())], cwd="cmake_build"
         )
 
 
 configure_c_extension()
 build_c_extension()
+
+lib_folder = os.path.dirname(os.path.realpath(__file__))
+requirement_path = f"{lib_folder}/requirements.txt"
+install_requires = []  # Here we'll add: ["gunicorn", "docutils>=0.3", "lxml==0.5a7"]
+if os.path.isfile(requirement_path):
+    with open(requirement_path) as f:
+        install_requires = f.read().splitlines()
 
 setuptools.setup(
     name="opensfm",
@@ -75,6 +102,7 @@ setuptools.setup(
     scripts=[
         "bin/opensfm_run_all",
         "bin/opensfm",
+        "bin/opensfm_main.py"
     ],
     package_data={
         "opensfm": [
@@ -106,4 +134,5 @@ setuptools.setup(
             "build_dir": ("setup.py", "build/doc"),
         }
     },
+    install_requires=install_requires,
 )
