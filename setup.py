@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import platform
 import multiprocessing
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import setuptools
 from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
 
 
-VERSION = (0, 5, 2, "post6")
+VERSION = (0, 5, 2, "post7")
 
 
 def version_str(version):
@@ -37,24 +37,6 @@ def configure_c_extension():
         "-DPYTHON_EXECUTABLE=" + sys.executable,
     ]
 
-    # if platform.system() == 'Darwin':
-    #     # Проверяем архитектуру процессора
-    #     if platform.machine() == 'arm64':
-    #         print('Detected Apple Silicon processor')
-    #
-    #         # Define the compilers
-    #         c_compiler = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/gcc-12')
-    #         cxx_compiler = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/g++-12')
-    #         c_compiler_arg = f'-DCMAKE_C_COMPILER={c_compiler}'
-    #         cxx_compiler_arg = f'-DCMAKE_CXX_COMPILER={cxx_compiler}'
-    #
-    #         cmake_command += [
-    #             c_compiler_arg,
-    #             cxx_compiler_arg,
-    #         ]
-    #         print(cmake_command)
-    #         raise RuntimeError()
-
     if sys.platform == "win32":
         cmake_command += [
             "-DVCPKG_TARGET_TRIPLET=x64-windows",
@@ -78,6 +60,8 @@ def build_c_extension():
 
 configure_c_extension()
 build_c_extension()
+cmake_dir = Path(__file__).parent.joinpath("cmake_build")
+data_files = [p.as_posix() for p in cmake_dir.glob("*.so")]
 
 lib_folder = os.path.dirname(os.path.realpath(__file__))
 requirement_path = f"{lib_folder}/requirements.txt"
@@ -106,21 +90,19 @@ setuptools.setup(
     ],
     package_data={
         "opensfm": [
-            "pybundle.*",
-            "pygeo.*",
-            "pygeometry.*",
-            "pyrobust.*",
-            "pyfeatures.*",
-            "pydense.*",
-            "pysfm.*",
-            "pyfoundation.*",
-            "pymap.*",
             "data/sensor_data.json",
             "data/camera_calibration.yaml",
             "data/bow/bow_hahog_root_uchar_10000.npz",
             "data/bow/bow_hahog_root_uchar_64.npz",
         ]
     },
+    # ext_modules=[
+    #     setuptools.Extension('pybundle', ['source/OpenSfM/opensfm/src/pybundle.cpython-310-x86_64-linux-gnu.so']),
+    #     setuptools.Extension('pydense', ['source/OpenSfM/opensfm/src/pydense.cpython-310-x86_64-linux-gnu.so']),
+    #     setuptools.Extension('pyfeatures', ['source/OpenSfM/opensfm/src/pyfeatures.cpython-310-x86_64-linux-gnu.so']),
+    #     # Add all your shared libraries here
+    # ],
+    data_files=[('lib', data_files)],
     cmdclass={
         "bdist_wheel": platform_bdist_wheel,
         "build_doc": BuildDoc,

@@ -16,6 +16,7 @@
 !setup.cfg
 !setup.py
 !viewer
+!build_wheel.sh
 
 # Picking exceptions
 doc/build

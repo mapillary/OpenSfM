@@ -12,10 +12,12 @@ pytest==7.0.0
 python-dateutil>=2.7
 pyyaml==6.0
 scipy>=1.10.0
-Sphinx==4.2.0
+sphinx==4.2.0
 six
 xmltodict==0.10.2
 wheel
 opencv-python==4.5.1.48 ; sys_platform == "win32"
 opencv-python ; sys_platform == "linux"
 twine
+sphinx
+auditwheel
