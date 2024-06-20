@@ -17,6 +17,7 @@
 !setup.py
 !viewer
 !build_wheel.sh
+!test_and_upload_wheel.sh
 
 # Picking exceptions
 doc/build

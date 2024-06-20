@@ -10,7 +10,7 @@ from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
 
 
-VERSION = (0, 5, 2, "post7")
+VERSION = (0, 5, 2, "post16")
 
 
 def version_str(version):
@@ -60,8 +60,8 @@ def build_c_extension():
 
 configure_c_extension()
 build_c_extension()
-cmake_dir = Path(__file__).parent.joinpath("cmake_build")
-data_files = [p.as_posix() for p in cmake_dir.glob("*.so")]
+opensfm_dir = Path(__file__).parent.joinpath("opensfm")
+lib_files = [p.as_posix() for p in opensfm_dir.rglob("*.so")]
 
 lib_folder = os.path.dirname(os.path.realpath(__file__))
 requirement_path = f"{lib_folder}/requirements.txt"
@@ -82,7 +82,7 @@ setuptools.setup(
     },
     author="Mapillary",
     license="BSD",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=['*.so']),
     scripts=[
         "bin/opensfm_run_all",
         "bin/opensfm",
@@ -94,15 +94,9 @@ setuptools.setup(
             "data/camera_calibration.yaml",
             "data/bow/bow_hahog_root_uchar_10000.npz",
             "data/bow/bow_hahog_root_uchar_64.npz",
+            "*",
         ]
     },
-    # ext_modules=[
-    #     setuptools.Extension('pybundle', ['source/OpenSfM/opensfm/src/pybundle.cpython-310-x86_64-linux-gnu.so']),
-    #     setuptools.Extension('pydense', ['source/OpenSfM/opensfm/src/pydense.cpython-310-x86_64-linux-gnu.so']),
-    #     setuptools.Extension('pyfeatures', ['source/OpenSfM/opensfm/src/pyfeatures.cpython-310-x86_64-linux-gnu.so']),
-    #     # Add all your shared libraries here
-    # ],
-    data_files=[('lib', data_files)],
     cmdclass={
         "bdist_wheel": platform_bdist_wheel,
         "build_doc": BuildDoc,

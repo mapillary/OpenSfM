@@ -1,6 +1,7 @@
 FROM quay.io/pypa/manylinux2014_x86_64
 # FROM ubuntu:20.04
 
+ENV PLAT=manylinux_2_17_x86_64
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TWINE_USERNAME
 ARG TWINE_PASSWORD
@@ -108,22 +109,22 @@ WORKDIR /source/eigen/build/
 RUN cmake ..
 RUN make install
 
-RUN yum install -y lzip
-WORKDIR /source
-RUN wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.lz
-RUN tar -xf gmp-6.3.0.tar.lz
-WORKDIR /source/gmp-6.3.0
-RUN ./configure
-RUN make
-RUN make install
-
-WORKDIR /source
-RUN wget https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.xz
-RUN tar -xf mpfr-4.2.1.tar.xz
-WORKDIR /source/mpfr-4.2.1
-RUN ./configure
-RUN make
-RUN make install
+#RUN yum install -y lzip
+#WORKDIR /source
+#RUN wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.lz
+#RUN tar -xf gmp-6.3.0.tar.lz
+#WORKDIR /source/gmp-6.3.0
+#RUN ./configure
+#RUN make
+#RUN make install
+#
+#WORKDIR /source
+#RUN wget https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.xz
+#RUN tar -xf mpfr-4.2.1.tar.xz
+#WORKDIR /source/mpfr-4.2.1
+#RUN ./configure
+#RUN make
+#RUN make install
 
 #WORKDIR /source
 #RUN git clone https://github.com/DrTimothyAldenDavis/SuiteSparse.git
@@ -163,3 +164,4 @@ COPY . $SFM_DIR
 WORKDIR $SFM_DIR
 RUN rm -rf cmake_build
 RUN sh /source/OpenSfM/build_wheel.sh
+# RUN sh /source/OpenSfM/test_and_upload_wheel.sh
