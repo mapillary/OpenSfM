@@ -20,4 +20,4 @@ opencv-python==4.5.1.48 ; sys_platform == "win32"
 opencv-python ; sys_platform == "linux"
 twine
 sphinx
-auditwheel==1.4.0
+auditwheel==6.0.0

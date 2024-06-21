@@ -13,3 +13,6 @@
 [submodule "opensfm/src/third_party/ceres-solver"]
 	path = opensfm/src/third_party/ceres-solver
 	url = https://github.com/ceres-solver/ceres-solver.git
+[submodule "opensfm/src/third_party/SuiteSparse"]
+	path = opensfm/src/third_party/SuiteSparse
+	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
