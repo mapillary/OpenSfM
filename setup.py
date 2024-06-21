@@ -201,9 +201,8 @@ def install_ceres(install_dir: Path):
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
-        "-Dopenmp=OFF",
         f'SUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
-        f'-DTBB_ROOT={os.environ["TBB_ROOT"]}',
+        # f'-DTBB_ROOT={os.environ["TBB_ROOT"]}',
 
         ceres_source_dir.as_posix()
     ]
