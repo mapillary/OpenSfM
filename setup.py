@@ -196,8 +196,6 @@ def install_ceres(install_dir: Path):
     if not ceres_build_dir.exists():
         ceres_build_dir.mkdir()
 
-    del os.environ['arch']
-
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
