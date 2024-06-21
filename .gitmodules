@@ -16,3 +16,6 @@
 [submodule "opensfm/src/third_party/SuiteSparse"]
 	path = opensfm/src/third_party/SuiteSparse
 	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+[submodule "opensfm/src/third_party/tbb"]
+	path = opensfm/src/third_party/tbb
+	url = https://github.com/oneapi-src/oneTBB.git

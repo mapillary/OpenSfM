@@ -87,22 +87,22 @@ RUN apt-get update \
 #RUN cmake ..
 #RUN make install
 
-#RUN yum install -y lzip
-#WORKDIR /source
-#RUN wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.lz
-#RUN tar -xf gmp-6.3.0.tar.lz
-#WORKDIR /source/gmp-6.3.0
-#RUN ./configure
-#RUN make
-#RUN make install
-#
-#WORKDIR /source
-#RUN wget https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.xz
-#RUN tar -xf mpfr-4.2.1.tar.xz
-#WORKDIR /source/mpfr-4.2.1
-#RUN ./configure
-#RUN make
-#RUN make install
+RUN apt install -y lzip
+WORKDIR /source
+RUN wget https://gmplib.org/download/gmp/gmp-6.3.0.tar.lz
+RUN tar -xf gmp-6.3.0.tar.lz
+WORKDIR /source/gmp-6.3.0
+RUN ./configure
+RUN make
+RUN make install
+
+WORKDIR /source
+RUN wget https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.xz
+RUN tar -xf mpfr-4.2.1.tar.xz
+WORKDIR /source/mpfr-4.2.1
+RUN ./configure
+RUN make
+RUN make install
 
 #WORKDIR /source
 #RUN git clone https://github.com/DrTimothyAldenDavis/SuiteSparse.git
@@ -153,11 +153,17 @@ RUN /root/.pyenv/bin/pyenv global 3.9.9
 ENV PATH=$PATH:/root/.pyenv/versions/3.9.9/bin/
 RUN python -m pip install --upgrade pip
 
+WORKDIR /source
+RUN apt remove -y cmake
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.30.0-rc3/cmake-3.30.0-rc3-linux-x86_64.tar.gz
+RUN tar xvzf cmake-3.30.0-rc3-linux-x86_64.tar.gz --strip-components=1 -C /usr/local
+
 ENV WHEEL_DIR=/source/wheelhouse
 ENV SFM_DIR=/source/OpenSfM
 COPY . $SFM_DIR
 
 WORKDIR $SFM_DIR
+
 RUN rm -rf cmake_build
 RUN /root/.pyenv/versions/3.9.9/bin/pip install -r requirements.txt
 RUN /root/.pyenv/versions/3.9.9/bin/pip wheel $SFM_DIR --no-deps -w $WHEEL_DIR
@@ -166,5 +172,3 @@ RUN cd ${WHEEL_DIR} && rm -rf *-linux*whl
 RUN /root/.pyenv/versions/3.9.9/bin/pip install opensfm --no-index -f $WHEEL_DIR
 RUN python -c "import opensfm"
 RUN ls /source/wheelhouse/*.whl | xargs -n 1 -I {} python -m twine upload --repository-url "http://pypi.artichoke-labs.ai" {}
-##RUN sh /source/OpenSfM/build_wheel.sh
-##RUN sh /source/OpenSfM/test_and_upload_wheel.sh

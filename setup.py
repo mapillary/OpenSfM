@@ -5,8 +5,8 @@ import os
 import platform
 import subprocess
 import sys
-from shutil import rmtree
 from pathlib import Path
+from shutil import copytree, rmtree
 
 import setuptools
 from setuptools.command.install import install
@@ -18,9 +18,11 @@ VERSION = (0, 5, 2, "post19")
 
 THIRD_PARTY_INSTALL_DIR = Path(__file__).parent / "third_party_install"
 THIRD_PARTY_BUILD_DIR = Path(__file__).parent / "third_party_build"
+THIRD_PARTY_SOURCE_DIR = Path(__file__).parent / "opensfm/src/third_party"
 THIRD_PARTY_BUILD_DIR.mkdir(exist_ok=True)
 LIB_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/lib"
 INCLUDE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/include"
+
 SHARE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/share"
 SHARED_CMAKE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/lib/cmake/"
 
@@ -29,20 +31,24 @@ CMAKE_PREFIX_PATH = (
     f'{SHARE_DIR};'
     f'{INCLUDE_DIR};'
     f'{LIB_DIR};'
-    f'{THIRD_PARTY_INSTALL_DIR}'
 )
 
 os.environ['LDFLAGS'] = f'-L/opt/homebrew/Cellar/libomp/18.1.6/lib'
 os.environ['C_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/'
 os.environ['CPLUS_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/'
 
-#
-# def _is_apple_silicon() -> bool:
-#
-#     if platform.system() == 'Darwin':
-#         if platform.machine() == 'arm64':
-#             return True
-#     return False
+
+def _is_apple_silicon() -> bool:
+
+    if platform.system() == 'Darwin':
+        if platform.machine() == 'arm64':
+            return True
+    return False
+
+
+if _is_apple_silicon():
+    os.environ['arch'] = 'arm64'
+
 #
 # if _is_apple_silicon():
 #     print('Detected Apple Silicon processor')
@@ -74,9 +80,8 @@ class InstallPlatlib(install):
 def install_gflag(install_dir: Path):
     gflags_build_dir = THIRD_PARTY_BUILD_DIR / "gflags"
     gflag_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/gflags/")
-    if gflags_build_dir.exists():
-        rmtree(gflags_build_dir)
-    gflags_build_dir.mkdir()
+    if not gflags_build_dir.exists():
+        gflags_build_dir.mkdir()
     cmake_command = [
             'cmake',
             '-DCMAKE_CXX_FLAGS="-fPIC"',
@@ -99,23 +104,16 @@ def install_gflag(install_dir: Path):
 
 def install_glog(install_dir: Path):
     glog_build_dir = THIRD_PARTY_BUILD_DIR / "glog"
-    glog_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/glog")
+    glog_source_dir = THIRD_PARTY_SOURCE_DIR / "glog"
 
-    if glog_build_dir.exists():
-        rmtree(glog_build_dir)
-    glog_build_dir.mkdir()
+    if not glog_build_dir.exists():
+        glog_build_dir.mkdir()
 
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
         glog_source_dir.as_posix()
     ]
-
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
 
     subprocess.check_call(
         cmake_command,
@@ -128,23 +126,18 @@ def install_glog(install_dir: Path):
 
 def install_eigen(install_dir: Path):
     eigen_build_dir = THIRD_PARTY_BUILD_DIR / "eigen"
-    eigen_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/eigen")
+    eigen_source_dir = THIRD_PARTY_SOURCE_DIR / "eigen"
 
-    if eigen_build_dir.exists():
-        rmtree(eigen_build_dir)
+    if not eigen_build_dir.exists():
+        eigen_build_dir.mkdir()
 
-    eigen_build_dir.mkdir()
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
         eigen_source_dir.as_posix(),
     ]
 
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
+
     subprocess.check_call(
         cmake_command,
         cwd=eigen_build_dir.as_posix(),
@@ -153,48 +146,82 @@ def install_eigen(install_dir: Path):
     subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=eigen_build_dir.as_posix())
 
 
-def install_suitesparse(install_dir: Path):
-    suitesparse_build_dir = THIRD_PARTY_BUILD_DIR / "SuiteSparse"
-    suitesparse_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/SuiteSparse")
-    if suitesparse_build_dir.exists():
-        rmtree(suitesparse_build_dir)
-    suitesparse_build_dir.mkdir()
-    cmake_command = [
-        'cmake',
-        CMAKE_PREFIX_PATH,
-        suitesparse_source_dir.as_posix(),
-    ]
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
+def install_tbb():
+    tbb_source_dir = THIRD_PARTY_SOURCE_DIR / "tbb"
+    tbb_build_dir = THIRD_PARTY_BUILD_DIR / "tbb"
+    tbb_build_lib = tbb_build_dir / 'lib'
+    tbb_build_include = tbb_build_dir / 'include'
+
+    make_command = []
+    make_command.extend(['make'])
     subprocess.check_call(
-        cmake_command,
-        cwd=suitesparse_build_dir.as_posix(),
+        make_command,
+        cwd=tbb_source_dir.as_posix(),
         env=os.environ,
     )
-    subprocess.check_call(["cmake", "--build", suitesparse_build_dir.as_posix()], cwd=suitesparse_build_dir.as_posix())
-    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=suitesparse_build_dir.as_posix())
+    tbb_potential_dirs = list(tbb_source_dir.rglob("libtbb*"))
+    if len(tbb_potential_dirs) == 0:
+        raise RuntimeError('Could not find tbb lib')
+    tbb_libb_dir = tbb_potential_dirs[0].parent
+    print(f'Found tbb lib dir: {tbb_libb_dir}')
+    if tbb_build_lib.exists():
+        rmtree(tbb_build_lib)
+    if tbb_build_include.exists():
+        rmtree(tbb_build_include)
+
+    copytree(tbb_libb_dir, tbb_build_lib)
+    copytree(tbb_source_dir.joinpath("include"), tbb_build_include)
+    os.environ['TBB_ROOT'] = tbb_build_dir.as_posix()
+    os.environ['LD_LIBRARY_PATH'] = f"{tbb_build_lib.as_posix()}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+    os.environ['LIBRARY_PATH'] = f"{tbb_build_lib.as_posix()}:{os.environ.get('LD_LIBRARY_PATH', '')}"
+    os.environ['C_INCLUDE_PATH'] = f"{tbb_build_include}:{os.environ.get('C_INCLUDE_PATH', '')}"
+    os.environ['CPLUS_INCLUDE_PATH'] = f"{tbb_build_include}:{os.environ.get('CPLUS_INCLUDE_PATH', '')}"
+
+
+def install_suitesparse(install_dir: Path):
+    suitesparse_build_dir = THIRD_PARTY_BUILD_DIR / "SuiteSparse"
+    suitesparse_source_dir = THIRD_PARTY_SOURCE_DIR / "SuiteSparse"
+
+    if not suitesparse_build_dir.exists():
+        suitesparse_build_dir.mkdir()
+
+    subprocess.check_call(
+        [
+            "make",
+            '-j8'
+        ],
+        cwd=suitesparse_source_dir.as_posix()
+    )
+    subprocess.check_call(
+        [
+            "make",
+            'local'
+        ],
+        cwd=suitesparse_source_dir.as_posix()
+    )
+    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=suitesparse_source_dir.as_posix())
 
 
 def install_ceres(install_dir: Path):
     ceres_build_dir = THIRD_PARTY_BUILD_DIR / "ceres_solver"
-    ceres_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/ceres-solver")
-    if ceres_build_dir.exists():
-        rmtree(ceres_build_dir)
-    ceres_build_dir.mkdir()
+    ceres_source_dir = THIRD_PARTY_SOURCE_DIR / "ceres-solver"
+    if not ceres_build_dir.exists():
+        ceres_build_dir.mkdir()
+
+    del os.environ['arch']
+    # del os.environ['OMP_NUM_THREADS']
+    # del os.environ['OMP_PROC_BIND']
+    # del os.environ['OMP_SCHEDULE']
+
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
+        "-Dopenmp=OFF",
         f'SUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
+        f'-DTBB_ROOT={os.environ["TBB_ROOT"]}',
+
         ceres_source_dir.as_posix()
     ]
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
     subprocess.check_call(
         cmake_command,
         cwd=ceres_build_dir.as_posix()
@@ -205,9 +232,8 @@ def install_ceres(install_dir: Path):
 
 def install_opensfm(install_dir: Path):
 
-    if install_dir.exists():
-        rmtree(install_dir)
-    install_dir.mkdir()
+    if not install_dir.exists():
+        install_dir.mkdir()
 
     cmake_command = [
         "cmake",
@@ -215,11 +241,7 @@ def install_opensfm(install_dir: Path):
         "../opensfm/src",
         "-DPYTHON_EXECUTABLE=" + sys.executable,
     ]
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
+
     if sys.platform == "win32":
         cmake_command += [
             "-DVCPKG_TARGET_TRIPLET=x64-windows",
@@ -239,10 +261,11 @@ def configure_c_extension():
     )
 
     # Third party install
-    install_gflag(THIRD_PARTY_INSTALL_DIR)
-    install_glog(THIRD_PARTY_INSTALL_DIR)
-    install_eigen(THIRD_PARTY_INSTALL_DIR)
-    install_suitesparse(THIRD_PARTY_INSTALL_DIR)
+    # install_gflag(THIRD_PARTY_INSTALL_DIR)
+    # install_glog(THIRD_PARTY_INSTALL_DIR)
+    # install_eigen(THIRD_PARTY_INSTALL_DIR)
+    install_tbb()
+    # install_suitesparse(THIRD_PARTY_INSTALL_DIR)
     install_ceres(THIRD_PARTY_INSTALL_DIR)
     install_opensfm(Path(__file__).parent / "cmake_build")
 
