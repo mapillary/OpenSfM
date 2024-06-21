@@ -17,6 +17,8 @@ from wheel.bdist_wheel import bdist_wheel
 VERSION = (0, 5, 2, "post19")
 
 THIRD_PARTY_INSTALL_DIR = Path(__file__).parent / "third_party_install"
+THIRD_PARTY_BUILD_DIR = Path(__file__).parent / "third_party_build"
+THIRD_PARTY_BUILD_DIR.mkdir(exist_ok=True)
 LIB_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/lib"
 INCLUDE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/include"
 SHARE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/share"
@@ -69,15 +71,15 @@ class InstallPlatlib(install):
 
 
 def install_gflag(install_dir: Path):
-    gflags_build_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/gflags/build")
-
+    gflags_build_dir = THIRD_PARTY_BUILD_DIR / "gflags"
+    gflag_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/gflags/")
     if gflags_build_dir.exists():
         rmtree(gflags_build_dir)
     gflags_build_dir.mkdir()
     cmake_command = [
             'cmake',
             '-DCMAKE_CXX_FLAGS="-fPIC"',
-            gflags_build_dir.parent.as_posix()
+            gflag_source_dir
         ]
     # if _is_apple_silicon():
     #     cmake_command += [
@@ -95,16 +97,17 @@ def install_gflag(install_dir: Path):
 
 
 def install_glog(install_dir: Path):
-    glog_path = Path(__file__).parent.joinpath("opensfm/src/third_party/glog/build")
+    glog_build_dir = THIRD_PARTY_BUILD_DIR / "glog"
+    glog_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/glog")
 
-    if glog_path.exists():
-        rmtree(glog_path)
-    glog_path.mkdir()
+    if glog_build_dir.exists():
+        rmtree(glog_build_dir)
+    glog_build_dir.mkdir()
 
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
-        glog_path.parent.as_posix()
+        glog_source_dir.as_posix()
     ]
 
     # if _is_apple_silicon():
@@ -115,24 +118,25 @@ def install_glog(install_dir: Path):
 
     subprocess.check_call(
         cmake_command,
-        cwd=glog_path.as_posix(),
+        cwd=glog_build_dir.as_posix(),
         env=os.environ,
     )
-    subprocess.check_call(["make", "-j8"], cwd=glog_path.as_posix())
-    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=glog_path.as_posix())
+    subprocess.check_call(["make", "-j8"], cwd=glog_build_dir.as_posix())
+    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=glog_build_dir.as_posix())
 
 
 def install_eigen(install_dir: Path):
-    eigen_path = Path(__file__).parent.joinpath("opensfm/src/third_party/eigen/build")
+    eigen_build_dir = THIRD_PARTY_BUILD_DIR / "eigen"
+    eigen_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/eigen")
 
-    if eigen_path.exists():
-        rmtree(eigen_path)
+    if eigen_build_dir.exists():
+        rmtree(eigen_build_dir)
 
-    eigen_path.mkdir()
+    eigen_build_dir.mkdir()
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
-        eigen_path.parent.as_posix()
+        eigen_source_dir.as_posix(),
     ]
 
     # if _is_apple_silicon():
@@ -142,21 +146,22 @@ def install_eigen(install_dir: Path):
     #     ]
     subprocess.check_call(
         cmake_command,
-        cwd=eigen_path.as_posix(),
+        cwd=eigen_build_dir.as_posix(),
         env=os.environ,
     )
-    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=eigen_path.as_posix())
+    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=eigen_build_dir.as_posix())
 
 
 def install_suitesparse(install_dir: Path):
-    suitesparse_path = Path(__file__).parent.joinpath("opensfm/src/third_party/SuiteSparse/build")
-    if suitesparse_path.exists():
-        rmtree(suitesparse_path)
-    suitesparse_path.mkdir()
+    suitesparse_build_dir = THIRD_PARTY_BUILD_DIR / "SuiteSparse"
+    suitesparse_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/SuiteSparse")
+    if suitesparse_build_dir.exists():
+        rmtree(suitesparse_build_dir)
+    suitesparse_build_dir.mkdir()
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
-        suitesparse_path.parent.as_posix(),
+        suitesparse_source_dir.as_posix(),
     ]
     # if _is_apple_silicon():
     #     cmake_command += [
@@ -165,23 +170,24 @@ def install_suitesparse(install_dir: Path):
     #     ]
     subprocess.check_call(
         cmake_command,
-        cwd=suitesparse_path.as_posix(),
+        cwd=suitesparse_build_dir.as_posix(),
         env=os.environ,
     )
-    subprocess.check_call(["cmake", "--build", suitesparse_path.as_posix()], cwd=suitesparse_path.as_posix())
-    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=suitesparse_path.as_posix())
+    subprocess.check_call(["cmake", "--build", suitesparse_build_dir.as_posix()], cwd=suitesparse_build_dir.as_posix())
+    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=suitesparse_build_dir.as_posix())
 
 
 def install_ceres(install_dir: Path):
-    ceres_path = Path(__file__).parent.joinpath("opensfm/src/third_party/ceres-solver/build")
-    if ceres_path.exists():
-        rmtree(ceres_path)
-    ceres_path.mkdir()
+    ceres_build_dir = THIRD_PARTY_BUILD_DIR / "ceres_solver"
+    ceres_source_dir = Path(__file__).parent.joinpath("opensfm/src/third_party/ceres-solver")
+    if ceres_build_dir.exists():
+        rmtree(ceres_build_dir)
+    ceres_build_dir.mkdir()
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
         f'SUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
-        ceres_path.parent.as_posix(),
+        ceres_source_dir.as_posix()
     ]
     # if _is_apple_silicon():
     #     cmake_command += [
@@ -190,10 +196,10 @@ def install_ceres(install_dir: Path):
     #     ]
     subprocess.check_call(
         cmake_command,
-        cwd=ceres_path.as_posix()
+        cwd=ceres_build_dir.as_posix()
     )
-    subprocess.check_call(["make", "-j8"], cwd=ceres_path.as_posix())
-    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=ceres_path.as_posix(), env=os.environ)
+    subprocess.check_call(["make", "-j8"], cwd=ceres_build_dir.as_posix())
+    subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=ceres_build_dir.as_posix(), env=os.environ)
 
 
 def install_opensfm(install_dir: Path):
