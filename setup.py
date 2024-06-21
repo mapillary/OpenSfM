@@ -50,14 +50,7 @@ if _is_apple_silicon():
     os.environ['arch'] = 'arm64'
 
 #
-# if _is_apple_silicon():
-#     print('Detected Apple Silicon processor')
-#     # Define the compilers
-#     C_COMPILER_PATH = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/gcc-12')
-#     CXX_COMPILER_PATH = os.path.abspath('/opt/homebrew/Cellar/gcc@12/12.3.0/bin/g++-12')
-#     C_COMPILER_ARG = f'-DCMAKE_C_COMPILER={C_COMPILER_PATH}'
-#     CXX_COMPILER_ARG = f'-DCMAKE_CXX_COMPILER={CXX_COMPILER_PATH}'
-#
+
 
 def version_str(version):
     return ".".join(map(str, version))
@@ -87,11 +80,6 @@ def install_gflag(install_dir: Path):
             '-DCMAKE_CXX_FLAGS="-fPIC"',
             gflag_source_dir
         ]
-    # if _is_apple_silicon():
-    #     cmake_command += [
-    #         C_COMPILER_ARG,
-    #         CXX_COMPILER_ARG,
-    #     ]
     subprocess.check_call(
         cmake_command,
         cwd=gflags_build_dir.as_posix(),
@@ -209,9 +197,6 @@ def install_ceres(install_dir: Path):
         ceres_build_dir.mkdir()
 
     del os.environ['arch']
-    # del os.environ['OMP_NUM_THREADS']
-    # del os.environ['OMP_PROC_BIND']
-    # del os.environ['OMP_SCHEDULE']
 
     cmake_command = [
         'cmake',
@@ -261,11 +246,11 @@ def configure_c_extension():
     )
 
     # Third party install
-    # install_gflag(THIRD_PARTY_INSTALL_DIR)
-    # install_glog(THIRD_PARTY_INSTALL_DIR)
-    # install_eigen(THIRD_PARTY_INSTALL_DIR)
+    install_gflag(THIRD_PARTY_INSTALL_DIR)
+    install_glog(THIRD_PARTY_INSTALL_DIR)
+    install_eigen(THIRD_PARTY_INSTALL_DIR)
     install_tbb()
-    # install_suitesparse(THIRD_PARTY_INSTALL_DIR)
+    install_suitesparse(THIRD_PARTY_INSTALL_DIR)
     install_ceres(THIRD_PARTY_INSTALL_DIR)
     install_opensfm(Path(__file__).parent / "cmake_build")
 
