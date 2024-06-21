@@ -28,6 +28,7 @@ CMAKE_PREFIX_PATH = (
     f'-DCMAKE_PREFIX_PATH={SHARED_CMAKE_DIR};'
     f'{SHARE_DIR};'
     f'{INCLUDE_DIR};'
+    f'{LIB_DIR};'
     f'{THIRD_PARTY_INSTALL_DIR}'
 )
 
