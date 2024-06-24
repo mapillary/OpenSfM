@@ -14,7 +14,7 @@ from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
 
 
-VERSION = (0, 5, 2, "post19")
+VERSION = (0, 5, 2, "post20")
 
 THIRD_PARTY_INSTALL_DIR = Path(__file__).parent / "third_party_install"
 THIRD_PARTY_BUILD_DIR = Path(__file__).parent / "third_party_build"
@@ -29,13 +29,17 @@ SHARED_CMAKE_DIR = THIRD_PARTY_INSTALL_DIR / "usr/local/lib/cmake/"
 CMAKE_PREFIX_PATH = (
     f'-DCMAKE_PREFIX_PATH={SHARED_CMAKE_DIR};'
     f'{SHARE_DIR};'
+    f'{SHARE_DIR}/eigen3;'
     f'{INCLUDE_DIR};'
+    f'{INCLUDE_DIR}/eigen3;'
     f'{LIB_DIR};'
+    f'{THIRD_PARTY_BUILD_DIR};'
+    f'{THIRD_PARTY_BUILD_DIR / "SuiteSparse"};'
 )
 
 os.environ['LDFLAGS'] = f'-L/opt/homebrew/Cellar/libomp/18.1.6/lib'
 os.environ['C_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/'
-os.environ['CPLUS_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/'
+os.environ['CPLUS_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/'
 
 
 def _is_apple_silicon() -> bool:
@@ -169,6 +173,8 @@ def install_tbb():
 def install_suitesparse(install_dir: Path):
     suitesparse_build_dir = THIRD_PARTY_BUILD_DIR / "SuiteSparse"
     suitesparse_source_dir = THIRD_PARTY_SOURCE_DIR / "SuiteSparse"
+    suitesparse_build_lib = suitesparse_build_dir / 'lib'
+    suitesparse_build_include = suitesparse_build_dir / 'include'
 
     if not suitesparse_build_dir.exists():
         suitesparse_build_dir.mkdir()
@@ -189,6 +195,14 @@ def install_suitesparse(install_dir: Path):
     )
     subprocess.check_call(["make", f"DESTDIR={install_dir}", "install"], cwd=suitesparse_source_dir.as_posix())
 
+    if suitesparse_build_lib.exists():
+        rmtree(suitesparse_build_lib)
+    if suitesparse_build_include.exists():
+        rmtree(suitesparse_build_include)
+
+    copytree(suitesparse_source_dir / "lib", suitesparse_build_lib)
+    copytree(suitesparse_source_dir.joinpath("include"), suitesparse_build_include)
+
 
 def install_ceres(install_dir: Path):
     ceres_build_dir = THIRD_PARTY_BUILD_DIR / "ceres_solver"
@@ -199,7 +213,10 @@ def install_ceres(install_dir: Path):
     cmake_command = [
         'cmake',
         CMAKE_PREFIX_PATH,
-        f'SUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
+        f'-DSUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
+        f'-DSUITESPARSE_INCLUDE_DIRS={THIRD_PARTY_BUILD_DIR / "SuiteSparse/include/"}',
+        f'-DSUITESPARSE_LIBRARY_DIRS={THIRD_PARTY_BUILD_DIR / "SuiteSparse/lib/"}',
+        f'-DSUITESPARSE_LIBRARIES={THIRD_PARTY_BUILD_DIR / "SuiteSparse/lib/"}',
         # f'-DTBB_ROOT={os.environ["TBB_ROOT"]}',
 
         ceres_source_dir.as_posix()
@@ -220,6 +237,7 @@ def install_opensfm(install_dir: Path):
     cmake_command = [
         "cmake",
         CMAKE_PREFIX_PATH,
+        f'-DEigen3_DIR={INCLUDE_DIR}/eigen3',
         "../opensfm/src",
         "-DPYTHON_EXECUTABLE=" + sys.executable,
     ]
