@@ -34,8 +34,9 @@ CMAKE_PREFIX_PATH = (
     f'{INCLUDE_DIR}/eigen3;'
     f'{LIB_DIR};'
     f'{THIRD_PARTY_BUILD_DIR};'
-    f'{THIRD_PARTY_BUILD_DIR / "SuiteSparse"};'
+    f'{THIRD_PARTY_BUILD_DIR / "SuiteSparse"}; '
 )
+CMAKE_OSX_SYSROOT = '-DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk/'
 
 os.environ['LDFLAGS'] = f'-L/opt/homebrew/Cellar/libomp/18.1.6/lib'
 os.environ['C_INCLUDE_PATH'] = f'/opt/homebrew/Cellar/libomp/18.1.6/include/'
@@ -80,10 +81,11 @@ def install_gflag(install_dir: Path):
     if not gflags_build_dir.exists():
         gflags_build_dir.mkdir()
     cmake_command = [
-            'cmake',
-            '-DCMAKE_CXX_FLAGS="-fPIC"',
-            gflag_source_dir
-        ]
+        'cmake',
+        CMAKE_OSX_SYSROOT,
+        '-DCMAKE_CXX_FLAGS="-fPIC"',
+        gflag_source_dir
+    ]
     subprocess.check_call(
         cmake_command,
         cwd=gflags_build_dir.as_posix(),
@@ -103,6 +105,7 @@ def install_glog(install_dir: Path):
 
     cmake_command = [
         'cmake',
+        CMAKE_OSX_SYSROOT,
         CMAKE_PREFIX_PATH,
         glog_source_dir.as_posix()
     ]
@@ -125,6 +128,7 @@ def install_eigen(install_dir: Path):
 
     cmake_command = [
         'cmake',
+        CMAKE_OSX_SYSROOT,
         CMAKE_PREFIX_PATH,
         eigen_source_dir.as_posix(),
     ]
@@ -212,6 +216,7 @@ def install_ceres(install_dir: Path):
 
     cmake_command = [
         'cmake',
+        CMAKE_OSX_SYSROOT,
         CMAKE_PREFIX_PATH,
         f'-DSUITESPARSE_LIBRARY_DIR_HINTS={install_dir}',
         f'-DSUITESPARSE_INCLUDE_DIRS={THIRD_PARTY_BUILD_DIR / "SuiteSparse/include/"}',
@@ -236,6 +241,7 @@ def install_opensfm(install_dir: Path):
 
     cmake_command = [
         "cmake",
+        CMAKE_OSX_SYSROOT,
         CMAKE_PREFIX_PATH,
         f'-DEigen3_DIR={INCLUDE_DIR}/eigen3',
         "../opensfm/src",
@@ -261,12 +267,12 @@ def configure_c_extension():
     )
 
     # Third party install
-    install_gflag(THIRD_PARTY_INSTALL_DIR)
-    install_glog(THIRD_PARTY_INSTALL_DIR)
-    install_eigen(THIRD_PARTY_INSTALL_DIR)
-    install_tbb()
-    install_suitesparse(THIRD_PARTY_INSTALL_DIR)
-    install_ceres(THIRD_PARTY_INSTALL_DIR)
+    # install_gflag(THIRD_PARTY_INSTALL_DIR)
+    # install_glog(THIRD_PARTY_INSTALL_DIR)
+    # install_eigen(THIRD_PARTY_INSTALL_DIR)
+    # install_tbb()
+    # install_suitesparse(THIRD_PARTY_INSTALL_DIR)
+    # install_ceres(THIRD_PARTY_INSTALL_DIR)
     install_opensfm(Path(__file__).parent / "cmake_build")
 
 
