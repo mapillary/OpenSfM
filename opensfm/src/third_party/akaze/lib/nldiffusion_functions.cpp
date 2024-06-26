@@ -271,11 +271,11 @@ void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float 
   Ld_row_p = Ld.ptr<float>(Lstep.rows-2);
   Lstep_row = Lstep.ptr<float>(Lstep.rows-1);
 
-  for (int x = 1; x < Lstep.cols-1; x++) {
-    float xpos = (c_row[x]+c_row[x+1])*(Ld_row[x+1]-Ld_row[x]);
-    float xneg = (c_row[x-1]+c_row[x])*(Ld_row[x]-Ld_row[x-1]);
-    float ypos = (c_row[x]+c_row_p[x])*(Ld_row_p[x]-Ld_row[x]);
-    Lstep_row[x] = 0.5*stepsize*(xpos-xneg + ypos);
+  for (int x_2 = 1; x_2 < Lstep.cols-1; x_2++) {
+    float xpos_2 = (c_row[x_2]+c_row[x_2+1])*(Ld_row[x_2+1]-Ld_row[x_2]);
+    float xneg_2 = (c_row[x_2-1]+c_row[x_2])*(Ld_row[x_2]-Ld_row[x_2-1]);
+    float ypos_2 = (c_row[x_2]+c_row_p[x_2])*(Ld_row_p[x_2]-Ld_row[x_2]);
+    Lstep_row[x_2] = 0.5*stepsize*(xpos_2-xneg_2 + ypos_2);
   }
 
   xpos = (c_row[0]+c_row[1])*(Ld_row[1]-Ld_row[0]);
@@ -290,22 +290,22 @@ void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float 
   // First and last columns
   for (int i = 1; i < Lstep.rows-1; i++) {
 
-    const float* c_row = c.ptr<float>(i);
+    const float* c_row_2 = c.ptr<float>(i);
     const float* c_row_m = c.ptr<float>(i-1);
-    const float* c_row_p = c.ptr<float>(i+1);
-    float* Ld_row = Ld.ptr<float>(i);
-    float* Ld_row_p = Ld.ptr<float>(i+1);
+    const float* c_row_p_2 = c.ptr<float>(i+1);
+    float* Ld_row_2 = Ld.ptr<float>(i);
+    float* Ld_row_p_2 = Ld.ptr<float>(i+1);
     float* Ld_row_m = Ld.ptr<float>(i-1);
     Lstep_row = Lstep.ptr<float>(i);
 
-    float xpos = (c_row[0]+c_row[1])*(Ld_row[1]-Ld_row[0]);
-    float ypos = (c_row[0]+c_row_p[0])*(Ld_row_p[0]-Ld_row[0]);
-    float yneg = (c_row_m[0]+c_row[0])*(Ld_row[0]-Ld_row_m[0]);
-    Lstep_row[0] = 0.5*stepsize*(xpos+ypos-yneg);
+    float xpos_2 = (c_row_2[0]+c_row_2[1])*(Ld_row_2[1]-Ld_row_2[0]);
+    float ypos = (c_row_2[0]+c_row_p_2[0])*(Ld_row_p_2[0]-Ld_row_2[0]);
+    float yneg = (c_row_m[0]+c_row_2[0])*(Ld_row_2[0]-Ld_row_m[0]);
+    Lstep_row[0] = 0.5*stepsize*(xpos_2+ypos-yneg);
 
-    float xneg = (c_row[Lstep.cols-2]+c_row[Lstep.cols-1])*(Ld_row[Lstep.cols-1]-Ld_row[Lstep.cols-2]);
-    ypos = (c_row[Lstep.cols-1]+c_row_p[Lstep.cols-1])*(Ld_row_p[Lstep.cols-1]-Ld_row[Lstep.cols-1]);
-    yneg = (c_row_m[Lstep.cols-1]+c_row[Lstep.cols-1])*(Ld_row[Lstep.cols-1]-Ld_row_m[Lstep.cols-1]);
+    float xneg = (c_row_2[Lstep.cols-2]+c_row_2[Lstep.cols-1])*(Ld_row_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-2]);
+    ypos = (c_row_2[Lstep.cols-1]+c_row_p_2[Lstep.cols-1])*(Ld_row_p_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-1]);
+    yneg = (c_row_m[Lstep.cols-1]+c_row_2[Lstep.cols-1])*(Ld_row_2[Lstep.cols-1]-Ld_row_m[Lstep.cols-1]);
     Lstep_row[Lstep.cols-1] = 0.5*stepsize*(-xneg+ypos-yneg);
   }
 

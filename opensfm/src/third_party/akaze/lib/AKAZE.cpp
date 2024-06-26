@@ -374,17 +374,17 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   for (size_t i = 0; i < kpts_aux.size(); i++) {
 
     is_repeated = false;
-    const cv::KeyPoint& point = kpts_aux[i];
+    const cv::KeyPoint& point_2 = kpts_aux[i];
     for (size_t j = i+1; j < kpts_aux.size(); j++) {
 
       // Compare response with the upper scale
-      if ((point.class_id+1) == kpts_aux[j].class_id) {
+      if ((point_2.class_id+1) == kpts_aux[j].class_id) {
 
-        dist = (point.pt.x-kpts_aux[j].pt.x)*(point.pt.x-kpts_aux[j].pt.x) +
-            (point.pt.y-kpts_aux[j].pt.y)*(point.pt.y-kpts_aux[j].pt.y);
+        dist = (point_2.pt.x-kpts_aux[j].pt.x)*(point_2.pt.x-kpts_aux[j].pt.x) +
+            (point_2.pt.y-kpts_aux[j].pt.y)*(point_2.pt.y-kpts_aux[j].pt.y);
 
-        if (dist <= point.size*point.size) {
-          if (point.response < kpts_aux[j].response) {
+        if (dist <= point_2.size*point_2.size) {
+          if (point_2.response < kpts_aux[j].response) {
             is_repeated = true;
             break;
           }
@@ -393,7 +393,7 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
     }
 
     if (is_repeated == false) {
-      kpts.push_back(point);
+      kpts.push_back(point_2);
     }
   }
 
@@ -959,8 +959,8 @@ void AKAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float *desc
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
-    desc[i] /= len;
+  for (int i_2 = 0; i_2 < dsize; i_2++) {
+    desc[i_2] /= len;
   }
 }
 
@@ -1075,8 +1075,8 @@ void AKAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint& kpt, float *desc) const 
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
-    desc[i] /= len;
+  for (int i_2 = 0; i_2 < dsize; i_2++) {
+    desc[i_2] /= len;
   }
 }
 
