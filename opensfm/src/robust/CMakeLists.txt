@@ -17,6 +17,8 @@ set(ROBUST_FILES
 )
 add_library(robust ${ROBUST_FILES})
 target_link_libraries(robust
+  PUBLIC
+    ${CERES_LIBRARIES}
   PRIVATE
     foundation
     geometry
@@ -29,7 +31,7 @@ target_link_libraries(pyrobust
   PRIVATE
     robust
     foundation
-    pybind11
+    pybind11::headers
 )
 set_target_properties(pyrobust PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
