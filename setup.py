@@ -14,7 +14,7 @@ from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
 
 
-VERSION = (0, 5, 2, "post20")
+VERSION = (0, 5, 2, "post22")
 
 THIRD_PARTY_INSTALL_DIR = Path(__file__).parent / "third_party_install"
 THIRD_PARTY_BUILD_DIR = Path(__file__).parent / "third_party_build"
@@ -266,13 +266,15 @@ def configure_c_extension():
         f"Configuring for python {sys.version_info.major}.{sys.version_info.minor}..."
     )
 
-    # Third party install
-    # install_gflag(THIRD_PARTY_INSTALL_DIR)
-    # install_glog(THIRD_PARTY_INSTALL_DIR)
-    # install_eigen(THIRD_PARTY_INSTALL_DIR)
-    # install_tbb()
-    # install_suitesparse(THIRD_PARTY_INSTALL_DIR)
-    # install_ceres(THIRD_PARTY_INSTALL_DIR)
+    if platform.system() == 'Darwin':
+        # Third party install
+        install_gflag(THIRD_PARTY_INSTALL_DIR)
+        install_glog(THIRD_PARTY_INSTALL_DIR)
+        install_eigen(THIRD_PARTY_INSTALL_DIR)
+        install_tbb()
+        install_suitesparse(THIRD_PARTY_INSTALL_DIR)
+        install_ceres(THIRD_PARTY_INSTALL_DIR)
+
     install_opensfm(Path(__file__).parent / "cmake_build")
 
 

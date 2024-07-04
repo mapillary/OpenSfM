@@ -165,6 +165,4 @@ RUN  ls /source/wheelhouse/*.whl | xargs -n 1 -I {}  auditwheel repair {} --plat
 RUN cd ${WHEEL_DIR} && rm -rf *-linux*whl
 RUN /root/.pyenv/versions/3.9.9/bin/pip install opensfm --no-index -f $WHEEL_DIR
 RUN python -c "import opensfm"
-#RUN ls /source/wheelhouse/*.whl | xargs -n 1 -I {} python -m twine upload --repository-url "http://pypi.artichoke-labs.ai" {}
-#RUN sh /source/OpenSfM/build_wheel.sh
-#RUN sh /source/OpenSfM/test_and_upload_wheel.sh
+RUN ls /source/wheelhouse/*.whl | xargs -n 1 -I {} python -m twine upload --repository-url "http://pypi.artichoke-labs.ai" {}

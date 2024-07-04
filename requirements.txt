@@ -1,22 +1,22 @@
-cloudpickle==0.4.0
-exifread==2.1.2
-flask==2.3.2
-fpdf2==2.4.6
-joblib==0.14.1
+cloudpickle>=0.4.0
+exifread>=2.1.2
+flask>=2.3.2
+fpdf2>=2.4.6
+joblib>=0.14.1
 matplotlib
 networkx==2.5
-numpy>=1.19
+numpy
 Pillow>=8.1.1
 pyproj>=1.9.5.1
-pytest==7.0.0
+pytest>=3.0.7
 python-dateutil>=2.7
-pyyaml==6.0
-scipy>=1.10.0
+pyyaml>=6.0
+scipy
 sphinx==4.2.0
 six
-xmltodict==0.10.2
+xmltodict>=0.10.2
 wheel
-opencv-python==4.5.1.48 ; sys_platform == "win32"
+opencv-python>=4.10.0 ; sys_platform == "win32"
 opencv-python ; sys_platform == "linux"
 twine
 sphinx
