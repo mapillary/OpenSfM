@@ -28,7 +28,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   // Compute k1, k2 and k3
   const Eigen::Vector3d k1 = (p1 - p2).normalized();
   const Eigen::Vector3d k3 = (b1.cross(b2)).normalized();
-  const Eigen::Vector3d k2 = (k1.cross(k3)).normalized();
 
   // Compute ui and vi for i = 1, 2
   const Eigen::Vector3d u1 = p1 - p3;
@@ -93,7 +92,6 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   e1 << 1, 0, 0;
   e2 << 0, 1, 0;
 
-  constexpr double eps = 1e-20;
   for (const auto &root : roots) {
     const auto cos_theta_1 = root;
     const auto sin_theta_1 =
