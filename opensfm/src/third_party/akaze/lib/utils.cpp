@@ -393,12 +393,6 @@ static inline std::ostream& cout_help() {
 }
 
 /* ************************************************************************* */
-static inline std::string toUpper(std::string s) {
-  std::transform(s.begin(), s.end(), s.begin(), ::toupper);
-  return s;
-}
-
-/* ************************************************************************* */
 void show_input_options_help(int example) {
 
   fflush(stdout);
