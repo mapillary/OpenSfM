@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import create_submodels
 
 from . import command

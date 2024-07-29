@@ -1,3 +1,4 @@
+# pyre-unsafe
 import copy
 from typing import Tuple
 

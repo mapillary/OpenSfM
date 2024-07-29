@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import extract_metadata
 
 from . import command

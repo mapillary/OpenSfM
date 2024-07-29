@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import align_submodels
 
 from . import command

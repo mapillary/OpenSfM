@@ -44,7 +44,6 @@ template <class F>
 struct FiniteDiff<F, 1, 1> {
   static typename TypeTraits<1, 1>::Jacobian Derivative(
       const F& func, typename TypeTraits<1, 1>::Values& x) {
-    typename TypeTraits<1, 1>::Jacobian jacobian;
     constexpr auto eps = 1e-15;
     return (func(x + eps) - func(x)) / eps;
   }
@@ -65,7 +64,7 @@ typename TypeTraits<N, M>::Values SolveDecr(
     const typename TypeTraits<N, M>::Jacobian& d,
     const typename TypeTraits<N, M>::Values& f) {
   return (d.transpose() * d).inverse() * d.transpose() * f;
-};
+}
 
 template <>
 typename TypeTraits<1, 1>::Values SolveDecr<1, 1>(
@@ -77,7 +76,6 @@ template <class F, int N, int M, class D = FiniteDiff<F, N, M>>
 typename TypeTraits<N, M>::Values NewtonRaphson(
     const F& func, const typename TypeTraits<N, M>::Values& initial_value,
     int iterations, double tol = 1e-6) {
-  constexpr auto eps = std::numeric_limits<double>::epsilon();
   auto current_value = initial_value;
   for (int i = 0; i < iterations; ++i) {
     const auto at_current_value = func(current_value);

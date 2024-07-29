@@ -3,8 +3,7 @@
 #include <geometry/functions.h>
 #include <geometry/pose.h>
 
-namespace geometry {
-namespace covariance {
+namespace geometry::covariance {
 using PointJacobian = Eigen::Matrix<double, 2, 3, Eigen::RowMajor>;
 std::pair<PointJacobian, Vec2d> ComputeJacobianReprojectionError(
     const Camera& camera, const Pose& pose, const Vec2d& observation,
@@ -12,5 +11,4 @@ std::pair<PointJacobian, Vec2d> ComputeJacobianReprojectionError(
 std::pair<Mat3d, double> ComputePointInverseCovariance(
     const std::vector<Camera>& cameras, const std::vector<Pose>& poses,
     const std::vector<Vec2d>& observations, const Vec3d& point);
-}  // namespace covariance
 }  // namespace geometry

@@ -3,14 +3,13 @@
 #include <dense/depthmap.h>
 #include <foundation/python_types.h>
 
-using namespace foundation;
 
 namespace dense {
 
 class DepthmapEstimatorWrapper {
  public:
-  void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_uint8 image,
-               pyarray_uint8 mask) {
+  void AddView(foundation::pyarray_d K, foundation::pyarray_d R, foundation::pyarray_d t, foundation::pyarray_uint8 image,
+               foundation::pyarray_uint8 mask) {
     if ((image.shape(0) != mask.shape(0)) || (image.shape(1) != mask.shape(1))){
       throw std::invalid_argument("image and mask must have matching shapes.");
     }
@@ -57,13 +56,13 @@ class DepthmapEstimatorWrapper {
 
   py::object ComputeReturnValues(const DepthmapEstimatorResult &result) {
     py::list retn;
-    retn.append(py_array_from_data(result.depth.ptr<float>(0),
+    retn.append(foundation::py_array_from_data(result.depth.ptr<float>(0),
                                    result.depth.rows, result.depth.cols));
-    retn.append(py_array_from_data(result.plane.ptr<float>(0),
+    retn.append(foundation::py_array_from_data(result.plane.ptr<float>(0),
                                    result.plane.rows, result.plane.cols, 3));
-    retn.append(py_array_from_data(result.score.ptr<float>(0),
+    retn.append(foundation::py_array_from_data(result.score.ptr<float>(0),
                                    result.score.rows, result.score.cols));
-    retn.append(py_array_from_data(result.nghbr.ptr<int>(0), result.nghbr.rows,
+    retn.append(foundation::py_array_from_data(result.nghbr.ptr<int>(0), result.nghbr.rows,
                                    result.nghbr.cols));
     return std::move(retn);
   }
@@ -78,7 +77,7 @@ class DepthmapCleanerWrapper {
 
   void SetMinConsistentViews(int n) { dc_.SetMinConsistentViews(n); }
 
-  void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_f depth) {
+  void AddView(foundation::pyarray_d K, foundation::pyarray_d R, foundation::pyarray_d t, foundation::pyarray_f depth) {
     dc_.AddView(K.data(), R.data(), t.data(), depth.data(), depth.shape(1),
                 depth.shape(0));
   }
@@ -89,7 +88,7 @@ class DepthmapCleanerWrapper {
       py::gil_scoped_release release;
       dc_.Clean(&depth);
     }
-    return py_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols);
+    return foundation::py_array_from_data(depth.ptr<float>(0), depth.rows, depth.cols);
   }
 
  private:
@@ -100,8 +99,8 @@ class DepthmapPrunerWrapper {
  public:
   void SetSameDepthThreshold(float t) { dp_.SetSameDepthThreshold(t); }
 
-  void AddView(pyarray_d K, pyarray_d R, pyarray_d t, pyarray_f depth,
-               pyarray_f plane, pyarray_uint8 color, pyarray_uint8 label) {
+  void AddView(foundation::pyarray_d K, foundation::pyarray_d R, foundation::pyarray_d t, foundation::pyarray_f depth,
+               foundation::pyarray_f plane, foundation::pyarray_uint8 color, foundation::pyarray_uint8 label) {
     if ((depth.shape(0) != plane.shape(0)) || (depth.shape(1) != plane.shape(1))){
       throw std::invalid_argument("depth and plane must have matching shapes.");
     }
@@ -128,10 +127,10 @@ class DepthmapPrunerWrapper {
 
     py::list retn;
     int n = int(points.size()) / 3;
-    retn.append(py_array_from_data(&points[0], n, 3));
-    retn.append(py_array_from_data(&normals[0], n, 3));
-    retn.append(py_array_from_data(&colors[0], n, 3));
-    retn.append(py_array_from_data(&labels[0], n));
+    retn.append(foundation::py_array_from_data(points.data(), n, 3));
+    retn.append(foundation::py_array_from_data(normals.data(), n, 3));
+    retn.append(foundation::py_array_from_data(colors.data(), n, 3));
+    retn.append(foundation::py_array_from_data(labels.data(), n));
     return std::move(retn);
   }
 

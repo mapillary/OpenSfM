@@ -1,5 +1,6 @@
+# pyre-unsafe
 import sys
-from os.path import abspath, join, dirname
+from os.path import abspath, dirname, join
 
 sys.path.insert(0, abspath(join(dirname(__file__), "..")))
 
@@ -21,7 +22,13 @@ def create_default_dataset_context(
         dataset.clean_up()
 
 
-if __name__ == "__main__":
+def main() -> None:
     commands.command_runner(
-        commands.opensfm_commands, create_default_dataset_context, dataset_choices=["opensfm"]
+        commands.opensfm_commands,
+        create_default_dataset_context,
+        dataset_choices=["opensfm"],
     )
+
+
+if __name__ == "__main__":
+    main()  # pragma: no cover

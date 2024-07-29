@@ -1,3 +1,4 @@
+# pyre-unsafe
 import os
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, IO, Union
@@ -41,6 +42,12 @@ class OpenSfMConfig:
     sift_peak_threshold: float = 0.1
     # See OpenCV doc
     sift_edge_threshold: int = 10
+    # See OpenCV doc
+    sift_nfeatures: int = 0
+    # See OpenCV doc
+    sift_octave_layers: int = 3
+    # See OpenCV doc
+    sift_sigma: float = 1.6
 
     ##################################
     # Params for SURF

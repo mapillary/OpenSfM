@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import io
 from opensfm import reconstruction
 from opensfm.dataset_base import DataSetBase

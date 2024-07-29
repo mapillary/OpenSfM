@@ -5,8 +5,7 @@
 #include <limits>
 #include <unordered_set>
 
-namespace sfm {
-namespace retriangulation {
+namespace sfm::retriangulation {
 void RealignMaps(const map::Map& map_from, map::Map& map_to,
                  bool update_points) {
   const auto& map_from_shots = map_from.GetShots();
@@ -114,5 +113,4 @@ void RealignMaps(const map::Map& map_from, map::Map& map_to,
     map_to.RemoveShot(shot_id);
   }
 }
-}  // namespace retriangulation
 }  // namespace sfm

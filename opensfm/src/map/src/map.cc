@@ -320,8 +320,8 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 }
 
 geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
-  auto it = cameras_.emplace(std::make_pair(cam.id, cam));
-  bias_.emplace(std::make_pair(cam.id, geometry::Similarity()));
+  auto it = cameras_.emplace(cam.id, cam);
+  bias_.emplace(cam.id, geometry::Similarity());
   return it.first->second;
 }
 
@@ -413,7 +413,7 @@ RigCamera& Map::CreateRigCamera(const map::RigCamera& rig_camera) {
     throw std::runtime_error("RigCamera " + rig_camera.id + " already exists.");
   }
 
-  auto it = rig_cameras_.emplace(std::make_pair(rig_camera.id, rig_camera));
+  auto it = rig_cameras_.emplace(rig_camera.id, rig_camera);
   return it.first->second;
 }
 

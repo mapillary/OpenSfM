@@ -375,8 +375,8 @@ struct RACommonCameraError {
 
 class ReconstructionAlignment {
  public:
-  ReconstructionAlignment() {}
-  virtual ~ReconstructionAlignment() {}
+  ReconstructionAlignment() = default;
+  virtual ~ReconstructionAlignment() = default;
 
   RAShot GetShot(const std::string &id) { return shots_[id]; }
 
@@ -520,7 +520,7 @@ class ReconstructionAlignment {
           new ceres::AutoDiffCostFunction<RAAbsolutePositionError, 3, 6>(
               new RAAbsolutePositionError(a.position, a.std_deviation));
 
-      problem.AddResidualBlock(cost_function, NULL, a.shot->parameters);
+      problem.AddResidualBlock(cost_function, nullptr, a.shot->parameters);
     }
 
     // Add relative-absolute position errors

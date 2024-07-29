@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
+#include <string>
 
 #include "geo/geo.h"
 #include "map/defines.h"
@@ -205,7 +206,6 @@ py::tuple BAHelpers::BundleLocal(
     ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
                       shot_rig_cameras, fix_instance);
 
-    LOG(INFO) << "bundle_use_gps: " << config["bundle_use_gps"].cast<bool>();
     // only add averaged rig position constraints to moving instances
     if (!fix_instance && gps_count > 0) {
       LOG(INFO) << "bundle_use_gps: " << config["bundle_use_gps"].cast<bool>()
@@ -673,6 +673,11 @@ py::dict BAHelpers::Bundle(
         const auto pos = shot.GetShotMeasurements().gps_position_;
         const auto acc = shot.GetShotMeasurements().gps_accuracy_;
         if (pos.HasValue() && acc.HasValue()) {
+          if (acc.Value() <= 0) {
+            throw std::runtime_error("Shot " + shot.GetId() + " has an accuracy <= 0: "
+                                    + std::to_string(acc.Value()) + ". Try modifying "
+                                    "your input parser to filter such values.");
+          }
           average_position += pos.Value();
           average_std += acc.Value();
           ++gps_count;
@@ -853,7 +858,9 @@ void BAHelpers::AlignmentConstraints(
   // Triangulated vs measured points
   if (!gcp.empty() && config["bundle_use_gcp"].cast<bool>()) {
     for (const auto& point : gcp) {
-      if (point.lla_.empty()) continue;
+      if (point.lla_.empty()) {
+        continue;
+      }
       Vec3d coordinates;
       if (TriangulateGCP(point, shots, coordinates)) {
         Xp.row(idx) = topocentricConverter.ToTopocentric(point.GetLlaVec3d());

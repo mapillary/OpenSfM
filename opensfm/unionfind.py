@@ -1,6 +1,8 @@
 # Source: https://www.ics.uci.edu/~eppstein/PADS/UnionFind.py
 # Licence: MIT
 
+# pyre-unsafe
+
 
 # This is PADS, a library of Python Algorithms and Data Structures
 # implemented by David Eppstein of the University of California, Irvine.

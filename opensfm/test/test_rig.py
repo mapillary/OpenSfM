@@ -1,3 +1,4 @@
+# pyre-unsafe
 """Test the rig module."""
 import numpy as np
 from opensfm import pygeometry, rig, types

@@ -18,7 +18,7 @@ bool IsRigCameraUseful(bundle::RigCamera &rig_camera) {
   return !(rig_camera.GetParametersToOptimize().empty() &&
            rig_camera.GetValueData().isConstant(0.));
 }
-};  // namespace
+}  // namespace
 
 namespace bundle {
 BundleAdjuster::BundleAdjuster() {
@@ -140,7 +140,7 @@ void BundleAdjuster::AddRigInstance(
                                          &rig_camera_exists->second,
                                          &rig_instances_.at(rig_instance_id)));
   }
-};
+}
 
 void BundleAdjuster::AddRigCamera(const std::string &rig_camera_id,
                                   const geometry::Pose &pose,
@@ -161,7 +161,7 @@ void BundleAdjuster::AddRigCamera(const std::string &rig_camera_id,
   if (fixed) {
     rig_camera.SetParametersToOptimize({});
   }
-};
+}
 
 void BundleAdjuster::AddRigInstancePositionPrior(
     const std::string &instance_id, const Vec3d &position,
@@ -424,7 +424,7 @@ ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   } else if (name.compare("ArctanLoss") == 0) {
     return new ceres::ArctanLoss(threshold);
   }
-  return NULL;
+  return nullptr;
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
@@ -561,17 +561,17 @@ void BundleAdjuster::Run() {
   ceres::Problem problem;
 
   // Add cameras
-  for (auto &i : cameras_) {
-    auto &data = i.second.GetValueData();
+  for (auto &[_, cam] : cameras_) {
+    auto &data = cam.GetValueData();
     problem.AddParameterBlock(data.data(), data.size());
 
     // Lock parameters based on bitmask of parameters : only constant for now
-    if (i.second.GetParametersToOptimize().empty()) {
+    if (cam.GetParametersToOptimize().empty()) {
       problem.SetParameterBlockConstant(data.data());
     }
 
     // Add a barrier for constraining transition of dual to stay in [0, 1]
-    const auto camera = i.second.GetValue();
+    const auto camera = cam.GetValue();
     if (camera.GetProjectionType() == geometry::ProjectionType::DUAL) {
       const auto types = camera.GetParametersTypes();
       int index = -1;
@@ -1094,9 +1094,8 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
 
     std::vector<std::pair<const double *, const double *>> covariance_blocks;
     for (auto &i : shots_) {
-      covariance_blocks.push_back(
-          std::make_pair(i.second.GetRigInstance()->GetValueData().data(),
-                         i.second.GetRigInstance()->GetValueData().data()));
+      covariance_blocks.emplace_back(i.second.GetRigInstance()->GetValueData().data(),
+                         i.second.GetRigInstance()->GetValueData().data());
     }
 
     bool worked = covariance.Compute(covariance_blocks, problem);
@@ -1129,7 +1128,9 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem *problem) {
         break;
       }
       // stop after first Nan value
-      if (!computed) break;
+      if (!computed) {
+        break;
+      }
     }
   }
 

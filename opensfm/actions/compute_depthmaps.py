@@ -1,3 +1,4 @@
+# pyre-unsafe
 import os
 
 from opensfm import dataset

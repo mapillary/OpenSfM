@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm import pybundle
 from opensfm import pydense
 from opensfm import pyfeatures

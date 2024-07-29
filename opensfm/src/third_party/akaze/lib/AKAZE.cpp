@@ -165,8 +165,9 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     }
 
     // Perform FED n inner steps
-    for (int j = 0; j < nsteps_[i-1]; j++)
+    for (int j = 0; j < nsteps_[i-1]; j++) {
       nld_step_scalar(evolution_[i].Lt, evolution_[i].Lflow, evolution_[i].Lstep, tsteps_[i-1][j]);
+    }
   }
 
   t2 = cv::getTickCount();
@@ -241,8 +242,9 @@ void AKAZE::Compute_Determinant_Hessian_Response() {
       const float* lxy = evolution_[i].Lxy.ptr<float>(ix);
       const float* lyy = evolution_[i].Lyy.ptr<float>(ix);
       float* ldet = evolution_[i].Ldet.ptr<float>(ix);
-      for (int jx = 0; jx < evolution_[i].Ldet.cols; jx++)
+      for (int jx = 0; jx < evolution_[i].Ldet.cols; jx++) {
         ldet[jx] = lxx[jx]*lyy[jx]-lxy[jx]*lxy[jx];
+      }
     }
   }
 }
@@ -267,7 +269,7 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   double t1 = 0.0, t2 = 0.0;
   float value = 0.0;
   float dist = 0.0, ratio = 0.0, smax = 0.0;
-  int npoints = 0, id_repeated = 0;
+  int id_repeated = 0;
   int sigma_size_ = 0, left_x = 0, right_x = 0, up_y = 0, down_y = 0;
   bool is_extremum = false, is_repeated = false, is_out = false;
   cv::KeyPoint point;
@@ -355,7 +357,6 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
                 point.pt.x *= ratio;
                 point.pt.y *= ratio;
                 kpts_aux.push_back(point);
-                npoints++;
               }
               else {
                 point.pt.x *= ratio;
@@ -373,17 +374,17 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
   for (size_t i = 0; i < kpts_aux.size(); i++) {
 
     is_repeated = false;
-    const cv::KeyPoint& point = kpts_aux[i];
+    const cv::KeyPoint& point_2 = kpts_aux[i];
     for (size_t j = i+1; j < kpts_aux.size(); j++) {
 
       // Compare response with the upper scale
-      if ((point.class_id+1) == kpts_aux[j].class_id) {
+      if ((point_2.class_id+1) == kpts_aux[j].class_id) {
 
-        dist = (point.pt.x-kpts_aux[j].pt.x)*(point.pt.x-kpts_aux[j].pt.x) +
-            (point.pt.y-kpts_aux[j].pt.y)*(point.pt.y-kpts_aux[j].pt.y);
+        dist = (point_2.pt.x-kpts_aux[j].pt.x)*(point_2.pt.x-kpts_aux[j].pt.x) +
+            (point_2.pt.y-kpts_aux[j].pt.y)*(point_2.pt.y-kpts_aux[j].pt.y);
 
-        if (dist <= point.size*point.size) {
-          if (point.response < kpts_aux[j].response) {
+        if (dist <= point_2.size*point_2.size) {
+          if (point_2.response < kpts_aux[j].response) {
             is_repeated = true;
             break;
           }
@@ -391,8 +392,9 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
       }
     }
 
-    if (is_repeated == false)
-      kpts.push_back(point);
+    if (is_repeated == false) {
+      kpts.push_back(point_2);
+    }
   }
 
   // Keep only the k-best keypoints
@@ -427,7 +429,7 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
     } else {
       // Non-adapting suppression: keep k best response.
       std::sort(kpts.begin(), kpts.end(), compareKeyPointResponse);
-      kpts.resize(options_.target_num_features);      
+      kpts.resize(options_.target_num_features);
     }
   }
   std::cout << "Keeping " << kpts.size() << " out of " << num_features_before << "\n";
@@ -583,10 +585,11 @@ void AKAZE::Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc) 
 #pragma omp parallel for
 #endif
       for (int i = 0; i < (int)(kpts.size()); i++) {
-        if (options_.descriptor_size == 0)
+        if (options_.descriptor_size == 0) {
           Get_Upright_MLDB_Full_Descriptor(kpts[i], desc.ptr<unsigned char>(i));
-        else
+        } else {
           Get_Upright_MLDB_Descriptor_Subset(kpts[i], desc.ptr<unsigned char>(i));
+        }
       }
     }
     break;
@@ -597,10 +600,11 @@ void AKAZE::Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc) 
 #endif
       for (int i = 0; i < (int)(kpts.size()); i++) {
         Compute_Main_Orientation(kpts[i]);
-        if (options_.descriptor_size == 0)
+        if (options_.descriptor_size == 0) {
           Get_MLDB_Full_Descriptor(kpts[i], desc.ptr<unsigned char>(i));
-        else
+        } else {
           Get_MLDB_Descriptor_Subset(kpts[i], desc.ptr<unsigned char>(i));
+        }
       }
     }
     break;
@@ -843,8 +847,9 @@ void AKAZE::Get_SURF_Descriptor_64(const cv::KeyPoint& kpt, float *desc) const {
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++)
+  for (int i = 0; i < dsize; i++) {
     desc[i] /= len;
+  }
 }
 
 /* ************************************************************************* */
@@ -954,8 +959,9 @@ void AKAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float *desc
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++)
-    desc[i] /= len;
+  for (int i_2 = 0; i_2 < dsize; i_2++) {
+    desc[i_2] /= len;
+  }
 }
 
 /* ************************************************************************* */
@@ -1069,8 +1075,9 @@ void AKAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint& kpt, float *desc) const 
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++)
-    desc[i] /= len;
+  for (int i_2 = 0; i_2 < dsize; i_2++) {
+    desc[i_2] /= len;
+  }
 }
 
 /* ************************************************************************* */
@@ -1170,11 +1177,13 @@ void AKAZE::MLDB_Fill_Values(float* values, int sample_step, int level,
 
       values[valpos] = di;
 
-      if (nr_channels > 1)
+      if (nr_channels > 1) {
         values[valpos + 1] = dx;
+      }
 
-      if (nr_channels > 2)
+      if (nr_channels > 2) {
         values[valpos + 2] = dy;
+      }
 
       valpos += nr_channels;
     }
@@ -1229,11 +1238,13 @@ void AKAZE::MLDB_Fill_Upright_Values(float* values, int sample_step, int level,
 
       values[valpos] = di;
 
-      if (nr_channels > 1)
+      if (nr_channels > 1) {
         values[valpos + 1] = dx;
+      }
 
-      if (nr_channels > 2)
+      if (nr_channels > 2) {
         values[valpos + 2] = dy;
+      }
 
       valpos += nr_channels;
     }
@@ -1569,16 +1580,19 @@ void libAKAZE::generateDescriptorSubsample(cv::Mat& sampleList, cv::Mat& compari
 /* ************************************************************************* */
 void libAKAZE::check_descriptor_limits(int &x, int &y, int width, int height) {
 
-  if (x < 0)
+  if (x < 0) {
     x = 0;
+  }
 
-  if (y < 0)
+  if (y < 0) {
     y = 0;
+  }
 
-  if (x > width-1)
+  if (x > width-1) {
     x = width-1;
+  }
 
-  if (y > height-1)
+  if (y > height-1) {
     y = height-1;
+  }
 }
-

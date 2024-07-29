@@ -108,6 +108,16 @@ Once the dependencies have been installed, you can build OpenSfM by running the 
 
     python3 setup.py build
 
+Building Docker images
+----------------------
+
+Once dependencies have been installed, you can build OpenSfM Docker images by running the following command from the main folder::
+
+    docker build -t opensfm -f Dockerfile .
+
+To build an image using the Ceres 2 solver, use::
+
+  docker build -t opensfm:ceres2 -f Dockerfile.ceres2 .
 
 Building the documentation
 --------------------------

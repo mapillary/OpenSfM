@@ -70,7 +70,7 @@ class CovarianceFixture : public ::testing::Test {
 
   const double focal{1.0};
   double point[3];
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<VecXd>;
   AScalar point_adiff[3];
   AScalar projection_expected[2];
   Vec2d observation;

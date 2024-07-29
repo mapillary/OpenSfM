@@ -47,4 +47,4 @@ struct TopocentricConverter {
   Vec3d ToLla(const Vec3d& xyz) const;
   Vec3d GetLlaRef() const;
 };
-};  // namespace geo
+}  // namespace geo

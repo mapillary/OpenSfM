@@ -66,14 +66,16 @@ int fed_tau_internal(const int n, const float scale, const float tau_max,
   float c = 0.0, d = 0.0;     // Time savers
   vector<float> tauh;    // Helper vector for unsorted taus
 
-  if (n <= 0)
+  if (n <= 0) {
     return 0;
+  }
 
   // Allocate memory for the time step size
   tau = vector<float>(n);
 
-  if (reordering)
+  if (reordering) {
     tauh = vector<float>(n);
+  }
 
   // Compute time saver
   c = 1.0f / (4.0f * (float)n + 2.0f);
@@ -83,10 +85,11 @@ int fed_tau_internal(const int n, const float scale, const float tau_max,
   for (int k = 0; k < n; ++k) {
     float h = cos(M_PI * (2.0f * (float)k + 1.0f) * c);
 
-    if (reordering)
+    if (reordering) {
       tauh[k] = d / (h * h);
-    else
+    } else {
       tau[k] = d / (h * h);
+    }
   }
 
   // Permute list of time steps according to chosen reordering function

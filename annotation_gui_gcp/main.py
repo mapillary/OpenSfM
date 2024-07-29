@@ -1,3 +1,4 @@
+# pyre-unsafe
 import argparse
 import json
 import typing as t

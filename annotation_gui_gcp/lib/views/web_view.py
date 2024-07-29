@@ -1,3 +1,4 @@
+# pyre-unsafe
 import abc
 import json
 import time

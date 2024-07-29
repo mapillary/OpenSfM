@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
+# pyre-unsafe
+
 import argparse
 import os.path
 from itertools import combinations
+from typing import List
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as pl
 import numpy as np
-from opensfm import dataset
-from opensfm import features
-from opensfm import io
 from numpy import ndarray
-from typing import List
+from opensfm import dataset, features, io
 
 
 def plot_matches(im1, im2, p1: ndarray, p2: ndarray) -> None:
@@ -113,7 +113,8 @@ def plot_matches_for_images(data, image, images) -> None:
         pl.show()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    global args, images
     parser = argparse.ArgumentParser(description="Plot matches between images")
     parser.add_argument("dataset", help="path to the dataset to be processed")
     parser.add_argument("--image", help="show tracks for a specific")
@@ -124,12 +125,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--save_figs", help="save figures instead of showing them", action="store_true"
     )
-    args: argparse.Namespace = parser.parse_args()
+    args = parser.parse_args()
 
     data = dataset.DataSet(args.dataset)
-    images: List[str] = data.images()
+    images = data.images()
 
     if args.graph:
         plot_graph(data)
     else:
         plot_matches_for_images(data, args.image, args.images)
+
+
+args: argparse.Namespace
+images: List[str]
+
+
+if __name__ == "__main__":
+    main()  # pragma: no cover

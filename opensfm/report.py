@@ -1,3 +1,4 @@
+# pyre-unsafe
 import logging
 import os
 import subprocess
@@ -39,7 +40,6 @@ class Report:
         self.stats = self._read_stats_file("stats.json")
 
     def save_report(self, filename: str) -> None:
-        # pyre-fixme[28]: Unexpected keyword argument `dest`.
         bytestring = self.pdf.output(dest="S")
         if isinstance(bytestring, str):
             bytestring = bytestring.encode("utf8")

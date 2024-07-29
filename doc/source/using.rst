@@ -14,6 +14,21 @@ An example dataset is available at ``data/berlin``.  You can reconstruct it by r
 
 This will run the entire SfM pipeline and produce the file ``data/berlin/reconstruction.meshed.json`` as output.
 
+Running in Docker
+'''''''''''''''''
+
+First, build the OpenSfM Docker image, as described under "building".
+
+
+Then, start a Docker container. The following command mounts the `data/` folder to `/data/` inside the Docker container::
+
+    docker run -it -p 8080:8080 -v ${PWD}/data/:/data/ opensfm:ceres2
+
+Once inside the running Docker container, start the reconstruction process with the usual command::
+
+    bin/opensfm_run_all /data/berlin/
+
+When done, exit the container by pressing Ctrl+d. The model generated will be available in the `data/` catalogue.
 
 Viewer setup
 ''''''''''''
