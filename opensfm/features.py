@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
+import torch
 from opensfm import context, pyfeatures
 
 
@@ -548,6 +549,19 @@ def extract_features_orb(
     return points, desc
 
 
+def extract_features_xfeat(
+    image: np.ndarray, config: Dict[str, Any], features_count: int, xfeat: Any
+) -> Tuple[np.ndarray, np,.ndarray]:
+    logger.debug("Computing XFeats")
+    t = time.time()
+
+    output = xfeat.detectAndCompute(im, top_k = 4096)
+    points = output['keypoints'].numpy()
+    desc = output['descriptors'].numpy()
+
+    logger.debug("Found {0} points in {1}s".format(len(keypoints), time.time() - t))
+    return points, desc
+
 def extract_features(
     image: np.ndarray, config: Dict[str, Any], is_panorama: bool
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -606,6 +620,13 @@ def extract_features(
         points, desc = extract_features_hahog(image_gray, config, features_count)
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
+    elif feature_type == 'XFEAT':
+        xfeat = torch.hub.load(
+            'verlab/accelerated_features',
+            'XFeat',
+            pretrained = True,
+            top_k = 4096)
+        points, desc = extract_features_xfeat(image, config, features_count, xfeat)
     else:
         raise ValueError("Unknown feature type "
                          + "(must be SURF, SIFT, AKAZE, HAHOG or ORB)")
