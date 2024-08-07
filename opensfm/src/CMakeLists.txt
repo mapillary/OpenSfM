@@ -30,8 +30,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable all warnings
 if (NOT WIN32)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
 # For compiling VLFeat
@@ -85,6 +85,7 @@ add_subdirectory(third_party/akaze)
 add_subdirectory(third_party/vlfeat)
 
 include_directories(third_party/vlfeat)
+include_directories(third_party/pybind11/include)
 
 ####### Debugging #######
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
