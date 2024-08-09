@@ -219,6 +219,8 @@ def generate_exifs(
             origin = shot.pose.get_origin()
 
             if causal_gps_noise:
+                # pyre-fixme[61]: `perturbations_2d` is undefined, or not always
+                #  defined.
                 gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
             else:
                 gps_noise = _gps_dop(shot)

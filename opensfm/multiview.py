@@ -464,6 +464,7 @@ def R_from_homography(
 def project_to_rotation_matrix(A: np.ndarray) -> Optional[np.ndarray]:
     try:
         u, d, vt = np.linalg.svd(A)
+    # pyre-fixme[16]: Module `linalg` has no attribute `LinAlgError`.
     except np.linalg.linalg.LinAlgError:
         return None
     return u.dot(vt)

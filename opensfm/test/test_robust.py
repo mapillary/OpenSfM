@@ -261,6 +261,7 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
         inliers_count = (1 - ratio_outliers) * len(points)
         assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
+    # pyre-fixme[61]: `expected` is undefined, or not always defined.
     assert np.linalg.norm(expected - result.lo_model, ord="fro") < 16e-2
 
 

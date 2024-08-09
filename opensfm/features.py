@@ -516,6 +516,7 @@ def extract_features_hahog(
         uchar_scaling = 512
 
     if config["hahog_normalize_to_uchar"]:
+        # pyre-fixme[16]: `int` has no attribute `clip`.
         desc = (uchar_scaling * desc).clip(0, 255).round()
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
