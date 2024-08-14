@@ -1,3 +1,4 @@
+# pyre-unsafe
 from functools import lru_cache
 from typing import Any, Dict, List
 import yaml

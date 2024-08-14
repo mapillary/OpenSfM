@@ -1,3 +1,4 @@
+# pyre-unsafe
 import os
 import random
 import subprocess

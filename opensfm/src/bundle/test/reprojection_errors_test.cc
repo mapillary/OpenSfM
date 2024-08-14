@@ -7,7 +7,7 @@
 
 class ReprojectionError2DFixtureBase : public ::testing::Test {
  public:
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<Eigen::VectorXd>;
   ReprojectionError2DFixtureBase() { observed << 0.5, 0.5; }
 
   constexpr static int size_residual = 2;
@@ -118,7 +118,7 @@ TEST_F(ReprojectionError2DFixture, BrownAnalyticErrorEvaluatesOK) {
   // focal, ar, cx, cy, k1, k2, k3, p1, p2
   constexpr std::array<double, size> camera{0.3,   1.0,   0.001,  -0.02, 0.1,
                                             -0.03, 0.001, -0.005, 0.001};
-  RunTest<size>(geometry::ProjectionType::BROWN, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::BROWN, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, PerspectiveAnalyticErrorEvaluatesOK) {
@@ -126,7 +126,7 @@ TEST_F(ReprojectionError2DFixture, PerspectiveAnalyticErrorEvaluatesOK) {
 
   // focal, k1, k2
   constexpr std::array<double, size> camera{0.3, 0.1, -0.03};
-  RunTest<size>(geometry::ProjectionType::PERSPECTIVE, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::PERSPECTIVE, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
@@ -134,7 +134,7 @@ TEST_F(ReprojectionError2DFixture, FisheyeAnalyticErrorEvaluatesOK) {
 
   // focal, k1, k2, k3
   constexpr std::array<double, size> camera{0.3, 0.1, -0.03};
-  RunTest<size>(geometry::ProjectionType::FISHEYE, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::FISHEYE, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, FisheyeOpencvAnalyticErrorEvaluatesOK) {
@@ -143,7 +143,7 @@ TEST_F(ReprojectionError2DFixture, FisheyeOpencvAnalyticErrorEvaluatesOK) {
   // focal, ar, cx, cy, k1, k2, k3, k4
   constexpr std::array<double, size> camera{0.3, 1.0,   0.001, -0.02,
                                             0.1, -0.03, 0.001, -0.005};
-  RunTest<size>(geometry::ProjectionType::FISHEYE_OPENCV, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::FISHEYE_OPENCV, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, Fisheye62AnalyticErrorEvaluatesOK) {
@@ -153,7 +153,7 @@ TEST_F(ReprojectionError2DFixture, Fisheye62AnalyticErrorEvaluatesOK) {
   constexpr std::array<double, size> camera{0.3,  1.0,   0.001, -0.02,
                                             0.1,  -0.03, 0.001, -0.005,
                                             0.01, 0.006, 0.02,  0.003};
-  RunTest<size>(geometry::ProjectionType::FISHEYE62, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::FISHEYE62, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, Fisheye624AnalyticErrorEvaluatesOK) {
@@ -163,7 +163,7 @@ TEST_F(ReprojectionError2DFixture, Fisheye624AnalyticErrorEvaluatesOK) {
   constexpr std::array<double, size> camera{
       0.3,  1.0,   0.001, -0.02, 0.1,   -0.03,  0.001, -0.005,
       0.01, 0.006, 0.02,  0.003, 0.001, -0.009, -0.01, 0.03};
-  RunTest<size>(geometry::ProjectionType::FISHEYE624, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::FISHEYE624, camera.data());
 }
 
 TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
@@ -171,14 +171,14 @@ TEST_F(ReprojectionError2DFixture, DualAnalyticErrorEvaluatesOK) {
 
   // transition, focal, k1, k2
   constexpr std::array<double, size> camera{0.5, 0.3, 0.1, -0.03};
-  RunTest<size>(geometry::ProjectionType::DUAL, &camera[0]);
+  RunTest<size>(geometry::ProjectionType::DUAL, camera.data());
 }
 
 class ReprojectionError3DFixture : public ::testing::Test {
  public:
   static constexpr int size = 3;
 
-  typedef Eigen::AutoDiffScalar<Eigen::VectorXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<Eigen::VectorXd>;
   ReprojectionError3DFixture() { observed << 0.5, 0.5; }
 
   void SetupADiff() {

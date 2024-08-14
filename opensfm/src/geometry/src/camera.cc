@@ -276,15 +276,15 @@ Mat3d Camera::GetProjectionMatrix() const {
   return unnormalized;
 }
 
-Mat3d Camera::GetProjectionMatrixScaled(int width, int height) const {
-  const auto unnormalizer = std::max(width, height);
+Mat3d Camera::GetProjectionMatrixScaled(int width_2, int height_2) const {
+  const auto unnormalizer = std::max(width_2, height_2);
   Mat3d unnormalized = Mat3d::Zero();
 
   const auto projection_matrix = GetProjectionMatrix();
   unnormalized.block<2, 2>(0, 0)
       << unnormalizer * projection_matrix.block<2, 2>(0, 0);
-  unnormalized.col(2) << projection_matrix(0, 2) * unnormalizer + 0.5 * width,
-      projection_matrix(1, 2) * unnormalizer + 0.5 * height, 1.0;
+  unnormalized.col(2) << projection_matrix(0, 2) * unnormalizer + 0.5 * width_2,
+      projection_matrix(1, 2) * unnormalizer + 0.5 * height_2, 1.0;
   return unnormalized;
 }
 
@@ -366,7 +366,7 @@ MatX2d Camera::PixelToNormalizedCoordinatesMany(const MatX2d& px_coords,
     norm_coords.row(i) =
         PixelToNormalizedCoordinates(px_coords.row(i), width, height);
   }
-  return px_coords;
+  return norm_coords;
 }
 
 Vec2d Camera::NormalizedToPixelCoordinates(const Vec2d& norm_coord) const {

@@ -1,3 +1,4 @@
+# pyre-unsafe
 import copy
 
 import numpy as np
@@ -12,12 +13,15 @@ def normalized(x: np.ndarray) -> np.ndarray:
 
 def test_motion_from_plane_homography() -> None:
     R = tf.random_rotation_matrix()[:3, :3]
+    # pyre-fixme[6]: For 1st argument expected `ndarray` but got `int`.
     t = normalized(2 * np.random.rand(3) - 1)
+    # pyre-fixme[6]: For 1st argument expected `ndarray` but got `int`.
     n = normalized(2 * np.random.rand(3) - 1)
     d = 2 * np.random.rand() - 1
     scale = 2 * np.random.rand() - 1
     H = scale * (d * R - np.outer(t, n))
 
+    # pyre-fixme[6]: For 1st argument expected `ndarray` but got `int`.
     motions = multiview.motion_from_plane_homography(H)
     assert motions is not None
     goodness = []

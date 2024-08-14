@@ -1,3 +1,4 @@
+# pyre-unsafe
 import networkx as nx
 from opensfm import pygeometry
 from opensfm import pymap

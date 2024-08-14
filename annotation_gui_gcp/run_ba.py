@@ -1,3 +1,4 @@
+# pyre-unsafe
 import argparse
 import json
 import logging
@@ -8,10 +9,16 @@ from typing import List
 
 import numpy as np
 import opensfm.reconstruction as orec
-from opensfm import dataset, log, multiview, pygeometry, pymap
-from opensfm import reconstruction_helpers as helpers
-from opensfm import transformations as tf
-from opensfm import types
+from opensfm import (
+    dataset,
+    log,
+    multiview,
+    pygeometry,
+    pymap,
+    reconstruction_helpers as helpers,
+    transformations as tf,
+    types,
+)
 from opensfm.align import apply_similarity
 
 logger = logging.getLogger(__name__)
@@ -81,7 +88,9 @@ def resplit_reconstruction(merged, original_reconstructions):
     return split
 
 
-def gcp_geopositional_error(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
+def gcp_geopositional_error(
+    gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction
+):
     coords_reconstruction = triangulate_gcps(gcps, reconstruction)
     out = {}
     for ix, gcp in enumerate(gcps):
@@ -114,7 +123,9 @@ def gcp_geopositional_error(gcps: List[pymap.GroundControlPoint], reconstruction
     return out
 
 
-def triangulate_gcps(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
+def triangulate_gcps(
+    gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction
+):
     coords = []
     for gcp in gcps:
         res = multiview.triangulate_gcp(
@@ -127,7 +138,11 @@ def triangulate_gcps(gcps: List[pymap.GroundControlPoint], reconstruction: types
     return coords
 
 
-def reproject_gcps(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction, reproj_threshold):
+def reproject_gcps(
+    gcps: List[pymap.GroundControlPoint],
+    reconstruction: types.Reconstruction,
+    reproj_threshold,
+):
     output = {}
     for gcp in gcps:
         point = multiview.triangulate_gcp(
@@ -269,7 +284,9 @@ def bundle_with_fixed_images(
 
     for point in reconstruction.points.values():
         ba.add_point(point.id, point.coordinates, False)
-        ba.add_point_prior(point.id, point.coordinates, np.array([100.0, 100.0, 100.0]), False)
+        ba.add_point_prior(
+            point.id, point.coordinates, np.array([100.0, 100.0, 100.0]), False
+        )
 
     for shot_id in reconstruction.shots:
         shot = reconstruction.get_shot(shot_id)
@@ -866,7 +883,7 @@ def align(
             logger.info("No annotations with large reprojection errors")
 
 
-if __name__ == "__main__":
+def main() -> None:
     log.setup()
     args = parse_args()
     sys.exit(
@@ -880,3 +897,7 @@ if __name__ == "__main__":
             args.std_threshold,
         )
     )
+
+
+if __name__ == "__main__":
+    main()  # pragma: no cover

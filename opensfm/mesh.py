@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+# pyre-unsafe
 import itertools
 import logging
 from typing import Any, Tuple, List

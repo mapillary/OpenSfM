@@ -1,3 +1,4 @@
+# pyre-unsafe
 import functools
 import math
 from typing import Dict, Optional, List, Any, Union, Tuple, Callable
@@ -75,7 +76,7 @@ def camera_pose(
     return pose
 
 
-class SyntheticScene(object):
+class SyntheticScene:
     def get_reconstruction(self) -> types.Reconstruction:
         raise NotImplementedError()
 
@@ -344,7 +345,9 @@ class SyntheticStreetScene(SyntheticScene):
         for j, (rig_camera_p, rig_camera_r) in enumerate(
             zip(relative_positions, relative_rotations)
         ):
+            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
+            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera.set_origin(rig_camera_p)
 
             rotations = []
@@ -370,7 +373,9 @@ class SyntheticStreetScene(SyntheticScene):
         for i, (rig_camera_p, rig_camera_r) in enumerate(
             zip(relative_positions, relative_rotations)
         ):
+            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
+            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera.set_origin(rig_camera_p)
             rig_camera_id = f"RigCamera {rig_camera_id_shift + i}"
             rig_camera = pymap.RigCamera(pose_rig_camera, rig_camera_id)

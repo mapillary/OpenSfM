@@ -1,3 +1,4 @@
+# pyre-unsafe
 import logging
 import math
 import time
@@ -218,6 +219,8 @@ def generate_exifs(
             origin = shot.pose.get_origin()
 
             if causal_gps_noise:
+                # pyre-fixme[61]: `perturbations_2d` is undefined, or not always
+                #  defined.
                 gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
             else:
                 gps_noise = _gps_dop(shot)
@@ -327,8 +330,14 @@ def create_reconstruction(
         s_cameras,
     ) in enumerate(zip(rig_shots, rig_positions, rig_rotations, rig_cameras, cameras)):
         add_shots_to_reconstruction(
+            # pyre-fixme[6]: For 1st argument expected `List[List[str]]` but got
+            #  `List[List[Tuple[str, str]]]`.
             s_rig_shots,
+            # pyre-fixme[6]: For 2nd argument expected `List[ndarray]` but got
+            #  `ndarray`.
             s_rig_positions,
+            # pyre-fixme[6]: For 3rd argument expected `List[ndarray]` but got
+            #  `ndarray`.
             s_rig_rotations,
             s_rig_cameras,
             s_cameras,

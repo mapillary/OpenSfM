@@ -1,3 +1,4 @@
+# pyre-unsafe
 from typing import Tuple
 
 import cv2

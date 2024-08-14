@@ -1,3 +1,4 @@
+# pyre-unsafe
 """Tools to extract features."""
 
 import logging
@@ -352,45 +353,36 @@ def extract_features_sift(
 ) -> Tuple[np.ndarray, np.ndarray]:
     sift_edge_threshold = config["sift_edge_threshold"]
     sift_peak_threshold = float(config["sift_peak_threshold"])
-    # SIFT support is in cv2 main from version 4.4.0
-    if context.OPENCV44 or context.OPENCV5:
-        # OpenCV versions concerned /** 3.4.11, >= 4.4.0 **/  ==> Sift became free since March 2020
-        detector = cv2.SIFT_create(
-            edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
-        )
-        descriptor = detector
-    elif context.OPENCV3 or context.OPENCV4:
-        try:
-            # OpenCV versions concerned /** 3.2.x, 3.3.x, 3.4.0, 3.4.1, 3.4.2, 3.4.10, 4.3.0, 4.4.0 **/
-            detector = cv2.xfeatures2d.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
-            )
-        except AttributeError as ae:
-            # OpenCV versions concerned /** 3.4.3, 3.4.4, 3.4.5, 3.4.6, 3.4.7, 3.4.8, 3.4.9, 4.0.x, 4.1.x, 4.2.x **/
-            if "no attribute 'xfeatures2d'" in str(ae):
-                logger.error(
-                    "OpenCV Contrib modules are required to extract SIFT features"
-                )
-            raise
-        descriptor = detector
-    else:
-        detector = cv2.FeatureDetector_create("SIFT")
-        descriptor = cv2.DescriptorExtractor_create("SIFT")
-        detector.setDouble("edgeThreshold", sift_edge_threshold)
+    sift_nfeatures = config["sift_nfeatures"]
+    sift_octave_layers = config["sift_octave_layers"]
+    sift_sigma = float(config["sift_sigma"])
     while True:
         logger.debug("Computing sift with threshold {0}".format(sift_peak_threshold))
         t = time.time()
         # SIFT support is in cv2 main from version 4.4.0
         if context.OPENCV44 or context.OPENCV5:
             detector = cv2.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
+                nfeatures=sift_nfeatures,
+                nOctaveLayers=sift_octave_layers,
+                contrastThreshold=sift_peak_threshold,
+                edgeThreshold=sift_edge_threshold,
+                sigma=sift_sigma,
             )
+            descriptor = detector
         elif context.OPENCV3:
             detector = cv2.xfeatures2d.SIFT_create(
-                edgeThreshold=sift_edge_threshold, contrastThreshold=sift_peak_threshold
+                nfeatures=sift_nfeatures,
+                nOctaveLayers=sift_octave_layers,
+                contrastThreshold=sift_peak_threshold,
+                edgeThreshold=sift_edge_threshold,
+                sigma=sift_sigma,
             )
+            descriptor = detector
         else:
-            detector.setDouble("contrastThreshold", sift_peak_threshold)
+            detector = cv2.FeatureDetector_create("SIFT")
+            descriptor = cv2.DescriptorExtractor_create("SIFT")
+            detector.setDouble("edgeThreshold", sift_edge_threshold)
+        
         points = detector.detect(image)
         logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
         if len(points) < features_count and sift_peak_threshold > 0.0001:
@@ -399,6 +391,7 @@ def extract_features_sift(
         else:
             logger.debug("done")
             break
+
     points, desc = descriptor.compute(image, points)
 
     if desc is not None:
@@ -523,6 +516,7 @@ def extract_features_hahog(
         uchar_scaling = 512
 
     if config["hahog_normalize_to_uchar"]:
+        # pyre-fixme[16]: `int` has no attribute `clip`.
         desc = (uchar_scaling * desc).clip(0, 255).round()
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
@@ -589,10 +583,14 @@ def extract_features(
         else config["feature_min_frames"]
     )
 
-    assert len(image.shape) == 3 or len(image.shape) == 2
+    assert image.ndim == 2 or image.ndim == 3 and image.shape[2] in [1, 3]
+    assert image.shape[0] > 2 and image.shape[1] > 2
+    assert np.issubdtype(image.dtype, np.uint8)
+
     image = resized_image(image, extraction_size)
-    if len(image.shape) == 2:  # convert (h, w) to (h, w, 1)
+    if image.ndim == 2:  # convert (h, w) to (h, w, 1)
         image = np.expand_dims(image, axis=2)
+
     # convert color to gray-scale if necessary
     if image.shape[2] == 3:
         image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -610,9 +608,8 @@ def extract_features(
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
     else:
-        raise ValueError(
-            "Unknown feature type " "(must be SURF, SIFT, AKAZE, HAHOG or ORB)"
-        )
+        raise ValueError("Unknown feature type "
+                         + "(must be SURF, SIFT, AKAZE, HAHOG or ORB)")
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)
@@ -630,6 +627,7 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
     # FLANN_INDEX_COMPOSITE = 3
     # FLANN_INDEX_KDTREE_SINGLE = 4
     # FLANN_INDEX_HIERARCHICAL = 5
+    FLANN_INDEX_LSH = 6
 
     if descriptors.dtype.type is np.float32:
         algorithm_type = config["flann_algorithm"].upper()
@@ -645,9 +643,16 @@ def build_flann_index(descriptors: np.ndarray, config: Dict[str, Any]) -> Any:
             "iterations": config["flann_iterations"],
             "tree": config["flann_tree"],
         }
+    elif descriptors.dtype.type is np.uint8:
+        flann_params = {
+            "algorithm": FLANN_INDEX_LSH,
+            "table_number": 10,
+            "key_size": 24,
+            "multi_probe_level": 1,
+        }
     else:
         raise ValueError(
-            "FLANN isn't supported for binary features because of poor-performance. Use BRUTEFORCE instead."
+            f"FLANN isn't supported for feature type {descriptors.dtype.type}."
         )
 
     return context.flann_Index(descriptors, flann_params)

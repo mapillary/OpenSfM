@@ -1,3 +1,4 @@
+# pyre-unsafe
 import json
 import logging
 import os
@@ -1097,6 +1098,7 @@ def reconstruction_to_ply(
                 for depth in np.linspace(0, 2, 10):
                     p = o + depth * R[axis]
                     s = "{} {} {} {} {} {}".format(
+                        # pyre-fixme[16]: `int` has no attribute `__getitem__`.
                         p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2])
                     )
                     if point_num_views:
@@ -1352,6 +1354,7 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def exists(cls, path: str) -> str:
+        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.exists(path)
 
     @classmethod
@@ -1360,10 +1363,12 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def isfile(cls, path: str) -> str:
+        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.isfile(path)
 
     @classmethod
     def isdir(cls, path: str) -> str:
+        # pyre-fixme[7]: Expected `str` but got `bool`.
         return os.path.isdir(path)
 
     @classmethod
@@ -1419,4 +1424,5 @@ class IoFilesystemDefault(IoFilesystemBase):
 
     @classmethod
     def timestamp(cls, path: str) -> str:
+        # pyre-fixme[7]: Expected `str` but got `float`.
         return os.path.getmtime(path)

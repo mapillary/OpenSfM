@@ -1,3 +1,4 @@
+# pyre-unsafe
 import numpy as np
 from numpy import ndarray
 from typing import Tuple
@@ -175,7 +176,7 @@ def gps_distance(latlon_1, latlon_2):
     return dis
 
 
-class TopocentricConverter(object):
+class TopocentricConverter:
     """Convert to and from a topocentric reference frame."""
 
     def __init__(self, reflat, reflon, refalt):

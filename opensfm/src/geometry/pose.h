@@ -17,7 +17,6 @@ class Pose {
   virtual ~Pose() = default;
 
   Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero()) {
-    Mat4d T_cw = Mat4d::Identity();
     SetFromWorldToCamera(R, t);
   }
   Pose(const Mat3d& R, const Vec3d& t = Vec3d::Zero()) {
@@ -50,7 +49,7 @@ class Pose {
 
   Vec3d TranslationCameraToWorld() const {
     return cam_to_world_.block<3, 1>(0, 3);
-  };
+  }
 
   Vec3d GetOrigin() const { return TranslationCameraToWorld(); }
   virtual void SetOrigin(const Vec3d& origin) {

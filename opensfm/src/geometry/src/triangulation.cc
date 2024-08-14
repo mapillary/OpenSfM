@@ -5,14 +5,15 @@
 #include <foundation/types.h>
 #include <geometry/transformations_functions.h>
 #include <geometry/triangulation.h>
-#include <math.h>
+#include <cmath>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
-  if (std::fabs(c) >= 1.0)
+  if (std::fabs(c) >= 1.0) {
     return 0.0;
-  else
+  } else {
     return acos(c);
+  }
 }
 
 Eigen::Vector4d TriangulateBearingsDLTSolve(

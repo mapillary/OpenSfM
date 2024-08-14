@@ -1,3 +1,4 @@
+# pyre-unsafe
 import json
 import os.path
 from io import StringIO

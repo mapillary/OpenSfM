@@ -3,8 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace sfm {
-namespace tracks_helpers {
+namespace sfm::tracks_helpers {
 std::unordered_map<map::ShotId, int> CountTracksPerShot(
     const map::TracksManager& manager, const std::vector<map::ShotId>& shots,
     const std::vector<map::TrackId>& tracks) {
@@ -43,5 +42,4 @@ void RemoveConnections(map::TracksManager& manager, const map::ShotId& shot_id,
     manager.RemoveObservation(shot_id, connection);
   }
 }
-}  // namespace tracks_helpers
 }  // namespace sfm

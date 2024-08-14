@@ -49,7 +49,9 @@ vl_size run_non_maxima_suppression(VlCovDet *covdet, vl_size num_features,
       double dy_ = features[j].frame.y - y;
       double sigma_ = features[j].frame.a11;
       double score_ = features[j].peakScore;
-      if (score_ == 0) continue;
+      if (score_ == 0) {
+        continue;
+      }
       if (sigma < (1 + tol) * sigma_ && sigma_ < (1 + tol) * sigma &&
           vl_abs_d(dx_) < tol * sigma && vl_abs_d(dy_) < tol * sigma &&
           vl_abs_d(score) > vl_abs_d(score_)) {
@@ -178,15 +180,15 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
       points[4 * i + 2] = size;
       points[4 * i + 3] = angle;
 
-      vl_covdet_extract_patch_for_frame(covdet, &patch[0], patchResolution,
+      vl_covdet_extract_patch_for_frame(covdet, patch.data(), patchResolution,
                                         patchRelativeExtent,
                                         patchRelativeSmoothing, frame);
 
-      vl_imgradient_polar_f(&patchXY[0], &patchXY[1], 2, 2 * patchSide,
-                            &patch[0], patchSide, patchSide, patchSide);
+      vl_imgradient_polar_f(patchXY.data(), &patchXY[1], 2, 2 * patchSide,
+                            patch.data(), patchSide, patchSide, patchSide);
 
       vl_sift_calc_raw_descriptor(
-          sift, &patchXY[0], &desc[dimension * i], (int)patchSide,
+          sift, patchXY.data(), &desc[dimension * i], (int)patchSide,
           (int)patchSide, (double)(patchSide - 1) / 2,
           (double)(patchSide - 1) / 2,
           (double)patchRelativeExtent / (3.0 * (4 + 1) / 2) / patchStep,

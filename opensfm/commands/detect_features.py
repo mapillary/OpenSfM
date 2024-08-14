@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import detect_features
 
 from . import command

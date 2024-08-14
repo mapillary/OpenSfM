@@ -1,3 +1,4 @@
+# pyre-unsafe
 import copy
 
 import numpy as np
@@ -107,14 +108,27 @@ def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
                 color = g_obs["feature_color"]
                 pt = g_obs["feature"]
                 obs = pymap.Observation(
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[0],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[1],
+                    # pyre-fixme[6]: For 3rd argument expected `float` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_scale"],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[0],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[1],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[2],
+                    # pyre-fixme[6]: For 7th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_id"],
+                    # pyre-fixme[6]: For 8th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_segmentation"],
+                    # pyre-fixme[6]: For 9th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_instance"],
                 )
                 reference.map.add_observation(shot_id, point_id, obs)

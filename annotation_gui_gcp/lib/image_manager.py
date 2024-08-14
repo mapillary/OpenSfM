@@ -1,3 +1,4 @@
+# pyre-unsafe
 import typing as t
 from io import BytesIO
 

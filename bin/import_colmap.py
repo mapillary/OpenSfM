@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# pyre-unsafe
+
 # Snippets to read from the colmap database taken from:
 # https://github.com/colmap/colmap/blob/ad7bd93f1a27af7533121aa043a167fe1490688c /
 # scripts/python/export_to_bundler.py

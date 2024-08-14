@@ -18,11 +18,11 @@ class TracksHelpersTest : public ::testing::Test {
     track["2"] = o2;
     track["3"] = o3;
 
-    connections_add.push_back("1");
-    connections_add.push_back("2");
-    connections_add.push_back("3");
+    connections_add.emplace_back("1");
+    connections_add.emplace_back("2");
+    connections_add.emplace_back("3");
 
-    connections_remove.push_back("1");
+    connections_remove.emplace_back("1");
   }
 
   map::TracksManager manager;

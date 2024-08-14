@@ -232,5 +232,5 @@ void Dispatch(const ProjectionType& type, IN&&... args) {
     default:
       throw std::runtime_error("Invalid ProjectionType");
   }
-};
+}
 }  // namespace geometry

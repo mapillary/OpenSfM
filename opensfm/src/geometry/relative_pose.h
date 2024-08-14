@@ -87,7 +87,8 @@ struct RelativePoseCost {
     std::srand(42);
     const int count = end_ - begin_;
     for (int i = 0; i < MAX_ERRORS; ++i) {
-      const int index = (float(std::rand()) / RAND_MAX) * count;
+      // Note that float(RAND_MAX) cannot be exactly represented as a float. We ignore the small inaccuracy here; this is already a bad way to get random numbers.
+      const int index = (float(std::rand()) / static_cast<float>(RAND_MAX)) * count;
       picked_errors_.push_back(begin_ + index);
     }
   }

@@ -549,7 +549,8 @@ TEST(Camera, TestPixelNormalizedCoordinatesConversion) {
   ASSERT_EQ(norm_coord_comp[1],
             (px_coord_def[1] - (height - 1) / 2.0) * inv_normalizer);
   const Vec2d px_coord_comp = cam.NormalizedToPixelCoordinates(norm_coord_comp);
-  ASSERT_EQ(px_coord_comp, px_coord_def);
+  ASSERT_FLOAT_EQ(px_coord_comp[0], px_coord_def[0]);
+  ASSERT_FLOAT_EQ(px_coord_comp[1], px_coord_def[1]);
 
   const Vec2d norm_coord_static =
       geometry::Camera::PixelToNormalizedCoordinates(px_coord_def, width,

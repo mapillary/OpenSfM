@@ -261,10 +261,10 @@ class ReprojectionError3DAnalytic
     Vec3d transformed;
     /* Error only */
     if (!jacobians) {
-      geometry::PoseFunctor::Forward(point, rig_instance, &transformed[0]);
+      geometry::PoseFunctor::Forward(point, rig_instance, transformed.data());
       if (use_rig_camera_) {
-        geometry::PoseFunctor::Forward(&transformed[0], rig_camera,
-                                       &transformed[0]);
+        geometry::PoseFunctor::Forward(transformed.data(), rig_camera,
+                                       transformed.data());
       }
       transformed.normalize();
     } /* Jacobian + Error */

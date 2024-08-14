@@ -1,3 +1,4 @@
+# pyre-unsafe
 from opensfm.actions import compute_depthmaps
 
 from . import command

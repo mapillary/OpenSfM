@@ -1,3 +1,4 @@
+# pyre-unsafe
 import copy
 import logging
 import math
@@ -250,7 +251,13 @@ def match_candidates_by_graph(
 
     # first round compute scale based on edges (and push delaunay edges)
     edge_distances = []
-    triangles = spatial.Delaunay(points).simplices
+    try:
+        triangles = spatial.Delaunay(points).simplices
+    except spatial.QhullError:
+        # Initial simplex is flat
+        # Scale the input to fit the unit cube ("QbB")
+        triangles = spatial.Delaunay(points, qhull_options="Qbb Qc Qz Q12 QbB").simplices
+
     for (image1, image2), (vertex1, vertex2) in produce_edges(triangles):
         pairs.add((image1, image2))
         edge_distances.append(norm_2d(points[vertex1] - points[vertex2]))
