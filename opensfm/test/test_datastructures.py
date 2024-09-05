@@ -11,11 +11,7 @@ import pytest
 from opensfm import pygeometry
 from opensfm import pymap
 from opensfm import types
-from opensfm.test.utils import (
-    assert_maps_equal, assert_metadata_equal,
-    assert_cameras_equal,
-    assert_shots_equal,
-)
+from mapillary.opensfm.opensfm.test.utils import assert_maps_equal, assert_metadata_equal, assert_cameras_equal, assert_shots_equal
 
 
 def _create_reconstruction(
