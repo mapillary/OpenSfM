@@ -36,6 +36,10 @@ endif()
 
 # For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*" OR CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    # message(STATUS "Detected ARM architecture")
+    add_definitions( -DVL_DISABLE_SSE2 )
+endif()
 
 # Use the version of vlfeat in ./src/third_party/vlfeat
 add_definitions(-DINPLACE_VLFEAT)
