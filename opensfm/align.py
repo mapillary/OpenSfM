@@ -282,7 +282,11 @@ def compute_orientation_prior_similarity(
         max_scale = 1000
         current_scale = np.linalg.norm(b)
         if two_shots and current_scale > max_scale:
+            # pyre-fixme[58]: `/` is not supported for operand types `int` and
+            #  `floating[typing.Any]`.
             b = max_scale * b / current_scale
+            # pyre-fixme[58]: `/` is not supported for operand types `int` and
+            #  `floating[typing.Any]`.
             s = max_scale / current_scale
     else:
         try:

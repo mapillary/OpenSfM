@@ -98,6 +98,10 @@ def create_tracks_manager(
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
             obs = pymap.Observation(
+                # pyre-fixme[6]: For 8th argument expected `int` but got
+                #  `Union[ndarray[typing.Any, typing.Any], int]`.
+                # pyre-fixme[6]: For 9th argument expected `int` but got
+                #  `Union[ndarray[typing.Any, typing.Any], int]`.
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
             )
             tracks_manager.add_observation(image, str(track_id), obs)

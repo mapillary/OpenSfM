@@ -50,6 +50,7 @@ def test_track_triangulator_spherical() -> None:
 
 
 def unit_vector(x: object) -> np.ndarray:
+    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     return np.array(x) / np.linalg.norm(x)
 
 

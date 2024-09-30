@@ -146,7 +146,9 @@ def _transform_dense_point_cloud(
                     fout.write(line)
                 else:
                     x, y, z, nx, ny, nz, red, green, blue = line.split()
+                    # pyre-fixme[6]: For 2nd argument expected `Union[Sequence[Sequen...
                     x, y, z = np.dot(A, map(float, [x, y, z])) + b
+                    # pyre-fixme[6]: For 2nd argument expected `Union[Sequence[Sequen...
                     nx, ny, nz = np.dot(A, map(float, [nx, ny, nz]))
                     fout.write(
                         "{} {} {} {} {} {} {} {} {}\n".format(

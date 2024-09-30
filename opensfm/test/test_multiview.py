@@ -21,7 +21,6 @@ def test_motion_from_plane_homography() -> None:
     scale = 2 * np.random.rand() - 1
     H = scale * (d * R - np.outer(t, n))
 
-    # pyre-fixme[6]: For 1st argument expected `ndarray` but got `int`.
     motions = multiview.motion_from_plane_homography(H)
     assert motions is not None
     goodness = []
