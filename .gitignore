@@ -10,12 +10,15 @@ launch.json
 # Ignore generated files
 /build
 /cmake_build
+/third_party_install
+/third_party_build
 /doc/build
 /dist
 /OpenSfM.egg-info
 .cache
 .pytest_cache
 eval
+/.env
 
 # Viewer
 node_modules
