@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import rasterio
+# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.web_view`.
 from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
 from flask import send_file
 from PIL import ImageColor
@@ -23,6 +24,7 @@ def _load_georeference_metadata(path_cad_model) -> Dict[str, Any]:
     return metadata
 
 
+# pyre-fixme[11]: Annotation `WebView` is not defined as a type.
 class CADView(WebView):
     def __init__(
         self,
@@ -32,6 +34,7 @@ class CADView(WebView):
         path_cad_file,
         is_geo_reference=False,
     )-> None:
+        # pyre-fixme[19]: Expected 0 positional arguments.
         super().__init__(main_ui, web_app, route_prefix)
 
         self.main_ui = main_ui
@@ -42,6 +45,7 @@ class CADView(WebView):
         self.load_georeference_metadata(path_cad_file)
         self.is_geo_reference = is_geo_reference
 
+        # pyre-fixme[16]: `CADView` has no attribute `app`.
         self.app.add_url_rule(
             f"{route_prefix}/model",
             f"{route_prefix}_model",
@@ -100,6 +104,7 @@ class CADView(WebView):
 
     def refocus(self, lat, lon)->None:
         x, y, z = self.latlon_to_xyz(lat, lon)
+        # pyre-fixme[16]: `CADView` has no attribute `send_sse_message`.
         self.send_sse_message(
             {"x": x, "y": y, "z": z},
             event_type="move_camera",
@@ -166,4 +171,5 @@ class CADView(WebView):
                         point_id
                     ]
 
+        # pyre-fixme[16]: `CADView` has no attribute `send_sse_message`.
         self.send_sse_message(data)
