@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import rasterio
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.web_view`.
-from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+from ..views.web_view import WebView, distinct_colors
 from flask import send_file
 from PIL import ImageColor
 
@@ -24,7 +23,6 @@ def _load_georeference_metadata(path_cad_model) -> Dict[str, Any]:
     return metadata
 
 
-# pyre-fixme[11]: Annotation `WebView` is not defined as a type.
 class CADView(WebView):
     def __init__(
         self,

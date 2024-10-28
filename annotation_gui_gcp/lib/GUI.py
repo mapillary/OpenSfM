@@ -7,14 +7,10 @@ import time
 from collections import defaultdict
 
 import flask
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.cad_view`.
-from annotation_gui_gcp.lib.views.cad_view import CADView
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.cp_finder_view`.
-from annotation_gui_gcp.lib.views.cp_finder_view import ControlPointFinderView
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.image_view`.
-from annotation_gui_gcp.lib.views.image_view import ImageView
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.tools_view`.
-from annotation_gui_gcp.lib.views.tools_view import ToolsView
+from .views.cad_view import CADView
+from .views.cp_finder_view import ControlPointFinderView
+from .views.image_view import ImageView
+from .views.tools_view import ToolsView
 from opensfm import dataset
 
 

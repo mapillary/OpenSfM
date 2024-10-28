@@ -1,11 +1,9 @@
 # pyre-unsafe
 import typing as t
 
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.image_view`.
-from annotation_gui_gcp.lib.views.image_view import ImageView
+from .image_view import ImageView
 
 
-# pyre-fixme[11]: Annotation `ImageView` is not defined as a type.
 class ControlPointFinderView(ImageView):
     def __init__(
         self,

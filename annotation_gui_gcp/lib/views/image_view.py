@@ -1,8 +1,7 @@
 # pyre-unsafe
 from typing import Dict, Any
 
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.web_view`.
-from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+from .web_view import WebView, distinct_colors
 
 
 def point_color(point_id: str) -> str:

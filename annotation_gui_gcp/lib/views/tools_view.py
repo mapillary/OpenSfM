@@ -1,11 +1,9 @@
 # pyre-unsafe
 from typing import Dict, Any
 
-# pyre-fixme[21]: Could not find module `annotation_gui_gcp.lib.views.web_view`.
-from annotation_gui_gcp.lib.views.web_view import WebView
+from .web_view import WebView
 
 
-# pyre-fixme[11]: Annotation `WebView` is not defined as a type.
 class ToolsView(WebView):
     def __init__(self, main_ui, web_app):
         super().__init__(main_ui, web_app, "/tools")
