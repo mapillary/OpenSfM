@@ -197,6 +197,7 @@ def blob_to_array(blob, dtype, shape: Tuple[int] = (-1,)):
         return np.frombuffer(blob, dtype=dtype).reshape(*shape)
 
 
+# pyre-fixme[11]: Annotation `Connection` is not defined as a type.
 class COLMAPDatabase(sqlite3.Connection):
     @staticmethod
     def connect(database_path) -> t.Any:
@@ -205,6 +206,7 @@ class COLMAPDatabase(sqlite3.Connection):
     def __init__(self, *args, **kwargs) -> None:
         super(COLMAPDatabase, self).__init__(*args, **kwargs)
 
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `executescript`.
         self.create_tables = lambda: self.executescript(CREATE_ALL)
         self.create_cameras_table = lambda: self.executescript(CREATE_CAMERAS_TABLE)
         self.create_descriptors_table = lambda: self.executescript(
@@ -222,6 +224,7 @@ class COLMAPDatabase(sqlite3.Connection):
         self, model, width, height, params, prior_focal_length=False, camera_id=None
     ) -> t.Any:
         params = np.asarray(params, np.float64)
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         cursor = self.execute(
             "INSERT INTO cameras VALUES (?, ?, ?, ?, ?, ?)",
             (
@@ -238,6 +241,7 @@ class COLMAPDatabase(sqlite3.Connection):
     def add_image(
         self, name, camera_id, prior_q=(0, 0, 0, 0), prior_t=(0, 0, 0), image_id=None
     ) -> t.Any:
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         cursor = self.execute(
             "INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -260,6 +264,7 @@ class COLMAPDatabase(sqlite3.Connection):
         assert keypoints.shape[1] in [2, 4, 6]
 
         keypoints = np.asarray(keypoints, np.float32)
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
             (image_id,) + keypoints.shape + (array_to_blob(keypoints),),
@@ -267,6 +272,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_descriptors(self, image_id, descriptors) -> None:
         descriptors = np.ascontiguousarray(descriptors, np.uint8)
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
             (image_id,) + descriptors.shape + (array_to_blob(descriptors),),
@@ -281,6 +287,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
         pair_id = image_ids_to_pair_id(image_id1, image_id2)
         matches = np.asarray(matches, np.uint32)
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO matches VALUES (?, ?, ?, ?)",
             (pair_id,) + matches.shape + (array_to_blob(matches),),
@@ -300,6 +307,7 @@ class COLMAPDatabase(sqlite3.Connection):
         F = np.asarray(F, dtype=np.float64)
         E = np.asarray(E, dtype=np.float64)
         H = np.asarray(H, dtype=np.float64)
+        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (pair_id,)

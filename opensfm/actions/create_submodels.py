@@ -96,6 +96,7 @@ def _cluster_images(meta_data: MetaDataSet, cluster_size: float) -> None:
     K = float(images.shape[0]) / cluster_size
     K = int(np.ceil(K))
 
+    # pyre-fixme[23]: Unable to unpack single value, 2 were expected.
     labels, centers = tools.kmeans(positions, K)[1:]
 
     images = images.ravel()
