@@ -334,8 +334,6 @@ class DataSet(DataSetBase):
 
     def save_words(self, image: str, words: np.ndarray) -> None:
         with self.io_handler.open(self._words_file(image), "wb") as f:
-            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsWrite[bytes],
-            #  PathLike[str], str]` but got `IO[typing.Any]`.
             np.savez_compressed(f, words=words.astype(np.uint16))
 
     def _matches_path(self) -> str:

@@ -18,7 +18,6 @@ class ControlPointFinderView(ImageView):
 
     def get_candidate_images(self) -> t.List[str]:
         images_in_existing_views = []
-        # pyre-fixme[16]: `ControlPointFinderView` has no attribute `main_ui`.
         for v in self.main_ui.sequence_views:
             images_in_existing_views.extend(v.image_list)
 

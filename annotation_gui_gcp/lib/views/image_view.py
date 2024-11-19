@@ -9,7 +9,6 @@ def point_color(point_id: str) -> str:
     return hex_color
 
 
-# pyre-fixme[11]: Annotation `WebView` is not defined as a type.
 class ImageView(WebView):
     def __init__(
         self,
