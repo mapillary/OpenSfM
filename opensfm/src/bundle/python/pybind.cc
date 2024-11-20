@@ -7,6 +7,7 @@
 
 PYBIND11_MODULE(pybundle, m) {
   py::module::import("opensfm.pygeometry");
+  py::module::import("opensfm.pymap");
 
   py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
       .def(py::init<const std::string &, const std::string &,
@@ -40,6 +41,7 @@ PYBIND11_MODULE(pybundle, m) {
                              [](const bundle::Point &p) { return p.GetID(); })
       .def_readwrite("reprojection_errors",
                      &bundle::Point::reprojection_errors);
+
   py::class_<bundle::BundleAdjuster>(m, "BundleAdjuster")
       .def(py::init())
       .def("run", &bundle::BundleAdjuster::Run,
@@ -74,7 +76,12 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_reconstruction_instance",
            &bundle::BundleAdjuster::AddReconstructionInstance)
       .def("add_point_projection_observation",
-           &bundle::BundleAdjuster::AddPointProjectionObservation)
+           &bundle::BundleAdjuster::AddPointProjectionObservation,
+           py::arg("shot"),
+           py::arg("point"),
+           py::arg("observation"),
+           py::arg("std_deviation"),
+           py::arg("depth_prior") = std::nullopt)
       .def("add_relative_motion", &bundle::BundleAdjuster::AddRelativeMotion)
       .def("add_relative_rotation",
            &bundle::BundleAdjuster::AddRelativeRotation)

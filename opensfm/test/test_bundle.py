@@ -227,12 +227,28 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
     )
 
     std_dev = np.array([1, 1, 1])
-    sa.add_point_projection_observation("1", "p1", np.array([0, 0]), 1)
-    sa.add_point_projection_observation("2", "p1", np.array([-0.5, 0]), 1)
+    sa.add_point_projection_observation(
+        shot="1", 
+        point="p1",
+        observation=np.array([0, 0]),
+        std_deviation=1)
+    sa.add_point_projection_observation(
+        shot="2",
+        point="p1",
+        observation=np.array([-0.5, 0]),
+        std_deviation=1)
     sa.add_point_prior("p1", np.array([-0.5, 2, 2]), std_dev, True)
 
-    sa.add_point_projection_observation("2", "p2", np.array([0, 0]), 1)
-    sa.add_point_projection_observation("1", "p2", np.array([0.5, 0]), 1)
+    sa.add_point_projection_observation(
+        shot="2",
+        point="p2",
+        observation=np.array([0, 0]),
+        std_deviation=1)
+    sa.add_point_projection_observation(
+        shot="1",
+        point="p2",
+        observation=np.array([0.5, 0]),
+        std_deviation=1)
     sa.add_point_prior("p2", np.array([1.5, 2, 2]), std_dev, True)
 
     sa.run()

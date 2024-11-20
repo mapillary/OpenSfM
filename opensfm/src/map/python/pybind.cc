@@ -64,6 +64,16 @@ PYBIND11_MODULE(pymap, m) {
       .value("Angular", map::Map::Angular)
       .export_values();
 
+  py::class_<map::Depth>(m, "Depth")
+      .def(py::init<double, bool, double>(),
+           py::arg("value"),
+           py::arg("is_radial"),
+           py::arg("std_deviation"))
+      .def_readwrite("value",
+                     &map::Depth::value)
+      .def_readwrite("is_radial", &map::Depth::is_radial)
+      .def_readwrite("std_deviation", &map::Depth::std_deviation);
+
   py::class_<map::Observation>(m, "Observation")
       .def(py::init<double, double, double, int, int, int, int, int, int>(),
            py::arg("x"), py::arg("y"), py::arg("s"), py::arg("r"), py::arg("g"),
@@ -76,6 +86,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_readwrite("color", &map::Observation::color)
       .def_readwrite("segmentation", &map::Observation::segmentation_id)
       .def_readwrite("instance", &map::Observation::instance_id)
+      .def_readwrite("depth_prior", &map::Observation::depth_prior)
       .def_readonly_static("NO_SEMANTIC_VALUE",
                            &map::Observation::NO_SEMANTIC_VALUE)
       .def(

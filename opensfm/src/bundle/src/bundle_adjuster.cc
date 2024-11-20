@@ -5,6 +5,7 @@
 #include <bundle/error/position_functors.h>
 #include <bundle/error/prior_error.h>
 #include <bundle/error/projection_errors.h>
+#include <bundle/error/relative_depth_error.h>
 #include <bundle/error/relative_motion_errors.h>
 #include <foundation/types.h>
 
@@ -239,13 +240,15 @@ void BundleAdjuster::AddPointPrior(const std::string &point_id,
 void BundleAdjuster::AddPointProjectionObservation(const std::string &shot,
                                                    const std::string &point,
                                                    const Vec2d &observation,
-                                                   double std_deviation) {
+                                                   double std_deviation,
+                                                   const std::optional<map::Depth>& depth_prior) {
   PointProjectionObservation o;
   o.shot = &shots_.at(shot);
   o.camera = &cameras_.at(o.shot->GetCamera()->GetID());
   o.point = &points_.at(point);
   o.coordinates = observation;
   o.std_deviation = std_deviation;
+  o.depth_prior = depth_prior;
   point_projection_observations_.push_back(o);
 }
 
@@ -487,6 +490,34 @@ struct AddProjectionError {
     }
     problem->AddResidualBlock(cost_function, loss,
                               obs.camera->GetValueData().data(),
+                              obs.shot->GetRigInstance()->GetValueData().data(),
+                              obs.shot->GetRigCamera()->GetValueData().data(),
+                              obs.point->GetValueData().data());
+  }
+};
+
+struct AddRelativeDepthError {
+  template <class T>
+  static void Apply(const PointProjectionObservation &obs,
+                    ceres::LossFunction *loss, ceres::Problem *problem) {
+    constexpr static int ShotSize = 6;
+    constexpr static int PointSize = 3;
+
+    if (!obs.depth_prior.has_value()) {
+      return;
+    }
+    const auto& depth = obs.depth_prior.value();
+
+    const bool is_rig_camera_useful =
+        IsRigCameraUseful(*obs.shot->GetRigCamera());
+    ceres::CostFunction *cost_function = nullptr;
+
+    cost_function =
+        new ceres::AutoDiffCostFunction<RelativeDepthError, RelativeDepthError::Size, ShotSize, ShotSize, PointSize>(
+          new RelativeDepthError(depth.value, depth.std_deviation, is_rig_camera_useful, depth.is_radial)
+        );
+
+    problem->AddResidualBlock(cost_function, loss,
                               obs.shot->GetRigInstance()->GetValueData().data(),
                               obs.shot->GetRigCamera()->GetValueData().data(),
                               obs.point->GetValueData().data());
@@ -771,6 +802,10 @@ void BundleAdjuster::Run() {
         observation.camera->GetValue().GetProjectionType();
     geometry::Dispatch<AddProjectionError>(
         projection_type, use_analytic_, observation, projection_loss, &problem);
+
+    // Add relative depth error blocks
+    geometry::Dispatch<AddRelativeDepthError>(
+        projection_type, observation, projection_loss, &problem);
   }
 
   // Add relative motion errors
