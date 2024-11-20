@@ -217,6 +217,14 @@ class OpenSfMConfig:
     ##################################
     # Minimum number of features/images per track
     min_track_length: int = 2
+    # Whether use depth prior during BA
+    use_depth_prior: bool = False
+    # Depth prior default std deviation
+    depth_std_deviation_m_default: float = 1.0
+    # Whether depth is radial (distance to camera center) or Z value
+    depth_is_radial: bool = False
+    # Whether depth is stored as inverted depth
+    depth_is_inverted: bool = False
 
     ##################################
     # Params for bundle adjustment

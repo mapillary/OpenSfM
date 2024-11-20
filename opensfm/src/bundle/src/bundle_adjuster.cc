@@ -507,6 +507,9 @@ struct AddRelativeDepthError {
       return;
     }
     const auto& depth = obs.depth_prior.value();
+    if (!ceres::isfinite(depth.value)) {
+      throw std::runtime_error(obs.shot->GetID() + " has non-finite depth prior");
+    }
 
     const bool is_rig_camera_useful =
         IsRigCameraUseful(*obs.shot->GetRigCamera());
