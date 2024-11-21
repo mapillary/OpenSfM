@@ -217,7 +217,7 @@ class OpenSfMConfig:
     ##################################
     # Minimum number of features/images per track
     min_track_length: int = 2
-    # Whether use depth prior during BA
+    # Whether to use depth prior during BA
     use_depth_prior: bool = False
     # Depth prior default std deviation
     depth_std_deviation_m_default: float = 1.0
