@@ -203,6 +203,24 @@ void TracksManager::RemoveObservation(const ShotId& shot_id,
   find_track->second.erase(shot_id);
 }
 
+void TracksManager::RemoveTrack(const TrackId& track_id) {
+    // Step 1: Remove entries from tracks_per_shot_
+    if (shots_per_track_.count(track_id)) {
+      const auto& shot_ids = shots_per_track_[track_id];
+      for (const auto& [shot_id, _] : shot_ids) {
+        if (tracks_per_shot_.count(shot_id)) {
+          tracks_per_shot_[shot_id].erase(track_id);
+          // Remove the Shot entry if no observations remain
+          if (tracks_per_shot_[shot_id].empty()) {
+            tracks_per_shot_.erase(shot_id);
+          }
+        }
+      }
+      // Step 2: Remove the track from shots_per_track_
+      shots_per_track_.erase(track_id);
+    }
+  }
+
 int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
 int TracksManager::NumTracks() const { return shots_per_track_.size(); }
