@@ -1604,6 +1604,7 @@ def incremental_reconstruction(
 
     remaining_images = set(images)
     gcp = data.load_ground_control_points()
+    logger.info(f"Loaded {len(gcp)} ground control points.")
     common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)
