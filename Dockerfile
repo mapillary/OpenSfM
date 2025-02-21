@@ -22,10 +22,11 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-
-COPY . /source/OpenSfM
-
 WORKDIR /source/OpenSfM
 
-RUN pip3 install -r requirements.txt && \
-    python3 setup.py build
+# COPY . /source/OpenSfM
+
+
+
+# RUN pip3 install -r requirements.txt && \
+#     python3 setup.py build
