@@ -11,6 +11,7 @@ from opensfm import (
     log,
     multiview,
     pairs_selection,
+    pairs_selection_by_cones,
     pyfeatures,
     pygeometry,
 )
@@ -43,14 +44,28 @@ def match_images(
     all_images = list(set(ref_images + cand_images))
     exifs = {im: data.load_exif(im) for im in all_images}
 
-    # Generate pairs for matching
-    pairs, preport = pairs_selection.match_candidates_from_metadata(
-        ref_images,
-        cand_images,
-        exifs,
-        data,
-        config_override,
-    )
+    overriden_config = data.config.copy()
+    overriden_config.update(config_override)
+
+    by_cones = overriden_config.get('pair_selection_by_cones', False)
+    if by_cones:
+        pairs, preport = pairs_selection_by_cones.pairing_by_cones_from_dataset(
+            ref_images,
+            cand_images,
+            exifs,
+            data,
+            config_override,
+        )
+        
+    else:
+        # Generate pairs for matching
+        pairs, preport = pairs_selection.match_candidates_from_metadata(
+            ref_images,
+            cand_images,
+            exifs,
+            data,
+            config_override,
+        )
 
     # Match them !
     return (
