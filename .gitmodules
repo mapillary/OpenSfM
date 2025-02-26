@@ -1,3 +1,21 @@
 [submodule "opensfm/src/third_party/pybind11"]
 	path = opensfm/src/third_party/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "opensfm/src/third_party/gflags"]
+	path = opensfm/src/third_party/gflags
+	url = https://github.com/gflags/gflags.git
+[submodule "opensfm/src/third_party/glog"]
+	path = opensfm/src/third_party/glog
+	url = https://github.com/google/glog.git
+[submodule "opensfm/src/third_party/eigen"]
+	path = opensfm/src/third_party/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "opensfm/src/third_party/ceres-solver"]
+	path = opensfm/src/third_party/ceres-solver
+	url = https://github.com/ceres-solver/ceres-solver.git
+[submodule "opensfm/src/third_party/SuiteSparse"]
+	path = opensfm/src/third_party/SuiteSparse
+	url = https://github.com/DrTimothyAldenDavis/SuiteSparse.git
+[submodule "opensfm/src/third_party/tbb"]
+	path = opensfm/src/third_party/tbb
+	url = https://github.com/oneapi-src/oneTBB.git
