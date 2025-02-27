@@ -2,7 +2,7 @@
 **Jupyter-notebooks could be found in this repo https://github.com/aliaksandr960/opensfm_pairing_draft**
 
 ## Overview
-Generally, it is just attempt to fix some edge cases. OpenSfM is the proven tool, which successfuly works for more than 10 years.
+**Generally, it is just attempt to fix some small number of edge cases. OpenSfM is the proven tool, which successfuly works for more than 10 years.**
 
 The image matching pipeline operates as follows: image pairs are initially selected based on metadata and then matched using point-matching algorithms such as SIFT, ORB, ALIKE, or others. There is an attempt to improve the image pairing process.
 
