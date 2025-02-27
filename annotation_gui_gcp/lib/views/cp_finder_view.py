@@ -1,7 +1,7 @@
 # pyre-unsafe
 import typing as t
 
-from annotation_gui_gcp.lib.views.image_view import ImageView
+from .image_view import ImageView
 
 
 class ControlPointFinderView(ImageView):

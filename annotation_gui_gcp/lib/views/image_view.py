@@ -1,7 +1,7 @@
 # pyre-unsafe
 from typing import Dict, Any
 
-from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+from .web_view import WebView, distinct_colors
 
 
 def point_color(point_id: str) -> str:

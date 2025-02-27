@@ -51,6 +51,7 @@ class FeaturesData:
     descriptors: Optional[np.ndarray]
     colors: np.ndarray
     semantic: Optional[SemanticData]
+    depths: np.ndarray | None  # New field. This field is not serialized yet
 
     FEATURES_VERSION: int = 3
     FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
@@ -61,11 +62,13 @@ class FeaturesData:
         descriptors: Optional[np.ndarray],
         colors: np.ndarray,
         semantic: Optional[SemanticData],
+        depths: np.ndarray | None = None,
     ):
         self.points = points
         self.descriptors = descriptors
         self.colors = colors
         self.semantic = semantic
+        self.depths = depths
 
     def get_segmentation(self) -> Optional[np.ndarray]:
         semantic = self.semantic
@@ -516,6 +519,7 @@ def extract_features_hahog(
         uchar_scaling = 512
 
     if config["hahog_normalize_to_uchar"]:
+        # pyre-fixme[16]: `int` has no attribute `clip`.
         desc = (uchar_scaling * desc).clip(0, 255).round()
 
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))

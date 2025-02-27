@@ -182,6 +182,9 @@ def ransac(kernel: Any, threshold: float) -> TRansacSolution:
                     max_iterations, ransac_max_iterations(kernel, best_inliers, 0.01)
                 )
         i += 1
+    # pyre-fixme[7]: Expected `Tuple[ndarray[typing.Any, typing.Any],
+    #  ndarray[typing.Any, typing.Any], float]` but got `Tuple[typing.Any,
+    #  Union[List[typing.Any], ndarray[typing.Any, dtype[typing.Any]]], typing.Any]`.
     return best_model, best_inliers, best_error
 
 
@@ -211,6 +214,8 @@ class TestLinearKernel:
     def fit(self, samples: np.ndarray) -> List[float]:
         x = self.x[samples[0]]
         y = self.y[samples[0]]
+        # pyre-fixme[7]: Expected `List[float]` but got `List[ndarray[typing.Any,
+        #  dtype[typing.Any]]]`.
         return [y / x]
 
     def evaluate(self, model: np.ndarray) -> np.ndarray:
@@ -416,6 +421,9 @@ def fit_similarity_transform(
         errors = np.sqrt(np.sum((p2h.T - np.dot(best_T, p1h.T)) ** 2, axis=0))
         best_inliers = np.argwhere(errors < threshold)[:, 0]
 
+    # pyre-fixme[7]: Expected `Tuple[ndarray[typing.Any, typing.Any],
+    #  ndarray[typing.Any, typing.Any]]` but got `Tuple[ndarray[typing.Any,
+    #  typing.Any], Union[List[typing.Any], ndarray[typing.Any, dtype[typing.Any]]]]`.
     return best_T, best_inliers
 
 
@@ -453,7 +461,9 @@ def focal_from_homography(H: np.ndarray) -> np.ndarray:
 def R_from_homography(
     H: np.ndarray, f1: np.ndarray, f2: np.ndarray
 ) -> Optional[np.ndarray]:
+    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     K1 = np.diag([f1, f1, 1])
+    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     K2 = np.diag([f2, f2, 1])
     K2inv = np.linalg.inv(K2)
     R = K2inv.dot(H).dot(K1)

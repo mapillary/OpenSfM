@@ -9,12 +9,14 @@
 #include <foundation/optional.h>
 #include <geometry/camera.h>
 #include <geometry/pose.h>
+#include <map/observation.h>
 
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -61,6 +63,7 @@ struct PointProjectionObservation {
   Shot *shot;
   Camera *camera;
   double std_deviation;
+  std::optional<map::Depth> depth_prior;
 };
 
 struct RelativeMotion {
@@ -200,7 +203,8 @@ class BundleAdjuster {
   void AddPointProjectionObservation(const std::string &shot,
                                      const std::string &point,
                                      const Vec2d &observation,
-                                     double std_deviation);
+                                     double std_deviation,
+                                     const std::optional<map::Depth>& depth_prior = std::nullopt);
 
   // Relative motion constraints
   void AddRelativeMotion(const RelativeMotion &rm);

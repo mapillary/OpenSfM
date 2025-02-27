@@ -7,10 +7,10 @@ import time
 from collections import defaultdict
 
 import flask
-from annotation_gui_gcp.lib.views.cad_view import CADView
-from annotation_gui_gcp.lib.views.cp_finder_view import ControlPointFinderView
-from annotation_gui_gcp.lib.views.image_view import ImageView
-from annotation_gui_gcp.lib.views.tools_view import ToolsView
+from .views.cad_view import CADView
+from .views.cp_finder_view import ControlPointFinderView
+from .views.image_view import ImageView
+from .views.tools_view import ToolsView
 from opensfm import dataset
 
 

@@ -20,12 +20,14 @@ def load_features(
     t.Dict[str, np.ndarray],
     t.Dict[str, np.ndarray],
     t.Dict[str, np.ndarray],
+    t.Dict[str, np.ndarray],
 ]:
     logging.info("reading features")
     features = {}
     colors = {}
     segmentations = {}
     instances = {}
+    depths = {}
     for im in images:
         features_data = dataset.load_features(im)
 
@@ -41,7 +43,11 @@ def load_features(
             if semantic_data.has_instances():
                 instances[im] = semantic_data.instances
 
-    return features, colors, segmentations, instances
+        depth_data = features_data.depths
+        if depth_data is not None:
+            depths[im] = depth_data
+
+    return features, colors, segmentations, instances, depths
 
 
 def load_matches(
@@ -66,6 +72,9 @@ def create_tracks_manager(
     instances: t.Dict[str, np.ndarray],
     matches: t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]],
     min_length: int,
+    depths: t.Dict[str, np.ndarray],
+    depth_is_radial: bool = True,
+    depth_std_deviation: float = 1.0,
 ) -> TracksManager:
     """Link matches into tracks."""
     logger.debug("Merging features onto tracks")
@@ -83,10 +92,11 @@ def create_tracks_manager(
             sets[p] = [i]
 
     tracks = [t for t in sets.values() if _good_track(t, min_length)]
-    logger.debug("Good tracks: {}".format(len(tracks)))
 
     NO_VALUE = pymap.Observation.NO_SEMANTIC_VALUE
     tracks_manager = pymap.TracksManager()
+    num_observations = 0
+    num_depth_priors = 0
     for track_id, track in enumerate(tracks):
         for image, featureid in track:
             if image not in features:
@@ -98,9 +108,27 @@ def create_tracks_manager(
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
             obs = pymap.Observation(
+                # pyre-fixme[6]: For 8th argument expected `int` but got
+                #  `Union[ndarray[typing.Any, typing.Any], int]`.
+                # pyre-fixme[6]: For 9th argument expected `int` but got
+                #  `Union[ndarray[typing.Any, typing.Any], int]`.
                 x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
             )
+            if image in depths:
+                depth_value = depths[image][featureid]
+                if not np.isnan(depth_value) and not np.isinf(depth_value):
+                    std = max(depth_std_deviation * depth_value, depth_std_deviation)  # pyre-ignore
+                    obs.depth_prior = pymap.Depth(
+                        value=depth_value,   # pyre-ignore
+                        std_deviation=std,
+                        is_radial=depth_is_radial,
+                    )
+                    num_depth_priors += 1
             tracks_manager.add_observation(image, str(track_id), obs)
+            num_observations += 1
+    logger.info(
+        f"{len(tracks)} tracks, {num_observations} observations,"
+        f" {num_depth_priors} depth priors added to TracksManager")
     return tracks_manager
 
 

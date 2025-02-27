@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import rasterio
-from annotation_gui_gcp.lib.views.web_view import WebView, distinct_colors
+from ..views.web_view import WebView, distinct_colors
 from flask import send_file
 from PIL import ImageColor
 

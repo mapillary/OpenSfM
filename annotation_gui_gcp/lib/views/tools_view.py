@@ -1,7 +1,7 @@
 # pyre-unsafe
 from typing import Dict, Any
 
-from annotation_gui_gcp.lib.views.web_view import WebView
+from .web_view import WebView
 
 
 class ToolsView(WebView):

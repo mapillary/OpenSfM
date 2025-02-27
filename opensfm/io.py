@@ -1098,6 +1098,7 @@ def reconstruction_to_ply(
                 for depth in np.linspace(0, 2, 10):
                     p = o + depth * R[axis]
                     s = "{} {} {} {} {} {}".format(
+                        # pyre-fixme[16]: `int` has no attribute `__getitem__`.
                         p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2])
                     )
                     if point_num_views:

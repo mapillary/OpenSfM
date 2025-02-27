@@ -410,7 +410,6 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
           if (kpts[i].response < kpts[j].response) {
             float dx_ = kpts[j].pt.x - kpts[i].pt.x;
             float dy_ = kpts[j].pt.y - kpts[i].pt.y;
-            float sigma_ = kpts[j].size;
             float radius_ = dx_ * dx_ + dy_ * dy_;  // TODO(pau) use sigma to compute a 3d radius
             if (radius_ < radius) {
               radius = radius_;

@@ -177,9 +177,11 @@ class SyntheticStreetScene(SyntheticScene):
     def combine(self, other_scene: "SyntheticStreetScene") -> "SyntheticStreetScene":
         combined_scene = SyntheticStreetScene(None)
         combined_scene.wall_points = np.concatenate(
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.wall_points, other_scene.wall_points)
         )
         combined_scene.floor_points = np.concatenate(
+            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.floor_points, other_scene.floor_points)
         )
         combined_scene.cameras = self.cameras + other_scene.cameras
@@ -400,7 +402,11 @@ class SyntheticStreetScene(SyntheticScene):
         wall_color = [10, 90, 130]
 
         return sg.create_reconstruction(
+            # pyre-fixme[6]: For 1st argument expected `List[ndarray[typing.Any,
+            #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
             points=np.asarray([self.floor_points, self.wall_points], dtype=object),
+            # pyre-fixme[6]: For 2nd argument expected `List[ndarray[typing.Any,
+            #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
             colors=np.asarray([floor_color, wall_color]),
             cameras=self.cameras,
             shot_ids=self.shot_ids,

@@ -284,6 +284,8 @@ def _two_view_reconstruction_inliers(
 ) -> List[int]:
     """Returns indices of matches that can be triangulated."""
     ok = matching.compute_inliers_bearings(b1, b2, R, t, threshold)
+    # pyre-fixme[7]: Expected `List[int]` but got `ndarray[typing.Any,
+    #  dtype[typing.Any]]`.
     return np.nonzero(ok)[0]
 
 
@@ -318,6 +320,7 @@ def two_view_reconstruction_plane_based(
         inliers = _two_view_reconstruction_inliers(b1, b2, R.T, -R.T.dot(t), threshold)
         motion_inliers.append(inliers)
 
+    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     best = np.argmax(map(len, motion_inliers))
     R, t, n, d = motions[best]
     inliers = motion_inliers[best]
@@ -370,6 +373,8 @@ def _two_view_rotation_inliers(
 ) -> List[int]:
     br2 = R.dot(b2.T).T
     ok = np.linalg.norm(br2 - b1, axis=1) < threshold
+    # pyre-fixme[7]: Expected `List[int]` but got `ndarray[typing.Any,
+    #  dtype[typing.Any]]`.
     return np.nonzero(ok)[0]
 
 
@@ -1048,6 +1053,8 @@ class TrackTriangulator:
 
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
+                # pyre-fixme[6]: For 1st argument expected `List[ndarray[typing.Any,
+                #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
                 np.asarray(Rts),
                 np.asarray(bs),
                 reproj_threshold,
@@ -1597,6 +1604,7 @@ def incremental_reconstruction(
 
     remaining_images = set(images)
     gcp = data.load_ground_control_points()
+    logger.info(f"Loaded {len(gcp)} ground control points.")
     common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
     reconstructions = []
     pairs = compute_image_pairs(common_tracks, data)

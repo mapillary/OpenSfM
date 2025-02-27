@@ -93,7 +93,6 @@ struct RollAngleError {
     T ex[3] = {T(1), T(0), T(0)};  // A point to the right of the camera (x=1)
     T ez[3] = {T(0), T(0), T(1)};  // A point in front of the camera (z=1)
     T Rt_ex[3], Rt_ez[3];
-    T tangle_ = T(angle_);
     ceres::AngleAxisRotatePoint(R.data(), ex, Rt_ex);
     ceres::AngleAxisRotatePoint(R.data(), ez, Rt_ez);
 

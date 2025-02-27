@@ -299,22 +299,22 @@ void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float 
     Lstep_row = Lstep.ptr<float>(i);
 
     float xpos_2 = (c_row_2[0]+c_row_2[1])*(Ld_row_2[1]-Ld_row_2[0]);
-    float ypos = (c_row_2[0]+c_row_p_2[0])*(Ld_row_p_2[0]-Ld_row_2[0]);
+    float ypos_2 = (c_row_2[0]+c_row_p_2[0])*(Ld_row_p_2[0]-Ld_row_2[0]);
     float yneg = (c_row_m[0]+c_row_2[0])*(Ld_row_2[0]-Ld_row_m[0]);
-    Lstep_row[0] = 0.5*stepsize*(xpos_2+ypos-yneg);
+    Lstep_row[0] = 0.5*stepsize*(xpos_2+ypos_2-yneg);
 
-    float xneg = (c_row_2[Lstep.cols-2]+c_row_2[Lstep.cols-1])*(Ld_row_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-2]);
-    ypos = (c_row_2[Lstep.cols-1]+c_row_p_2[Lstep.cols-1])*(Ld_row_p_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-1]);
+    float xneg_2 = (c_row_2[Lstep.cols-2]+c_row_2[Lstep.cols-1])*(Ld_row_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-2]);
+    ypos_2 = (c_row_2[Lstep.cols-1]+c_row_p_2[Lstep.cols-1])*(Ld_row_p_2[Lstep.cols-1]-Ld_row_2[Lstep.cols-1]);
     yneg = (c_row_m[Lstep.cols-1]+c_row_2[Lstep.cols-1])*(Ld_row_2[Lstep.cols-1]-Ld_row_m[Lstep.cols-1]);
-    Lstep_row[Lstep.cols-1] = 0.5*stepsize*(-xneg+ypos-yneg);
+    Lstep_row[Lstep.cols-1] = 0.5*stepsize*(-xneg_2+ypos_2-yneg);
   }
 
   // Ld = Ld + Lstep
   for (int y = 0; y < Lstep.rows; y++) {
-    float* Ld_row = Ld.ptr<float>(y);
-    float* Lstep_row = Lstep.ptr<float>(y);
-    for (int x = 0; x < Lstep.cols; x++) {
-      Ld_row[x] = Ld_row[x] + Lstep_row[x];
+    float* Ld_row_2 = Ld.ptr<float>(y);
+    float* Lstep_row_2 = Lstep.ptr<float>(y);
+    for (int x_2 = 0; x_2 < Lstep.cols; x_2++) {
+      Ld_row_2[x_2] = Ld_row_2[x_2] + Lstep_row_2[x_2];
     }
   }
 }

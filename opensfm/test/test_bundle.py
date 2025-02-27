@@ -108,14 +108,27 @@ def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
                 color = g_obs["feature_color"]
                 pt = g_obs["feature"]
                 obs = pymap.Observation(
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[0],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[1],
+                    # pyre-fixme[6]: For 3rd argument expected `float` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_scale"],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[0],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[1],
+                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[2],
+                    # pyre-fixme[6]: For 7th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_id"],
+                    # pyre-fixme[6]: For 8th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_segmentation"],
+                    # pyre-fixme[6]: For 9th argument expected `int` but got
+                    #  `Dict[str, typing.Any]`.
                     g_obs["feature_instance"],
                 )
                 reference.map.add_observation(shot_id, point_id, obs)
@@ -214,12 +227,28 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
     )
 
     std_dev = np.array([1, 1, 1])
-    sa.add_point_projection_observation("1", "p1", np.array([0, 0]), 1)
-    sa.add_point_projection_observation("2", "p1", np.array([-0.5, 0]), 1)
+    sa.add_point_projection_observation(
+        shot="1", 
+        point="p1",
+        observation=np.array([0, 0]),
+        std_deviation=1)
+    sa.add_point_projection_observation(
+        shot="2",
+        point="p1",
+        observation=np.array([-0.5, 0]),
+        std_deviation=1)
     sa.add_point_prior("p1", np.array([-0.5, 2, 2]), std_dev, True)
 
-    sa.add_point_projection_observation("2", "p2", np.array([0, 0]), 1)
-    sa.add_point_projection_observation("1", "p2", np.array([0.5, 0]), 1)
+    sa.add_point_projection_observation(
+        shot="2",
+        point="p2",
+        observation=np.array([0, 0]),
+        std_deviation=1)
+    sa.add_point_projection_observation(
+        shot="1",
+        point="p2",
+        observation=np.array([0.5, 0]),
+        std_deviation=1)
     sa.add_point_prior("p2", np.array([1.5, 2, 2]), std_dev, True)
 
     sa.run()

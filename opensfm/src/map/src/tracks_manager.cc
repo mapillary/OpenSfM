@@ -356,7 +356,7 @@ TracksManager::GetAllPairsConnectivity(
 TracksManager TracksManager::MergeTracksManager(
     const std::vector<const TracksManager*>& tracks_managers) {
   // Some typedefs claryfying the aggregations
-  using FeatureId = std::pair<ShotId, int>;
+  using FeatureId_2 = std::pair<ShotId, int>;
   using SingleTrackId = std::pair<TrackId, int>;
 
   // Union-find main data
@@ -364,7 +364,7 @@ TracksManager TracksManager::MergeTracksManager(
       union_find_elements;
 
   // Aggregate tracks be merged using (shot_id, feature_id)
-  std::unordered_map<FeatureId, std::vector<int>, HashPair>
+  std::unordered_map<FeatureId_2, std::vector<int>, HashPair>
       observations_per_feature_id;
   for (int i = 0; i < tracks_managers.size(); ++i) {
     const auto& manager = tracks_managers[i];
@@ -387,7 +387,7 @@ TracksManager TracksManager::MergeTracksManager(
     return merged;
   }
 
-  // Union-find any two tracks sharing a common FeatureId
+  // Union-find any two tracks sharing a common FeatureId_2
   // For N tracks, make 0 the parent of [1, ... N-1[
   for (const auto& tracks_agg : observations_per_feature_id) {
     if (tracks_agg.second.empty()) {

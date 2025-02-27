@@ -10,7 +10,7 @@ def run_dataset(data: DataSetBase) -> None:
     """Link matches pair-wise matches into tracks."""
 
     start = timer()
-    features, colors, segmentations, instances = tracking.load_features(
+    features, colors, segmentations, instances, depths = tracking.load_features(
         data, data.images()
     )
     features_end = timer()
@@ -23,6 +23,9 @@ def run_dataset(data: DataSetBase) -> None:
         instances,
         matches,
         data.config["min_track_length"],
+        depths,
+        data.config["depth_is_radial"],
+        data.config["depth_std_deviation_m_default"],
     )
     tracks_end = timer()
     data.save_tracks_manager(tracks_manager)

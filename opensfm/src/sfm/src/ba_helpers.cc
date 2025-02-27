@@ -236,7 +236,7 @@ py::tuple BAHelpers::BundleLocal(
       }
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_, obs.point,
-                                       obs.scale);
+                                       obs.scale, obs.depth_prior);
       ++added_reprojections;
     }
   }
@@ -246,7 +246,7 @@ py::tuple BAHelpers::BundleLocal(
       if (points.count(lm) > 0) {
         const auto& obs = lm_obs.second;
         ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                         obs.point, obs.scale);
+                                         obs.point, obs.scale, obs.depth_prior);
         ++added_reprojections;
       }
     }
@@ -533,7 +533,7 @@ py::dict BAHelpers::BundleShotPoses(
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
-                                       obs.scale);
+                                       obs.scale, obs.depth_prior);
     }
   }
 
@@ -711,7 +711,7 @@ py::dict BAHelpers::Bundle(
     for (const auto& lm_obs : shot.GetLandmarkObservations()) {
       const auto& obs = lm_obs.second;
       ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
-                                       obs.scale);
+                                       obs.scale, obs.depth_prior);
       ++added_reprojections;
     }
   }

@@ -201,6 +201,8 @@ def generate_exifs(
     ):
         pose = rig_instance.pose.get_origin()
         if previous_pose is not None:
+            # pyre-fixme[58]: `+` is not supported for operand types `int` and
+            #  `floating[typing.Any]`.
             previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         for shot_id in rig_instance.shots:
@@ -219,6 +221,8 @@ def generate_exifs(
             origin = shot.pose.get_origin()
 
             if causal_gps_noise:
+                # pyre-fixme[61]: `perturbations_2d` is undefined, or not always
+                #  defined.
                 gps_perturbation = [perturbations_2d[j][i] for j in range(2)] + [0]
             else:
                 gps_noise = _gps_dop(shot)

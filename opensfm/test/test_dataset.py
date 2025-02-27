@@ -1,7 +1,7 @@
 # pyre-unsafe
 import numpy as np
 from opensfm import features
-from opensfm.test import data_generation
+from mapillary.opensfm.opensfm.test import data_generation
 
 
 def test_dataset_load_features_sift(tmpdir) -> None:
@@ -26,6 +26,7 @@ def test_dataset_load_features_sift(tmpdir) -> None:
     after = data.load_features(image)
     assert after
     assert np.allclose(points, after.points)
+    # pyre-fixme[6]: For 2nd argument expected `Union[_SupportsArray[dtype[typing.Any...
     assert np.allclose(descriptors, after.descriptors)
     assert np.allclose(colors, after.colors)
     semantic = after.semantic
@@ -34,4 +35,5 @@ def test_dataset_load_features_sift(tmpdir) -> None:
         segmentations,
         semantic.segmentation,
     )
+    # pyre-fixme[6]: For 2nd argument expected `Union[_SupportsArray[dtype[typing.Any...
     assert np.allclose(instances, semantic.instances)
