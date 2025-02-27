@@ -1,7 +1,5 @@
 import numpy as np
 
-from tqdm import tqdm
-
 import numpy as np
 import math
 
@@ -67,7 +65,7 @@ def save_cones_projection_as_gpkg(mesh_list, reference, output_file):
     }
 
     with fiona.open(output_file, 'w', driver='GPKG', crs=from_epsg(4326), schema=schema) as layer:
-        for cn, cc in tqdm(mesh_list):
+        for cn, cc in mesh_list:
             vertex_array = trimesh.convex.hull_points(cc)
             ll_point_list = []
             for x, y, z in vertex_array:
