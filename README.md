@@ -1,11 +1,10 @@
 # Naive Cone Pairing algorithm
 **Jupyter-notebooks could be found in this repo https://github.com/aliaksandr960/opensfm_pairing_draft**
+
 ## Overview
-The image matching pipeline operates as follows: image pairs are initially selected based on metadata and then matched using point-matching algorithms such as SIFT, ORB, ALIKE, or others. There is an attempt to enhance the image pairing process using metadata.
+Generally, it is just attempt to fix some edge cases. OpenSfM is the proven tool, which successfuly works for more than 10 years.
 
-Leveraging metadata such as yaw, pitch, and roll — allows for the selection of more relevant pairs, rather then brutforce.
-
-**Image matching for perspective aerial images in OpenSfM is also constrained by traditional computer vision algorithms such as SIFT and ORB. Most of these struggle with significant variations in scale, rotation, and perspective.**
+The image matching pipeline operates as follows: image pairs are initially selected based on metadata and then matched using point-matching algorithms such as SIFT, ORB, ALIKE, or others. There is an attempt to improve the image pairing process.
 
 **In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM. But small advantages, don't expect a lot.**
 
@@ -14,6 +13,9 @@ Leveraging metadata such as yaw, pitch, and roll — allows for the selection of
 
 **Field of view cones visualization**:
 ![Cones](doc/source/images/batumi_cones_viz.png)
+
+**Image matching for perspective aerial images in OpenSfM is also constrained by traditional computer vision algorithms such as SIFT and ORB. Most of these struggle with significant variations in scale, rotation, and perspective.**
+
 
 Since I lack synthetic data generation pipelines or drones to test this hypothesis, the development has been published on GitHub as is. It has been a valuable self-education project.
 
