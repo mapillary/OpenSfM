@@ -16,11 +16,9 @@ The image matching pipeline operates as follows: image pairs are initially selec
 ![Cones](doc/source/images/batumi_cones_viz.png)
 
 ### Idea:
-- Generate field-of-view (FOV) cones for each camera.
-- Clip the cones using the land surface (DEM) or a bounding box approximation. - 
-- Identify overlapping cones to determine potential image matches. 
-
-
+- Generate field-of-view (FOV) cones for each camera
+- Clip the cones using the land surface (DEM) or a bounding box approximation 
+- Identify overlapping cones to determine potential image matches
 
 Since I lack synthetic data generation pipelines or drones to test this hypothesis, the development has been published on GitHub as is. It has been a valuable self-education project.
 
