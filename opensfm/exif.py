@@ -464,7 +464,8 @@ class EXIF:
         return 0.0
 
     def extract_opk(self, geo) -> Optional[Dict[str, Any]]:
-        opk = None
+        opk_dict = None
+        ypr_dict = None
 
         if self.has_xmp() and geo and "latitude" in geo and "longitude" in geo:
             ypr = np.array([None, None, None])
@@ -503,6 +504,7 @@ class EXIF:
                         ]
                     )
                     ypr[1] += 90  # DJI's values need to be offset
+                    ypr_dict = {'yaw':ypr[0], 'pitch': ypr[1], 'roll': ypr[2]}
             except ValueError:
                 logger.debug(
                     'Invalid yaw/pitch/roll tag in image file "{0:s}"'.format(
@@ -567,7 +569,7 @@ class EXIF:
 
                 if m == 0:
                     logger.debug("Cannot compute OPK angles, divider = 0")
-                    return opk
+                    return opk_dict, ypr_dict
 
                 # Unit vector pointing north
                 xnp /= m
@@ -580,12 +582,12 @@ class EXIF:
                 # OPK rotation matrix
                 ceb = cen.dot(cnb).dot(cbb)
 
-                opk = {}
-                opk["omega"] = np.degrees(np.arctan2(-ceb[1][2], ceb[2][2]))
-                opk["phi"] = np.degrees(np.arcsin(ceb[0][2]))
-                opk["kappa"] = np.degrees(np.arctan2(-ceb[0][1], ceb[0][0]))
+                opk_dict = {}
+                opk_dict["omega"] = np.degrees(np.arctan2(-ceb[1][2], ceb[2][2]))
+                opk_dict["phi"] = np.degrees(np.arcsin(ceb[0][2]))
+                opk_dict["kappa"] = np.degrees(np.arctan2(-ceb[0][1], ceb[0][0]))
 
-        return opk
+        return opk_dict, ypr_dict
 
     def extract_exif(self) -> Dict[str, Any]:
         width, height = self.extract_image_size()
@@ -595,7 +597,7 @@ class EXIF:
         orientation = self.extract_orientation()
         geo = self.extract_geo()
         capture_time = self.extract_capture_time()
-        opk = self.extract_opk(geo)
+        opk, ypr = self.extract_opk(geo)
         d = {
             "make": make,
             "model": model,
@@ -609,6 +611,7 @@ class EXIF:
         }
         if opk:
             d["opk"] = opk
+            d["ypr"] = ypr
 
         d["camera"] = camera_id(d)
         return d
