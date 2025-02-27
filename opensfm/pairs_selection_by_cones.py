@@ -170,7 +170,6 @@ def pairing_by_cones_from_dataset(ref_images,
                                   exifs,
                                   data,
                                   config_override):
-    print('############### Cone matching!!!')
     data.init_reference()
     reference = data.load_reference()
 
