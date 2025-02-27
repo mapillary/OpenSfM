@@ -30,13 +30,15 @@ Special thanks to @Komzpa and the OpenAerialMap community for their ideas, data,
 
 2. Clone this repo and repo https://github.com/aliaksandr960/opensfm_pairing_draft 
 
-3. Build the docker image by running **sh ./docker_build.sh**
+3. Run inside this repo **git submodule update --init --recursive**
 
-4. Change paths in docker mounts in **./docker_start.sh** as you need
+4. Build the docker image by running **sh ./docker_build.sh**
 
-5. Run container by executing **sh ./docker_start.sh** 
+5. Change paths in docker mounts in **./docker_start.sh** as you need
 
-6. Build OpenSfM by executing inside container **cd /source/OpenSfM && python setup.py build**
+6. Run container by executing **sh ./docker_start.sh** 
+
+7. Build OpenSfM by executing inside container **cd /source/OpenSfM && python setup.py build**
 
 7. Run reconstruction by using **standard OpenSfM commands** or jupyter notebook **runner_notebook.ipynb** 
 
