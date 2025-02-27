@@ -1,6 +1,8 @@
 # Naive Cone Pairing Algorithm
 **Jupyter-notebooks could be found in this repo https://github.com/aliaksandr960/opensfm_pairing_draft**
 
+Special thanks to @Komzpa and the OpenAerialMap community for their ideas, data, and support.
+
 ## Overview
 **Generally, it is just attempt to fix some small number of edge cases. OpenSfM is the proven tool, which successfuly works for more than 10 years.**
 
@@ -22,7 +24,6 @@ The image matching pipeline operates as follows: image pairs are initially selec
 
 Since I lack synthetic data generation pipelines or drones to test this hypothesis, the development has been published on GitHub as is. It has been a valuable self-education project.
 
-Special thanks to @Komzpa and the OpenAerialMap community for their ideas, data, and support.
 
 
 ## Usage
