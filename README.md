@@ -6,7 +6,8 @@
 
 The image matching pipeline operates as follows: image pairs are initially selected based on metadata and then matched using point-matching algorithms such as SIFT, ORB, ALIKE, or others. There is an attempt to improve the image pairing process.
 
-**In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM. But small advantages, don't expect a lot.**
+**In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM.**
+
 
 ![Multiperspective 1](doc/source/images/multiperspective1.png)
 ![Multiperspective 2](doc/source/images/multiperspective2.png)
@@ -14,7 +15,11 @@ The image matching pipeline operates as follows: image pairs are initially selec
 **Field of view cones visualization**:
 ![Cones](doc/source/images/batumi_cones_viz.png)
 
-**Image matching for perspective aerial images in OpenSfM is also constrained by traditional computer vision algorithms such as SIFT and ORB. Most of these struggle with significant variations in scale, rotation, and perspective.**
+### Idea:
+- Generate field-of-view (FOV) cones for each camera.
+- Clip the cones using the land surface (DEM) or a bounding box approximation. - 
+- Identify overlapping cones to determine potential image matches. 
+
 
 
 Since I lack synthetic data generation pipelines or drones to test this hypothesis, the development has been published on GitHub as is. It has been a valuable self-education project.
