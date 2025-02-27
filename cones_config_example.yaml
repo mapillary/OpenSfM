@@ -1,8 +1,0 @@
-
-# OpenSfM will use the default parameters from opensfm/config.py
-# Set here any parameter that you want to override for this dataset
-# For example:
-pair_selection_by_cones: True
-dem_path: '/source/opensfm_pairing_draft/data/batumi_6pic/srtm_dem.tif'
-dem_hight: 100 # DEM extrude height
-pairing_fov: 60 # Camera FOV (degrees) to use for pairing
