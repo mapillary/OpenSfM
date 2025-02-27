@@ -1,4 +1,4 @@
-# Naive Cone Pairing
+# Naive Cone Pairing algorithm
 **Jupyter-notebooks could be found in this repo https://github.com/aliaksandr960/opensfm_pairing_draft**
 ## Overview
 The image matching pipeline operates as follows: image pairs are initially selected based on metadata and then matched using point-matching algorithms such as SIFT, ORB, ALIKE, or others. There is an attempt to enhance the image pairing process using metadata.
