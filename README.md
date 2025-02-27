@@ -5,17 +5,15 @@ The image matching pipeline operates as follows: image pairs are initially selec
 
 Leveraging metadata such as yaw, pitch, and roll — allows for the selection of more relevant pairs, rather then brutforce.
 
-**In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM.**
+**Image matching for perspective aerial images in OpenSfM is also constrained by traditional computer vision algorithms such as SIFT and ORB. Most of these struggle with significant variations in scale, rotation, and perspective.**
+
+**In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM. But small advantages, don't expect a lot.**
 
 ![Multiperspective 1](doc/source/images/multiperspective1.png)
 ![Multiperspective 2](doc/source/images/multiperspective2.png)
 
 **Field of view cones visualization**:
 ![Cones](doc/source/images/batumi_cones_viz.png)
-
-Image matching for perspective aerial images in OpenSfM is also constrained by traditional computer vision algorithms such as SIFT and ORB. Most of these struggle with significant variations in scale, rotation, and perspective.
-
-**While better image pairing can provide some improvements, it is not a groundbreaking solution — even when accurate yaw, pitch, and roll metadata are available.**
 
 Since I lack synthetic data generation pipelines or drones to test this hypothesis, the development has been published on GitHub as is. It has been a valuable self-education project.
 
