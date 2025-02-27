@@ -5,7 +5,7 @@ The image matching pipeline operates as follows: image pairs are initially selec
 
 Leveraging metadata such as yaw, pitch, and roll — allows for the selection of more relevant pairs, rather then brutforce.
 
-In such cases, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM.
+**In cases, when you have mix of nadir and oblique images, utilizing Field of View (FoV) cones could offer advantages over distance- or triangulation-based methods, which are already implemented in OpenSfM.**
 
 ![Multiperspective 1](doc/source/images/multiperspective1.png)
 ![Multiperspective 2](doc/source/images/multiperspective2.png)
