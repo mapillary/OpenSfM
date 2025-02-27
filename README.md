@@ -1,4 +1,4 @@
-# Naive Cone Pairing algorithm
+# Naive Cone Pairing Algorithm
 **Jupyter-notebooks could be found in this repo https://github.com/aliaksandr960/opensfm_pairing_draft**
 
 ## Overview
