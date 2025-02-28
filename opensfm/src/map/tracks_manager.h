@@ -15,6 +15,7 @@ class TracksManager {
                       const Observation& observation);
   void RemoveObservation(const ShotId& shot_id, const TrackId& track_id);
   void RemoveTrack(const TrackId& track_id);
+  void RemoveShot(const ShotId& shot_id);
   Observation GetObservation(const ShotId& shot, const TrackId& track) const;
 
   int NumShots() const;

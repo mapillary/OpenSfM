@@ -204,22 +204,44 @@ void TracksManager::RemoveObservation(const ShotId& shot_id,
 }
 
 void TracksManager::RemoveTrack(const TrackId& track_id) {
-    // Step 1: Remove entries from tracks_per_shot_
-    if (shots_per_track_.count(track_id)) {
-      const auto& shot_ids = shots_per_track_[track_id];
-      for (const auto& [shot_id, _] : shot_ids) {
-        if (tracks_per_shot_.count(shot_id)) {
-          tracks_per_shot_[shot_id].erase(track_id);
-          // Remove the Shot entry if no observations remain
-          if (tracks_per_shot_[shot_id].empty()) {
-            tracks_per_shot_.erase(shot_id);
-          }
+  // Step 1: Remove entries from tracks_per_shot_
+  if (shots_per_track_.count(track_id)) {
+    const auto& shot_ids = shots_per_track_[track_id];
+    for (const auto& [shot_id, _] : shot_ids) {
+      if (tracks_per_shot_.count(shot_id)) {
+        tracks_per_shot_[shot_id].erase(track_id);
+        // Remove the Shot entry if no observations remain
+        if (tracks_per_shot_[shot_id].empty()) {
+          tracks_per_shot_.erase(shot_id);
         }
       }
-      // Step 2: Remove the track from shots_per_track_
-      shots_per_track_.erase(track_id);
     }
+    // Step 2: Remove the track from shots_per_track_
+    shots_per_track_.erase(track_id);
   }
+}
+
+void TracksManager::RemoveShot(const ShotId& shot_id) {
+  // Remove shot from tracks_per_shot_
+  const auto find_shot = tracks_per_shot_.find(shot_id);
+  if (find_shot != tracks_per_shot_.end()) {
+    // Iterate all tracks which are observed by the shot
+    for (const auto& [track_id, _] : find_shot->second) {
+      // Remove the shot from the corrsponding track-list in shots_per_track_
+      if (shots_per_track_.count(track_id)) {
+        shots_per_track_[track_id].erase(shot_id);
+        // Remove the track entry if no observations remain
+        if (shots_per_track_[track_id].empty()) {
+          shots_per_track_.erase(track_id);
+        }
+      }
+    }
+    tracks_per_shot_.erase(shot_id);
+  }
+  else {
+    throw std::runtime_error("Shot ID not found");
+  }
+}
 
 int TracksManager::NumShots() const { return tracks_per_shot_.size(); }
 
