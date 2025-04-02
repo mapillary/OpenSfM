@@ -2,7 +2,6 @@
 """Incremental reconstruction pipeline"""
 
 import datetime
-import enum
 import logging
 import math
 from abc import ABC, abstractmethod
@@ -29,12 +28,13 @@ from opensfm import (
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import current_memory_usage, parallel_map
 from opensfm.dataset_base import DataSetBase
+from python.migrations.py310 import StrEnum310
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class ReconstructionAlgorithm(str, enum.Enum):
+class ReconstructionAlgorithm(StrEnum310):
     INCREMENTAL = "incremental"
     TRIANGULATION = "triangulation"
 
@@ -51,14 +51,19 @@ def _get_camera_from_bundle(
 def log_bundle_stats(bundle_type: str, bundle_report: Dict[str, Any]) -> None:
     times = bundle_report["wall_times"]
     time_secs = times["run"] + times["setup"] + times["teardown"]
-    num_images, num_points, num_reprojections = bundle_report["num_images"], bundle_report["num_points"], bundle_report["num_reprojections"]
+    num_images, num_points, num_reprojections = (
+        bundle_report["num_images"],
+        bundle_report["num_points"],
+        bundle_report["num_reprojections"],
+    )
 
     msg = f"Ran {bundle_type} bundle in {time_secs:.2f} secs."
-    if num_points > 0 :
+    if num_points > 0:
         msg += f"with {num_images}/{num_points}/{num_reprojections} ({num_reprojections/num_points:.2f}) "
         msg += "shots/points/proj. (avg. length)"
 
     logger.info(msg)
+
 
 def bundle(
     reconstruction: types.Reconstruction,
@@ -596,9 +601,9 @@ def reconstruction_from_relative_pose(
 
     retriangulate(tracks_manager, reconstruction, data.config)
     if len(reconstruction.points) < min_inliers:
-        report[
-            "decision"
-        ] = "Re-triangulation after initial motion did not generate enough points"
+        report["decision"] = (
+            "Re-triangulation after initial motion did not generate enough points"
+        )
         logger.info(report["decision"])
         return None, report
 
@@ -1299,7 +1304,7 @@ def merge_reconstructions(
     reconstructions_merged = []
     num_merge = 0
 
-    for (i, j) in combinations(ids_reconstructions, 2):
+    for i, j in combinations(ids_reconstructions, 2):
         if (i in remaining_reconstruction) and (j in remaining_reconstruction):
             r = merge_two_reconstructions(
                 reconstructions[i], reconstructions[j], config
