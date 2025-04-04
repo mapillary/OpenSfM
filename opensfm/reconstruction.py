@@ -1022,6 +1022,13 @@ class TrackTriangulator:
             ids.append(shot_id)
 
         if len(os) >= 2:
+            
+            # Check if all the origins are at the same point. In such a case,
+            # the triangulation will degenerate to pure rotation and the
+            # triangulated point will always be invalid or at [0, 0, 0].
+            if all(np.allclose(os[i], os[0]) for i in range(1, len(os))):
+                return
+
             thresholds = len(os) * [reproj_threshold]
             min_ray_angle_radians = np.radians(min_ray_angle_degrees)
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
@@ -1035,6 +1042,12 @@ class TrackTriangulator:
                 X = pygeometry.point_refinement(
                     np.array(os), np.array(bs), X, iterations
                 )
+                if np.allclose(X, [0, 0, 0]):
+                    logger.warning(
+                        f"Detected potentially problematic triangulated point: "
+                        f"{X.tolist()} {os=} {bs=} {ids=}. It can be caused by "
+                        "identical origin points (pure rotation)."
+                    )
                 self.tracks_handler.store_track_coordinates(track, X.tolist())
                 for shot_id in ids:
                     self.tracks_handler.store_inliers_observation(track, shot_id)
