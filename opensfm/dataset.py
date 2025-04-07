@@ -18,9 +18,12 @@ from opensfm import (
     pymap,
     masking,
     rig,
+    pairs_selection_by_cones
 )
 from opensfm.dataset_base import DataSetBase
 from PIL.PngImagePlugin import PngImageFile
+import rasterio
+import trimesh
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -112,6 +115,66 @@ class DataSet(DataSetBase):
             anydepth=anydepth,
             grayscale=grayscale,
         )
+    
+    def load_demmesh(self, dem_name, dem_hight, reference=None):
+        dem_path = os.path.join(self.data_path, dem_name)
+        # Create DEM model
+        with rasterio.open(dem_path) as src:
+            elevation = src.read(1)  # Read the first band
+            height = elevation.shape[0]
+            width = elevation.shape[1]
+            cols, rows = np.meshgrid(np.arange(width), np.arange(height))
+            xs, ys = rasterio.transform.xy(src.transform, rows, cols)
+            xs, ys = np.array(xs).flatten(), np.array(ys).flatten()
+        
+        # Converting TIF to topocentric coordinated
+        if reference is None:
+            reference = self.load_reference()
+        tx, ty, tz = [], [], []
+        for lon, lat, alt in zip(xs, ys, elevation.flatten()):
+            x, y, z = reference.to_topocentric(lat, lon, alt)
+            tx.append(x)
+            ty.append(y)
+            tz.append(z)
+            
+        tx = np.array(tx).reshape(width, height)
+        ty = np.array(ty).reshape(width, height)
+        tz = np.array(tz).reshape(width, height)
+        
+        vertices = np.column_stack([tx.flatten(), ty.flatten(), tz.flatten()])
+        
+        # Create triangular faces (mesh grid-based)
+        faces = []
+        for i in range(height - 1):
+            for j in range(width - 1):
+                # Define two triangles per grid cell
+                v1 = i * width + j
+                v2 = i * width + (j + 1)
+                v3 = (i + 1) * width + j
+                v4 = (i + 1) * width + (j + 1)
+                
+                faces.append([v1, v2, v3])  # Triangle 1
+                faces.append([v2, v4, v3])  # Triangle 2
+        
+        faces = np.array(faces)
+        
+        surface_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+        surface_mesh.invert()
+
+        # Extrude model
+        model_faces = np.array(trimesh.creation.extrude_triangulation(vertices=vertices[:, :2], faces=faces, height=dem_hight).faces)
+        model_bottom_vertices = vertices.copy()
+        model_top_vertices = vertices.copy()
+        model_top_vertices[:, -1] = model_top_vertices[:, -1] + dem_hight
+        model_vertices = np.concatenate([model_bottom_vertices, model_top_vertices])
+        
+        volume_mesh = trimesh.Trimesh(vertices=model_vertices, faces=model_faces)
+        return volume_mesh, surface_mesh
+    
+    
+    def save_cones_projection_as_gpkg(self, mesh_list, reference, output_name='cones_projections.gpkg'):
+        output_path = os.path.join(self.data_path, output_name)
+        pairs_selection_by_cones.save_cones_projection_as_gpkg(mesh_list, reference, output_path)
 
     def image_size(self, image: str) -> Tuple[int, int]:
         """Height and width of the image."""
