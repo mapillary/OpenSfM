@@ -1,18 +1,11 @@
 import numpy as np
-
 import math
-
 import trimesh
-
-import math
 from scipy.spatial.transform import Rotation as R
-
 from shapely import MultiPoint, convex_hull
 import shapely
-
 import fiona
 from fiona.crs import from_epsg
-
 
 import logging
 logger: logging.Logger = logging.getLogger(__name__)
