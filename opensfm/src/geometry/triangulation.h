@@ -6,9 +6,6 @@
 #include <Eigen/QR>
 #include <Eigen/SVD>
 #include <Eigen/StdVector>
-#include <fstream>
-#include <iostream>
-#include <string>
 
 double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v);
 
@@ -95,11 +92,11 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
     const std::vector<double> &threshold_list,
     double min_angle, double max_angle);
 
-Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic>
+Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>
 EpipolarAngleTwoBearingsMany(
-    const Eigen::Matrix<float, Eigen::Dynamic, 3> &bearings1,
-    const Eigen::Matrix<float, Eigen::Dynamic, 3> &bearings2,
-    const Eigen::Matrix3f &rotation, const Eigen::Vector3f &translation);
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
+    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
+    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation);
 
 Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
                       const Vec3d &point, int iterations);
