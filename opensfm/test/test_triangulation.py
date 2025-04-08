@@ -31,8 +31,8 @@ def test_track_triangulator_spherical() -> None:
                 },
                 "im2": {
                     "camera": "theta",
-                    "rotation": [0, 0, 0.0],
-                    "translation": [-1, 0, 0.0],
+                    "rotation": [0.0, 0.0, 0.0],
+                    "translation": [-1.0, 0.0, 0.0],
                 },
             },
             "points": {},
@@ -42,11 +42,54 @@ def test_track_triangulator_spherical() -> None:
     triangulator = reconstruction.TrackTriangulator(
         rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
     )
-    triangulator.triangulate("1", 0.01, 2.0, 10)
+    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, iterations=10)
     assert "1" in rec.points
     p = rec.points["1"].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
     assert len(rec.points["1"].get_observations()) == 2
+
+
+def test_track_triangulator_coincident_camera_origins() -> None:
+    """Test triangulating tracks when two cameras have the same origin.
+    
+    Triangulation should fail and no points should be added to the reconstruction.
+    """
+    tracks_manager = pymap.TracksManager()
+    tracks_manager.add_observation("im1", "1", pymap.Observation(0, 0, 1.0, 0, 0, 0, 0))
+    tracks_manager.add_observation(
+        "im2", "1", pymap.Observation(-0.1, 0, 1.0, 0, 0, 0, 1)
+    )
+
+    rec = io.reconstruction_from_json(
+        {
+            "cameras": {
+                "theta": {
+                    "projection_type": "spherical",
+                    "width": 800,
+                    "height": 400,
+                }
+            },
+            "shots": {
+                "im1": {
+                    "camera": "theta",
+                    "rotation": [0.0, 0.0, 0.0],
+                    "translation": [0.0, 0.0, 0.0],
+                },
+                "im2": {
+                    "camera": "theta",
+                    "rotation": [0.0, 0.0, 0.0],
+                    "translation": [0.0, 0.0, 0.0],
+                },
+            },
+            "points": {},
+        }
+    )
+
+    triangulator = reconstruction.TrackTriangulator(
+        rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
+    )
+    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, iterations=10)
+    assert not rec.points
 
 
 def unit_vector(x: object) -> np.ndarray:
