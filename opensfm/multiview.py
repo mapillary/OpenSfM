@@ -710,6 +710,7 @@ def triangulate_gcp(
     shots: Dict[str, pymap.Shot],
     reproj_threshold: float = 0.02,
     min_ray_angle_degrees: float = 1.0,
+    min_depth: float = 0.001,
 ) -> Optional[np.ndarray]:
     """Compute the reconstructed position of a GCP from observations."""
 
@@ -733,6 +734,7 @@ def triangulate_gcp(
             thresholds,
             np.radians(min_ray_angle_degrees),
             np.radians(180.0 - min_ray_angle_degrees),
+            min_depth,
         )
         if valid_triangulation:
             return X

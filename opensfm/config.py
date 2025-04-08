@@ -203,6 +203,8 @@ class OpenSfMConfig:
     triangulation_threshold: float = 0.006
     # Minimum angle between views to accept a triangulated point
     triangulation_min_ray_angle: float = 1.0
+    # Minimum depth to accept a triangulated point
+    triangulation_min_depth: float = 0.001
     # Triangulation type : either considering all rays (FULL), or sing a RANSAC variant (ROBUST)
     triangulation_type: str = "FULL"
     # Number of LM iterations to run when refining a point

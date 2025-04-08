@@ -327,6 +327,7 @@ bool BAHelpers::TriangulateGCP(
   constexpr auto reproj_threshold{1.0};
   constexpr auto min_ray_angle = 0.1 * M_PI / 180.0;
   constexpr auto max_ray_angle = M_PI - min_ray_angle;
+  constexpr auto min_depth = 1e-3;  // Assume GCPs 1mm+ away from the camera
   MatX3d os, bs;
   size_t added = 0;
   coordinates = Vec3d::Zero();
@@ -348,7 +349,7 @@ bool BAHelpers::TriangulateGCP(
   if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
     const auto& res = geometry::TriangulateBearingsMidpoint(
-        os, bs, thresholds, min_ray_angle, max_ray_angle);
+        os, bs, thresholds, min_ray_angle, max_ray_angle, min_depth);
     coordinates = res.second;
     return res.first;
   }

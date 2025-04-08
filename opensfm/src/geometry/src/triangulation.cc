@@ -79,7 +79,8 @@ std::pair<bool, Vec3d> TriangulateBearingsDLT(
     const std::vector<Mat34d> &Rts,
     const MatX3d &bearings,
     double threshold,
-    double min_angle) {
+    double min_angle,
+    double min_depth) {
   const int count = Rts.size();
   MatXd world_bearings(count, 3);
   bool angle_ok = false;
@@ -105,7 +106,11 @@ std::pair<bool, Vec3d> TriangulateBearingsDLT(
 
   for (int i = 0; i < count; ++i) {
     const Vec3d projected = Rts[i] * X;
-    if (AngleBetweenVectors(projected, bearings.row(i)) > threshold) {
+    const Vec3d measured = bearings.row(i);
+    if (AngleBetweenVectors(projected, measured) > threshold) {
+      return std::make_pair(false, Vec3d());
+    }
+    if (projected.dot(measured) < min_depth) {
       return std::make_pair(false, Vec3d());
     }
   }
@@ -141,7 +146,9 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const MatX3d &centers,
     const MatX3d &bearings,
     const std::vector<double> &threshold_list,
-    double min_angle, double max_angle) {
+    double min_angle,
+    double max_angle,
+    double min_depth) {
   const int count = centers.rows();
 
   // Check angle between rays
@@ -166,6 +173,9 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const Vec3d projected = X - centers.row(i).transpose();
     const Vec3d measured = bearings.row(i);
     if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
+      return std::make_pair(false, Vec3d());
+    }
+    if (projected.dot(measured) < min_depth) {
       return std::make_pair(false, Vec3d());
     }
   }
@@ -232,5 +242,7 @@ Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
   solver.Solve(f, &refined);
   return refined;
 }
+
+
 
 }  // namespace geometry

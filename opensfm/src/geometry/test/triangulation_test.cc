@@ -68,6 +68,7 @@ class TwoCamsFixture : public ::testing::Test {
   const std::vector<double> thresholds = {0.01, 0.01};
   const double min_angle = 2.0 * M_PI / 180.0;
   const double max_angle = M_PI - min_angle;
+  const double min_depth = 1e-6;
 };
 
 class FiveCamsFixture : public ::testing::Test {
@@ -91,7 +92,74 @@ class FiveCamsFixture : public ::testing::Test {
   const std::vector<double> thresholds = {0.01, 0.01, 0.01, 0.01, 0.01};
   const double min_angle = 2.0 * M_PI / 180.0;
   const double max_angle = M_PI - min_angle;
+  const double min_depth = 1e-6;
 };
+
+// This fixture is designed to test a specific failure case:
+// When two cameras have the same center, but a third one has a
+// different center. This would happen for example when two images
+// are taken by the front and back cameras of a 360 camera and
+// another image with a different camera or timestamp. As long as
+// the bearings are consistent, we want triangulation to succeed
+// in that case.
+class ThreeCamsSameCenterFixture : public ::testing::Test {
+ public:
+  ThreeCamsSameCenterFixture() {
+    centers = MatX3d::Zero(3, 3);
+    centers << 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0,
+              1.0, 0.0, 0.0;
+  
+    generate_triangulation_data(centers, bearings, bearings_noisy, Rts, gt_point);
+  }
+  
+  Vec3d gt_point;
+  MatX3d centers;
+  MatX3d bearings;
+  MatX3d bearings_noisy;
+  std::vector<Mat34d> Rts;
+
+  const double threshold = 0.01;
+  const std::vector<double> thresholds = {0.01, 0.01, 0.01};
+  const double min_angle = 2.0 * M_PI / 180.0;
+  const double max_angle = M_PI - min_angle;
+  const double min_depth = 1e-6;
+};
+
+// This fixture is designed to test a specific failure case:
+// When two cameras have the same center, we want the triangulation
+// to fail. However, if the bearings are different, the triangulation
+// may find a solution by putting the point at the center of the
+// cameras. This is a bad solution and we want the functions to
+// return non-success in this case.
+class TwoCamsSameCenterFixture : public ::testing::Test {
+ public:
+  TwoCamsSameCenterFixture() {
+    centers = MatX3d::Zero(2, 3);
+    centers << 1.0, 0.0, 0.0,
+              1.0, 0.0, 0.0;
+  
+    bearings = MatX3d::Zero(2, 3);
+    bearings << 0.0, 0.0, 1.0,
+                1.0, 0.0, 0.0;
+
+    bearings_noisy = generateNoisyBearings(bearings, 0.001);
+
+    Rts = generateRts(centers);
+  }
+  
+  MatX3d centers;
+  MatX3d bearings;
+  MatX3d bearings_noisy;
+  std::vector<Mat34d> Rts;
+
+  const double threshold = 0.01;
+  const std::vector<double> thresholds = {0.01, 0.01};
+  const double min_angle = 2.0 * M_PI / 180.0;
+  const double max_angle = M_PI - min_angle;
+  const double min_depth = 1e-6;
+};
+
 
 class TwoCamsManyPointsFixture : public ::testing::Test {
  public:
@@ -126,52 +194,113 @@ class TwoCamsManyPointsFixture : public ::testing::Test {
 
 TEST_F(TwoCamsFixture, TriangulateBearingsDLT) {
   const auto [success, point] = geometry::TriangulateBearingsDLT(
-      Rts, bearings, threshold, min_angle);
+      Rts, bearings, threshold, min_angle, min_depth);
   ASSERT_TRUE(success);
   ASSERT_LT((point - gt_point).norm(), 1e-6);
 
   const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsDLT(
-      Rts, bearings_noisy, threshold, min_angle);
+      Rts, bearings_noisy, threshold, min_angle, min_depth);
   ASSERT_TRUE(success_noisy);
   ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
 }
 
 TEST_F(FiveCamsFixture, TriangulateBearingsDLT) {
   const auto [success, point] = geometry::TriangulateBearingsDLT(
-      Rts, bearings, threshold, min_angle);
+      Rts, bearings, threshold, min_angle, min_depth);
   ASSERT_TRUE(success);
   ASSERT_LT((point - gt_point).norm(), 1e-6);
 
   const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsDLT(
-      Rts, bearings_noisy, threshold, min_angle);
+      Rts, bearings_noisy, threshold, min_angle, min_depth);
   ASSERT_TRUE(success_noisy);
   ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
 }
 
+TEST_F(ThreeCamsSameCenterFixture, TriangulateBearingsDLT) {
+  const auto [success, point] = geometry::TriangulateBearingsDLT(
+      Rts, bearings, threshold, min_angle, min_depth);
+  ASSERT_TRUE(success);
+  ASSERT_LT((point - gt_point).norm(), 1e-6);
+
+  const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsDLT(
+      Rts, bearings_noisy, threshold, min_angle, min_depth);
+  ASSERT_TRUE(success_noisy);
+  ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
+}
+
+TEST_F(TwoCamsSameCenterFixture, TriangulateBearingsDLT) {
+  const auto [success, point] = geometry::TriangulateBearingsDLT(
+      Rts, bearings, threshold, min_angle, min_depth);
+  ASSERT_FALSE(success);  // Expect failure due to coincident camera centers
+
+  const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsDLT(
+      Rts, bearings_noisy, threshold, min_angle, min_depth);
+  ASSERT_FALSE(success_noisy);  // Expect failure due to coincident camera centers
+
+  // Test that without the positive depth constraint, triangulation succeeds
+  // and returns the center of the cameras.
+  const double negative_min_depth = -1e-6;
+  const auto [success_no_depth_check, point_no_depth_check] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings, thresholds, min_angle, max_angle, negative_min_depth);
+  ASSERT_TRUE(success_no_depth_check);
+  const Vec3d expected_point = centers.row(0);
+  ASSERT_LT((point_no_depth_check - expected_point).norm(), 1e-6);
+}
+
 TEST_F(TwoCamsFixture, TriangulateBearingsMidpoint) {
   const auto [success, point] = geometry::TriangulateBearingsMidpoint(
-      centers, bearings, thresholds, min_angle, max_angle);
+      centers, bearings, thresholds, min_angle, max_angle, min_depth);
   ASSERT_TRUE(success);
   ASSERT_LT((point - gt_point).norm(), 1e-6);
 
   const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsMidpoint(
-      centers, bearings_noisy, thresholds, min_angle, max_angle);
+      centers, bearings_noisy, thresholds, min_angle, max_angle, min_depth);
   ASSERT_TRUE(success_noisy);
   ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
 }
 
 TEST_F(FiveCamsFixture, TriangulateBearingsMidpoint) {
   const auto [success, point] = geometry::TriangulateBearingsMidpoint(
-      centers, bearings, thresholds, min_angle, max_angle);
+      centers, bearings, thresholds, min_angle, max_angle, min_depth);
   ASSERT_TRUE(success);
   ASSERT_LT((point - gt_point).norm(), 1e-6);
 
   const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsMidpoint(
-      centers, bearings_noisy, thresholds, min_angle, max_angle);
+      centers, bearings_noisy, thresholds, min_angle, max_angle, min_depth);
   ASSERT_TRUE(success_noisy);
   ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
 }
 
+TEST_F(ThreeCamsSameCenterFixture, TriangulateBearingsMidpoint) {
+  const auto [success, point] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings, thresholds, min_angle, max_angle, min_depth);
+  ASSERT_TRUE(success);
+  ASSERT_LT((point - gt_point).norm(), 1e-6);
+
+  const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings_noisy, thresholds, min_angle, max_angle, min_depth);
+  ASSERT_TRUE(success_noisy);
+  ASSERT_LT((point_noisy - gt_point).norm(), 0.01);
+}
+
+TEST_F(TwoCamsSameCenterFixture, TriangulateBearingsMidpoint) {
+  const auto [success, point] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings, thresholds, min_angle, max_angle, min_depth);
+  ASSERT_FALSE(success);  // Expect failure due to coincident camera centers
+
+  const auto [success_noisy, point_noisy] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings, thresholds, min_angle, max_angle, min_depth);
+  ASSERT_FALSE(success_noisy);  // Expect failure due to coincident camera centers
+
+  // Test that without the positive depth constraint, triangulation succeeds
+  // and returns the center of the cameras.
+  const double negative_min_depth = -1e-6;
+  const auto [success_no_depth_check, point_no_depth_check] = geometry::TriangulateBearingsMidpoint(
+      centers, bearings, thresholds, min_angle, max_angle, negative_min_depth);
+  ASSERT_TRUE(success_no_depth_check);
+  const Vec3d expected_point = centers.row(0);
+  ASSERT_LT((point_no_depth_check - expected_point).norm(), 1e-6);
+}
 
 TEST_F(TwoCamsManyPointsFixture, TriangulateTwoBearingsMidpointMany) {
   const auto results = geometry::TriangulateTwoBearingsMidpointMany(

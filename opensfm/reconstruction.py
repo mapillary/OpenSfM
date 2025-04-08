@@ -909,6 +909,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track in a RANSAC way and add point to reconstruction."""
@@ -953,6 +954,7 @@ class TrackTriangulator:
                 thresholds,
                 min_ray_angle_radians,
                 max_ray_angle_radians,
+                min_depth,
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
@@ -970,6 +972,7 @@ class TrackTriangulator:
                         len(inliers) * [reproj_threshold],
                         min_ray_angle_radians,
                         max_ray_angle_radians,
+                        min_depth,
                     )
                     new_X = pygeometry.point_refinement(
                         os[inliers], bs[inliers], X, iterations
@@ -1009,6 +1012,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track and add point to reconstruction."""
@@ -1037,6 +1041,7 @@ class TrackTriangulator:
                 thresholds,
                 min_ray_angle_radians,
                 np.pi - min_ray_angle_radians,
+                min_depth,
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
@@ -1057,6 +1062,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track using DLT and add point to reconstruction."""
@@ -1077,6 +1083,7 @@ class TrackTriangulator:
                 np.asarray(bs),
                 reproj_threshold,
                 np.radians(min_ray_angle_degrees),
+                min_depth,
             )
             if e:
                 X = pygeometry.point_refinement(
@@ -1120,6 +1127,7 @@ def triangulate_shot_features(
     """Reconstruct as many tracks seen in shot_id as possible."""
     reproj_threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    min_depth = config["triangulation_min_depth"]
     refinement_iterations = config["triangulation_refinement_iterations"]
 
     triangulator = TrackTriangulator(
@@ -1137,11 +1145,11 @@ def triangulate_shot_features(
         if track not in reconstruction.points:
             if config["triangulation_type"] == "ROBUST":
                 triangulator.triangulate_robust(
-                    track, reproj_threshold, min_ray_angle, refinement_iterations
+                    track, reproj_threshold, min_ray_angle, min_depth, refinement_iterations
                 )
             elif config["triangulation_type"] == "FULL":
                 triangulator.triangulate(
-                    track, reproj_threshold, min_ray_angle, refinement_iterations
+                    track, reproj_threshold, min_ray_angle, min_depth, refinement_iterations
                 )
 
 
@@ -1157,6 +1165,7 @@ def retriangulate(
 
     threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    min_depth = config["triangulation_min_depth"]
     refinement_iterations = config["triangulation_refinement_iterations"]
 
     reconstruction.points = {}
@@ -1173,11 +1182,11 @@ def retriangulate(
     for track in tracks:
         if config["triangulation_type"] == "ROBUST":
             triangulator.triangulate_robust(
-                track, threshold, min_ray_angle, refinement_iterations
+                track, threshold, min_ray_angle, min_depth, refinement_iterations
             )
         elif config["triangulation_type"] == "FULL":
             triangulator.triangulate(
-                track, threshold, min_ray_angle, refinement_iterations
+                track, threshold, min_ray_angle, min_depth, refinement_iterations
             )
 
     report["num_points_after"] = len(reconstruction.points)

@@ -231,7 +231,7 @@ def reprojection_errors(reprojections, observations, scale):
     return errors, mean, std, min_norm, max_norm, corr
 
 
-def triangulate_tracks(tracks, reconstruction, tracks_manager, min_ray_angle):
+def triangulate_tracks(tracks, reconstruction, tracks_manager, min_ray_angle, min_depth):
     """ Triangulates a list of tracks.
 
     :param tracks: The array of tracks.
@@ -245,7 +245,7 @@ def triangulate_tracks(tracks, reconstruction, tracks_manager, min_ray_angle):
 
     for track in tracks:
         # Triangulate with 1 as reprojection threshold to avoid excluding tracks because of error.
-        triangulator.triangulate(str(track), 1, min_ray_angle, iterations=10)
+        triangulator.triangulate(str(track), 1, min_ray_angle, min_depth, iterations=10)
         succeeded.append(True) if str(track) in reconstruction.points else succeeded.append(False)
 
     return np.array(succeeded) if len(succeeded) else np.empty((0,), bool)
@@ -727,7 +727,8 @@ def plot_reprojected_tracks(fw, ip, index, p1, p2, tracks, rec_tracks, non_rec_t
     rp2 = reproject_tracks(ip.im2, rec_tracks[:, 0], reconstruction)
 
     min_ray_angle = data.config['triangulation_min_ray_angle']
-    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, tracks_manager, min_ray_angle)
+    min_depth = data.config['triangulation_min_depth']
+    succeeded = triangulate_tracks(non_rec_tracks[:, 0], reconstruction, tracks_manager, min_ray_angle, min_depth)
     reprojected1 = reproject_tracks(ip.im1, non_rec_tracks[succeeded, 0], reconstruction)
     reprojected2 = reproject_tracks(ip.im2, non_rec_tracks[succeeded, 0], reconstruction)
 

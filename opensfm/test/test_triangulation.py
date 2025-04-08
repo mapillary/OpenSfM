@@ -42,7 +42,7 @@ def test_track_triangulator_spherical() -> None:
     triangulator = reconstruction.TrackTriangulator(
         rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
     )
-    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, iterations=10)
+    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, min_depth=0.001, iterations=10)
     assert "1" in rec.points
     p = rec.points["1"].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
@@ -88,7 +88,7 @@ def test_track_triangulator_coincident_camera_origins() -> None:
     triangulator = reconstruction.TrackTriangulator(
         rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
     )
-    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, iterations=10)
+    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, min_depth=0.0001, iterations=10)
     assert not rec.points
 
 
@@ -104,11 +104,25 @@ def test_triangulate_bearings_dlt() -> None:
     b2 = unit_vector([-1.0, 0, 1])
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
+    min_depth = 0.001
     res, X = pygeometry.triangulate_bearings_dlt(
-        [rt1, rt2], np.asarray([b1, b2]), max_reprojection, min_ray_angle
+        [rt1, rt2], np.asarray([b1, b2]), max_reprojection, min_ray_angle, min_depth
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert res is True
+
+def test_triangulate_bearings_dlt_coincident_camera_origins() -> None:
+    rt1 = np.append(np.identity(3), [[0], [0], [0]], axis=1)
+    rt2 = np.append(np.identity(3), [[0], [0], [0]], axis=1)  # same origin
+    b1 = unit_vector([0.0, 0, 1])
+    b2 = unit_vector([-1.0, 0, 1])
+    max_reprojection = 0.01
+    min_ray_angle = np.radians(2.0)
+    min_depth = 0.001
+    res, X = pygeometry.triangulate_bearings_dlt(
+        [rt1, rt2], np.asarray([b1, b2]), max_reprojection, min_ray_angle, min_depth
+    )
+    assert res is False
 
 
 def test_triangulate_bearings_midpoint() -> None:
@@ -118,15 +132,36 @@ def test_triangulate_bearings_midpoint() -> None:
     b2 = unit_vector([-1.0, 0, 1])
     max_reprojection = 0.01
     min_ray_angle = np.radians(2.0)
+    min_depth = 0.001
     valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
         np.asarray([o1, o2]),
         np.asarray([b1, b2]),
         2 * [max_reprojection],
         min_ray_angle,
         np.pi - min_ray_angle,
+        min_depth,
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert valid_triangulation is True
+
+
+def test_triangulate_bearings_midpoint_coincident_camera_origins() -> None:
+    o1 = np.array([0.0, 0, 0])
+    b1 = unit_vector([0.0, 0, 1])
+    o2 = np.array([0.0, 0, 0])  # same origin
+    b2 = unit_vector([-1.0, 0, 1])
+    max_reprojection = 0.01
+    min_ray_angle = np.radians(2.0)
+    min_depth = 0.001
+    valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
+        np.asarray([o1, o2]),
+        np.asarray([b1, b2]),
+        2 * [max_reprojection],
+        min_ray_angle,
+        np.pi - min_ray_angle,
+        min_depth,
+    )
+    assert valid_triangulation is False
 
 
 def test_triangulate_two_bearings_midpoint() -> None:

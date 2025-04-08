@@ -13,7 +13,8 @@ std::pair<bool, Vec3d> TriangulateBearingsDLT(
     const std::vector<Mat34d> &Rts,
     const MatX3d &bearings,
     double threshold,
-    double min_angle);
+    double min_angle,
+    double min_depth);
 
 Vec4d TriangulateBearingsDLTSolve(
     const MatX3d &bs,
@@ -24,7 +25,8 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const MatX3d &bearings,
     const std::vector<double> &threshold_list,
     double min_angle,
-    double max_angle);
+    double max_angle,
+    double min_depth);
 
 template <class T>
 Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
