@@ -25,7 +25,6 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const MatX3d &bearings,
     const std::vector<double> &threshold_list,
     double min_angle,
-    double max_angle,
     double min_depth);
 
 template <class T>

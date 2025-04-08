@@ -91,7 +91,7 @@ std::pair<bool, Vec3d> TriangulateBearingsDLT(
     for (int j = 0; j < i && !angle_ok; ++j) {
       const double angle =
           AngleBetweenVectors(world_bearings.row(i), world_bearings.row(j));
-      if (angle >= min_angle) {
+      if (angle >= min_angle && angle <= M_PI - min_angle) {
         angle_ok = true;
       }
     }
@@ -147,7 +147,6 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const MatX3d &bearings,
     const std::vector<double> &threshold_list,
     double min_angle,
-    double max_angle,
     double min_depth) {
   const int count = centers.rows();
 
@@ -156,7 +155,7 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
   for (int i = 0; i < count && !angle_ok; ++i) {
     for (int j = 0; j < i && !angle_ok; ++j) {
       const auto angle = AngleBetweenVectors(bearings.row(i), bearings.row(j));
-      if (angle >= min_angle && angle <= max_angle) {
+      if (angle >= min_angle && angle <= M_PI - min_angle) {
         angle_ok = true;
       }
     }

@@ -138,7 +138,6 @@ def test_triangulate_bearings_midpoint() -> None:
         np.asarray([b1, b2]),
         2 * [max_reprojection],
         min_ray_angle,
-        np.pi - min_ray_angle,
         min_depth,
     )
     assert np.allclose(X, [0, 0, 1.0])
@@ -158,7 +157,6 @@ def test_triangulate_bearings_midpoint_coincident_camera_origins() -> None:
         np.asarray([b1, b2]),
         2 * [max_reprojection],
         min_ray_angle,
-        np.pi - min_ray_angle,
         min_depth,
     )
     assert valid_triangulation is False

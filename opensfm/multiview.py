@@ -733,7 +733,6 @@ def triangulate_gcp(
             np.asarray(bs),
             thresholds,
             np.radians(min_ray_angle_degrees),
-            np.radians(180.0 - min_ray_angle_degrees),
             min_depth,
         )
         if valid_triangulation:

@@ -399,7 +399,6 @@ def triangulate_bearings_midpoint(
     arg2: list[float],
     arg3: float,
     arg4: float,
-    arg5: float,
 ) -> tuple[bool, numpy.typing.NDArray]: ...
 def triangulate_two_bearings_midpoint(
     arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray

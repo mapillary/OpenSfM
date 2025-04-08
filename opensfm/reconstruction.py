@@ -936,7 +936,6 @@ class TrackTriangulator:
 
         thresholds = len(os) * [reproj_threshold]
         min_ray_angle_radians = np.radians(min_ray_angle_degrees)
-        max_ray_angle_radians = np.pi - min_ray_angle_radians
         for i in range(ransac_tries):
             random_id = int(np.random.rand() * (len(all_combinations) - 1))
             if random_id in combinatiom_tried:
@@ -953,7 +952,6 @@ class TrackTriangulator:
                 bs_t,
                 thresholds,
                 min_ray_angle_radians,
-                max_ray_angle_radians,
                 min_depth,
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
@@ -971,7 +969,6 @@ class TrackTriangulator:
                         bs[inliers],
                         len(inliers) * [reproj_threshold],
                         min_ray_angle_radians,
-                        max_ray_angle_radians,
                         min_depth,
                     )
                     new_X = pygeometry.point_refinement(
@@ -1040,7 +1037,6 @@ class TrackTriangulator:
                 np.asarray(bs),
                 thresholds,
                 min_ray_angle_radians,
-                np.pi - min_ray_angle_radians,
                 min_depth,
             )
             if valid_triangulation:
