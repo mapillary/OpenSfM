@@ -9,45 +9,51 @@
 
 namespace geometry {
 
-std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
-    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings, double threshold,
+std::pair<bool, Vec3d> TriangulateBearingsDLT(
+    const std::vector<Mat34d> &Rts,
+    const MatX3d &bearings,
+    double threshold,
     double min_angle);
 
-Eigen::Vector4d TriangulateBearingsDLTSolve(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bs,
-    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts);
+Vec4d TriangulateBearingsDLTSolve(
+    const MatX3d &bs,
+    const std::vector<Mat34d> &Rts);
 
-std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &centers,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
+std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
+    const MatX3d &centers,
+    const MatX3d &bearings,
     const std::vector<double> &threshold_list,
-    double min_angle, double max_angle);
+    double min_angle,
+    double max_angle);
 
 template <class T>
 Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
     const Eigen::Matrix<T, Eigen::Dynamic, 3> &centers,
     const Eigen::Matrix<T, Eigen::Dynamic, 3> &bearings);
 
-std::vector<std::pair<bool, Eigen::Vector3d>>
+std::vector<std::pair<bool, Vec3d>>
 TriangulateTwoBearingsMidpointMany(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
-    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation);
+    const MatX3d &bearings1,
+    const MatX3d &bearings2,
+    const Mat3d &rotation,
+    const Vec3d &translation);
 
 template <class T>
 std::pair<bool, Eigen::Matrix<T, 3, 1>> TriangulateTwoBearingsMidpointSolve(
     const Eigen::Matrix<T, 2, 3> &centers,
     const Eigen::Matrix<T, 2, 3> &bearings);
 
-Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>
-EpipolarAngleTwoBearingsMany(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
-    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation);
+MatXd EpipolarAngleTwoBearingsMany(
+    const MatX3d &bearings1,
+    const MatX3d &bearings2,
+    const Mat3d &rotation,
+    const Vec3d &translation);
 
-Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
-                      const Vec3d &point, int iterations);
+Vec3d PointRefinement(
+    const MatX3d &centers,
+    const MatX3d &bearings,
+    const Vec3d &point,
+    int iterations);
 
 
 // Template implementations

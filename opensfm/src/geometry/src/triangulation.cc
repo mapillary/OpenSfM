@@ -9,7 +9,7 @@
 
 namespace {
 
-double AngleBetweenVectors(const Eigen::Vector3d &u, const Eigen::Vector3d &v) {
+double AngleBetweenVectors(const Vec3d &u, const Vec3d &v) {
   double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
   if (std::fabs(c) >= 1.0) {
     return 0.0;
@@ -75,15 +75,16 @@ constexpr int BearingErrorCost::Size;
 
 namespace geometry {
 
-std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
-    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings, double threshold,
+std::pair<bool, Vec3d> TriangulateBearingsDLT(
+    const std::vector<Mat34d> &Rts,
+    const MatX3d &bearings,
+    double threshold,
     double min_angle) {
   const int count = Rts.size();
-  Eigen::MatrixXd world_bearings(count, 3);
+  MatXd world_bearings(count, 3);
   bool angle_ok = false;
   for (int i = 0; i < count && !angle_ok; ++i) {
-    const Eigen::Matrix<double, 3, 4> Rt = Rts[i];
+    const Mat34d &Rt = Rts[i];
     world_bearings.row(i) =
         Rt.block<3, 3>(0, 0).transpose() * bearings.row(i).transpose();
     for (int j = 0; j < i && !angle_ok; ++j) {
@@ -96,29 +97,29 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsDLT(
   }
 
   if (!angle_ok) {
-    return std::make_pair(false, Eigen::Vector3d());
+    return std::make_pair(false, Vec3d());
   }
 
-  Eigen::Vector4d X = TriangulateBearingsDLTSolve(bearings, Rts);
+  Vec4d X = TriangulateBearingsDLTSolve(bearings, Rts);
   X /= X(3);
 
   for (int i = 0; i < count; ++i) {
-    const Eigen::Vector3d projected = Rts[i] * X;
+    const Vec3d projected = Rts[i] * X;
     if (AngleBetweenVectors(projected, bearings.row(i)) > threshold) {
-      return std::make_pair(false, Eigen::Vector3d());
+      return std::make_pair(false, Vec3d());
     }
   }
 
   return std::make_pair(true, X.head<3>());
 }
 
-Eigen::Vector4d TriangulateBearingsDLTSolve(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
-    const std::vector<Eigen::Matrix<double, 3, 4>> &Rts) {
+Vec4d TriangulateBearingsDLTSolve(
+    const MatX3d &bearings,
+    const std::vector<Mat34d> &Rts) {
   const int nviews = bearings.rows();
   assert(nviews == Rts.size());
 
-  Eigen::MatrixXd A(2 * nviews, 4);
+  MatXd A(2 * nviews, 4);
   for (int i = 0; i < nviews; i++) {
     A.row(2 * i) =
         bearings(i, 0) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(0);
@@ -126,8 +127,8 @@ Eigen::Vector4d TriangulateBearingsDLTSolve(
         bearings(i, 1) * Rts[i].row(2) - bearings(i, 2) * Rts[i].row(1);
   }
 
-  Eigen::JacobiSVD<Eigen::MatrixXd> mySVD(A, Eigen::ComputeFullV);
-  Eigen::Vector4d worldPoint;
+  Eigen::JacobiSVD<MatXd> mySVD(A, Eigen::ComputeFullV);
+  Vec4d worldPoint;
   worldPoint[0] = mySVD.matrixV()(0, 3);
   worldPoint[1] = mySVD.matrixV()(1, 3);
   worldPoint[2] = mySVD.matrixV()(2, 3);
@@ -136,9 +137,9 @@ Eigen::Vector4d TriangulateBearingsDLTSolve(
   return worldPoint;
 }
 
-std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &centers,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings,
+std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
+    const MatX3d &centers,
+    const MatX3d &bearings,
     const std::vector<double> &threshold_list,
     double min_angle, double max_angle) {
   const int count = centers.rows();
@@ -154,7 +155,7 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
     }
   }
   if (!angle_ok) {
-    return std::make_pair(false, Eigen::Vector3d());
+    return std::make_pair(false, Vec3d());
   }
 
   // Triangulate
@@ -162,24 +163,25 @@ std::pair<bool, Eigen::Vector3d> TriangulateBearingsMidpoint(
 
   // Check reprojection error
   for (int i = 0; i < count; ++i) {
-    const Eigen::Vector3d projected = X - centers.row(i).transpose();
-    const Eigen::Vector3d measured = bearings.row(i);
+    const Vec3d projected = X - centers.row(i).transpose();
+    const Vec3d measured = bearings.row(i);
     if (AngleBetweenVectors(projected, measured) > threshold_list[i]) {
-      return std::make_pair(false, Eigen::Vector3d());
+      return std::make_pair(false, Vec3d());
     }
   }
 
   return std::make_pair(true, X.head<3>());
 }
 
-std::vector<std::pair<bool, Eigen::Vector3d>>
+std::vector<std::pair<bool, Vec3d>>
 TriangulateTwoBearingsMidpointMany(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
-    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation) {
-  std::vector<std::pair<bool, Eigen::Vector3d>> triangulated(bearings1.rows());
+    const MatX3d &bearings1,
+    const MatX3d &bearings2,
+    const Mat3d &rotation,
+    const Vec3d &translation) {
+  std::vector<std::pair<bool, Vec3d>> triangulated(bearings1.rows());
   Eigen::Matrix<double, 2, 3> os, bs;
-  os.row(0) = Eigen::Vector3d::Zero();
+  os.row(0) = Vec3d::Zero();
   os.row(1) = translation;
   for (int i = 0; i < bearings1.rows(); ++i) {
     bs.row(0) = bearings1.row(i);
@@ -189,28 +191,28 @@ TriangulateTwoBearingsMidpointMany(
   return triangulated;
 }
 
-Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>
-EpipolarAngleTwoBearingsMany(
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings1,
-    const Eigen::Matrix<double, Eigen::Dynamic, 3> &bearings2,
-    const Eigen::Matrix3d &rotation, const Eigen::Vector3d &translation) {
+MatXd EpipolarAngleTwoBearingsMany(
+    const MatX3d &bearings1,
+    const MatX3d &bearings2,
+    const Mat3d &rotation,
+    const Vec3d &translation) {
   const auto translation_normalized = translation.normalized();
   const auto bearings2_world = bearings2 * rotation.transpose();
 
   const auto count1 = bearings1.rows();
-  Eigen::Matrix<double, Eigen::Dynamic, 3> epi1(count1, 3);
+  MatX3d epi1(count1, 3);
   for (int i = 0; i < count1; ++i) {
     const Vec3d bearing = bearings1.row(i);
     epi1.row(i) = translation_normalized.cross(bearing).normalized();
   }
   const auto count2 = bearings2.rows();
-  Eigen::Matrix<double, Eigen::Dynamic, 3> epi2(count2, 3);
+  MatX3d epi2(count2, 3);
   for (int i = 0; i < count2; ++i) {
     const Vec3d bearing = bearings2_world.row(i);
     epi2.row(i) = translation_normalized.cross(bearing).normalized();
   }
 
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> symmetric_epi =
+  MatXd symmetric_epi =
       (((epi1 * bearings2_world.transpose()).array().abs() +
         (bearings1 * epi2.transpose()).array().abs()) /
        2.0);
