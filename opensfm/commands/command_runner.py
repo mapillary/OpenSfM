@@ -1,12 +1,14 @@
 # pyre-unsafe
-from typing import Any, Callable, List
 import argparse
+from typing import Any, Callable, List
 
 from opensfm import log
 
 
-def command_runner(all_commands_types: List[Any], dataset_factory: Callable, dataset_choices: List[str]) -> None:
-    """ Main entry point for running the passed SfM commands types."""
+def command_runner(
+    all_commands_types: List[Any], dataset_factory: Callable, dataset_choices: List[str]
+) -> None:
+    """Main entry point for running the passed SfM commands types."""
     log.setup()
 
     # Create the top-level parser

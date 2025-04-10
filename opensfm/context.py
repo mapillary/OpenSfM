@@ -11,7 +11,7 @@ import sys
 from typing import Optional
 
 import cv2
-from joblib import Parallel, delayed, parallel_backend
+from joblib import delayed, Parallel, parallel_backend
 
 
 logger: logging.Logger = logging.getLogger(__name__)

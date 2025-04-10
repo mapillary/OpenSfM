@@ -586,8 +586,8 @@ def motion_from_plane_homography(
         sin_theta = (d1 - d3) * sin_term
         sin_phi = (d1 + d3) * sin_term
 
-        d1_x3_2 = (d1 * x3**2)
-        d3_x1_2 = (d3 * x1**2)
+        d1_x3_2 = d1 * x3**2
+        d3_x1_2 = d3 * x1**2
         cos_theta = (d3_x1_2 + d1_x3_2) / d2
         cos_phi = (d3_x1_2 - d1_x3_2) / d2
 

@@ -1,5 +1,6 @@
 #include <dense/depthmap.h>
 #include <gtest/gtest.h>
+
 #include <opencv2/calib3d/calib3d.hpp>
 
 namespace {

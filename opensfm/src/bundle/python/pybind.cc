@@ -77,11 +77,8 @@ PYBIND11_MODULE(pybundle, m) {
            &bundle::BundleAdjuster::AddReconstructionInstance)
       .def("add_point_projection_observation",
            &bundle::BundleAdjuster::AddPointProjectionObservation,
-           py::arg("shot"),
-           py::arg("point"),
-           py::arg("observation"),
-           py::arg("std_deviation"),
-           py::arg("depth_prior") = std::nullopt)
+           py::arg("shot"), py::arg("point"), py::arg("observation"),
+           py::arg("std_deviation"), py::arg("depth_prior") = std::nullopt)
       .def("add_relative_motion", &bundle::BundleAdjuster::AddRelativeMotion)
       .def("add_relative_rotation",
            &bundle::BundleAdjuster::AddRelativeRotation)

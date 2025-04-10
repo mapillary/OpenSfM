@@ -1,9 +1,10 @@
 # pyre-unsafe
+import argparse
+
 from opensfm.actions import reconstruct_from_prior
+from opensfm.dataset import DataSet
 
 from . import command
-import argparse
-from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):

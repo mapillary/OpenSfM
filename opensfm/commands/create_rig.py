@@ -1,11 +1,11 @@
 # pyre-unsafe
+import argparse
 import json
 
 from opensfm.actions import create_rig
+from opensfm.dataset import DataSet
 
 from . import command
-import argparse
-from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):

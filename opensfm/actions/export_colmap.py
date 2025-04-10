@@ -43,8 +43,7 @@ from struct import pack
 from typing import Tuple
 
 import numpy as np
-from opensfm import features
-from opensfm import matching
+from opensfm import features, matching
 from opensfm.dataset import DataSet
 
 I_3 = np.eye(3)
@@ -94,7 +93,7 @@ def run_dataset(data: DataSet, binary: bool) -> None:
 
 IS_PYTHON3: bool = int(sys.version_info[0]) >= 3
 
-MAX_IMAGE_ID = 2 ** 31 - 1
+MAX_IMAGE_ID = 2**31 - 1
 
 CREATE_CAMERAS_TABLE = """CREATE TABLE IF NOT EXISTS cameras (
     camera_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -124,9 +123,7 @@ CREATE_IMAGES_TABLE: str = """CREATE TABLE IF NOT EXISTS images (
     prior_tz REAL,
     CONSTRAINT image_id_check CHECK(image_id >= 0 and image_id < {}),
     FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))
-""".format(
-    MAX_IMAGE_ID
-)
+""".format(MAX_IMAGE_ID)
 
 CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
 CREATE TABLE IF NOT EXISTS two_view_geometries (
@@ -483,7 +480,6 @@ def export_images_reconstruction(
         fout = data.io_handler.open_wt(os.path.join(path, "images.txt"))
 
     for reconstruction in reconstructions:
-
         for shot_id, shot in reconstruction.shots.items():
             colmap_camera_id = camera_map[shot.camera.id]
             colmap_shot_id = images_map[shot_id]

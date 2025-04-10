@@ -7,10 +7,10 @@ from typing import Dict, List, Tuple
 
 import cv2
 import networkx as nx
-from networkx.classes.reportviews import EdgeView
 import numpy as np
 import scipy.spatial as spatial
 from networkx.algorithms import bipartite
+from networkx.classes.reportviews import EdgeView
 from opensfm import (
     align,
     context,
@@ -18,9 +18,9 @@ from opensfm import (
     geo,
     multiview,
     pybundle,
+    pymap,
     reconstruction,
     types,
-    pymap,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -203,7 +203,6 @@ def load_reconstruction(
 def add_point_constraints(ra, reconstruction_shots, reconstruction_name) -> None:
     connections = connected_reconstructions(reconstruction_shots)
     for connection in connections:
-
         i1, (r1, g1) = load_reconstruction(
             connection[0].submodel_path, connection[0].index
         )

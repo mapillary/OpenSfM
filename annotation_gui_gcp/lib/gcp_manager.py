@@ -71,7 +71,7 @@ class ControlPoint:
 
 
 def observation_to_json(
-    obs: t.Union[PointMeasurement3D, PointMeasurement]
+    obs: t.Union[PointMeasurement3D, PointMeasurement],
 ) -> t.Dict[str, t.Any]:
     if isinstance(obs, PointMeasurement):
         return {
@@ -90,7 +90,7 @@ def observation_to_json(
 
 
 def observation_from_json(
-    obs: t.Dict[str, t.Any]
+    obs: t.Dict[str, t.Any],
 ) -> t.Union[PointMeasurement3D, PointMeasurement]:
     if "projection" in obs:
         return PointMeasurement(

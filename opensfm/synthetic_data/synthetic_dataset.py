@@ -6,7 +6,7 @@ import shelve
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
-from opensfm import tracking, features as oft, types, pymap, pygeometry, io, geo
+from opensfm import features as oft, geo, io, pygeometry, pymap, tracking, types
 from opensfm.dataset import DataSet
 
 logger: logging.Logger = logging.getLogger(__name__)

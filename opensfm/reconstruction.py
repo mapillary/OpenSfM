@@ -1128,11 +1128,19 @@ def triangulate_shot_features(
         if track not in reconstruction.points:
             if config["triangulation_type"] == "ROBUST":
                 triangulator.triangulate_robust(
-                    track, reproj_threshold, min_ray_angle, min_depth, refinement_iterations
+                    track,
+                    reproj_threshold,
+                    min_ray_angle,
+                    min_depth,
+                    refinement_iterations,
                 )
             elif config["triangulation_type"] == "FULL":
                 triangulator.triangulate(
-                    track, reproj_threshold, min_ray_angle, min_depth, refinement_iterations
+                    track,
+                    reproj_threshold,
+                    min_ray_angle,
+                    min_depth,
+                    refinement_iterations,
                 )
 
 

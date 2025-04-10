@@ -490,33 +490,45 @@ struct Disto62 : Functor<2, 8, 2> {
 
 /* Parameters are : k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3 */
 struct Disto624 : Functor<2, 12, 2> {
-  enum { K1 = 0, K2 = 1, K3 = 2, K4 = 3, K5 = 4, K6 = 5, P1 = 6, P2 = 7, S0 = 8, S1 = 9, S2 = 10, S3 = 11 };
+  enum {
+    K1 = 0,
+    K2 = 1,
+    K3 = 2,
+    K4 = 3,
+    K5 = 4,
+    K6 = 5,
+    P1 = 6,
+    P2 = 7,
+    S0 = 8,
+    S1 = 9,
+    S2 = 10,
+    S3 = 11
+  };
 
   template <class T>
   static void Forward(const T* point, const T* k, T* distorted) {
     const auto r2 = SquaredNorm(point);
 
     // Radial
-    const auto distortion_radial =
-        Disto62::RadialDistortion(r2, k[static_cast<int>(K1)], k[static_cast<int>(K2)],
-                                  k[static_cast<int>(K3)], k[static_cast<int>(K4)],
-                                  k[static_cast<int>(K5)], k[static_cast<int>(K6)]);
+    const auto distortion_radial = Disto62::RadialDistortion(
+        r2, k[static_cast<int>(K1)], k[static_cast<int>(K2)],
+        k[static_cast<int>(K3)], k[static_cast<int>(K4)],
+        k[static_cast<int>(K5)], k[static_cast<int>(K6)]);
 
     // Tangential
-    const auto distortion_tangential =
-        Disto62::TangentialDistortion(r2, point[0], point[1], k[static_cast<int>(P1)],
-                                      k[static_cast<int>(P2)]);
+    const auto distortion_tangential = Disto62::TangentialDistortion(
+        r2, point[0], point[1], k[static_cast<int>(P1)],
+        k[static_cast<int>(P2)]);
 
     // Thin prism
-    const auto distortion_thin_prism =
-        ThinPrismDistortion(r2,
-                            k[static_cast<int>(S0)],
-                            k[static_cast<int>(S1)],
-                            k[static_cast<int>(S2)],
-                            k[static_cast<int>(S3)]);
+    const auto distortion_thin_prism = ThinPrismDistortion(
+        r2, k[static_cast<int>(S0)], k[static_cast<int>(S1)],
+        k[static_cast<int>(S2)], k[static_cast<int>(S3)]);
 
-    distorted[0] = point[0] * distortion_radial + distortion_tangential[0] + distortion_thin_prism[0];
-    distorted[1] = point[1] * distortion_radial + distortion_tangential[1] + distortion_thin_prism[1];
+    distorted[0] = point[0] * distortion_radial + distortion_tangential[0] +
+                   distortion_thin_prism[0];
+    distorted[1] = point[1] * distortion_radial + distortion_tangential[1] +
+                   distortion_thin_prism[1];
   }
 
   template <class T, bool DERIV_PARAMS>
@@ -665,8 +677,8 @@ struct Disto624 : Functor<2, 12, 2> {
       const auto distortion_thin_prism =
           ThinPrismDistortion(r2, s0, s1, s2, s3);
 
-      return point * distortion_radial + distortion_tangential + distortion_thin_prism -
-             point_distorted;
+      return point * distortion_radial + distortion_tangential +
+             distortion_thin_prism - point_distorted;
     }
 
     Mat2<T> derivative(const Vec2<T>& point) const {
@@ -680,11 +692,9 @@ struct Disto624 : Functor<2, 12, 2> {
   };
 
   template <class T>
-  static Vec2<T> ThinPrismDistortion(const T& r2,
-                                     const T& s0, const T& s1,
+  static Vec2<T> ThinPrismDistortion(const T& r2, const T& s0, const T& s1,
                                      const T& s2, const T& s3) {
-    return Vec2<T>(s0 * r2 + s1 * r2 * r2,
-                   s2 * r2 + s3 * r2 * r2);
+    return Vec2<T>(s0 * r2 + s1 * r2 * r2, s2 * r2 + s3 * r2 * r2);
   }
 };
 

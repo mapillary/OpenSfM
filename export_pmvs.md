@@ -9,30 +9,30 @@ Download CMVS: http://www.di.ens.fr/cmvs/
 ### PMVS Installation Hints (Linux/Ubuntu)
 - Installation pointers here: http://www.di.ens.fr/cmvs/documentation.html
 
-- Type `make` in `cmvs/program/main`. Should make three binaries: 
+- Type `make` in `cmvs/program/main`. Should make three binaries:
     + `pmvs2`
     + `cmvs`
     + `genOptions`
-    
-- Most dependencies installed with apt-get: 
+
+- Most dependencies installed with apt-get:
 
     `sudo apt-get install libgsl0-dev libblas-dev libatlas-dev liblapack-dev liblapacke-dev`
 
 - Updated Graclus link: http://www.cs.utexas.edu/users/dml/Software/graclus.html
 
-#### Lapack Errors: 
+#### Lapack Errors:
 http://mdda.net/oss-blog/2014-06/building-VisualSFM-on-FC20/
 
     ERROR : ../base/numeric/mylapack.cc:6:25: fatal error: clapack/f2c.h: No such file or directory
 
 Update `../base/numeric/mylapack.cc`
-From: 
+From:
 
     extern "C" {
     #include <clapack/f2c.h>
     #include <clapack/clapack.h>
     };
-To: 
+To:
 
     extern "C" {
     //#include <clapack/f2c.h>
@@ -71,7 +71,7 @@ Add this to `../base/cmvs/bundle.cc`
 
     #include <numeric>
 
-#### Stdlib Error: 
+#### Stdlib Error:
     genOption.cc: In function ‘int main(int, char**)’:
     genOption.cc:17:12: error: ‘exit’ was not declared in this scope
 
@@ -79,7 +79,7 @@ Add this to `genOption.cc`
 
     #include <cstdlib>
 
-### PMVS Inputs 
+### PMVS Inputs
 
 These are the files that `export_pmvs` generates for PMVS from OpenSfM output. More info: http://www.di.ens.fr/pmvs/documentation.html
 
@@ -95,11 +95,11 @@ From the root OpenSfM directory, run:
 
     bin/export_pmvs <path_to_dataset>
 
-There will be an individual pmvs directory for each separate reconstruction. 
+There will be an individual pmvs directory for each separate reconstruction.
 
-To perform the PMVS point cloud reconstruction, run: 
+To perform the PMVS point cloud reconstruction, run:
 
-    ./pmvs2 <path_to_dataset>/pmvs/recon0/ pmvs_options.txt 
+    ./pmvs2 <path_to_dataset>/pmvs/recon0/ pmvs_options.txt
 
 This will generate files in `<path_to_dataset>/pmvs/recon0/models/` including a `pmvs_options.txt.ply`
 

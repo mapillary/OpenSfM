@@ -2,16 +2,16 @@
 
 # Migrate dataset to the new undistort folder structure.
 
-if [ $# -le 0 ] 
+if [ $# -le 0 ]
 then
-    echo "Migrate dataset to the new undistort folder structure." 
+    echo "Migrate dataset to the new undistort folder structure."
     echo
-	echo "Usage:"
+    echo "Usage:"
     echo
     echo "    $0 dataset"
     echo
-	exit 1
-fi 
+    exit 1
+fi
 
 cd $1
 

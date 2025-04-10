@@ -1,7 +1,7 @@
 # pyre-unsafe
 import numpy as np
-from opensfm import features
 from mapillary.opensfm.opensfm.test import data_generation
+from opensfm import features
 
 
 def test_dataset_load_features_sift(tmpdir) -> None:

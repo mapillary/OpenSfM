@@ -4,15 +4,15 @@ from collections import defaultdict
 
 import numpy as np
 from opensfm.dataset import DataSet
-from opensfm.large.metadataset import MetaDataSet
 from opensfm.large import tools
+from opensfm.large.metadataset import MetaDataSet
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_dataset(data: DataSet) -> None:
-    """ Split the dataset into smaller submodels. """
+    """Split the dataset into smaller submodels."""
 
     meta_data = MetaDataSet(data.data_path)
 

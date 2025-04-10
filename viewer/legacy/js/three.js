@@ -25460,7 +25460,7 @@ THREE.ShadowMapPlugin = function ( _renderer, _lights, _webglObjects, _webglObje
 				object = webglObject.object;
 				buffer = webglObject.buffer;
 
-				// culling is overriden globally for all objects
+				// culling is overridden globally for all objects
 				// while rendering depth map
 
 				// need to deal with MeshFaceMaterial somehow
@@ -28355,7 +28355,7 @@ THREE.Path.prototype.toShapes = function( isCCW, noHoles ) {
 
 
 	if ( newShapes.length > 1 ) {
-		var ambigious = false;
+		var ambiguous = false;
 		var toChange = [];
 
 		for (var sIdx = 0, sLen = newShapes.length; sIdx < sLen; sIdx ++ ) {
@@ -28374,17 +28374,17 @@ THREE.Path.prototype.toShapes = function( isCCW, noHoles ) {
 							hole_unassigned = false;
 							betterShapeHoles[s2Idx].push( ho );
 						} else {
-							ambigious = true;
+							ambiguous = true;
 						}
 					}
 				}
 				if ( hole_unassigned ) { betterShapeHoles[sIdx].push( ho ); }
 			}
 		}
-		// console.log("ambigious: ", ambigious);
+		// console.log("ambiguous: ", ambiguous);
 		if ( toChange.length > 0 ) {
 			// console.log("to change: ", toChange);
-			if (! ambigious)	newShapeHoles = betterShapeHoles;
+			if (! ambiguous)	newShapeHoles = betterShapeHoles;
 		}
 	}
 

@@ -5,20 +5,10 @@ import logging
 import os
 import pickle
 from io import BytesIO
-from typing import Dict, List, Tuple, Optional, IO, Any
+from typing import Any, Dict, IO, List, Optional, Tuple
 
 import numpy as np
-from opensfm import (
-    config,
-    features,
-    geo,
-    io,
-    pygeometry,
-    types,
-    pymap,
-    masking,
-    rig,
-)
+from opensfm import config, features, geo, io, masking, pygeometry, pymap, rig, types
 from opensfm.dataset_base import DataSetBase
 from PIL.PngImagePlugin import PngImageFile
 
@@ -134,8 +124,9 @@ class DataSet(DataSetBase):
             mask = self.io_handler.imread(mask_path, grayscale=True)
             if mask is None:
                 raise IOError(
-                    "Unable to load mask for image {} "
-                    "from file {}".format(image, mask_path)
+                    "Unable to load mask for image {} " "from file {}".format(
+                        image, mask_path
+                    )
                 )
         else:
             mask = None
@@ -986,7 +977,7 @@ class UndistortedDataSet:
 def invent_reference_from_gps_and_gcp(
     data: DataSetBase, images: Optional[List[str]] = None
 ) -> geo.TopocentricConverter:
-    """ Invent the reference from the weighted average of lat/lon measurements.
+    """Invent the reference from the weighted average of lat/lon measurements.
     Most of the time the altitude provided in the metadata is inaccurate, thus
     the reference altitude is set equal to 0 regardless of the altitude measurements.
     """

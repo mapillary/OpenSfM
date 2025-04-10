@@ -1,10 +1,13 @@
 # pyre-unsafe
-import opensfm.reconstruction as orec
-from opensfm.dataset_base import DataSetBase
 from typing import Optional
 
+import opensfm.reconstruction as orec
+from opensfm.dataset_base import DataSetBase
 
-def run_dataset(dataset: DataSetBase, input: Optional[str], output: Optional[str]) -> None:
+
+def run_dataset(
+    dataset: DataSetBase, input: Optional[str], output: Optional[str]
+) -> None:
     """Bundle a reconstructions.
 
     Args:

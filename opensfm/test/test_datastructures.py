@@ -1,26 +1,29 @@
 # pyre-unsafe
 import copy
-from opensfm.pymap import RigCamera, RigInstance, Shot
-from opensfm.types import Reconstruction
-from typing import Tuple
 
 import random
+from typing import Tuple
 
 import numpy as np
 import pytest
-from opensfm import pygeometry
-from opensfm import pymap
-from opensfm import types
-from mapillary.opensfm.opensfm.test.utils import assert_maps_equal, assert_metadata_equal, assert_cameras_equal, assert_shots_equal
+from mapillary.opensfm.opensfm.test.utils import (
+    assert_cameras_equal,
+    assert_maps_equal,
+    assert_metadata_equal,
+    assert_shots_equal,
+)
+from opensfm import pygeometry, pymap, types
+from opensfm.pymap import RigCamera, RigInstance, Shot
+from opensfm.types import Reconstruction
 
 
 def _create_reconstruction(
-    n_cameras: int=0,
+    n_cameras: int = 0,
     n_shots_cam=None,
     n_pano_shots_cam=None,
-    n_points: int=0,
-    dist_to_shots: bool=False,
-    dist_to_pano_shots: bool=False,
+    n_points: int = 0,
+    dist_to_shots: bool = False,
+    dist_to_pano_shots: bool = False,
 ) -> types.Reconstruction:
     """Creates a reconstruction with n_cameras random cameras and
     shots, where n_shots_cam is a dictionary, containing the
@@ -250,7 +253,9 @@ def test_fisheye624_camera() -> None:
     focal = 0.6
     aspect_ratio = 0.7
     ppoint = np.array([0.51, 0.52])
-    dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007])  # [k1-k6, p1, p2, s0-s3]
+    dist = np.array(
+        [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]
+    )  # [k1-k6, p1, p2, s0-s3]
     cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -1100,6 +1105,7 @@ def test_rec_deepcopy() -> None:
     assert len(rec2.points) == 200
 
     assert_maps_equal(rec.map, rec2.map)
+
 
 def test_gcp() -> None:
     gcp = []

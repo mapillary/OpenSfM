@@ -113,4 +113,4 @@ void RealignMaps(const map::Map& map_from, map::Map& map_to,
     map_to.RemoveShot(shot_id);
   }
 }
-}  // namespace sfm
+}  // namespace sfm::retriangulation

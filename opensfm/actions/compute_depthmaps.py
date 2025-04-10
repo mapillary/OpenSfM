@@ -1,8 +1,7 @@
 # pyre-unsafe
 import os
 
-from opensfm import dataset
-from opensfm import dense
+from opensfm import dataset, dense
 from opensfm.dataset import DataSet
 
 

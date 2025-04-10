@@ -195,8 +195,8 @@ def segment_sphere_intersection(A, B, C, r):
     CA = np.array(A) - np.array(C)
     a = AB.dot(AB)
     b = 2 * AB.dot(CA)
-    c = CA.dot(CA) - r ** 2
-    d = max(0, b ** 2 - 4 * a * c)
+    c = CA.dot(CA) - r**2
+    d = max(0, b**2 - 4 * a * c)
     return (-b + np.sqrt(d)) / (2 * a)
 
 

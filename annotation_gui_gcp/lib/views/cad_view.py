@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import rasterio
-from ..views.web_view import WebView, distinct_colors
 from flask import send_file
 from PIL import ImageColor
+
+from ..views.web_view import distinct_colors, WebView
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class CADView(WebView):
         route_prefix,
         path_cad_file,
         is_geo_reference=False,
-    )-> None:
+    ) -> None:
         super().__init__(main_ui, web_app, route_prefix)
 
         self.main_ui = main_ui
@@ -60,7 +61,7 @@ class CADView(WebView):
         else:
             raise ValueError(f"Unknown event {event}")
 
-    def add_remove_update_point_observation(self, point_coordinates=None)->None:
+    def add_remove_update_point_observation(self, point_coordinates=None) -> None:
         gcp_manager = self.main_ui.gcp_manager
         active_gcp = self.main_ui.curr_point
         if active_gcp is None:
@@ -98,17 +99,17 @@ class CADView(WebView):
     def display_points(self) -> None:
         pass
 
-    def refocus(self, lat, lon)->None:
+    def refocus(self, lat, lon) -> None:
         x, y, z = self.latlon_to_xyz(lat, lon)
         self.send_sse_message(
             {"x": x, "y": y, "z": z},
             event_type="move_camera",
         )
 
-    def highlight_gcp_reprojection(self, *args, **kwargs)->None:
+    def highlight_gcp_reprojection(self, *args, **kwargs) -> None:
         pass
 
-    def populate_image_list(self, *args, **kwargs)->None:
+    def populate_image_list(self, *args, **kwargs) -> None:
         pass
 
     def latlon_to_xyz(self, lat, lon) -> Tuple[float, float, float]:
@@ -129,13 +130,13 @@ class CADView(WebView):
         lons, lats, alts = rasterio.warp.transform(self.crs, "EPSG:4326", [x], [y], [z])
         return lats[0], lons[0], alts[0]
 
-    def load_georeference_metadata(self, path_cad_model)->None:
+    def load_georeference_metadata(self, path_cad_model) -> None:
         metadata = _load_georeference_metadata(path_cad_model)
         self.scale = metadata["scale"]
         self.crs = metadata["crs"]
         self.offset = metadata["offset"]
 
-    def sync_to_client(self)->None:
+    def sync_to_client(self) -> None:
         """
         Sends all the data required to initialize or sync the CAD view
         """
@@ -152,7 +153,11 @@ class CADView(WebView):
         for point_id, coords in visible_points_coords.items():
             hex_color = distinct_colors[divmod(hash(point_id), 19)[1]]
             color = ImageColor.getrgb(hex_color)
-            data["annotations"][point_id] = {"coordinates": coords[:-1], "precision": coords[-1], "color": color}
+            data["annotations"][point_id] = {
+                "coordinates": coords[:-1],
+                "precision": coords[-1],
+                "color": color,
+            }
 
         # Add the 3D reprojections of the points
         fn_reprojections = Path(

@@ -186,7 +186,7 @@ def match_unwrap_args(
         DataSetBase,
         Dict[str, Any],
         Optional[Dict[str, pygeometry.Pose]],
-    ]
+    ],
 ) -> Tuple[str, str, np.ndarray]:
     """Wrapper for parallel processing of pair matching.
 
@@ -241,8 +241,7 @@ def match_descriptors(
 
     symmetric = "symmetric" if overriden_config["symmetric_matching"] else "one-way"
     logger.debug(
-        "Matching {} and {}.  Matcher: {} ({}) "
-        "T-desc: {:1.3f} Matches: {}".format(
+        "Matching {} and {}.  Matcher: {} ({}) " "T-desc: {:1.3f} Matches: {}".format(
             im1,
             im2,
             matcher_type,

@@ -1,9 +1,6 @@
 # pyre-unsafe
 import numpy as np
-from opensfm import io
-from opensfm import pygeometry
-from opensfm import pymap
-from opensfm import reconstruction
+from opensfm import io, pygeometry, pymap, reconstruction
 
 
 def test_track_triangulator_spherical() -> None:
@@ -42,7 +39,13 @@ def test_track_triangulator_spherical() -> None:
     triangulator = reconstruction.TrackTriangulator(
         rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
     )
-    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, min_depth=0.001, iterations=10)
+    triangulator.triangulate(
+        "1",
+        reproj_threshold=0.01,
+        min_ray_angle_degrees=2.0,
+        min_depth=0.001,
+        iterations=10,
+    )
     assert "1" in rec.points
     p = rec.points["1"].coordinates
     assert np.allclose(p, [0, 0, 1.3763819204711])
@@ -51,7 +54,7 @@ def test_track_triangulator_spherical() -> None:
 
 def test_track_triangulator_coincident_camera_origins() -> None:
     """Test triangulating tracks when two cameras have the same origin.
-    
+
     Triangulation should fail and no points should be added to the reconstruction.
     """
     tracks_manager = pymap.TracksManager()
@@ -88,7 +91,13 @@ def test_track_triangulator_coincident_camera_origins() -> None:
     triangulator = reconstruction.TrackTriangulator(
         rec, reconstruction.TrackHandlerTrackManager(tracks_manager, rec)
     )
-    triangulator.triangulate("1", reproj_threshold=0.01, min_ray_angle_degrees=2.0, min_depth=0.0001, iterations=10)
+    triangulator.triangulate(
+        "1",
+        reproj_threshold=0.01,
+        min_ray_angle_degrees=2.0,
+        min_depth=0.0001,
+        iterations=10,
+    )
     assert not rec.points
 
 
@@ -110,6 +119,7 @@ def test_triangulate_bearings_dlt() -> None:
     )
     assert np.allclose(X, [0, 0, 1.0])
     assert res is True
+
 
 def test_triangulate_bearings_dlt_coincident_camera_origins() -> None:
     rt1 = np.append(np.identity(3), [[0], [0], [0]], axis=1)

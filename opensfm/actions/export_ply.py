@@ -3,11 +3,13 @@ import os
 
 import numpy as np
 from opensfm import io
-from opensfm.dense import depthmap_to_ply, scale_down_image
 from opensfm.dataset import DataSet
+from opensfm.dense import depthmap_to_ply, scale_down_image
 
 
-def run_dataset(data: DataSet, no_cameras: bool, no_points: bool, depthmaps, point_num_views: bool) -> None:
+def run_dataset(
+    data: DataSet, no_cameras: bool, no_points: bool, depthmaps, point_num_views: bool
+) -> None:
     """Export reconstruction to PLY format
 
     Args:
@@ -25,7 +27,14 @@ def run_dataset(data: DataSet, no_cameras: bool, no_points: bool, depthmaps, poi
     point_num_views = point_num_views
 
     if reconstructions:
-        data.save_ply(reconstructions[0], tracks_manager, None, no_cameras, no_points, point_num_views)
+        data.save_ply(
+            reconstructions[0],
+            tracks_manager,
+            None,
+            no_cameras,
+            no_points,
+            point_num_views,
+        )
 
     if depthmaps:
         udata = data.undistorted_dataset()

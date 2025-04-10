@@ -3,7 +3,7 @@
 # pyre-unsafe
 import itertools
 import logging
-from typing import Any, Tuple, List
+from typing import Any, List, Tuple
 
 import numpy as np
 import scipy.spatial

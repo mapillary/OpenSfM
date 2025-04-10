@@ -1,5 +1,6 @@
 # pyre-unsafe
 """Basic types for building a reconstruction."""
+
 from typing import Dict, Optional
 
 import numpy as np

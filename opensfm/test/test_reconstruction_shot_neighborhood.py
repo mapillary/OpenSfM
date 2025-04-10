@@ -1,10 +1,6 @@
 # pyre-unsafe
 import networkx as nx
-from opensfm import pygeometry
-from opensfm import pymap
-from opensfm import pysfm
-from opensfm import reconstruction
-from opensfm import types
+from opensfm import pygeometry, pymap, pysfm, reconstruction, types
 
 
 def _add_shot(rec, shot_id, cam) -> None:

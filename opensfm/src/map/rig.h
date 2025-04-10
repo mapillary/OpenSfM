@@ -51,7 +51,8 @@ class RigInstance {
   std::unordered_map<map::ShotId, map::RigCamera*>& GetRigCameras() {
     return shots_rig_cameras_;
   }
-  const std::unordered_map<map::ShotId, map::RigCamera*>& GetRigCameras() const {
+  const std::unordered_map<map::ShotId, map::RigCamera*>& GetRigCameras()
+      const {
     return shots_rig_cameras_;
   }
   std::set<map::ShotId> GetShotIDs() const;

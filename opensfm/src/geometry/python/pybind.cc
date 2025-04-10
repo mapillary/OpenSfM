@@ -77,11 +77,11 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_parameters_types", &geometry::Camera::GetParametersTypes)
       .def("get_parameters_map", &geometry::Camera::GetParametersMap)
       .def_static("pixel_to_normalized_coordinates_common",
-           (Vec2d(*)(const Vec2d&, const int, const int)) &
-               geometry::Camera::PixelToNormalizedCoordinates)
+                  (Vec2d(*)(const Vec2d&, const int, const int)) &
+                      geometry::Camera::PixelToNormalizedCoordinates)
       .def_static("pixel_to_normalized_coordinates_many_common",
-           (MatX2d(*)(const MatX2d&, const int, const int)) &
-               geometry::Camera::PixelToNormalizedCoordinatesMany)
+                  (MatX2d(*)(const MatX2d&, const int, const int)) &
+                      geometry::Camera::PixelToNormalizedCoordinatesMany)
       .def("pixel_to_normalized_coordinates",
            (Vec2d(geometry::Camera::*)(const Vec2d&) const) &
                geometry::Camera::PixelToNormalizedCoordinates)
@@ -89,11 +89,11 @@ PYBIND11_MODULE(pygeometry, m) {
            (MatX2d(geometry::Camera::*)(const MatX2d&) const) &
                geometry::Camera::PixelToNormalizedCoordinatesMany)
       .def_static("normalized_to_pixel_coordinates_common",
-           (Vec2d(*)(const Vec2d&, const int, const int)) &
-               geometry::Camera::NormalizedToPixelCoordinates)
+                  (Vec2d(*)(const Vec2d&, const int, const int)) &
+                      geometry::Camera::NormalizedToPixelCoordinates)
       .def_static("normalized_to_pixel_coordinates_many_common",
-           (MatX2d(*)(const MatX2d&, const int, const int)) &
-               geometry::Camera::NormalizedToPixelCoordinatesMany)
+                  (MatX2d(*)(const MatX2d&, const int, const int)) &
+                      geometry::Camera::NormalizedToPixelCoordinatesMany)
       .def("normalized_to_pixel_coordinates",
            (Vec2d(geometry::Camera::*)(const Vec2d&) const) &
                geometry::Camera::NormalizedToPixelCoordinates)
@@ -321,21 +321,21 @@ PYBIND11_MODULE(pygeometry, m) {
       .def("get_cam_to_world", &geometry::Pose::CameraToWorld)
       .def("get_world_to_cam", &geometry::Pose::WorldToCamera)
       // C++11
-      .def("set_from_world_to_cam", (void (geometry::Pose::*)(const Mat4d&)) &
+      .def("set_from_world_to_cam", (void(geometry::Pose::*)(const Mat4d&)) &
                                         geometry::Pose::SetFromWorldToCamera)
       .def("set_from_world_to_cam",
-           (void (geometry::Pose::*)(const Mat3d&, const Vec3d&)) &
+           (void(geometry::Pose::*)(const Mat3d&, const Vec3d&)) &
                geometry::Pose::SetFromWorldToCamera)
       .def("set_from_world_to_cam",
-           (void (geometry::Pose::*)(const Vec3d&, const Vec3d&)) &
+           (void(geometry::Pose::*)(const Vec3d&, const Vec3d&)) &
                geometry::Pose::SetFromWorldToCamera)
-      .def("set_from_cam_to_world", (void (geometry::Pose::*)(const Mat4d&)) &
+      .def("set_from_cam_to_world", (void(geometry::Pose::*)(const Mat4d&)) &
                                         geometry::Pose::SetFromCameraToWorld)
       .def("set_from_cam_to_world",
-           (void (geometry::Pose::*)(const Mat3d&, const Vec3d&)) &
+           (void(geometry::Pose::*)(const Mat3d&, const Vec3d&)) &
                geometry::Pose::SetFromCameraToWorld)
       .def("set_from_cam_to_world",
-           (void (geometry::Pose::*)(const Vec3d&, const Vec3d&)) &
+           (void(geometry::Pose::*)(const Vec3d&, const Vec3d&)) &
                geometry::Pose::SetFromCameraToWorld)
       .def("get_origin", &geometry::Pose::GetOrigin)
       .def("set_origin", &geometry::Pose::SetOrigin)

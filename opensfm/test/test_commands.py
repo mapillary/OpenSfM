@@ -2,8 +2,9 @@
 import argparse
 from os.path import join
 
-from opensfm import commands, dataset
 from mapillary.opensfm.opensfm.test import data_generation, utils
+
+from opensfm import commands, dataset
 
 
 def run_command(command, args) -> None:

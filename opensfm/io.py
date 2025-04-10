@@ -5,7 +5,7 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Dict, Any, Iterable, List, IO, Tuple, TextIO, Optional
+from typing import Any, Dict, IO, Iterable, List, Optional, TextIO, Tuple, Union
 
 import cv2
 import numpy as np
@@ -655,7 +655,7 @@ def bias_to_json(bias: pygeometry.Similarity) -> Dict[str, Any]:
 
 
 def rig_cameras_to_json(
-    rig_cameras: Dict[str, pymap.RigCamera]
+    rig_cameras: Dict[str, pymap.RigCamera],
 ) -> Dict[str, Dict[str, Any]]:
     """
     Write rig cameras to a json object
@@ -1009,6 +1009,7 @@ def json_dumps(data, minify: bool = False) -> str:
     kwargs = json_dump_kwargs(minify)
     return json.dumps(data, **kwargs)
 
+
 def json_load(fp: Union[IO[str], IO[bytes]]) -> Any:
     return json.load(fp)
 
@@ -1034,9 +1035,9 @@ def ply_header(
             "property float nx",
             "property float ny",
             "property float nz",
-            "property uchar red",      
-            "property uchar green",     
-            "property uchar blue",      
+            "property uchar red",
+            "property uchar green",
+            "property uchar blue",
         ]
     else:
         header = [
@@ -1046,9 +1047,9 @@ def ply_header(
             "property float x",
             "property float y",
             "property float z",
-            "property uchar red",    
-            "property uchar green",   
-            "property uchar blue", 
+            "property uchar red",
+            "property uchar green",
+            "property uchar blue",
         ]
 
     if point_num_views:
@@ -1094,12 +1095,16 @@ def reconstruction_to_ply(
             o = shot.pose.get_origin()
             R = shot.pose.get_rotation_matrix()
             for axis in range(3):
-                c = 255 * np.eye(3)[axis]
+                c = np.eye(3)[axis] * 255
                 for depth in np.linspace(0, 2, 10):
                     p = o + depth * R[axis]
                     s = "{} {} {} {} {} {}".format(
-                        # pyre-fixme[16]: `int` has no attribute `__getitem__`.
-                        p[0], p[1], p[2], int(c[0]), int(c[1]), int(c[2])
+                        p[0],
+                        p[1],
+                        p[2],
+                        int(c[0]),
+                        int(c[1]),
+                        int(c[2]),
                     )
                     if point_num_views:
                         s += " 0"
@@ -1260,7 +1265,7 @@ def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str) -> None:
 
 
 def image_size_from_fileobject(
-    fb: Union[IO[bytes], bytes, Path, str, TextIO]
+    fb: Union[IO[bytes], bytes, Path, str, TextIO],
 ) -> Tuple[int, int]:
     """Height and width of an image."""
     if isinstance(fb, TextIO):

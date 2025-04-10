@@ -5,11 +5,11 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pytest
-from opensfm import multiview, types, geo, pygeometry, pymap
+from opensfm import geo, multiview, pygeometry, pymap, types
 from opensfm.synthetic_data import (
+    synthetic_dataset as sd,
     synthetic_examples,
     synthetic_scene,
-    synthetic_dataset as sd,
 )
 
 
@@ -125,14 +125,16 @@ def scene_synthetic_triangulation() -> synthetic_scene.SyntheticInputData:
 
 
 @pytest.fixture(scope="module")
-def pairs_and_poses() -> Tuple[
-    Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
-    Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
-    pygeometry.Camera,
-    sd.SyntheticFeatures,
-    pymap.TracksManager,
-    types.Reconstruction,
-]:
+def pairs_and_poses() -> (
+    Tuple[
+        Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
+        Dict[Tuple[str, str], List[Tuple[List[np.ndarray]]]],
+        pygeometry.Camera,
+        sd.SyntheticFeatures,
+        pymap.TracksManager,
+        types.Reconstruction,
+    ]
+):
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
 

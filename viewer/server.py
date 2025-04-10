@@ -3,13 +3,7 @@ import argparse
 import os
 from typing import List
 
-from flask import (
-    Flask,
-    abort,
-    jsonify,
-    Response,
-    send_file,
-)
+from flask import abort, Flask, jsonify, Response, send_file
 
 
 app = Flask(__name__, static_folder="./", static_url_path="")

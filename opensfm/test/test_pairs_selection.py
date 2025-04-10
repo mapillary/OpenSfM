@@ -5,8 +5,8 @@ from typing import Any, Dict, Generator
 
 import numpy as np
 import pytest
-from opensfm import commands, dataset, feature_loader, pairs_selection, geo
 from mapillary.opensfm.opensfm.test import data_generation
+from opensfm import commands, dataset, feature_loader, geo, pairs_selection
 from opensfm.dataset_base import DataSetBase
 
 

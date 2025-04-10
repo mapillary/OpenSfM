@@ -2,6 +2,7 @@
 
 #include <foundation/numeric.h>
 #include <geometry/absolute_pose.h>
+
 #include "model.h"
 
 class AbsolutePose : public Model<AbsolutePose, 1, 4> {

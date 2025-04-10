@@ -1,16 +1,18 @@
 # pyre-unsafe
 import logging
+from typing import Dict, List
 
-from opensfm import pymap, rig, reconstruction_helpers as helpers, types
+from opensfm import pymap, reconstruction_helpers as helpers, rig, types
 from opensfm.dataset import DataSet, DataSetBase
 from opensfm.types import Reconstruction
-from typing import Dict, List
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSet, method, definition: Dict[str, str], output_debug) -> None:
+def run_dataset(
+    data: DataSet, method, definition: Dict[str, str], output_debug
+) -> None:
     """Given a dataset that contains rigs, construct rig data files.
 
     Args:
@@ -30,7 +32,9 @@ def run_dataset(data: DataSet, method, definition: Dict[str, str], output_debug)
         data.save_reconstruction(reconstructions, "rig_instances.json")
 
 
-def _reconstruction_from_rigs_and_assignments(data: DataSetBase) -> List[Reconstruction]:
+def _reconstruction_from_rigs_and_assignments(
+    data: DataSetBase,
+) -> List[Reconstruction]:
     assignments = data.load_rig_assignments()
     rig_cameras = data.load_rig_cameras()
 

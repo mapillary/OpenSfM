@@ -100,14 +100,17 @@ class Camera {
   static Vec2d PixelToNormalizedCoordinates(const Vec2d& px_coord,
                                             const int width, const int height);
   static MatX2d PixelToNormalizedCoordinatesMany(const MatX2d& px_coord,
-                                            const int width, const int height);
+                                                 const int width,
+                                                 const int height);
 
   Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord) const;
   MatX2d NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords) const;
 
   static Vec2d NormalizedToPixelCoordinates(const Vec2d& norm_coord,
                                             const int width, const int height);
-  static MatX2d NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords, const int width, const int height);
+  static MatX2d NormalizedToPixelCoordinatesMany(const MatX2d& norm_coords,
+                                                 const int width,
+                                                 const int height);
 
  private:
   ProjectionType type_{ProjectionType::NONE};

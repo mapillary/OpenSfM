@@ -1,7 +1,9 @@
 # pyre-unsafe
+from typing import Tuple
+
 import numpy as np
 from opensfm import config, multiview, pymap, reconstruction, types
-from typing import Tuple
+
 
 def test_corresponding_tracks() -> None:
     t1 = {"1": pymap.Observation(1.0, 1.0, 1.0, 0, 0, 0, 1, 1, 1)}
@@ -65,7 +67,7 @@ def split_synthetic_reconstruction(
     cluster2 = types.Reconstruction()
     cluster1.cameras = scene.cameras
     cluster2.cameras = scene.cameras
-    for (i, shot) in zip(range(len(scene.shots)), scene.shots.values()):
+    for i, shot in zip(range(len(scene.shots)), scene.shots.values()):
         if i >= cluster_size:
             cluster2.add_shot(shot)
         if i <= cluster_size:
@@ -76,7 +78,9 @@ def split_synthetic_reconstruction(
     return cluster1, cluster2
 
 
-def move_and_scale_cluster(cluster: types.Reconstruction)->Tuple[types.Reconstruction, np.ndarray, float]:
+def move_and_scale_cluster(
+    cluster: types.Reconstruction,
+) -> Tuple[types.Reconstruction, np.ndarray, float]:
     scale = np.random.rand(1)
     translation = np.random.rand(3)
     for point in cluster.points.values():

@@ -1,6 +1,6 @@
 # pyre-unsafe
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np

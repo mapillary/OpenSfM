@@ -118,18 +118,15 @@ TEST_F(CameraFixture, Fisheye624IsConsistent) {
 
 TEST_F(CameraFixture, Fisheye624MatchesReference) {
   Eigen::Matrix<double, 3, 3> points;
-  points <<
-    10.0, 0.0, 0.0,
-    0.0, 10.0, 0.0,
-    1e-6, 1e-6, 10.0;
+  points << 10.0, 0.0, 0.0,  // clang-format off
+            0.0, 10.0, 0.0,
+            1e-6, 1e-6, 10.0;  // clang-format on
 
   // This test case is constructed to result in round numbers apart from the
   // thin prism distortions.
   Eigen::Matrix<double, 3, 2> reference_pixels;
-  reference_pixels <<
-    149.42887062, 48.67088846,
-    99.4288738, 98.67088528,
-    100.0, 50.0;
+  reference_pixels << 149.42887062, 48.67088846, 99.4288738, 98.67088528, 100.0,
+      50.0;
 
   constexpr int width = 200, height = 100;
   constexpr double f = width / (2 * M_PI);
@@ -140,36 +137,38 @@ TEST_F(CameraFixture, Fisheye624MatchesReference) {
   const MatX2d reference_projected = camera.ProjectMany(points);
 
   ASSERT_TRUE(reference_pixels.isApprox(reference_projected, 1e-5))
-    << " where reference_pixels = \n" << reference_pixels << '\n'
-    << " and reference_projected = \n" << reference_projected << '\n';
+      << " where reference_pixels = \n"
+      << reference_pixels << '\n'
+      << " and reference_projected = \n"
+      << reference_projected << '\n';
 }
 
 TEST_F(CameraFixture, Fisheye624WithTanMatchesReference) {
   Eigen::Matrix<double, 3, 3> points;
-  points <<
-    10.0, 0.0, 0.0,
-    0.0, 10.0, 0.0,
-    1e-6, 1e-6, 10.0;
+  points << 10.0, 0.0, 0.0,  // clang-format off
+            0.0, 10.0, 0.0,
+            1e-6, 1e-6, 10.0;  // clang-format on
 
   // This test case is constructed to result in round numbers apart from the
   // tangential and thin prism distortions.
   Eigen::Matrix<double, 3, 2> reference_pixels;
-  reference_pixels <<
-    151.7850648, 51.02708265,
-    100.2142719, 105.7394678,
-    100.0, 50.0;
-
+  reference_pixels << 151.7850648, 51.02708265,  // clang-format off
+      100.2142719, 105.7394678, 
+      100.0, 50.0;  // clang-format on
   constexpr int width = 200, height = 100;
   constexpr double f = width / (2 * M_PI);
   Eigen::Matrix<double, 12, 1> distortion_tan_and_thin_prism;
-  distortion_tan_and_thin_prism << 0, 0, 0, 0, 0, 0, 0.03, 0.01, 0.01, -0.007, -0.03, 0.0053;
+  distortion_tan_and_thin_prism << 0, 0, 0, 0, 0, 0, 0.03, 0.01, 0.01, -0.007,
+      -0.03, 0.0053;
   const geometry::Camera camera = geometry::Camera::CreateFisheye624Camera(
       f, 1.0, {width / 2, height / 2}, distortion_tan_and_thin_prism);
   const MatX2d reference_projected = camera.ProjectMany(points);
 
   ASSERT_TRUE(reference_pixels.isApprox(reference_projected, 1e-5))
-    << " where reference_pixels = \n" << reference_pixels << '\n'
-    << " and reference_projected = \n" << reference_projected << '\n';
+      << " where reference_pixels = \n"
+      << reference_pixels << '\n'
+      << " and reference_projected = \n"
+      << reference_projected << '\n';
 }
 
 TEST_F(CameraFixture, DualIsConsistent) {

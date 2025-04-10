@@ -1,6 +1,6 @@
 # pyre-unsafe
 import os
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, IO, Union
 
 import yaml
@@ -396,7 +396,7 @@ def load_config(filepath) -> Dict[str, Any]:
 
 
 def load_config_from_fileobject(
-    f: Union[IO[bytes], IO[str], bytes, str]
+    f: Union[IO[bytes], IO[str], bytes, str],
 ) -> Dict[str, Any]:
     """Load config from a config.yaml fileobject"""
     config = default_config()

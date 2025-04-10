@@ -1,9 +1,10 @@
 # pyre-unsafe
+import argparse
+
 from opensfm.actions import compute_depthmaps
+from opensfm.dataset import DataSet
 
 from . import command
-import argparse
-from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):

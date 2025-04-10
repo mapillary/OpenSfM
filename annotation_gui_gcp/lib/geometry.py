@@ -1,7 +1,8 @@
 # pyre-unsafe
-from opensfm import dataset
-from numpy import ndarray
 from typing import Dict, Tuple
+
+from numpy import ndarray
+from opensfm import dataset
 
 
 def get_all_track_observations(gcp_database, track_id: str) -> Dict[str, ndarray]:
@@ -12,7 +13,9 @@ def get_all_track_observations(gcp_database, track_id: str) -> Dict[str, ndarray
     return {shot_id: obs.point for shot_id, obs in track_obs.items()}
 
 
-def get_tracks_visible_in_image(gcp_database, image_key, min_len: int=5) -> Dict[str, Tuple[ndarray, int]]:
+def get_tracks_visible_in_image(
+    gcp_database, image_key, min_len: int = 5
+) -> Dict[str, Tuple[ndarray, int]]:
     print(f"Getting track observations visible in {image_key}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()

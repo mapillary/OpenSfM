@@ -124,7 +124,9 @@ def alignment_constraints(
     """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
-    logger.info(f"Collecting alignment constraints - bundle_use_gps:{config['bundle_use_gps']} bundle_use_gcp: {config['bundle_use_gcp']}")
+    logger.info(
+        f"Collecting alignment constraints - bundle_use_gps:{config['bundle_use_gps']} bundle_use_gcp: {config['bundle_use_gcp']}"
+    )
     # Get Ground Control Point correspondences
     if gcp and config["bundle_use_gcp"]:
         triangulated, measured = triangulate_all_gcp(reconstruction, gcp)
@@ -340,7 +342,6 @@ def set_gps_bias(
 
     per_camera_transform = {}
     for camera_id, shots_id in per_camera_shots.items():
-
         # As we re-use 'compute_reconstruction_similarity', we need to construct a 'Reconstruction'
         subrec = types.Reconstruction()
         subrec.add_camera(reconstruction.cameras[camera_id])

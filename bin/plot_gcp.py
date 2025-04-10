@@ -1,39 +1,37 @@
-"""Plot image crops around GCPs.
-"""
+"""Plot image crops around GCPs."""
 
 import argparse
 import logging
 from typing import List
 
-import numpy as np
 import matplotlib.pyplot as plt
 
+import numpy as np
+
 import opensfm.reconstruction as orec
-from opensfm import features
-from opensfm import io
-from opensfm import dataset
-from opensfm import pymap
-from opensfm import types
+from opensfm import dataset, features, io, pymap, types
 
 logger = logging.getLogger(__name__)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        'dataset',
-        help='dataset',
+        "dataset",
+        help="dataset",
     )
     return parser.parse_args()
 
 
 def pix_coords(x, image):
     return features.denormalized_image_coordinates(
-        np.array([[x[0], x[1]]]), image.shape[1], image.shape[0])[0]
+        np.array([[x[0], x[1]]]), image.shape[1], image.shape[0]
+    )[0]
 
 
-def gcp_to_ply(gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction):
+def gcp_to_ply(
+    gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction
+):
     """Export GCP position as a PLY string."""
     vertices = []
 
@@ -44,13 +42,15 @@ def gcp_to_ply(gcps: List[pymap.GroundControlPoint], reconstruction: types.Recon
             p = orec.triangulate_gcp(gcp, reconstruction.shots)
 
         if p is None:
-            logger.warning("Could not compute the 3D position of GCP '{}'"
-                           .format(gcp.id))
+            logger.warning(
+                "Could not compute the 3D position of GCP '{}'".format(gcp.id)
+            )
             continue
 
         c = 255, 0, 0
         s = "{} {} {} {} {} {}".format(
-            p.value[0], p.value[1], p.value[2], int(c[0]), int(c[1]), int(c[2]))
+            p.value[0], p.value[1], p.value[2], int(c[0]), int(c[1]), int(c[2])
+        )
         vertices.append(s)
 
     header = [
@@ -66,20 +66,20 @@ def gcp_to_ply(gcps: List[pymap.GroundControlPoint], reconstruction: types.Recon
         "end_header",
     ]
 
-    return '\n'.join(header + vertices + [''])
+    return "\n".join(header + vertices + [""])
 
 
 def main():
     args = parse_args()
     logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        level=logging.DEBUG)
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s", level=logging.DEBUG
+    )
 
     data = dataset.DataSet(args.dataset)
     reconstruction = data.load_reconstruction()[0]
     gcps = data.load_ground_control_points()
 
-    with io.open_wt(data.data_path + '/gcp.ply') as fout:
+    with io.open_wt(data.data_path + "/gcp.ply") as fout:
         fout.write(gcp_to_ply(gcps, reconstruction))
 
     for gcp in gcps:
@@ -91,8 +91,9 @@ def main():
             coordinates = orec.triangulate_gcp(gcp, reconstruction.shots)
 
         if coordinates is None:
-            logger.warning("Could not compute the 3D position of GCP '{}'"
-                           .format(gcp.id))
+            logger.warning(
+                "Could not compute the 3D position of GCP '{}'".format(gcp.id)
+            )
             continue
 
         for i, observation in enumerate(gcp.observations):
@@ -113,5 +114,5 @@ def main():
         plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

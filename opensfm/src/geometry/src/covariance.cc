@@ -38,4 +38,4 @@ std::pair<Mat3d, double> ComputePointInverseCovariance(
   return std::make_pair(covariance, sigma2);
 }
 
-}  // namespace geometry
+}  // namespace geometry::covariance

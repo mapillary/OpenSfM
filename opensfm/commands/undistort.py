@@ -1,9 +1,10 @@
 # pyre-unsafe
+import argparse
+
 from opensfm.actions import undistort
+from opensfm.dataset import DataSet
 
 from . import command
-import argparse
-from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
@@ -17,14 +18,12 @@ class Command(command.CommandBase):
             args.reconstruction_index,
             args.tracks,
             args.output,
-            args.skip_images
+            args.skip_images,
         )
 
     def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
-            "--reconstruction",
-            help="reconstruction to undistort",
-            type=str
+            "--reconstruction", help="reconstruction to undistort", type=str
         )
         parser.add_argument(
             "--reconstruction-index",
@@ -37,10 +36,7 @@ class Command(command.CommandBase):
             help="tracks graph of the reconstruction",
         )
         parser.add_argument(
-            "--output",
-            help="output folder",
-            default="undistorted",
-            type=str
+            "--output", help="output folder", default="undistorted", type=str
         )
         parser.add_argument(
             "--skip-images",

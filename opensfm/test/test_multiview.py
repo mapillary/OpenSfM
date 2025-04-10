@@ -2,9 +2,7 @@
 import copy
 
 import numpy as np
-from opensfm import multiview
-from opensfm import pygeometry
-from opensfm import transformations as tf
+from opensfm import multiview, pygeometry, transformations as tf
 
 
 def normalized(x: np.ndarray) -> np.ndarray:
@@ -39,7 +37,6 @@ def test_motion_from_plane_homography() -> None:
 def test_essential_five_points(pairs_and_their_E) -> None:
     exact_found = 0
     for f1, f2, E, _ in pairs_and_their_E:
-
         result = pygeometry.essential_five_points(f1[0:5, :], f2[0:5, :])
 
         # run over the N solutions, looking for the exact one
@@ -87,7 +84,6 @@ def test_absolute_pose_n_points_known_rotation(shots_and_their_points) -> None:
 
 def test_essential_n_points(pairs_and_their_E) -> None:
     for f1, f2, E, _ in pairs_and_their_E:
-
         f1 /= np.linalg.norm(f1, axis=1)[:, None]
         f2 /= np.linalg.norm(f2, axis=1)[:, None]
 
@@ -103,7 +99,6 @@ def test_essential_n_points(pairs_and_their_E) -> None:
 
 def test_relative_pose_from_essential(pairs_and_their_E) -> None:
     for f1, f2, E, pose in pairs_and_their_E:
-
         result = pygeometry.relative_pose_from_essential(E, f1, f2)
 
         pose = copy.deepcopy(pose)
@@ -115,7 +110,6 @@ def test_relative_pose_from_essential(pairs_and_their_E) -> None:
 
 def test_relative_rotation(pairs_and_their_E) -> None:
     for f1, _, _, _ in pairs_and_their_E:
-
         vec_x = np.random.rand(3)
         vec_x /= np.linalg.norm(vec_x)
         vec_y = np.array([-vec_x[1], vec_x[0], 0.0])

@@ -2,15 +2,13 @@
 from typing import Any, Dict, List, Set, Tuple
 
 import numpy as np
-from opensfm import bow
-from opensfm import config
-from opensfm import matching
-from opensfm import pairs_selection
-from opensfm import pyfeatures
+from opensfm import bow, config, matching, pairs_selection, pyfeatures
 from opensfm.synthetic_data import synthetic_dataset
 
 
-def compute_words(features: np.ndarray, bag_of_words, num_words, bow_matcher_type) -> np.ndarray:
+def compute_words(
+    features: np.ndarray, bag_of_words, num_words, bow_matcher_type
+) -> np.ndarray:
     closest_words = bag_of_words.map_to_words(features, num_words, bow_matcher_type)
     if closest_words is None:
         return np.array([], dtype=np.int32)

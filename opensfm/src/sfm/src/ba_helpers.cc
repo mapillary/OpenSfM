@@ -209,8 +209,8 @@ py::tuple BAHelpers::BundleLocal(
     // only add averaged rig position constraints to moving instances
     if (!fix_instance && gps_count > 0) {
       LOG(INFO) << "bundle_use_gps: " << config["bundle_use_gps"].cast<bool>()
-                << ", adding average GPS prior to rig instance " << rig_instance_id
-                << ", count: " << gps_count
+                << ", adding average GPS prior to rig instance "
+                << rig_instance_id << ", count: " << gps_count
                 << ", avg pos: " << average_position.transpose()
                 << ", avg std: " << average_std
                 << ", scale group: " << gps_scale_group;
@@ -674,9 +674,11 @@ py::dict BAHelpers::Bundle(
         const auto acc = shot.GetShotMeasurements().gps_accuracy_;
         if (pos.HasValue() && acc.HasValue()) {
           if (acc.Value() <= 0) {
-            throw std::runtime_error("Shot " + shot.GetId() + " has an accuracy <= 0: "
-                                    + std::to_string(acc.Value()) + ". Try modifying "
-                                    "your input parser to filter such values.");
+            throw std::runtime_error(
+                "Shot " + shot.GetId() +
+                " has an accuracy <= 0: " + std::to_string(acc.Value()) +
+                ". Try modifying "
+                "your input parser to filter such values.");
           }
           average_position += pos.Value();
           average_std += acc.Value();

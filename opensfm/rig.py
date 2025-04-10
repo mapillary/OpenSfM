@@ -5,12 +5,12 @@ import logging
 import os
 import random
 import re
-from typing import Dict, Tuple, List, Optional, Set, Iterable, TYPE_CHECKING
+from typing import Dict, Iterable, List, Optional, Set, Tuple, TYPE_CHECKING
 
 import networkx as nx
 import numpy as np
 import scipy.spatial as spatial
-from opensfm import reconstruction as orec, actions, pygeometry, pymap, types
+from opensfm import actions, pygeometry, pymap, reconstruction as orec, types
 
 if TYPE_CHECKING:
     from opensfm.dataset import DataSet
@@ -43,7 +43,7 @@ def rig_assignments_per_image(
     assignments_per_image = {}
     for instance_id, instance in rig_assignments.items():
         instance_shots = [s[0] for s in instance]
-        for (shot_id, rig_camera_id) in instance:
+        for shot_id, rig_camera_id in instance:
             assignments_per_image[shot_id] = (
                 f"{instance_id}",
                 rig_camera_id,
@@ -116,7 +116,7 @@ def create_instances_with_patterns(
 
 
 def group_instances(
-    rig_instances: Dict[str, TRigInstance]
+    rig_instances: Dict[str, TRigInstance],
 ) -> Dict[str, List[TRigInstance]]:
     per_rig_camera_group: Dict[str, List[TRigInstance]] = {}
     for cameras in rig_instances.values():

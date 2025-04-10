@@ -1,13 +1,13 @@
 # pyre-unsafe
 import functools
 import math
-from typing import Dict, Optional, List, Any, Union, Tuple, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import opensfm.synthetic_data.synthetic_dataset as sd
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
-from opensfm import pygeometry, types, pymap, geo
+from opensfm import geo, pygeometry, pymap, types
 
 
 def get_camera(
@@ -241,19 +241,17 @@ class SyntheticStreetScene(SyntheticScene):
         wall_points, floor_points = self.wall_points, self.floor_points
         assert wall_points is not None and floor_points is not None
         wall_points[:, 2] += height * np.exp(
-            -0.5 * np.linalg.norm(wall_points[:, :2], axis=1) ** 2 / radius ** 2
+            -0.5 * np.linalg.norm(wall_points[:, :2], axis=1) ** 2 / radius**2
         )
         floor_points[:, 2] += height * np.exp(
-            -0.5 * np.linalg.norm(floor_points[:, :2], axis=1) ** 2 / radius ** 2
+            -0.5 * np.linalg.norm(floor_points[:, :2], axis=1) ** 2 / radius**2
         )
 
         for positions in self.instances_positions:
             for position in positions:
                 position[2] += height * np.exp(
                     -0.5
-                    * np.linalg.norm(
-                        (position[0] ** 2 + position[1] ** 2) / radius ** 2
-                    )
+                    * np.linalg.norm((position[0] ** 2 + position[1] ** 2) / radius**2)
                 )
 
     def _set_terrain_hill_repeated(self, height: float, radius: float) -> None:

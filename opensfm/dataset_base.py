@@ -1,17 +1,10 @@
 # pyre-unsafe
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Optional, IO, Any
+from typing import Any, Dict, IO, List, Optional, Tuple
 
 import numpy as np
-from opensfm import (
-    features,
-    geo,
-    io,
-    pygeometry,
-    types,
-    pymap,
-)
+from opensfm import features, geo, io, pygeometry, pymap, types
 
 logger: logging.Logger = logging.getLogger(__name__)
 

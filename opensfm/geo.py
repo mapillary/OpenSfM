@@ -1,7 +1,8 @@
 # pyre-unsafe
+from typing import Tuple
+
 import numpy as np
 from numpy import ndarray
-from typing import Tuple
 
 WGS84_a = 6378137.0
 WGS84_b = 6356752.314245
@@ -20,8 +21,8 @@ def ecef_from_lla(lat, lon, alt: float) -> Tuple[float, ...]:
     >>> np.allclose(lla_from_ecef(x,y,z), [lat, lon, alt])
     True
     """
-    a2 = WGS84_a ** 2
-    b2 = WGS84_b ** 2
+    a2 = WGS84_a**2
+    b2 = WGS84_b**2
     lat = np.radians(lat)
     lon = np.radians(lon)
     L = 1.0 / np.sqrt(a2 * np.cos(lat) ** 2 + b2 * np.sin(lat) ** 2)
@@ -40,15 +41,15 @@ def lla_from_ecef(x, y, z):
     """
     a = WGS84_a
     b = WGS84_b
-    ea = np.sqrt((a ** 2 - b ** 2) / a ** 2)
-    eb = np.sqrt((a ** 2 - b ** 2) / b ** 2)
-    p = np.sqrt(x ** 2 + y ** 2)
+    ea = np.sqrt((a**2 - b**2) / a**2)
+    eb = np.sqrt((a**2 - b**2) / b**2)
+    p = np.sqrt(x**2 + y**2)
     theta = np.arctan2(z * a, p * b)
     lon = np.arctan2(y, x)
     lat = np.arctan2(
-        z + eb ** 2 * b * np.sin(theta) ** 3, p - ea ** 2 * a * np.cos(theta) ** 3
+        z + eb**2 * b * np.sin(theta) ** 3, p - ea**2 * a * np.cos(theta) ** 3
     )
-    N = a / np.sqrt(1 - ea ** 2 * np.sin(lat) ** 2)
+    N = a / np.sqrt(1 - ea**2 * np.sin(lat) ** 2)
     alt = p / np.cos(lat) - N
     return np.degrees(lat), np.degrees(lon), alt
 

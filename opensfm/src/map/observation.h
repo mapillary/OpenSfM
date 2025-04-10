@@ -13,8 +13,8 @@ struct Depth {
   double std_deviation;
 
   Depth() = default;
-  Depth(double value_, bool is_radial_, double std_deviation_):
-    value(value_), is_radial(is_radial_), std_deviation(std_deviation_) {}
+  Depth(double value_, bool is_radial_, double std_deviation_)
+      : value(value_), is_radial(is_radial_), std_deviation(std_deviation_) {}
 };
 
 struct Observation {

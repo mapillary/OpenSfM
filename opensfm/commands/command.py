@@ -1,10 +1,12 @@
 # pyre-unsafe
-from timeit import default_timer as timer
 import argparse
+from timeit import default_timer as timer
+
 from opensfm.dataset import DataSet
 
+
 class CommandBase:
-    """ Base class for executable commands."""
+    """Base class for executable commands."""
 
     name = "Undefined command"
     help = "Undefined command help"

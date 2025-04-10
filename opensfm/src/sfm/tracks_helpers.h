@@ -17,4 +17,4 @@ void AddConnections(map::TracksManager& manager, const map::ShotId& shot_id,
                     const std::vector<map::TrackId>& connections);
 void RemoveConnections(map::TracksManager& manager, const map::ShotId& shot_id,
                        const std::vector<map::TrackId>& connections);
-}  // namespace sfm
+}  // namespace sfm::tracks_helpers

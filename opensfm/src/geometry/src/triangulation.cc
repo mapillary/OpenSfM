@@ -5,6 +5,7 @@
 #include <foundation/types.h>
 #include <geometry/transformations_functions.h>
 #include <geometry/triangulation.h>
+
 #include <cmath>
 
 namespace {
@@ -71,16 +72,15 @@ struct BearingErrorCost : public ceres::CostFunction {
 
 constexpr int BearingErrorCost::Size;
 
-}
+}  // namespace
 
 namespace geometry {
 
-std::pair<bool, Vec3d> TriangulateBearingsDLT(
-    const std::vector<Mat34d> &Rts,
-    const MatX3d &bearings,
-    double threshold,
-    double min_angle,
-    double min_depth) {
+std::pair<bool, Vec3d> TriangulateBearingsDLT(const std::vector<Mat34d> &Rts,
+                                              const MatX3d &bearings,
+                                              double threshold,
+                                              double min_angle,
+                                              double min_depth) {
   const int count = Rts.size();
   MatXd world_bearings(count, 3);
   bool angle_ok = false;
@@ -118,9 +118,8 @@ std::pair<bool, Vec3d> TriangulateBearingsDLT(
   return std::make_pair(true, X.head<3>());
 }
 
-Vec4d TriangulateBearingsDLTSolve(
-    const MatX3d &bearings,
-    const std::vector<Mat34d> &Rts) {
+Vec4d TriangulateBearingsDLTSolve(const MatX3d &bearings,
+                                  const std::vector<Mat34d> &Rts) {
   const int nviews = bearings.rows();
   assert(nviews == Rts.size());
 
@@ -143,10 +142,8 @@ Vec4d TriangulateBearingsDLTSolve(
 }
 
 std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
-    const MatX3d &centers,
-    const MatX3d &bearings,
-    const std::vector<double> &threshold_list,
-    double min_angle,
+    const MatX3d &centers, const MatX3d &bearings,
+    const std::vector<double> &threshold_list, double min_angle,
     double min_depth) {
   const int count = centers.rows();
 
@@ -182,11 +179,8 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
   return std::make_pair(true, X.head<3>());
 }
 
-std::vector<std::pair<bool, Vec3d>>
-TriangulateTwoBearingsMidpointMany(
-    const MatX3d &bearings1,
-    const MatX3d &bearings2,
-    const Mat3d &rotation,
+std::vector<std::pair<bool, Vec3d>> TriangulateTwoBearingsMidpointMany(
+    const MatX3d &bearings1, const MatX3d &bearings2, const Mat3d &rotation,
     const Vec3d &translation) {
   std::vector<std::pair<bool, Vec3d>> triangulated(bearings1.rows());
   Eigen::Matrix<double, 2, 3> os, bs;
@@ -200,11 +194,10 @@ TriangulateTwoBearingsMidpointMany(
   return triangulated;
 }
 
-MatXd EpipolarAngleTwoBearingsMany(
-    const MatX3d &bearings1,
-    const MatX3d &bearings2,
-    const Mat3d &rotation,
-    const Vec3d &translation) {
+MatXd EpipolarAngleTwoBearingsMany(const MatX3d &bearings1,
+                                   const MatX3d &bearings2,
+                                   const Mat3d &rotation,
+                                   const Vec3d &translation) {
   const auto translation_normalized = translation.normalized();
   const auto bearings2_world = bearings2 * rotation.transpose();
 
@@ -221,10 +214,9 @@ MatXd EpipolarAngleTwoBearingsMany(
     epi2.row(i) = translation_normalized.cross(bearing).normalized();
   }
 
-  MatXd symmetric_epi =
-      (((epi1 * bearings2_world.transpose()).array().abs() +
-        (bearings1 * epi2.transpose()).array().abs()) /
-       2.0);
+  MatXd symmetric_epi = (((epi1 * bearings2_world.transpose()).array().abs() +
+                          (bearings1 * epi2.transpose()).array().abs()) /
+                         2.0);
   return M_PI / 2.0 - symmetric_epi.array().acos();
 }
 
@@ -241,7 +233,5 @@ Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
   solver.Solve(f, &refined);
   return refined;
 }
-
-
 
 }  // namespace geometry

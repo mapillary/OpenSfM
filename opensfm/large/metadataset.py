@@ -1,13 +1,12 @@
 # pyre-unsafe
+import glob
 import os
 import os.path
 import shutil
 import sys
-import glob
 
 import numpy as np
-from opensfm import config
-from opensfm import io
+from opensfm import config, io
 from opensfm.dataset import DataSet
 
 
@@ -74,10 +73,10 @@ class MetaDataSet:
 
         if not os.path.exists(src):
             return
-        
+
         # Symlinks on Windows require admin privileges,
         # so we use hard links instead
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             if os.path.isdir(dst):
                 shutil.rmtree(dst)
             elif os.path.isfile(dst):
@@ -88,7 +87,7 @@ class MetaDataSet:
 
         subfolders = len(file_path.split(os.path.sep)) - 1
 
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             if os.path.isdir(src):
                 # Create directory in destination, then make hard links
                 # to files
@@ -101,7 +100,9 @@ class MetaDataSet:
                 # Just make hard link
                 os.link(src, dst)
         else:
-            os.symlink(os.path.join(*[".."] * subfolders, os.path.relpath(src, base_path)), dst)
+            os.symlink(
+                os.path.join(*[".."] * subfolders, os.path.relpath(src, base_path)), dst
+            )
 
     def image_groups_exists(self):
         return os.path.isfile(self._image_groups_path())
@@ -117,12 +118,12 @@ class MetaDataSet:
     def create_image_list(self, ills):
         with io.open_wt(self._image_list_path()) as csvfile:
             for image, lat, lon in ills:
-                csvfile.write(u"{}\t{}\t{}\n".format(image, lat, lon))
+                csvfile.write("{}\t{}\t{}\n".format(image, lat, lon))
 
     def images_with_gps(self):
         with io.open_rt(self._image_list_path()) as csvfile:
             for line in csvfile:
-                image, lat, lon = line.split(u"\t")
+                image, lat, lon = line.split("\t")
                 yield image, float(lat), float(lon)
 
     def save_clusters(self, images, positions, labels, centers):
@@ -181,7 +182,7 @@ class MetaDataSet:
                     src = data.image_files[image]
                     dst = os.path.join(submodel_images_path, image)
                     if not os.path.isfile(dst):
-                        if sys.platform == 'win32':
+                        if sys.platform == "win32":
                             os.link(src, dst)
                         else:
                             os.symlink(os.path.relpath(src, submodel_images_path), dst)

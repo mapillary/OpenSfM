@@ -286,8 +286,8 @@ class CameraDerivativesFixture : public ::testing::Test {
       for (int j = 0; j < size_params; ++j) {
         ASSERT_NEAR(projection_expected[i].derivatives()(j), jacobian(i, j),
                     eps)
-          << "where (i, j) = (" << testing::PrintToString(i)
-          << ", " << testing::PrintToString(j) << ')';
+            << "where (i, j) = (" << testing::PrintToString(i) << ", "
+            << testing::PrintToString(j) << ')';
       }
       ASSERT_NEAR(projection_expected[i].value(), projected[i], eps);
     }

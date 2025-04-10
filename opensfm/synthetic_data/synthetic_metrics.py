@@ -1,10 +1,10 @@
 # pyre-unsafe
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
 import opensfm.transformations as tf
-from opensfm import align, types, pymap, multiview
+from opensfm import align, multiview, pymap, types
 
 
 def points_errors(
@@ -142,7 +142,7 @@ def _copy_reconstruction(reconstruction: types.Reconstruction) -> types.Reconstr
 
 
 def rmse(errors: np.ndarray) -> float:
-    return np.sqrt(np.mean(errors ** 2))
+    return np.sqrt(np.mean(errors**2))
 
 
 def mad(errors: np.ndarray) -> float:

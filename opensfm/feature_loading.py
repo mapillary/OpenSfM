@@ -1,10 +1,10 @@
 # pyre-unsafe
 import logging
 from functools import lru_cache
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
 
 import numpy as np
-from opensfm import pygeometry, features as ft, masking
+from opensfm import features as ft, masking, pygeometry
 from opensfm.dataset_base import DataSetBase
 
 
