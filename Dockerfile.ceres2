@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -27,12 +27,12 @@ RUN apt-get update \
 # Install Ceres 2
 RUN \
     mkdir -p /source && cd /source && \
-    curl -L http://ceres-solver.org/ceres-solver-2.0.0.tar.gz | tar xz && \
-    cd /source/ceres-solver-2.0.0 && \
+    curl -L http://ceres-solver.org/ceres-solver-2.1.0.tar.gz | tar xz && \
+    cd /source/ceres-solver-2.1.0 && \
     mkdir -p build && cd build && \
     cmake .. -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF && \
     make -j4 install && \
-    cd / && rm -rf /source/ceres-solver-2.0.0
+    cd / && rm -rf /source/ceres-solver-2.1.0
 
 
 COPY . /source/OpenSfM

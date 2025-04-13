@@ -20,9 +20,10 @@ set(GEOMETRY_FILES
     )
 add_library(geometry ${GEOMETRY_FILES})
 target_link_libraries(geometry
+    PUBLIC
+    ${CERES_LIBRARIES}
     PRIVATE
     foundation
-    ${CERES_LIBRARIES}
     )
 target_include_directories(geometry PUBLIC ${CMAKE_SOURCE_DIR})
 
@@ -49,7 +50,7 @@ target_link_libraries(pygeometry
   PRIVATE
     geometry
     foundation
-    pybind11
+    pybind11::headers
 )
 set_target_properties(pygeometry PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."

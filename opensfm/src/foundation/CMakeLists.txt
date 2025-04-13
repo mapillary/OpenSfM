@@ -12,7 +12,7 @@ set(FOUNDATION_FILES
 add_library(foundation ${FOUNDATION_FILES})
 target_link_libraries(foundation
   PUBLIC
-    pybind11
+    pybind11::headers
     ${OpenCV_LIBS}
     ${OpenMP_libomp_LIBRARY}
     Eigen3::Eigen

@@ -10,6 +10,7 @@ add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm
   PUBLIC
     Eigen3::Eigen
+    ${CERES_LIBRARIES}
   PRIVATE
     foundation
     map
@@ -35,7 +36,7 @@ target_include_directories(pysfm PRIVATE ${GLOG_INCLUDE_DIR})
 target_link_libraries(pysfm
   PRIVATE
     foundation
-    pybind11
+    pybind11::headers
     sfm
 )
 set_target_properties(pysfm PROPERTIES
