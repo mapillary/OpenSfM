@@ -10,6 +10,8 @@ OpenSfM is a Structure from Motion library written in Python. The library serves
 
 Checkout this [blog post with more demos](http://blog.mapillary.com/update/2014/12/15/sfm-preview.html)
 
+## MacOS Install
+ `brew install qt pyqt boost`
 
 ## Getting Started
 

@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  opensfm:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TWINE_USERNAME
+        - TWINE_PASSWORD
+    image: artichoke/opensfm
+    environment:
+        - TWINE_USERNAME
+        - TWINE_PASSWORD
