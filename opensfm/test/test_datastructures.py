@@ -6,14 +6,14 @@ from typing import Tuple
 
 import numpy as np
 import pytest
-from mapillary.opensfm.opensfm.test.utils import (
+from opensfm import pygeometry, pymap, types
+from opensfm.pymap import RigCamera, RigInstance, Shot
+from opensfm.test.utils import (
     assert_cameras_equal,
     assert_maps_equal,
     assert_metadata_equal,
     assert_shots_equal,
 )
-from opensfm import pygeometry, pymap, types
-from opensfm.pymap import RigCamera, RigInstance, Shot
 from opensfm.types import Reconstruction
 
 

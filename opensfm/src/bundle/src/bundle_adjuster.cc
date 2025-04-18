@@ -505,7 +505,7 @@ struct AddRelativeDepthError {
       return;
     }
     const auto &depth = obs.depth_prior.value();
-    if (!ceres::isfinite(depth.value)) {
+    if (!std::isfinite(depth.value)) {
       throw std::runtime_error(obs.shot->GetID() +
                                " has non-finite depth prior");
     }
