@@ -2,6 +2,7 @@
 """Incremental reconstruction pipeline"""
 
 import datetime
+import enum
 import logging
 import math
 from abc import ABC, abstractmethod
@@ -28,13 +29,12 @@ from opensfm import (
 from opensfm.align import align_reconstruction, apply_similarity
 from opensfm.context import current_memory_usage, parallel_map
 from opensfm.dataset_base import DataSetBase
-from python.migrations.py310 import StrEnum310
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class ReconstructionAlgorithm(StrEnum310):
+class ReconstructionAlgorithm(str, enum.Enum):
     INCREMENTAL = "incremental"
     TRIANGULATION = "triangulation"
 
