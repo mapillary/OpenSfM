@@ -49,7 +49,7 @@ class DataSet(DataSetBase):
     def load_config(self) -> None:
         config_file_path = self._config_file()
         if self.io_handler.isfile(config_file_path):
-            with self.io_handler.open(config_file_path) as f:
+            with self.io_handler.open_rt(config_file_path) as f:
                 self.config = config.load_config_from_fileobject(f)
         else:
             self.config = config.default_config()
@@ -82,7 +82,7 @@ class DataSet(DataSetBase):
 
     def open_image_file(self, image: str) -> IO[Any]:
         """Open image file and return file object."""
-        return self.io_handler.open(self._image_file(image), "rb")
+        return self.io_handler.open_rb(self._image_file(image))
 
     def load_image(
         self,
@@ -160,7 +160,7 @@ class DataSet(DataSetBase):
         """Load image segmentation if it exists, otherwise return None."""
         segmentation_file = self._segmentation_file(image)
         if self.io_handler.isfile(segmentation_file):
-            with self.io_handler.open(segmentation_file, "rb") as fp:
+            with self.io_handler.open_rb(segmentation_file) as fp:
                 with PngImageFile(fp) as png_image:
                     # TODO: We do not write a header tag in the metadata. Might be good safety check.
                     data = np.array(png_image)
@@ -292,7 +292,7 @@ class DataSet(DataSetBase):
         self, filepath: str, features_data: features.FeaturesData
     ) -> None:
         self.io_handler.mkdir_p(self._feature_path())
-        with self.io_handler.open(filepath, "wb") as fwb:
+        with self.io_handler.open_wb(filepath) as fwb:
             features_data.save(fwb, self.config)
 
     def features_exist(self, image: str) -> bool:
@@ -306,7 +306,7 @@ class DataSet(DataSetBase):
             if self.io_handler.isfile(self._feature_file_legacy(image))
             else self._feature_file(image)
         )
-        with self.io_handler.open(features_filepath, "rb") as f:
+        with self.io_handler.open_rb(features_filepath) as f:
             return features.FeaturesData.from_file(f, self.config)
 
     def save_features(self, image: str, features_data: features.FeaturesData) -> None:
@@ -319,12 +319,12 @@ class DataSet(DataSetBase):
         return self.io_handler.isfile(self._words_file(image))
 
     def load_words(self, image: str) -> np.ndarray:
-        with self.io_handler.open(self._words_file(image), "rb") as f:
+        with self.io_handler.open_rb(self._words_file(image)) as f:
             s = np.load(f)
             return s["words"].astype(np.int32)
 
     def save_words(self, image: str, words: np.ndarray) -> None:
-        with self.io_handler.open(self._words_file(image), "wb") as f:
+        with self.io_handler.open_wb(self._words_file(image)) as f:
             np.savez_compressed(f, words=words.astype(np.uint16))
 
     def _matches_path(self) -> str:
@@ -359,7 +359,7 @@ class DataSet(DataSetBase):
                     )
                 return getattr(self.modules_map[classname], name)
 
-        with self.io_handler.open(self._matches_file(image), "rb") as fin:
+        with self.io_handler.open_rb(self._matches_file(image)) as fin:
             matches = MatchingUnpickler(BytesIO(gzip.decompress(fin.read()))).load()
         return matches
 
@@ -369,7 +369,7 @@ class DataSet(DataSetBase):
         with BytesIO() as buffer:
             with gzip.GzipFile(fileobj=buffer, mode="w") as fzip:
                 pickle.dump(matches, fzip)
-            with self.io_handler.open(self._matches_file(image), "wb") as fw:
+            with self.io_handler.open_wb(self._matches_file(image)) as fw:
                 fw.write(buffer.getvalue())
 
     def find_matches(self, im1: str, im2: str) -> np.ndarray:
@@ -392,7 +392,7 @@ class DataSet(DataSetBase):
         self, filename: Optional[str] = None
     ) -> pymap.TracksManager:
         """Return the tracks manager"""
-        with self.io_handler.open(self._tracks_manager_file(filename), "r") as f:
+        with self.io_handler.open_rt(self._tracks_manager_file(filename)) as f:
             return pymap.TracksManager.instanciate_from_string(f.read())
 
     def tracks_exists(self, filename: Optional[str] = None) -> bool:
@@ -401,7 +401,7 @@ class DataSet(DataSetBase):
     def save_tracks_manager(
         self, tracks_manager: pymap.TracksManager, filename: Optional[str] = None
     ) -> None:
-        with self.io_handler.open(self._tracks_manager_file(filename), "w") as fw:
+        with self.io_handler.open_wt(self._tracks_manager_file(filename)) as fw:
             fw.write(tracks_manager.as_string())
 
     def _reconstruction_file(self, filename: Optional[str]) -> str:
@@ -562,7 +562,7 @@ class DataSet(DataSetBase):
     def append_to_profile_log(self, content: str) -> None:
         """Append content to the profile.log file."""
         path = os.path.join(self.data_path, "profile.log")
-        with self.io_handler.open(path, "a") as fp:
+        with self.io_handler.open_at(path) as fp:
             fp.write(content)
 
     def _report_path(self) -> str:
@@ -578,7 +578,7 @@ class DataSet(DataSetBase):
         filepath = os.path.join(self._report_path(), path)
         self.io_handler.mkdir_p(os.path.dirname(filepath))
         with self.io_handler.open_wt(filepath) as fout:
-            return fout.write(report_str)
+            fout.write(report_str)
 
     def _ply_file(self, filename: Optional[str]) -> str:
         return os.path.join(self.data_path, filename or "reconstruction.ply")
@@ -787,7 +787,7 @@ class UndistortedDataSet:
     def load_undistorted_segmentation(self, image: str) -> np.ndarray:
         """Load an undistorted image segmentation."""
         segmentation_file = self._undistorted_segmentation_file(image)
-        with self.io_handler.open(segmentation_file, "rb") as fp:
+        with self.io_handler.open_rb(segmentation_file) as fp:
             with PngImageFile(fp) as png_image:
                 # TODO: We do not write a header tag in the metadata. Might be good safety check.
                 data = np.array(png_image)
@@ -855,7 +855,7 @@ class UndistortedDataSet:
     def load_point_cloud(
         self, filename: str = "merged.ply"
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        with self.io_handler.open(self.point_cloud_file(filename), "r") as fp:
+        with self.io_handler.open_rt(self.point_cloud_file(filename)) as fp:
             return io.point_cloud_from_ply(fp)
 
     def save_point_cloud(
@@ -867,7 +867,7 @@ class UndistortedDataSet:
         filename: str = "merged.ply",
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
-        with self.io_handler.open(self.point_cloud_file(filename), "w") as fp:
+        with self.io_handler.open_wt(self.point_cloud_file(filename)) as fp:
             io.point_cloud_to_ply(points, normals, colors, labels, fp)
 
     def raw_depthmap_exists(self, image: str) -> bool:
@@ -884,7 +884,7 @@ class UndistortedDataSet:
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "raw.npz")
-        with self.io_handler.open(filepath, "wb") as f:
+        with self.io_handler.open_wb(filepath) as f:
             np.savez_compressed(
                 f, depth=depth, plane=plane, score=score, nghbr=nghbr, nghbrs=nghbrs
             )
@@ -892,7 +892,7 @@ class UndistortedDataSet:
     def load_raw_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        with self.io_handler.open(self.depthmap_file(image, "raw.npz"), "rb") as f:
+        with self.io_handler.open_rb(self.depthmap_file(image, "raw.npz")) as f:
             o = np.load(f)
             return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]
 
@@ -904,13 +904,13 @@ class UndistortedDataSet:
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "clean.npz")
-        with self.io_handler.open(filepath, "wb") as f:
+        with self.io_handler.open_wb(filepath) as f:
             np.savez_compressed(f, depth=depth, plane=plane, score=score)
 
     def load_clean_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        with self.io_handler.open(self.depthmap_file(image, "clean.npz"), "rb") as f:
+        with self.io_handler.open_rb(self.depthmap_file(image, "clean.npz")) as f:
             o = np.load(f)
             return o["depth"], o["plane"], o["score"]
 
@@ -927,7 +927,7 @@ class UndistortedDataSet:
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "pruned.npz")
-        with self.io_handler.open(filepath, "wb") as f:
+        with self.io_handler.open_wb(filepath) as f:
             np.savez_compressed(
                 f,
                 points=points,
@@ -939,7 +939,7 @@ class UndistortedDataSet:
     def load_pruned_depthmap(
         self, image: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        with self.io_handler.open(self.depthmap_file(image, "pruned.npz"), "rb") as f:
+        with self.io_handler.open_rb(self.depthmap_file(image, "pruned.npz")) as f:
             o = np.load(f)
             return (
                 o["points"],
@@ -950,14 +950,14 @@ class UndistortedDataSet:
 
     def load_undistorted_tracks_manager(self) -> pymap.TracksManager:
         filename = os.path.join(self.data_path, "tracks.csv")
-        with self.io_handler.open(filename, "r") as f:
+        with self.io_handler.open_rt(filename) as f:
             return pymap.TracksManager.instanciate_from_string(f.read())
 
     def save_undistorted_tracks_manager(
         self, tracks_manager: pymap.TracksManager
     ) -> None:
         filename = os.path.join(self.data_path, "tracks.csv")
-        with self.io_handler.open(filename, "w") as fw:
+        with self.io_handler.open_wt(filename) as fw:
             fw.write(tracks_manager.as_string())
 
     def load_undistorted_reconstruction(self) -> List[types.Reconstruction]:

@@ -44,9 +44,7 @@ class Report:
         if isinstance(bytestring, str):
             bytestring = bytestring.encode("utf8")
 
-        with self.io_handler.open(
-            os.path.join(self.output_path, filename), "wb"
-        ) as fwb:
+        with self.io_handler.open_wb(os.path.join(self.output_path, filename)) as fwb:
             fwb.write(bytestring)
 
     def _make_table(self, columns_names, rows, row_header=False) -> None:
@@ -113,8 +111,8 @@ class Report:
     def _make_centered_image(self, image_path: str, desired_height: float) -> None:
         with tempfile.TemporaryDirectory() as tmp_local_dir:
             local_image_path = os.path.join(tmp_local_dir, os.path.basename(image_path))
-            with self.io_handler.open(local_image_path, "wb") as fwb:
-                with self.io_handler.open(image_path, "rb") as f:
+            with self.io_handler.open_wb(local_image_path) as fwb:
+                with self.io_handler.open_rb(image_path) as f:
                     fwb.write(f.read())
 
             width, height = PIL.Image.open(local_image_path).size

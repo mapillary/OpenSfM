@@ -5,7 +5,18 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, IO, Iterable, List, Optional, TextIO, Tuple, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Dict,
+    IO,
+    Iterable,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import cv2
 import numpy as np
@@ -1291,6 +1302,7 @@ class IoFilesystemBase(ABC):
         pass
 
     @classmethod
+    @abstractmethod
     def ls(cls, path: str):
         pass
 
@@ -1305,27 +1317,34 @@ class IoFilesystemBase(ABC):
         pass
 
     @classmethod
+    @abstractmethod
     def rm_if_exist(cls, filename: str):
         pass
 
     @classmethod
+    @abstractmethod
     def symlink(cls, src_path: str, dst_path: str, **kwargs):
         pass
 
     @classmethod
     @abstractmethod
-    def open(cls, *args, **kwargs) -> IO[Any]:
-        pass
+    def open_wb(cls, path: str) -> BinaryIO: ...
 
     @classmethod
     @abstractmethod
-    def open_wt(cls, path: str):
-        pass
+    def open_rb(cls, path: str) -> BinaryIO: ...
 
     @classmethod
     @abstractmethod
-    def open_rt(cls, path: str):
-        pass
+    def open_wt(cls, path: str) -> TextIO: ...
+
+    @classmethod
+    @abstractmethod
+    def open_rt(cls, path: str) -> TextIO: ...
+
+    @classmethod
+    @abstractmethod
+    def open_at(cls, path: str) -> TextIO: ...
 
     @classmethod
     @abstractmethod
@@ -1391,16 +1410,24 @@ class IoFilesystemDefault(IoFilesystemBase):
         os.symlink(src_path, dst_path, **kwargs)
 
     @classmethod
-    def open(cls, *args, **kwargs) -> IO[Any]:
-        return open(*args, **kwargs)
+    def open_wb(cls, path: str) -> BinaryIO:
+        return open(path, "wb")
 
     @classmethod
-    def open_wt(cls, path: str):
-        return cls.open(path, "w", encoding="utf-8")
+    def open_rb(cls, path: str) -> BinaryIO:
+        return open(path, "rb")
 
     @classmethod
-    def open_rt(cls, path: str):
-        return cls.open(path, "r", encoding="utf-8")
+    def open_wt(cls, path: str) -> TextIO:
+        return open(path, "wt")
+
+    @classmethod
+    def open_rt(cls, path: str) -> TextIO:
+        return open(path, "rt")
+
+    @classmethod
+    def open_at(cls, path: str) -> TextIO:
+        return open(path, "at")
 
     @classmethod
     def mkdir_p(cls, path: str):
@@ -1414,17 +1441,17 @@ class IoFilesystemDefault(IoFilesystemBase):
         unchanged: bool = False,
         anydepth: bool = False,
     ):
-        with cls.open(path, "rb") as fb:
+        with cls.open_rb(path) as fb:
             return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
     @classmethod
     def imwrite(cls, path: str, image) -> None:
-        with cls.open(path, "wb") as fwb:
+        with cls.open_wb(path) as fwb:
             imwrite_from_fileobject(fwb, image, path)
 
     @classmethod
     def image_size(cls, path: str) -> Tuple[int, int]:
-        with cls.open(path, "rb") as fb:
+        with cls.open_rb(path) as fb:
             return image_size_from_fileobject(fb)
 
     @classmethod

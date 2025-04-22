@@ -541,7 +541,7 @@ def save_matchgraph(
         pad=0.0,
     )
 
-    with io_handler.open(os.path.join(output_path, "matchgraph.png"), "wb") as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "matchgraph.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -589,9 +589,7 @@ def save_residual_histogram(
     axs[1].set_title("Pixel Residual")
     axs[2].set_title("Angular Residual")
 
-    with io_handler.open(
-        os.path.join(output_path, "residual_histogram.png"), "wb"
-    ) as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "residual_histogram.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -763,7 +761,7 @@ def save_topview(
         [0, f"{int(size_y / 2):.0f}", f"{size_y:.0f} meters"],
         fontsize="small",
     )
-    with io_handler.open(os.path.join(output_path, "topview.png"), "wb") as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "topview.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -855,11 +853,10 @@ def save_heatmap(
             fontsize="x-small",
         )
 
-    with io_handler.open(
+    with io_handler.open_wb(
         os.path.join(
             output_path, "heatmap_" + str(camera_id.replace("/", "_")) + ".png"
-        ),
-        "wb",
+        )
     ) as fwb:
         plt.savefig(
             fwb,
@@ -986,11 +983,10 @@ def save_residual_grids(
             [0, buckets_y / 2, buckets_y], [0, int(h / 2), h], fontsize="x-small"
         )
 
-        with io_handler.open(
+        with io_handler.open_wb(
             os.path.join(
                 output_path, "residuals_" + str(camera_id.replace("/", "_")) + ".png"
-            ),
-            "wb",
+            )
         ) as fwb:
             plt.savefig(
                 fwb,
