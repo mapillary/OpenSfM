@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import json
 import logging
 import os
@@ -21,11 +21,13 @@ from typing import (
 import cv2
 import numpy as np
 import pyproj
-from numpy import ndarray
+from numpy.typing import NDArray
 from opensfm import context, features, geo, pygeometry, pymap, types
 from PIL import Image
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+JSONType = Any  # pyre-ignore[33]
 
 
 def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
@@ -347,7 +349,7 @@ def cameras_from_json(obj: Dict[str, Any]) -> Dict[str, pygeometry.Camera]:
     return cameras
 
 
-def camera_to_json(camera) -> Dict[str, Any]:
+def camera_to_json(camera: pygeometry.Camera) -> Dict[str, Any]:
     """
     Write camera to a json object
     """
@@ -834,7 +836,7 @@ def camera_to_vector(camera: pygeometry.Camera) -> List[float]:
 
 def _read_gcp_list_lines(
     lines: Iterable[str],
-    projection,
+    projection: Optional[pyproj.Transformer],
     exifs: Dict[str, Dict[str, Any]],
 ) -> List[pymap.GroundControlPoint]:
     points = {}
@@ -925,7 +927,9 @@ def _valid_gcp_line(line: str) -> bool:
     return stripped != "" and stripped[0] != "#"
 
 
-def read_gcp_list(fileobj, exif: Dict[str, Any]) -> List[pymap.GroundControlPoint]:
+def read_gcp_list(
+    fileobj: IO[str], exif: Dict[str, Any]
+) -> List[pymap.GroundControlPoint]:
     """Read a ground control points from a gcp_list.txt file.
 
     It requires the points to be in the WGS84 lat, lon, alt format.
@@ -938,7 +942,7 @@ def read_gcp_list(fileobj, exif: Dict[str, Any]) -> List[pymap.GroundControlPoin
     return points
 
 
-def read_ground_control_points(fileobj: IO) -> List[pymap.GroundControlPoint]:
+def read_ground_control_points(fileobj: IO[str]) -> List[pymap.GroundControlPoint]:
     """Read ground control points from json file"""
     obj = json_load(fileobj)
 
@@ -973,7 +977,7 @@ def read_ground_control_points(fileobj: IO) -> List[pymap.GroundControlPoint]:
 
 def write_ground_control_points(
     gcp: List[pymap.GroundControlPoint],
-    fileobj: IO,
+    fileobj: IO[str],
 ) -> None:
     """Write ground control points to json file."""
     obj = {"points": []}
@@ -1011,21 +1015,21 @@ def json_dump_kwargs(minify: bool = False) -> Dict[str, Any]:
     return {"indent": indent, "ensure_ascii": False, "separators": separators}
 
 
-def json_dump(data, fout: IO[str], minify: bool = False) -> None:
+def json_dump(data: JSONType, fout: IO[str], minify: bool = False) -> None:
     kwargs = json_dump_kwargs(minify)
     return json.dump(data, fout, **kwargs)
 
 
-def json_dumps(data, minify: bool = False) -> str:
+def json_dumps(data: JSONType, minify: bool = False) -> str:
     kwargs = json_dump_kwargs(minify)
     return json.dumps(data, **kwargs)
 
 
-def json_load(fp: Union[IO[str], IO[bytes]]) -> Any:
+def json_load(fp: Union[IO[str], IO[bytes]]) -> JSONType:
     return json.load(fp)
 
 
-def json_loads(text: Union[str, bytes]) -> Any:
+def json_loads(text: Union[str, bytes]) -> JSONType:
     return json.loads(text)
 
 
@@ -1125,7 +1129,7 @@ def reconstruction_to_ply(
 
 def point_cloud_from_ply(
     fp: TextIO,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     """Load point cloud from a PLY file."""
     all_lines = fp.read().splitlines()
     start = all_lines.index("end_header") + 1
@@ -1149,10 +1153,10 @@ def point_cloud_from_ply(
 
 
 def point_cloud_to_ply(
-    points: np.ndarray,
-    normals: np.ndarray,
-    colors: np.ndarray,
-    labels: np.ndarray,
+    points: NDArray,
+    normals: NDArray,
+    colors: NDArray,
+    labels: NDArray,
     fp: TextIO,
 ) -> None:
     fp.write("ply\n")
@@ -1195,26 +1199,29 @@ def mkdir_p(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
-def open_wt(path: str) -> IO[Any]:
+def open_wt(path: str) -> TextIO:
     """Open a file in text mode for writing utf-8."""
     return open(path, "w", encoding="utf-8")
 
 
-def open_rt(path: str) -> IO[Any]:
+def open_rt(path: str) -> TextIO:
     """Open a file in text mode for reading utf-8."""
     return open(path, "r", encoding="utf-8")
 
 
 def imread(
     path: str, grayscale: bool = False, unchanged: bool = False, anydepth: bool = False
-) -> ndarray:
+) -> NDArray:
     with open(path, "rb") as fb:
         return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
 
 def imread_from_fileobject(
-    fb, grayscale: bool = False, unchanged: bool = False, anydepth: bool = False
-) -> np.ndarray:
+    fb: IO[bytes],
+    grayscale: bool = False,
+    unchanged: bool = False,
+    anydepth: bool = False,
+) -> NDArray:
     """Load image as an array ignoring EXIF orientation."""
     if context.OPENCV3:
         if grayscale:
@@ -1256,18 +1263,15 @@ def imread_from_fileobject(
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn BGR to RGB (or BGRA to RGBA)
     return image
 
-    @classmethod
-    def imwrite(cls, path: str, image: np.ndarray) -> None:
-        with cls.open(path, "wb") as fwb:
-            imwrite(fwb, image, path)
 
-
-def imwrite(path: str, image: np.ndarray) -> None:
+def imwrite(path: str, image: NDArray) -> None:
     with open(path, "wb") as fwb:
         return imwrite_from_fileobject(fwb, image, path)
 
 
-def imwrite_from_fileobject(fwb, image: np.ndarray, ext: str) -> None:
+def imwrite_from_fileobject(
+    fwb: Union[IO[str], IO[bytes]], image: NDArray, ext: str
+) -> None:
     """Write an image to a file object"""
     if len(image.shape) == 3:
         image[:, :, :3] = image[:, :, [2, 1, 0]]  # Turn RGB to BGR (or RGBA to BGRA)
@@ -1298,33 +1302,27 @@ def image_size(path: str) -> Tuple[int, int]:
 class IoFilesystemBase(ABC):
     @classmethod
     @abstractmethod
-    def exists(cls, path: str):
-        pass
+    def exists(cls, path: str) -> bool: ...
 
     @classmethod
     @abstractmethod
-    def ls(cls, path: str):
-        pass
+    def ls(cls, path: str) -> List[str]: ...
 
     @classmethod
     @abstractmethod
-    def isfile(cls, path: str):
-        pass
+    def isfile(cls, path: str) -> bool: ...
 
     @classmethod
     @abstractmethod
-    def isdir(cls, path: str):
-        pass
+    def isdir(cls, path: str) -> bool: ...
 
     @classmethod
     @abstractmethod
-    def rm_if_exist(cls, filename: str):
-        pass
+    def rm_if_exist(cls, filename: str) -> None: ...
 
     @classmethod
     @abstractmethod
-    def symlink(cls, src_path: str, dst_path: str, **kwargs):
-        pass
+    def symlink(cls, src_path: str, dst_path: str, **kwargs: Any) -> None: ...
 
     @classmethod
     @abstractmethod
@@ -1348,28 +1346,29 @@ class IoFilesystemBase(ABC):
 
     @classmethod
     @abstractmethod
-    def mkdir_p(cls, path: str):
-        pass
+    def mkdir_p(cls, path: str) -> None: ...
 
     @classmethod
     @abstractmethod
-    def imwrite(cls, path: str, image):
-        pass
+    def imwrite(cls, path: str, image: NDArray) -> None: ...
 
     @classmethod
     @abstractmethod
-    def imread(cls, path: str, grayscale=False, unchanged=False, anydepth=False):
-        pass
+    def imread(
+        cls,
+        path: str,
+        grayscale: bool = False,
+        unchanged: bool = False,
+        anydepth: bool = False,
+    ) -> NDArray: ...
 
     @classmethod
     @abstractmethod
-    def image_size(cls, path: str):
-        pass
+    def image_size(cls, path: str) -> Tuple[int, int]: ...
 
     @classmethod
     @abstractmethod
-    def timestamp(cls, path: str):
-        pass
+    def timestamp(cls, path: str) -> float: ...
 
 
 class IoFilesystemDefault(IoFilesystemBase):
@@ -1377,8 +1376,7 @@ class IoFilesystemDefault(IoFilesystemBase):
         self.type = "default"
 
     @classmethod
-    def exists(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
+    def exists(cls, path: str) -> bool:
         return os.path.exists(path)
 
     @classmethod
@@ -1386,13 +1384,11 @@ class IoFilesystemDefault(IoFilesystemBase):
         return os.listdir(path)
 
     @classmethod
-    def isfile(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
+    def isfile(cls, path: str) -> bool:
         return os.path.isfile(path)
 
     @classmethod
-    def isdir(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `bool`.
+    def isdir(cls, path: str) -> bool:
         return os.path.isdir(path)
 
     @classmethod
@@ -1406,7 +1402,7 @@ class IoFilesystemDefault(IoFilesystemBase):
                 os.remove(filename)
 
     @classmethod
-    def symlink(cls, src_path: str, dst_path: str, **kwargs):
+    def symlink(cls, src_path: str, dst_path: str, **kwargs: Any) -> None:
         os.symlink(src_path, dst_path, **kwargs)
 
     @classmethod
@@ -1430,8 +1426,8 @@ class IoFilesystemDefault(IoFilesystemBase):
         return open(path, "at")
 
     @classmethod
-    def mkdir_p(cls, path: str):
-        return os.makedirs(path, exist_ok=True)
+    def mkdir_p(cls, path: str) -> None:
+        os.makedirs(path, exist_ok=True)
 
     @classmethod
     def imread(
@@ -1440,12 +1436,12 @@ class IoFilesystemDefault(IoFilesystemBase):
         grayscale: bool = False,
         unchanged: bool = False,
         anydepth: bool = False,
-    ):
+    ) -> NDArray:
         with cls.open_rb(path) as fb:
             return imread_from_fileobject(fb, grayscale, unchanged, anydepth)
 
     @classmethod
-    def imwrite(cls, path: str, image) -> None:
+    def imwrite(cls, path: str, image: NDArray) -> None:
         with cls.open_wb(path) as fwb:
             imwrite_from_fileobject(fwb, image, path)
 
@@ -1455,6 +1451,5 @@ class IoFilesystemDefault(IoFilesystemBase):
             return image_size_from_fileobject(fb)
 
     @classmethod
-    def timestamp(cls, path: str) -> str:
-        # pyre-fixme[7]: Expected `str` but got `float`.
+    def timestamp(cls, path: str) -> float:
         return os.path.getmtime(path)
