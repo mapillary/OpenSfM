@@ -4,8 +4,9 @@ import os.path
 from io import StringIO
 
 import numpy as np
-from mapillary.opensfm.opensfm.test import data_generation, utils
+
 from opensfm import io, pygeometry, types
+from opensfm.test import data_generation, utils
 
 
 filename = os.path.join(

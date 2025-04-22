@@ -51,7 +51,7 @@ class FeaturesData:
     descriptors: Optional[np.ndarray]
     colors: np.ndarray
     semantic: Optional[SemanticData]
-    depths: np.ndarray | None  # New field. This field is not serialized yet
+    depths: Optional[np.ndarray]  # New field. This field is not serialized yet
 
     FEATURES_VERSION: int = 3
     FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
@@ -62,7 +62,7 @@ class FeaturesData:
         descriptors: Optional[np.ndarray],
         colors: np.ndarray,
         semantic: Optional[SemanticData],
-        depths: np.ndarray | None = None,
+        depths: Optional[np.ndarray] = None,
     ):
         self.points = points
         self.descriptors = descriptors
