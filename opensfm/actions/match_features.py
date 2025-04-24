@@ -1,8 +1,7 @@
 # pyre-unsafe
 from timeit import default_timer as timer
 
-from opensfm import io
-from opensfm import matching
+from opensfm import io, matching
 from opensfm.dataset_base import DataSetBase
 
 

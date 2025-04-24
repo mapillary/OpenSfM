@@ -21,6 +21,7 @@
 #pragma once
 
 #include <foundation/numeric.h>
+
 #include <Eigen/Eigen>
 #include <Eigen/SVD>
 

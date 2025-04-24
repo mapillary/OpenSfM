@@ -4,7 +4,7 @@ import json
 import time
 from queue import Queue
 
-from flask import Response, jsonify, render_template, request
+from flask import jsonify, render_template, request, Response
 
 distinct_colors = [
     "#46f0f0",

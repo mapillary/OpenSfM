@@ -1,8 +1,6 @@
 # pyre-unsafe
 import numpy as np
-from opensfm import dense
-from opensfm import pygeometry
-from opensfm import types
+from opensfm import dense, pygeometry, types
 
 
 def test_angle_between_points() -> None:
@@ -33,7 +31,9 @@ def test_depthmap_to_ply() -> None:
     r = types.Reconstruction()
     r.add_camera(camera)
     shot = r.create_shot(
-        "shot1", camera.id, pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]))
+        "shot1",
+        camera.id,
+        pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0])),
     )
 
     image = np.zeros((height, width, 3))

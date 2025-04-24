@@ -42,4 +42,4 @@ void RemoveConnections(map::TracksManager& manager, const map::ShotId& shot_id,
     manager.RemoveObservation(shot_id, connection);
   }
 }
-}  // namespace sfm
+}  // namespace sfm::tracks_helpers

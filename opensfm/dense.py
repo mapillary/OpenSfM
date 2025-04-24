@@ -4,12 +4,7 @@ import typing as t
 
 import cv2
 import numpy as np
-from opensfm import io
-from opensfm import log
-from opensfm import pydense
-from opensfm import pymap
-from opensfm import tracking
-from opensfm import types
+from opensfm import io, log, pydense, pymap, tracking, types
 from opensfm.context import parallel_map
 from opensfm.dataset import UndistortedDataSet
 
@@ -430,7 +425,7 @@ def distance_between_shots(shot, other):
     o1 = shot.pose.get_origin()
     o2 = other.pose.get_origin()
     d = o2 - o1
-    return np.sqrt(np.sum(d ** 2))
+    return np.sqrt(np.sum(d**2))
 
 
 def scale_image(

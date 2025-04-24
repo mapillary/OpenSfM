@@ -586,8 +586,8 @@ def motion_from_plane_homography(
         sin_theta = (d1 - d3) * sin_term
         sin_phi = (d1 + d3) * sin_term
 
-        d1_x3_2 = (d1 * x3**2)
-        d3_x1_2 = (d3 * x1**2)
+        d1_x3_2 = d1 * x3**2
+        d3_x1_2 = d3 * x1**2
         cos_theta = (d3_x1_2 + d1_x3_2) / d2
         cos_phi = (d3_x1_2 - d1_x3_2) / d2
 
@@ -710,6 +710,7 @@ def triangulate_gcp(
     shots: Dict[str, pymap.Shot],
     reproj_threshold: float = 0.02,
     min_ray_angle_degrees: float = 1.0,
+    min_depth: float = 0.001,
 ) -> Optional[np.ndarray]:
     """Compute the reconstructed position of a GCP from observations."""
 
@@ -732,7 +733,7 @@ def triangulate_gcp(
             np.asarray(bs),
             thresholds,
             np.radians(min_ray_angle_degrees),
-            np.radians(180.0 - min_ray_angle_degrees),
+            min_depth,
         )
         if valid_triangulation:
             return X

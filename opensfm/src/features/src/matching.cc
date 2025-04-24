@@ -41,8 +41,10 @@ void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
   }
 
   std::vector<int> best_match(f1.rows, -1), second_best_match(f1.rows, -1);
-  std::vector<float> best_distance(f1.rows, std::numeric_limits<float>::infinity());
-  std::vector<float> second_best_distance(f1.rows, std::numeric_limits<float>::infinity());
+  std::vector<float> best_distance(f1.rows,
+                                   std::numeric_limits<float>::infinity());
+  std::vector<float> second_best_distance(
+      f1.rows, std::numeric_limits<float>::infinity());
   *matches = cv::Mat(0, 2, CV_32S);
   cv::Mat tmp_match(1, 2, CV_32S);
   for (unsigned int i = 0; i < w1.rows; ++i) {

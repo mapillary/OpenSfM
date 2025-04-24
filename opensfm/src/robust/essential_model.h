@@ -2,6 +2,7 @@
 
 #include <foundation/numeric.h>
 #include <geometry/essential.h>
+
 #include "model.h"
 
 class EpipolarSymmetric {

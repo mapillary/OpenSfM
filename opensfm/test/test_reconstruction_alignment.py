@@ -1,7 +1,6 @@
 # pyre-unsafe
 import numpy as np
-from opensfm import pybundle
-from opensfm import pygeometry
+from opensfm import pybundle, pygeometry
 
 
 def get_shot_origin(shot) -> np.ndarray:
@@ -13,7 +12,9 @@ def get_shot_origin(shot) -> np.ndarray:
 def get_reconstruction_origin(r) -> np.ndarray:
     """Compute the origin of a reconstruction."""
     s = r.scale
-    pose = pygeometry.Pose(np.array([r.rx, r.ry, r.rz]), np.array([r.tx / s, r.ty / s, r.tz / s]))
+    pose = pygeometry.Pose(
+        np.array([r.rx, r.ry, r.rz]), np.array([r.tx / s, r.ty / s, r.tz / s])
+    )
     return pose.get_origin()
 
 

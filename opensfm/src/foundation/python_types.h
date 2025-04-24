@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+
 #include "opencv2/core/core.hpp"
 
 namespace py = pybind11;
@@ -11,9 +12,11 @@ namespace py = pybind11;
 namespace foundation {
 
 using pyarray_f = py::array_t<float, py::array::c_style | py::array::forcecast>;
-using pyarray_d = py::array_t<double, py::array::c_style | py::array::forcecast>;
+using pyarray_d =
+    py::array_t<double, py::array::c_style | py::array::forcecast>;
 using pyarray_int = py::array_t<int, py::array::c_style | py::array::forcecast>;
-using pyarray_uint8 = py::array_t<unsigned char, py::array::c_style | py::array::forcecast>;
+using pyarray_uint8 =
+    py::array_t<unsigned char, py::array::c_style | py::array::forcecast>;
 
 template <typename T>
 py::array_t<T> py_array_from_data(const T *data, size_t shape0) {

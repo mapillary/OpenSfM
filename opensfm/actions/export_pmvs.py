@@ -4,9 +4,7 @@ import os
 
 import cv2
 import numpy as np
-from opensfm import features
-from opensfm import io
-from opensfm import tracking
+from opensfm import features, io, tracking
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 

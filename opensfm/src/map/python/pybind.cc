@@ -65,12 +65,9 @@ PYBIND11_MODULE(pymap, m) {
       .export_values();
 
   py::class_<map::Depth>(m, "Depth")
-      .def(py::init<double, bool, double>(),
-           py::arg("value"),
-           py::arg("is_radial"),
-           py::arg("std_deviation"))
-      .def_readwrite("value",
-                     &map::Depth::value)
+      .def(py::init<double, bool, double>(), py::arg("value"),
+           py::arg("is_radial"), py::arg("std_deviation"))
+      .def_readwrite("value", &map::Depth::value)
       .def_readwrite("is_radial", &map::Depth::is_radial)
       .def_readwrite("std_deviation", &map::Depth::std_deviation);
 
@@ -270,7 +267,8 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::GroundControlPoint>(m, "GroundControlPoint")
       .def(py::init())
       .def_readwrite("id", &map::GroundControlPoint::id_)
-      .def_readwrite("survey_point_id", &map::GroundControlPoint::survey_point_id_)
+      .def_readwrite("survey_point_id",
+                     &map::GroundControlPoint::survey_point_id_)
       .def_readwrite("has_altitude", &map::GroundControlPoint::has_altitude_)
       .def_readwrite("lla", &map::GroundControlPoint::lla_)
       .def_property("lla_vec", &map::GroundControlPoint::GetLlaVec3d,
@@ -608,9 +606,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
            py::return_value_policy::reference_internal)
-      .def("remove_landmark", (void (map::Map::*)(const map::Landmark *const)) &
+      .def("remove_landmark", (void(map::Map::*)(const map::Landmark *const)) &
                                   map::Map::RemoveLandmark)
-      .def("remove_landmark", (void (map::Map::*)(const map::LandmarkId &)) &
+      .def("remove_landmark", (void(map::Map::*)(const map::LandmarkId &)) &
                                   map::Map::RemoveLandmark)
       .def("has_landmark", &map::Map::HasLandmark)
       .def("get_landmark",
@@ -650,17 +648,17 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       // Observation
       .def("add_observation",
-           (void (map::Map::*)(map::Shot *const, map::Landmark *const,
-                               const map::Observation &)) &
+           (void(map::Map::*)(map::Shot *const, map::Landmark *const,
+                              const map::Observation &)) &
                map::Map::AddObservation,
            py::arg("shot"), py::arg("landmark"), py::arg("observation"))
       .def("add_observation",
-           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &,
-                               const map::Observation &)) &
+           (void(map::Map::*)(const map::ShotId &, const map::LandmarkId &,
+                              const map::Observation &)) &
                map::Map::AddObservation,
            py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
       .def("remove_observation",
-           (void (map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
+           (void(map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
                map::Map::RemoveObservation,
            py::arg("shot"), py::arg("landmark"))
       // Getters

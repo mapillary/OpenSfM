@@ -3,6 +3,7 @@
 #include <foundation/numeric.h>
 #include <geometry/relative_pose.h>
 #include <geometry/triangulation.h>
+
 #include "essential_model.h"
 #include "model.h"
 

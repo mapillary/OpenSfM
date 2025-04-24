@@ -1,8 +1,10 @@
 # pyre-unsafe
-from . import command
 import argparse
-from opensfm.dataset import DataSet
+
 from opensfm.actions import export_report
+from opensfm.dataset import DataSet
+
+from . import command
 
 
 class Command(command.CommandBase):

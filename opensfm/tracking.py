@@ -6,8 +6,8 @@ import networkx as nx
 import numpy as np
 from opensfm import pymap
 from opensfm.dataset_base import DataSetBase
-from opensfm.unionfind import UnionFind
 from opensfm.pymap import TracksManager
+from opensfm.unionfind import UnionFind
 
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -108,18 +108,29 @@ def create_tracks_manager(
                 instances[image][featureid] if image in instances else NO_VALUE,
             )
             obs = pymap.Observation(
+                x,
+                y,
+                s,
+                int(r),
+                int(g),
+                int(b),
+                featureid,
                 # pyre-fixme[6]: For 8th argument expected `int` but got
                 #  `Union[ndarray[typing.Any, typing.Any], int]`.
+                segmentation,
                 # pyre-fixme[6]: For 9th argument expected `int` but got
                 #  `Union[ndarray[typing.Any, typing.Any], int]`.
-                x, y, s, int(r), int(g), int(b), featureid, segmentation, instance
+                instance,
             )
             if image in depths:
                 depth_value = depths[image][featureid]
                 if not np.isnan(depth_value) and not np.isinf(depth_value):
-                    std = max(depth_std_deviation * depth_value, depth_std_deviation)  # pyre-ignore
+                    std = max(
+                        depth_std_deviation * depth_value,  # pyre-ignore
+                        depth_std_deviation,
+                    )
                     obs.depth_prior = pymap.Depth(
-                        value=depth_value,   # pyre-ignore
+                        value=depth_value,  # pyre-ignore
                         std_deviation=std,
                         is_radial=depth_is_radial,
                     )
@@ -128,7 +139,8 @@ def create_tracks_manager(
             num_observations += 1
     logger.info(
         f"{len(tracks)} tracks, {num_observations} observations,"
-        f" {num_depth_priors} depth priors added to TracksManager")
+        f" {num_depth_priors} depth priors added to TracksManager"
+    )
     return tracks_manager
 
 

@@ -6,14 +6,14 @@ import random
 import statistics
 from collections import defaultdict
 from functools import lru_cache
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
-from opensfm import io, multiview, feature_loader, pymap, types, pygeometry
+from opensfm import feature_loader, io, multiview, pygeometry, pymap, types
 from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
@@ -225,8 +225,9 @@ def reconstruction_statistics(
 
     # observations total and average tracks lengths
     hist_agg = sorted(hist_agg.items(), key=lambda x: x[0])
-    lengths, counts = np.array([int(x[0]) for x in hist_agg]), np.array(
-        [x[1] for x in hist_agg]
+    lengths, counts = (
+        np.array([int(x[0]) for x in hist_agg]),
+        np.array([x[1] for x in hist_agg]),
     )
 
     points_count = stats["reconstructed_points_count"]
@@ -540,7 +541,7 @@ def save_matchgraph(
         pad=0.0,
     )
 
-    with io_handler.open(os.path.join(output_path, "matchgraph.png"), "wb") as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "matchgraph.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -575,9 +576,11 @@ def save_residual_histogram(
     h_angular, b_angular = stats["reconstruction_statistics"][
         "reprojection_histogram_angular"
     ]
-    n, _, p_angular, = axs[
-        2
-    ].hist(b_angular[:-1], b_angular, weights=h_angular)
+    (
+        n,
+        _,
+        p_angular,
+    ) = axs[2].hist(b_angular[:-1], b_angular, weights=h_angular)
     n = n.astype("int")
     for i in range(len(p_angular)):
         p_angular[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
@@ -586,9 +589,7 @@ def save_residual_histogram(
     axs[1].set_title("Pixel Residual")
     axs[2].set_title("Angular Residual")
 
-    with io_handler.open(
-        os.path.join(output_path, "residual_histogram.png"), "wb"
-    ) as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "residual_histogram.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -665,8 +666,9 @@ def save_topview(
     kernel = _get_gaussian_kernel(splatting, 2)
     kernel /= kernel[splatting, splatting]
     for point, color in zip(points, colors):
-        x, y = int((point[0] - low_x) / size_x * im_size_x), int(
-            (point[1] - low_y) / size_y * im_size_y
+        x, y = (
+            int((point[0] - low_x) / size_x * im_size_x),
+            int((point[1] - low_y) / size_y * im_size_y),
         )
         if not ((0 < x < (im_size_x - 1)) and (0 < y < (im_size_y - 1))):
             continue
@@ -677,8 +679,9 @@ def save_topview(
             size - max(y + splatting - (im_size_y - 2), 0),
         )
         h_low_x, h_low_y = max(x - splatting, 0), max(y - splatting, 0)
-        h_high_x, h_high_y = min(x + splatting + 1, im_size_x - 1), min(
-            y + splatting + 1, im_size_y - 1
+        h_high_x, h_high_y = (
+            min(x + splatting + 1, im_size_x - 1),
+            min(y + splatting + 1, im_size_y - 1),
         )
 
         for i in range(3):
@@ -702,8 +705,9 @@ def save_topview(
         c_gps = cm.get_cmap("autumn")(0 / len(reconstructions))
         for j, shot in enumerate(sorted_shots):
             o = shot.pose.get_origin()
-            x, y = int((o[0] - low_x) / size_x * im_size_x), int(
-                (o[1] - low_y) / size_y * im_size_y
+            x, y = (
+                int((o[0] - low_x) / size_x * im_size_x),
+                int((o[1] - low_y) / size_y * im_size_y),
             )
             plt.plot(
                 x,
@@ -718,8 +722,9 @@ def save_topview(
             # also display camera path using capture time
             if j < len(sorted_shots) - 1:
                 n = sorted_shots[j + 1].pose.get_origin()
-                nx, ny = int((n[0] - low_x) / size_x * im_size_x), int(
-                    (n[1] - low_y) / size_y * im_size_y
+                nx, ny = (
+                    int((n[0] - low_x) / size_x * im_size_x),
+                    int((n[1] - low_y) / size_y * im_size_y),
                 )
                 plt.plot(
                     [x, nx], [y, ny], linestyle="-", color=c_camera, linewidth=linewidth
@@ -729,8 +734,9 @@ def save_topview(
             if not shot.metadata.gps_position.has_value:
                 continue
             gps = shot.metadata.gps_position.value
-            gps_x, gps_y = int((gps[0] - low_x) / size_x * im_size_x), int(
-                (gps[1] - low_y) / size_y * im_size_y
+            gps_x, gps_y = (
+                int((gps[0] - low_x) / size_x * im_size_x),
+                int((gps[1] - low_y) / size_y * im_size_y),
             )
             plt.plot(
                 gps_x,
@@ -755,7 +761,7 @@ def save_topview(
         [0, f"{int(size_y / 2):.0f}", f"{size_y:.0f} meters"],
         fontsize="small",
     )
-    with io_handler.open(os.path.join(output_path, "topview.png"), "wb") as fwb:
+    with io_handler.open_wb(os.path.join(output_path, "topview.png")) as fwb:
         plt.savefig(
             fwb,
             dpi=300,
@@ -813,8 +819,9 @@ def save_heatmap(
                 size - max(y + splatting - (buckets_y - 2), 0),
             )
             h_low_x, h_low_y = max(x - splatting, 0), max(y - splatting, 0)
-            h_high_x, h_high_y = min(x + splatting + 1, buckets_x - 1), min(
-                y + splatting + 1, buckets_y - 1
+            h_high_x, h_high_y = (
+                min(x + splatting + 1, buckets_x - 1),
+                min(y + splatting + 1, buckets_y - 1),
             )
             camera_heatmap[h_low_y:h_high_y, h_low_x:h_high_x] += kernel[
                 k_low_y:k_high_y, k_low_x:k_high_x
@@ -846,13 +853,11 @@ def save_heatmap(
             fontsize="x-small",
         )
 
-    with io_handler.open(
+    with io_handler.open_wb(
         os.path.join(
             output_path, "heatmap_" + str(camera_id.replace("/", "_")) + ".png"
-        ),
-        "wb",
+        )
     ) as fwb:
-
         plt.savefig(
             fwb,
             dpi=300,
@@ -978,11 +983,10 @@ def save_residual_grids(
             [0, buckets_y / 2, buckets_y], [0, int(h / 2), h], fontsize="x-small"
         )
 
-        with io_handler.open(
+        with io_handler.open_wb(
             os.path.join(
                 output_path, "residuals_" + str(camera_id.replace("/", "_")) + ".png"
-            ),
-            "wb",
+            )
         ) as fwb:
             plt.savefig(
                 fwb,

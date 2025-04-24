@@ -4,11 +4,11 @@ import logging
 import math
 from collections import defaultdict
 from itertools import combinations
-from typing import Optional, Tuple, List, Set, Dict, Iterable, Any
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 import scipy.spatial as spatial
-from opensfm import bow, context, feature_loader, vlad, geo, geometry
+from opensfm import bow, context, feature_loader, geo, geometry, vlad
 from opensfm.dataset_base import DataSetBase
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -256,7 +256,9 @@ def match_candidates_by_graph(
     except spatial.QhullError:
         # Initial simplex is flat
         # Scale the input to fit the unit cube ("QbB")
-        triangles = spatial.Delaunay(points, qhull_options="Qbb Qc Qz Q12 QbB").simplices
+        triangles = spatial.Delaunay(
+            points, qhull_options="Qbb Qc Qz Q12 QbB"
+        ).simplices
 
     for (image1, image2), (vertex1, vertex2) in produce_edges(triangles):
         pairs.add((image1, image2))
@@ -500,7 +502,7 @@ def create_parallel_matching_args(
 
 
 def match_bow_unwrap_args(
-    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
+    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]],
 ) -> Tuple[str, List[float], List[str]]:
     """Wrapper for parallel processing of BoW"""
     image, other_images, histograms = args
@@ -508,7 +510,7 @@ def match_bow_unwrap_args(
 
 
 def match_vlad_unwrap_args(
-    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]]
+    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]],
 ) -> Tuple[str, List[float], List[str]]:
     """Wrapper for parallel processing of VLAD"""
     image, other_images, histograms = args
@@ -723,7 +725,7 @@ def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.nd
 
 
 def vlad_histogram_unwrap_args(
-    args: Tuple[DataSetBase, str]
+    args: Tuple[DataSetBase, str],
 ) -> Optional[Tuple[str, np.ndarray]]:
     """Helper function for multithreaded VLAD computation.
 

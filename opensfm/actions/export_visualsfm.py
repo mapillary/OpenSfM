@@ -3,8 +3,7 @@ import logging
 import os
 import sys
 
-from opensfm import io
-from opensfm import transformations as tf
+from opensfm import io, transformations as tf
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 

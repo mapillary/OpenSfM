@@ -188,7 +188,7 @@ True
 """
 
 import math
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy
 
@@ -1893,7 +1893,13 @@ def is_same_transform(matrix0: numpy.ndarray, matrix1: numpy.ndarray) -> numpy.n
     return numpy.allclose(matrix0, matrix1)
 
 
-def _import_module(name: str, package: Optional[str]=None, warn: bool=True, prefix: str="_py_", ignore: str="_") -> Optional[bool]:
+def _import_module(
+    name: str,
+    package: Optional[str] = None,
+    warn: bool = True,
+    prefix: str = "_py_",
+    ignore: str = "_",
+) -> Optional[bool]:
     """Try import all public attributes from module into global namespace.
 
     Existing attributes with name clashes are renamed with prefix.

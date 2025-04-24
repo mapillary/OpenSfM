@@ -739,7 +739,6 @@ def align(
     resplit = resplit_reconstruction(merged, reconstructions)
     data.save_reconstruction(resplit, fn_resplit)
     if covariance:
-
         # Re-triangulate to remove badly conditioned points
         n_points = len(merged.points)
 

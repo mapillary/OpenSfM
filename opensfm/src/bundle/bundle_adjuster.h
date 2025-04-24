@@ -200,11 +200,10 @@ class BundleAdjuster {
   void SetScaleSharing(const std::string &id, bool share);
 
   // Real bundle adjustment : point projections
-  void AddPointProjectionObservation(const std::string &shot,
-                                     const std::string &point,
-                                     const Vec2d &observation,
-                                     double std_deviation,
-                                     const std::optional<map::Depth>& depth_prior = std::nullopt);
+  void AddPointProjectionObservation(
+      const std::string &shot, const std::string &point,
+      const Vec2d &observation, double std_deviation,
+      const std::optional<map::Depth> &depth_prior = std::nullopt);
 
   // Relative motion constraints
   void AddRelativeMotion(const RelativeMotion &rm);

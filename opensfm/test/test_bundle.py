@@ -228,27 +228,19 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
 
     std_dev = np.array([1, 1, 1])
     sa.add_point_projection_observation(
-        shot="1", 
-        point="p1",
-        observation=np.array([0, 0]),
-        std_deviation=1)
+        shot="1", point="p1", observation=np.array([0, 0]), std_deviation=1
+    )
     sa.add_point_projection_observation(
-        shot="2",
-        point="p1",
-        observation=np.array([-0.5, 0]),
-        std_deviation=1)
+        shot="2", point="p1", observation=np.array([-0.5, 0]), std_deviation=1
+    )
     sa.add_point_prior("p1", np.array([-0.5, 2, 2]), std_dev, True)
 
     sa.add_point_projection_observation(
-        shot="2",
-        point="p2",
-        observation=np.array([0, 0]),
-        std_deviation=1)
+        shot="2", point="p2", observation=np.array([0, 0]), std_deviation=1
+    )
     sa.add_point_projection_observation(
-        shot="1",
-        point="p2",
-        observation=np.array([0.5, 0]),
-        std_deviation=1)
+        shot="1", point="p2", observation=np.array([0.5, 0]), std_deviation=1
+    )
     sa.add_point_prior("p2", np.array([1.5, 2, 2]), std_dev, True)
 
     sa.run()
@@ -687,8 +679,8 @@ def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
             / (2 * np.pi * sigma_x * sigma_y)
             * np.exp(
                 -(
-                    (x - mu_x) ** 2 / (2 * sigma_x ** 2)
-                    + (y - mu_y) ** 2 / (2 * sigma_y ** 2)
+                    (x - mu_x) ** 2 / (2 * sigma_x**2)
+                    + (y - mu_y) ** 2 / (2 * sigma_y**2)
                 )
             )
         )

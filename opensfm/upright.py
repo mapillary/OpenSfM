@@ -1,6 +1,7 @@
 # pyre-unsafe
-import numpy as np
 from typing import Optional
+
+import numpy as np
 
 
 def opensfm_to_upright(

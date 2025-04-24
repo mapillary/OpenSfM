@@ -95,9 +95,9 @@ Camera Camera::CreateFisheye62Camera(double focal, double aspect_ratio,
 
 /**
   Create a Fisheye624 camera with 15 parameters:
-  - params: f, cx, cy, (radial) k1, k2, k3, k4, k5, k6 (tangential) p1, p2 (thin prism) s0, s1, s2, s3
-  Note that in arvr, the parameters start at 0 and p1/p2 are reversed
-  See: https://fburl.com/diffusion/xnhraa2z
+  - params: f, cx, cy, (radial) k1, k2, k3, k4, k5, k6 (tangential) p1, p2 (thin
+  prism) s0, s1, s2, s3 Note that in arvr, the parameters start at 0 and p1/p2
+  are reversed See: https://fburl.com/diffusion/xnhraa2z
 */
 Camera Camera::CreateFisheye624Camera(double focal, double aspect_ratio,
                                       const Vec2d& principal_point,
@@ -117,9 +117,9 @@ Camera Camera::CreateFisheye624Camera(double focal, double aspect_ratio,
                    Camera::Parameters::Cx,    Camera::Parameters::Cy};
   camera.values_.resize(16);
   camera.values_ << distortion[0], distortion[1], distortion[2], distortion[3],
-      distortion[4], distortion[5], distortion[6], distortion[7],
-      distortion[8], distortion[9], distortion[10], distortion[11],
-      focal, aspect_ratio, principal_point[0], principal_point[1];
+      distortion[4], distortion[5], distortion[6], distortion[7], distortion[8],
+      distortion[9], distortion[10], distortion[11], focal, aspect_ratio,
+      principal_point[0], principal_point[1];
   return camera;
 }
 

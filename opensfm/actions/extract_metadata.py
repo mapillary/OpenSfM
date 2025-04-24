@@ -3,6 +3,7 @@ import copy
 import logging
 from functools import partial
 from typing import Any, Dict
+
 from opensfm import exif
 from opensfm.dataset_base import DataSetBase
 

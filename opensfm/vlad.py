@@ -1,9 +1,9 @@
 # pyre-unsafe
 from functools import lru_cache
-from typing import List, Tuple, Iterable, Dict, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
-from opensfm import pyfeatures, feature_loader, bow
+from opensfm import bow, feature_loader, pyfeatures
 from opensfm.dataset_base import DataSetBase
 
 

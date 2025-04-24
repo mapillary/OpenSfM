@@ -51,7 +51,7 @@ class FeaturesData:
     descriptors: Optional[np.ndarray]
     colors: np.ndarray
     semantic: Optional[SemanticData]
-    depths: np.ndarray | None  # New field. This field is not serialized yet
+    depths: Optional[np.ndarray]  # New field. This field is not serialized yet
 
     FEATURES_VERSION: int = 3
     FEATURES_HEADER: str = "OPENSFM_FEATURES_VERSION"
@@ -62,7 +62,7 @@ class FeaturesData:
         descriptors: Optional[np.ndarray],
         colors: np.ndarray,
         semantic: Optional[SemanticData],
-        depths: np.ndarray | None = None,
+        depths: Optional[np.ndarray] = None,
     ):
         self.points = points
         self.descriptors = descriptors
@@ -337,7 +337,11 @@ def denormalized_image_coordinates(
 
 def normalize_features(
     points: np.ndarray, desc: np.ndarray, colors: np.ndarray, width: int, height: int
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray,]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
     """Normalize feature coordinates and size."""
     points[:, :2] = normalized_image_coordinates(points[:, :2], width, height)
     points[:, 2:3] /= max(width, height)
@@ -385,7 +389,7 @@ def extract_features_sift(
             detector = cv2.FeatureDetector_create("SIFT")
             descriptor = cv2.DescriptorExtractor_create("SIFT")
             detector.setDouble("edgeThreshold", sift_edge_threshold)
-        
+
         points = detector.detect(image)
         logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
         if len(points) < features_count and sift_peak_threshold > 0.0001:
@@ -611,8 +615,9 @@ def extract_features(
     elif feature_type == "ORB":
         points, desc = extract_features_orb(image_gray, config, features_count)
     else:
-        raise ValueError("Unknown feature type "
-                         + "(must be SURF, SIFT, AKAZE, HAHOG or ORB)")
+        raise ValueError(
+            "Unknown feature type (must be SURF, SIFT, AKAZE, HAHOG or ORB)"
+        )
 
     xs = points[:, 0].round().astype(int)
     ys = points[:, 1].round().astype(int)

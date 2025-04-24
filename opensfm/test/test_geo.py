@@ -40,6 +40,7 @@ def test_ecef_lla_topocentric_consistency_pygeo() -> None:
     )
     assert np.allclose(lla_after, lla_before)
 
+
 def test_eq_geo() -> None:
-    assert geo.TopocentricConverter(40,30,0) == geo.TopocentricConverter(40,30,0)
-    assert geo.TopocentricConverter(40,32,0) != geo.TopocentricConverter(40,30,0)
+    assert geo.TopocentricConverter(40, 30, 0) == geo.TopocentricConverter(40, 30, 0)
+    assert geo.TopocentricConverter(40, 32, 0) != geo.TopocentricConverter(40, 30, 0)

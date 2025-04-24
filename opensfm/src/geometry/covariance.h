@@ -11,4 +11,4 @@ std::pair<PointJacobian, Vec2d> ComputeJacobianReprojectionError(
 std::pair<Mat3d, double> ComputePointInverseCovariance(
     const std::vector<Camera>& cameras, const std::vector<Pose>& poses,
     const std::vector<Vec2d>& observations, const Vec3d& point);
-}  // namespace geometry
+}  // namespace geometry::covariance

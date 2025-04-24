@@ -51,14 +51,19 @@ def _get_camera_from_bundle(
 def log_bundle_stats(bundle_type: str, bundle_report: Dict[str, Any]) -> None:
     times = bundle_report["wall_times"]
     time_secs = times["run"] + times["setup"] + times["teardown"]
-    num_images, num_points, num_reprojections = bundle_report["num_images"], bundle_report["num_points"], bundle_report["num_reprojections"]
+    num_images, num_points, num_reprojections = (
+        bundle_report["num_images"],
+        bundle_report["num_points"],
+        bundle_report["num_reprojections"],
+    )
 
     msg = f"Ran {bundle_type} bundle in {time_secs:.2f} secs."
-    if num_points > 0 :
+    if num_points > 0:
         msg += f"with {num_images}/{num_points}/{num_reprojections} ({num_reprojections/num_points:.2f}) "
         msg += "shots/points/proj. (avg. length)"
 
     logger.info(msg)
+
 
 def bundle(
     reconstruction: types.Reconstruction,
@@ -596,9 +601,9 @@ def reconstruction_from_relative_pose(
 
     retriangulate(tracks_manager, reconstruction, data.config)
     if len(reconstruction.points) < min_inliers:
-        report[
-            "decision"
-        ] = "Re-triangulation after initial motion did not generate enough points"
+        report["decision"] = (
+            "Re-triangulation after initial motion did not generate enough points"
+        )
         logger.info(report["decision"])
         return None, report
 
@@ -904,6 +909,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track in a RANSAC way and add point to reconstruction."""
@@ -930,7 +936,6 @@ class TrackTriangulator:
 
         thresholds = len(os) * [reproj_threshold]
         min_ray_angle_radians = np.radians(min_ray_angle_degrees)
-        max_ray_angle_radians = np.pi - min_ray_angle_radians
         for i in range(ransac_tries):
             random_id = int(np.random.rand() * (len(all_combinations) - 1))
             if random_id in combinatiom_tried:
@@ -947,7 +952,7 @@ class TrackTriangulator:
                 bs_t,
                 thresholds,
                 min_ray_angle_radians,
-                max_ray_angle_radians,
+                min_depth,
             )
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
@@ -964,7 +969,7 @@ class TrackTriangulator:
                         bs[inliers],
                         len(inliers) * [reproj_threshold],
                         min_ray_angle_radians,
-                        max_ray_angle_radians,
+                        min_depth,
                     )
                     new_X = pygeometry.point_refinement(
                         os[inliers], bs[inliers], X, iterations
@@ -1004,6 +1009,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track and add point to reconstruction."""
@@ -1024,7 +1030,7 @@ class TrackTriangulator:
                 np.asarray(bs),
                 thresholds,
                 min_ray_angle_radians,
-                np.pi - min_ray_angle_radians,
+                min_depth,
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
@@ -1039,6 +1045,7 @@ class TrackTriangulator:
         track: str,
         reproj_threshold: float,
         min_ray_angle_degrees: float,
+        min_depth: float,
         iterations: int,
     ) -> None:
         """Triangulate track using DLT and add point to reconstruction."""
@@ -1059,6 +1066,7 @@ class TrackTriangulator:
                 np.asarray(bs),
                 reproj_threshold,
                 np.radians(min_ray_angle_degrees),
+                min_depth,
             )
             if e:
                 X = pygeometry.point_refinement(
@@ -1102,6 +1110,7 @@ def triangulate_shot_features(
     """Reconstruct as many tracks seen in shot_id as possible."""
     reproj_threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    min_depth = config["triangulation_min_depth"]
     refinement_iterations = config["triangulation_refinement_iterations"]
 
     triangulator = TrackTriangulator(
@@ -1119,11 +1128,19 @@ def triangulate_shot_features(
         if track not in reconstruction.points:
             if config["triangulation_type"] == "ROBUST":
                 triangulator.triangulate_robust(
-                    track, reproj_threshold, min_ray_angle, refinement_iterations
+                    track,
+                    reproj_threshold,
+                    min_ray_angle,
+                    min_depth,
+                    refinement_iterations,
                 )
             elif config["triangulation_type"] == "FULL":
                 triangulator.triangulate(
-                    track, reproj_threshold, min_ray_angle, refinement_iterations
+                    track,
+                    reproj_threshold,
+                    min_ray_angle,
+                    min_depth,
+                    refinement_iterations,
                 )
 
 
@@ -1139,6 +1156,7 @@ def retriangulate(
 
     threshold = config["triangulation_threshold"]
     min_ray_angle = config["triangulation_min_ray_angle"]
+    min_depth = config["triangulation_min_depth"]
     refinement_iterations = config["triangulation_refinement_iterations"]
 
     reconstruction.points = {}
@@ -1155,11 +1173,11 @@ def retriangulate(
     for track in tracks:
         if config["triangulation_type"] == "ROBUST":
             triangulator.triangulate_robust(
-                track, threshold, min_ray_angle, refinement_iterations
+                track, threshold, min_ray_angle, min_depth, refinement_iterations
             )
         elif config["triangulation_type"] == "FULL":
             triangulator.triangulate(
-                track, threshold, min_ray_angle, refinement_iterations
+                track, threshold, min_ray_angle, min_depth, refinement_iterations
             )
 
     report["num_points_after"] = len(reconstruction.points)
@@ -1299,7 +1317,7 @@ def merge_reconstructions(
     reconstructions_merged = []
     num_merge = 0
 
-    for (i, j) in combinations(ids_reconstructions, 2):
+    for i, j in combinations(ids_reconstructions, 2):
         if (i in remaining_reconstruction) and (j in remaining_reconstruction):
             r = merge_two_reconstructions(
                 reconstructions[i], reconstructions[j], config

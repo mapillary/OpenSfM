@@ -3,7 +3,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
-from opensfm import pyrobust, pygeometry
+from opensfm import pygeometry, pyrobust
 
 
 def line_data() -> Tuple[int, int, np.ndarray, int]:
@@ -267,7 +267,6 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
 
 def test_outliers_relative_rotation_ransac(pairs_and_their_E) -> None:
     for f1, _, _, _ in pairs_and_their_E:
-
         vec_x = np.random.rand(3)
         vec_x /= np.linalg.norm(vec_x)
         vec_y = np.array([-vec_x[1], vec_x[0], 0.0])

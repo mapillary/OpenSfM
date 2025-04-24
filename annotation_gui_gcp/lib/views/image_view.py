@@ -1,7 +1,7 @@
 # pyre-unsafe
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .web_view import WebView, distinct_colors
+from .web_view import distinct_colors, WebView
 
 
 def point_color(point_id: str) -> str:

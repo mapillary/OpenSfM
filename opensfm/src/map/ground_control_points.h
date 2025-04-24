@@ -7,8 +7,8 @@ enum GroundControlPointRole {
   /*    A ground control point role in SfM cluster merge and bundle adjuster
 
        Attributes:
-           OPTIMIZATION: used in the optimization of map chunks and logging metrics
-           METRICS_ONLY: only used in logging metrics
+           OPTIMIZATION: used in the optimization of map chunks and logging
+  metrics METRICS_ONLY: only used in logging metrics
 
   **/
   OPTIMIZATION = 0,
@@ -36,10 +36,10 @@ struct GroundControlPoint {
          lla: latitude, longitude and altitude
          has_altitude: true if z coordinate is known
          observations: list of observations of the point on images
-         id: a unique id for this point group (survey point + image observations)
-         survey_point_id: a unique id for the point on the ground
-         role: OPTIMIZATION if gcp is used in SfM optimization, METRICS_ONLY if the
-         ground control point is used for computing map merging metrics
+         id: a unique id for this point group (survey point + image
+     observations) survey_point_id: a unique id for the point on the ground
+         role: OPTIMIZATION if gcp is used in SfM optimization, METRICS_ONLY if
+     the ground control point is used for computing map merging metrics
      */
   GroundControlPoint() = default;
   LandmarkId id_;
@@ -51,9 +51,9 @@ struct GroundControlPoint {
 
   Vec3d GetLlaVec3d() const {
     return {
-      lla_.at("latitude"),
-      lla_.at("longitude"),
-      has_altitude_ ? lla_.at("altitude") : 0.0,
+        lla_.at("latitude"),
+        lla_.at("longitude"),
+        has_altitude_ ? lla_.at("altitude") : 0.0,
     };
   }
 

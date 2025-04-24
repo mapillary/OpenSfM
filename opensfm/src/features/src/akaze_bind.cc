@@ -48,10 +48,10 @@ py::tuple akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
   if (options.descriptor == MLDB_UPRIGHT || options.descriptor == MLDB) {
     return py::make_tuple(
         keys_py, foundation::py_array_from_data(desc.ptr<unsigned char>(0),
-                                             desc.rows, desc.cols));
+                                                desc.rows, desc.cols));
   }
   return py::make_tuple(keys_py, foundation::py_array_from_data(
-                                  desc.ptr<float>(0), desc.rows, desc.cols));
+                                     desc.ptr<float>(0), desc.rows, desc.cols));
 }
 
 }  // namespace features

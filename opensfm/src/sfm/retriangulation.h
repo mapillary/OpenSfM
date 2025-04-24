@@ -5,4 +5,4 @@
 namespace sfm::retriangulation {
 void RealignMaps(const map::Map& reference, map::Map& to_align,
                  bool update_points);
-}  // namespace sfm
+}  // namespace sfm::retriangulation

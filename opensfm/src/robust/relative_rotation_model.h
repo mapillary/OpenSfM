@@ -2,6 +2,7 @@
 
 #include <foundation/numeric.h>
 #include <geometry/transform.h>
+
 #include "model.h"
 
 class RelativeRotation : public Model<RelativeRotation, 1, 1> {

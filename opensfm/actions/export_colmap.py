@@ -43,8 +43,7 @@ from struct import pack
 from typing import Tuple
 
 import numpy as np
-from opensfm import features
-from opensfm import matching
+from opensfm import features, matching
 from opensfm.dataset import DataSet
 
 I_3 = np.eye(3)
@@ -87,14 +86,14 @@ def run_dataset(data: DataSet, binary: bool) -> None:
         db.close()
 
         data.io_handler.rm_if_exist(database_path)
-        with data.io_handler.open(tmp_database_path, "rb") as f:
-            with data.io_handler.open(database_path, "wb") as fwb:
+        with data.io_handler.open_rb(tmp_database_path) as f:
+            with data.io_handler.open_wb(database_path) as fwb:
                 fwb.write(f.read())
 
 
 IS_PYTHON3: bool = int(sys.version_info[0]) >= 3
 
-MAX_IMAGE_ID = 2 ** 31 - 1
+MAX_IMAGE_ID = 2**31 - 1
 
 CREATE_CAMERAS_TABLE = """CREATE TABLE IF NOT EXISTS cameras (
     camera_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -124,9 +123,7 @@ CREATE_IMAGES_TABLE: str = """CREATE TABLE IF NOT EXISTS images (
     prior_tz REAL,
     CONSTRAINT image_id_check CHECK(image_id >= 0 and image_id < {}),
     FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))
-""".format(
-    MAX_IMAGE_ID
-)
+""".format(MAX_IMAGE_ID)
 
 CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
 CREATE TABLE IF NOT EXISTS two_view_geometries (
@@ -197,7 +194,6 @@ def blob_to_array(blob, dtype, shape: Tuple[int] = (-1,)):
         return np.frombuffer(blob, dtype=dtype).reshape(*shape)
 
 
-# pyre-fixme[11]: Annotation `Connection` is not defined as a type.
 class COLMAPDatabase(sqlite3.Connection):
     @staticmethod
     def connect(database_path) -> t.Any:
@@ -206,7 +202,6 @@ class COLMAPDatabase(sqlite3.Connection):
     def __init__(self, *args, **kwargs) -> None:
         super(COLMAPDatabase, self).__init__(*args, **kwargs)
 
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `executescript`.
         self.create_tables = lambda: self.executescript(CREATE_ALL)
         self.create_cameras_table = lambda: self.executescript(CREATE_CAMERAS_TABLE)
         self.create_descriptors_table = lambda: self.executescript(
@@ -224,7 +219,6 @@ class COLMAPDatabase(sqlite3.Connection):
         self, model, width, height, params, prior_focal_length=False, camera_id=None
     ) -> t.Any:
         params = np.asarray(params, np.float64)
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         cursor = self.execute(
             "INSERT INTO cameras VALUES (?, ?, ?, ?, ?, ?)",
             (
@@ -241,7 +235,6 @@ class COLMAPDatabase(sqlite3.Connection):
     def add_image(
         self, name, camera_id, prior_q=(0, 0, 0, 0), prior_t=(0, 0, 0), image_id=None
     ) -> t.Any:
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         cursor = self.execute(
             "INSERT INTO images VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
@@ -264,7 +257,6 @@ class COLMAPDatabase(sqlite3.Connection):
         assert keypoints.shape[1] in [2, 4, 6]
 
         keypoints = np.asarray(keypoints, np.float32)
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO keypoints VALUES (?, ?, ?, ?)",
             (image_id,) + keypoints.shape + (array_to_blob(keypoints),),
@@ -272,7 +264,6 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_descriptors(self, image_id, descriptors) -> None:
         descriptors = np.ascontiguousarray(descriptors, np.uint8)
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
             (image_id,) + descriptors.shape + (array_to_blob(descriptors),),
@@ -287,7 +278,6 @@ class COLMAPDatabase(sqlite3.Connection):
 
         pair_id = image_ids_to_pair_id(image_id1, image_id2)
         matches = np.asarray(matches, np.uint32)
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO matches VALUES (?, ?, ?, ?)",
             (pair_id,) + matches.shape + (array_to_blob(matches),),
@@ -307,7 +297,6 @@ class COLMAPDatabase(sqlite3.Connection):
         F = np.asarray(F, dtype=np.float64)
         E = np.asarray(E, dtype=np.float64)
         H = np.asarray(H, dtype=np.float64)
-        # pyre-fixme[16]: `COLMAPDatabase` has no attribute `execute`.
         self.execute(
             "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (pair_id,)
@@ -443,7 +432,7 @@ def export_cameras_reconstruction(data, path, camera_map, binary: bool = False) 
             cameras[camera_id] = camera
 
     if binary:
-        fout = data.io_handler.open(os.path.join(path, "cameras.bin"), "wb")
+        fout = data.io_handler.open_wb(os.path.join(path, "cameras.bin"))
         fout.write(pack("<Q", len(cameras)))
     else:
         fout = data.io_handler.open_wt(os.path.join(path, "cameras.txt"))
@@ -474,7 +463,7 @@ def export_images_reconstruction(
     tracks_manager = data.load_tracks_manager()
 
     if binary:
-        fout = data.io_handler.open(os.path.join(path, "images.bin"), "wb")
+        fout = data.io_handler.open_wb(os.path.join(path, "images.bin"))
         n_ims = 0
         for reconstruction in reconstructions:
             n_ims += len(reconstruction.shots)
@@ -483,7 +472,6 @@ def export_images_reconstruction(
         fout = data.io_handler.open_wt(os.path.join(path, "images.txt"))
 
     for reconstruction in reconstructions:
-
         for shot_id, shot in reconstruction.shots.items():
             colmap_camera_id = camera_map[shot.camera.id]
             colmap_shot_id = images_map[shot_id]
@@ -549,7 +537,7 @@ def export_points_reconstruction(data, path, images_map, binary: bool = False):
     points_map = {}
 
     if binary:
-        fout = data.io_handler.open(os.path.join(path, "points3D.bin"), "wb")
+        fout = data.io_handler.open_wb(os.path.join(path, "points3D.bin"))
         n_points = 0
         for reconstruction in reconstructions:
             n_points += len(reconstruction.points)

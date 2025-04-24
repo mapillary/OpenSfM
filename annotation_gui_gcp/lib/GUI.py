@@ -7,11 +7,12 @@ import time
 from collections import defaultdict
 
 import flask
+from opensfm import dataset
+
 from .views.cad_view import CADView
 from .views.cp_finder_view import ControlPointFinderView
 from .views.image_view import ImageView
 from .views.tools_view import ToolsView
-from opensfm import dataset
 
 
 class Gui:

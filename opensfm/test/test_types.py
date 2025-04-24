@@ -9,7 +9,6 @@ from scipy.stats import special_ortho_group
 
 
 def test_reconstruction_class_initialization() -> None:
-
     # Instantiate Reconstruction
     reconstruction = types.Reconstruction()
     focal = 0.9722222222222222
@@ -27,11 +26,13 @@ def test_reconstruction_class_initialization() -> None:
     metadata.orientation.value = 1
     metadata.capture_time.value = 0.0
     metadata.gps_accuracy.value = 5.0
-    metadata.gps_position.value = np.array([
-        1.0815875281451939,
-        -0.96510451436708888,
-        1.2042133903991235,
-    ])
+    metadata.gps_position.value = np.array(
+        [
+            1.0815875281451939,
+            -0.96510451436708888,
+            1.2042133903991235,
+        ]
+    )
     metadata.gravity_down.value = np.array([0.1, 0.9, 0.0])
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0

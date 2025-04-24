@@ -1,7 +1,7 @@
 # pyre-unsafe
 import datetime
 import logging
-from codecs import encode, decode
+from codecs import decode, encode
 from typing import Any, Dict, List, Optional, Tuple
 
 import exifread
@@ -11,7 +11,7 @@ from opensfm import pygeometry
 from opensfm.dataset_base import DataSetBase
 from opensfm.geo import ecef_from_lla
 from opensfm.pygeometry import Camera
-from opensfm.sensors import sensor_data, camera_calibration
+from opensfm.sensors import camera_calibration, sensor_data
 
 logger: logging.Logger = logging.getLogger(__name__)
 

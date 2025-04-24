@@ -126,7 +126,9 @@ cv::Vec3f PlaneFromDepthAndNormal(float x, float y, const cv::Matx33d &K,
 }
 
 float UniformRand(float a, float b) {
-  // Note that float(RAND_MAX) cannot be exactly represented as a float. We ignore the small inaccuracy here; this is already a bad way to get random numbers.
+  // Note that float(RAND_MAX) cannot be exactly represented as a float. We
+  // ignore the small inaccuracy here; this is already a bad way to get random
+  // numbers.
   return a + (b - a) * float(rand()) / static_cast<float>(RAND_MAX);
 }
 

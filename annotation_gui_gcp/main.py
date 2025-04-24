@@ -2,16 +2,18 @@
 import argparse
 import json
 import typing as t
-from collections import OrderedDict, defaultdict
+from collections import defaultdict, OrderedDict
 from os import PathLike
 from pathlib import Path
 from typing import Union
 
 import numpy as np
-from mapillary.opensfm.annotation_gui_gcp.lib import GUI
-from mapillary.opensfm.annotation_gui_gcp.lib.gcp_manager import GroundControlPointManager
-from mapillary.opensfm.annotation_gui_gcp.lib.image_manager import ImageManager
 from flask import Flask
+from mapillary.opensfm.annotation_gui_gcp.lib import GUI
+from mapillary.opensfm.annotation_gui_gcp.lib.gcp_manager import (
+    GroundControlPointManager,
+)
+from mapillary.opensfm.annotation_gui_gcp.lib.image_manager import ImageManager
 from opensfm import dataset, io
 
 

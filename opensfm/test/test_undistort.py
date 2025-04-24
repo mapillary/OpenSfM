@@ -2,7 +2,7 @@
 import itertools
 
 import numpy as np
-from opensfm import undistort, pygeometry, types
+from opensfm import pygeometry, types, undistort
 
 
 def test_perspective_views_of_a_panorama() -> None:

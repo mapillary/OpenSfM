@@ -1,10 +1,11 @@
 # pyre-unsafe
-from opensfm import io
-from opensfm import reconstruction
+from opensfm import io, reconstruction
 from opensfm.dataset_base import DataSetBase
 
 
-def run_dataset(data: DataSetBase, algorithm: reconstruction.ReconstructionAlgorithm) -> None:
+def run_dataset(
+    data: DataSetBase, algorithm: reconstruction.ReconstructionAlgorithm
+) -> None:
     """Compute the SfM reconstruction."""
 
     tracks_manager = data.load_tracks_manager()

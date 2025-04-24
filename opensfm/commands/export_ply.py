@@ -1,9 +1,10 @@
 # pyre-unsafe
+import argparse
+
 from opensfm.actions import export_ply
+from opensfm.dataset import DataSet
 
 from . import command
-import argparse
-from opensfm.dataset import DataSet
 
 
 class Command(command.CommandBase):
@@ -11,7 +12,13 @@ class Command(command.CommandBase):
     help = "Export reconstruction to PLY format"
 
     def run_impl(self, dataset: DataSet, args: argparse.Namespace) -> None:
-        export_ply.run_dataset(dataset, args.no_cameras, args.no_points, args.depthmaps, args.point_num_views)
+        export_ply.run_dataset(
+            dataset,
+            args.no_cameras,
+            args.no_points,
+            args.depthmaps,
+            args.point_num_views,
+        )
 
     def add_arguments_impl(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
@@ -33,5 +40,5 @@ class Command(command.CommandBase):
             "--point-num-views",
             action="store_true",
             default=False,
-            help="Export the number of observations associated with each point"
+            help="Export the number of observations associated with each point",
         )

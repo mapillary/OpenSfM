@@ -1,10 +1,9 @@
-#include <pybind11/eigen.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include <dense/depthmap_bind.h>
 #include <dense/openmvs_exporter.h>
 #include <foundation/python_types.h>
+#include <pybind11/eigen.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 PYBIND11_MODULE(pydense, m) {
   py::class_<dense::OpenMVSExporter>(m, "OpenMVSExporter")

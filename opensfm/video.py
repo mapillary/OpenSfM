@@ -1,14 +1,12 @@
 # pyre-unsafe
 import datetime
 import os
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 from typing import List
 
 import cv2
 import dateutil.parser
-from opensfm import context
-from opensfm import geotag_from_gpx
-from opensfm import io
+from opensfm import context, geotag_from_gpx, io
 
 
 def video_orientation(video_file) -> int:
@@ -44,7 +42,6 @@ def import_video_with_gpx(
     visual: bool = False,
     image_description=None,
 ) -> List[str]:
-
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
 
     orientation = video_orientation(video_file)

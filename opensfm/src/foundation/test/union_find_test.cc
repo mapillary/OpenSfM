@@ -1,14 +1,13 @@
+#include <foundation/union_find.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
-#include <foundation/union_find.h>
 
 class UnionFindFixture : public ::testing::Test {
  public:
   UnionFindFixture() {
     for (int i = 0; i < count; ++i) {
-      elements.emplace_back(std::unique_ptr<UnionFindElement<int>>(
-        new UnionFindElement<int>(i)));
+      elements.emplace_back(
+          std::unique_ptr<UnionFindElement<int>>(new UnionFindElement<int>(i)));
     }
   }
 
