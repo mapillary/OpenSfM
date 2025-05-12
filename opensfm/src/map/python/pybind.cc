@@ -10,6 +10,7 @@
 #include <map/pybind_utils.h>
 #include <map/rig.h>
 #include <map/shot.h>
+#include <foundation/python_types.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
