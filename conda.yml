@@ -1,10 +1,13 @@
 name: opensfm
 dependencies:
     - python=3.8
-    - cmake
+    - cmake=3.31
+    - make
+    - libxcrypt
     - opencv
     - ceres-solver=2.1
     - conda-forge::llvm-openmp
+    - conda-forge::cxx-compiler
     - pip
     - pip:
         - cloudpickle==0.4.0

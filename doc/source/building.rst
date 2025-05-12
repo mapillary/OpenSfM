@@ -43,17 +43,20 @@ See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>
 Installing dependencies on Fedora
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tested on Fedora 33 & 34
+Install conda using dnf with::
 
-    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel python3-opencv eigen3-devel libomp cmake glog-devel
+    sudo dnf install conda
+    conda init
 
-There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. This quick workaround works::
+Close and re-open your terminal
 
-    sudo sed -i "s^set (GFLAGS_INCLUDE_DIR.*^set (GFLAGS_INCLUDE_DIR "/usr/include")^" /usr/lib64/cmake/gflags/gflags-config.cmake
+Install the conda environment with:
 
-Install python dependencies before building::
+    conda env create --file conda.yml --yes
 
-    cd ~/src/OpenSfM && pip install -r requirements.txt
+Activate the conda environment with::
+
+    conda activate opensfm
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,6 +66,8 @@ Install conda using brew with::
     brew install --cask anaconda
     export PATH='/Users/USERNAME/anaconda3/bin:$PATH'
     conda init
+
+Close and re-open your terminal
 
 Install the conda environment with:
 
