@@ -30,8 +30,8 @@ Python dependencies can be installed with::
 
     pip install -r requirements.txt
 
-Still, we recommand using a full virtual environment manager such as Anaconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
-Anaconda dependencies installation has been tested under MacOS (Sequoia) and Ubuntu 24.04, and can be installed with::
+Still, we recommand using a full virtual environment manager such as anaconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
+Anaconda dependencies installation has been tested under MacOS (Sequoia), Ubuntu 24.04 and Fedora 42, and can be installed with::
 
     conda env create --file conda.yml --yes
 
@@ -40,28 +40,42 @@ Installing dependencies on Ubuntu
 
 See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
+Alternatively, you can avoid using a docker image and install dependencies using Anaconda::
+
+    Download and install anaconda from anaconda.org
+
+Close and re-open your terminal
+
+Install the anaconda environment with:
+
+    conda env create --file conda.yml --yes
+
+Activate the anaconda environment with::
+
+    conda activate opensfm
+
 Installing dependencies on Fedora
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install conda using dnf with::
+Install anaconda using dnf with::
 
     sudo dnf install conda
     conda init
 
 Close and re-open your terminal
 
-Install the conda environment with:
+Install the anaconda environment with:
 
     conda env create --file conda.yml --yes
 
-Activate the conda environment with::
+Activate the anaconda environment with::
 
     conda activate opensfm
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install conda using brew with::
+Install anaconda using brew with::
 
     brew install --cask anaconda
     export PATH='/Users/USERNAME/anaconda3/bin:$PATH'
