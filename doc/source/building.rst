@@ -24,11 +24,16 @@ OpenSfM depends on the following libraries that need to be installed before buil
 
 * OpenCV_
 * `Ceres Solver`_
+* OpenMP
 
 Python dependencies can be installed with::
 
     pip install -r requirements.txt
 
+Still, we recommand using a full virtual environment manager such as Anaconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
+Anaconda dependencies installation has been tested under MacOS (Sequoia) and Ubuntu 24.04, and can be installed with::
+
+    conda env create --file conda.yml --yes
 
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,22 +58,19 @@ Install python dependencies before building::
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install OpenCV and the Ceres solver using::
+Install conda using brew with::
 
-    brew install opencv
-    brew install ceres-solver
-    brew install libomp
-    sudo pip install -r requirements.txt
+    brew install --cask anaconda
+    export PATH='/Users/USERNAME/anaconda3/bin:$PATH'
+    conda init
 
-Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
+Install the conda environment with:
 
-    export PYTHONPATH=/usr/local/lib/python3.7/site-packages:$PYTHONPATH
+    conda env create --file conda.yml --yes
 
-Also, in order for Cmake to recognize the libraries installed by Brew, make sure that C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, DYLD_LIBRARY_PATH environment variables are set correctly. For example, you can run::
+Activate the conda environment with::
 
-    export C_INCLUDE_PATH=/usr/local/include
-    export CPLUS_INCLUDE_PATH=/usr/local/include
-    export DYLD_LIBRARY_PATH=$HOME/local/lib64
+    conda activate opensfm
 
 .. note:: Note on OpenCV 3
     When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
@@ -106,7 +108,7 @@ Building the library
 
 Once the dependencies have been installed, you can build OpenSfM by running the following command from the main folder::
 
-    python3 setup.py build
+    python setup.py build
 
 Building Docker images
 ----------------------
@@ -124,8 +126,8 @@ Building the documentation
 To build the documentation and browse it locally use::
 
     pip install sphinx_rtd_theme
-    python3 setup.py build_doc
-    python3 -m http.server --directory build/doc/html/
+    python setup.py build_doc
+    python -m http.server --directory build/doc/html/
 
 and browse `http://localhost:8000/ <http://localhost:8000/>`_
 
