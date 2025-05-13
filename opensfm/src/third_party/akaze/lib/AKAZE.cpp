@@ -405,7 +405,7 @@ void AKAZE::Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts) {
       std::vector<std::pair<size_t, float> > radiuses(kpts.size());
 
       for (size_t i = 0; i < kpts.size(); ++i) {
-        float radius = 99999999999;
+        float radius = 99999999999.f;
         for (size_t j = 0; j < kpts.size(); ++j) {
           if (kpts[i].response < kpts[j].response) {
             float dx_ = kpts[j].pt.x - kpts[i].pt.x;
