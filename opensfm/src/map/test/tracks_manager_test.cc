@@ -8,7 +8,7 @@ class TempFile {
  public:
   TempFile() {
     char tmpname[L_tmpnam];
-    tmpnam(tmpname);
+    mkstemp(tmpname);
     filename = std::string(tmpname);
   }
 
