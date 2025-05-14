@@ -92,9 +92,10 @@ std::pair<bool, Eigen::Matrix<T, 3, 1>> TriangulateTwoBearingsMidpointSolve(
   A(0, 1) = -A(1, 0);
   A(1, 1) = -bearings.row(1).dot(bearings.row(1));
 
-  const T eps = T(1e-30);
+  const T eps = T(1e-10);
   const T det = A.determinant();
-  if (abs(det) < eps) {
+
+  if (-eps < det && det < eps) {
     return std::make_pair(false, Eigen::Matrix<T, 3, 1>());
   }
   const auto lambdas = A.inverse() * b;
