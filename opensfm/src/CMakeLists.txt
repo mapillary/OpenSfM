@@ -10,7 +10,8 @@ endif()
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
 
 cmake_policy(SET CMP0063 NEW)
-cmake_policy(SET CMP0148 NEW)
+# Re-activate once we can have a decent version of CMake (> 3.27)
+# cmake_policy(SET CMP0148 NEW)
 
 if (WIN32)
 # Place compilation results in opensfm/ folder, not in Debug/ or Release/
