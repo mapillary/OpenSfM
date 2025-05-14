@@ -20,79 +20,35 @@ If you already have the code or you downloaded a release_, make sure to update t
 Install dependencies
 --------------------
 
-OpenSfM depends on the following libraries that need to be installed before building it.
+OpenSfM depends on multiple libraries (OpenCV_, `Ceres Solver`_, ...) and python packages that need to be installed before building it.
 
-* OpenCV_
-* `Ceres Solver`_
-* OpenMP
+The way to install these dependencies depends on your system. We recommend using a virtual environment manager such as anaconda or miniconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
 
-Python dependencies can be installed with::
+Installing dependencies using Conda (recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    pip install -r requirements.txt
-
-Still, we recommand using a full virtual environment manager such as anaconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
-Anaconda dependencies installation has been tested under MacOS (Sequoia), Ubuntu 24.04 and Fedora 42, and can be installed with::
+Creating a conda environment will take care of installing all dependencies. Make sure you have conda or miniconda installed.  From the project root directory, run::
 
     conda env create --file conda.yml --yes
+
+You can then activate the anaconda environment with::
+
+    conda activate opensfm
+
+and you are ready to build OpenSfM.
+
+(Anaconda dependencies installation has been tested under MacOS (Sequoia), Ubuntu 24.04 and Fedora 42.)
 
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
+If you are not using conda, see this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
-Alternatively, you can avoid using a docker image and install dependencies using Anaconda::
-
-    Download and install anaconda from anaconda.org
-
-Close and re-open your terminal
-
-Install the anaconda environment with:
-
-    conda env create --file conda.yml --yes
-
-Activate the anaconda environment with::
-
-    conda activate opensfm
-
-Installing dependencies on Fedora
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Install anaconda using dnf with::
-
-    sudo dnf install conda
-    conda init
-
-Close and re-open your terminal
-
-Install the anaconda environment with:
-
-    conda env create --file conda.yml --yes
-
-Activate the anaconda environment with::
-
-    conda activate opensfm
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install anaconda using brew with::
-
-    brew install --cask anaconda
-    export PATH='/Users/USERNAME/anaconda3/bin:$PATH'
-    conda init
-
-Close and re-open your terminal
-
-Install the conda environment with:
-
-    conda env create --file conda.yml --yes
-
-Activate the conda environment with::
-
-    conda activate opensfm
-
-.. note:: Note on OpenCV 3
-    When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
+While it is possible to install all dependencies using brew, we recommend using the conda instructions above instead.
 
 
 Installing dependencies on Windows
