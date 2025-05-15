@@ -1,3 +1,4 @@
+#include <foundation/python_types.h>
 #include <geometry/absolute_pose.h>
 #include <geometry/camera.h>
 #include <geometry/essential.h>

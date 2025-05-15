@@ -1,5 +1,6 @@
 #include <features/matching.h>
 #include <foundation/optional.h>
+#include <foundation/python_types.h>
 #include <foundation/types.h>
 #include <pybind11/pybind11.h>
 

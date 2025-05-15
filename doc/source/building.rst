@@ -20,58 +20,35 @@ If you already have the code or you downloaded a release_, make sure to update t
 Install dependencies
 --------------------
 
-OpenSfM depends on the following libraries that need to be installed before building it.
+OpenSfM depends on multiple libraries (OpenCV_, `Ceres Solver`_, ...) and python packages that need to be installed before building it.
 
-* OpenCV_
-* `Ceres Solver`_
+The way to install these dependencies depends on your system. We recommend using a virtual environment manager such as anaconda or miniconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
 
-Python dependencies can be installed with::
+Installing dependencies using Conda (recommended)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    pip install -r requirements.txt
+Creating a conda environment will take care of installing all dependencies. Make sure you have conda or miniconda installed.  From the project root directory, run::
 
+    conda env create --file conda.yml --yes
+
+You can then activate the anaconda environment with::
+
+    conda activate opensfm
+
+and you are ready to build OpenSfM.
+
+(Anaconda dependencies installation has been tested under MacOS (Sequoia), Ubuntu 24.04 and Fedora 42.)
 
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-See this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
+If you are not using conda, see this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
 
-Installing dependencies on Fedora
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Tested on Fedora 33 & 34
-
-    sudo dnf install zlib-devel libjpeg-devel python3-devel g++ ceres-solver-devel opencv-devel python3-opencv eigen3-devel libomp cmake glog-devel
-
-There's an `issue <https://github.com/ceres-solver/ceres-solver/issues/491>`_ with the gflags-config.cmake distributed with Fedora. This quick workaround works::
-
-    sudo sed -i "s^set (GFLAGS_INCLUDE_DIR.*^set (GFLAGS_INCLUDE_DIR "/usr/include")^" /usr/lib64/cmake/gflags/gflags-config.cmake
-
-Install python dependencies before building::
-
-    cd ~/src/OpenSfM && pip install -r requirements.txt
 
 Installing dependencies on MacOSX
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install OpenCV and the Ceres solver using::
-
-    brew install opencv
-    brew install ceres-solver
-    brew install libomp
-    sudo pip install -r requirements.txt
-
-Make sure you update your ``PYTHONPATH`` to include ``/usr/local/lib/python3.7/site-packages`` where OpenCV have been installed. For example with::
-
-    export PYTHONPATH=/usr/local/lib/python3.7/site-packages:$PYTHONPATH
-
-Also, in order for Cmake to recognize the libraries installed by Brew, make sure that C_INCLUDE_PATH, CPLUS_INCLUDE_PATH, DYLD_LIBRARY_PATH environment variables are set correctly. For example, you can run::
-
-    export C_INCLUDE_PATH=/usr/local/include
-    export CPLUS_INCLUDE_PATH=/usr/local/include
-    export DYLD_LIBRARY_PATH=$HOME/local/lib64
-
-.. note:: Note on OpenCV 3
-    When running OpenSfM on top of OpenCV version 3.0 the `OpenCV Contrib`_ modules are required for extracting SIFT or SURF features.
+While it is possible to install all dependencies using brew, we recommend using the conda instructions above instead.
 
 
 Installing dependencies on Windows
@@ -106,7 +83,7 @@ Building the library
 
 Once the dependencies have been installed, you can build OpenSfM by running the following command from the main folder::
 
-    python3 setup.py build
+    python setup.py build
 
 Building Docker images
 ----------------------
@@ -124,8 +101,8 @@ Building the documentation
 To build the documentation and browse it locally use::
 
     pip install sphinx_rtd_theme
-    python3 setup.py build_doc
-    python3 -m http.server --directory build/doc/html/
+    python setup.py build_doc
+    python -m http.server --directory build/doc/html/
 
 and browse `http://localhost:8000/ <http://localhost:8000/>`_
 
