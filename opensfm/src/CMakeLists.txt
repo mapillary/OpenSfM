@@ -17,7 +17,6 @@ endif()
 
 ####### Compilation Options #######
 # Visibility stuff
-cmake_policy(SET CMP0063 NEW)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_INLINES ON)
 
@@ -39,6 +38,9 @@ add_definitions(-DVL_DISABLE_AVX)
 
 # Use the version of vlfeat in ./src/third_party/vlfeat
 add_definitions(-DINPLACE_VLFEAT)
+if(NOT USE_SSE2)
+  add_definitions(-DVL_DISABLE_SSE2)
+endif()
 
 if (WIN32)
     # Missing math constant
