@@ -7,9 +7,10 @@ namespace dense {
 
 class DepthmapEstimatorWrapper {
  public:
-  void AddView(foundation::pyarray_d K, foundation::pyarray_d R,
-               foundation::pyarray_d t, foundation::pyarray_uint8 image,
-               foundation::pyarray_uint8 mask) {
+  void AddView(const foundation::pyarray_d& K, const foundation::pyarray_d& R,
+               const foundation::pyarray_d& t,
+               const foundation::pyarray_uint8& image,
+               const foundation::pyarray_uint8& mask) {
     if ((image.shape(0) != mask.shape(0)) ||
         (image.shape(1) != mask.shape(1))) {
       throw std::invalid_argument("image and mask must have matching shapes.");
@@ -55,7 +56,7 @@ class DepthmapEstimatorWrapper {
     return ComputeReturnValues(result);
   }
 
-  py::object ComputeReturnValues(const DepthmapEstimatorResult &result) {
+  py::object ComputeReturnValues(const DepthmapEstimatorResult& result) {
     py::list retn;
     retn.append(foundation::py_array_from_data(
         result.depth.ptr<float>(0), result.depth.rows, result.depth.cols));
@@ -78,8 +79,9 @@ class DepthmapCleanerWrapper {
 
   void SetMinConsistentViews(int n) { dc_.SetMinConsistentViews(n); }
 
-  void AddView(foundation::pyarray_d K, foundation::pyarray_d R,
-               foundation::pyarray_d t, foundation::pyarray_f depth) {
+  void AddView(const foundation::pyarray_d& K, const foundation::pyarray_d& R,
+               const foundation::pyarray_d& t,
+               const foundation::pyarray_f& depth) {
     dc_.AddView(K.data(), R.data(), t.data(), depth.data(), depth.shape(1),
                 depth.shape(0));
   }
@@ -102,10 +104,12 @@ class DepthmapPrunerWrapper {
  public:
   void SetSameDepthThreshold(float t) { dp_.SetSameDepthThreshold(t); }
 
-  void AddView(foundation::pyarray_d K, foundation::pyarray_d R,
-               foundation::pyarray_d t, foundation::pyarray_f depth,
-               foundation::pyarray_f plane, foundation::pyarray_uint8 color,
-               foundation::pyarray_uint8 label) {
+  void AddView(const foundation::pyarray_d& K, const foundation::pyarray_d& R,
+               const foundation::pyarray_d& t,
+               const foundation::pyarray_f& depth,
+               const foundation::pyarray_f& plane,
+               const foundation::pyarray_uint8& color,
+               const foundation::pyarray_uint8& label) {
     if ((depth.shape(0) != plane.shape(0)) ||
         (depth.shape(1) != plane.shape(1))) {
       throw std::invalid_argument("depth and plane must have matching shapes.");
