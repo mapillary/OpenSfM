@@ -6,6 +6,7 @@
 #include <geometry/relative_pose.h>
 #include <geometry/similarity.h>
 #include <geometry/triangulation.h>
+#include <foundation/python_types.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -282,7 +283,7 @@ PYBIND11_MODULE(pygeometry, m) {
           py::return_value_policy::copy)
       .def(
           "__deepcopy__",
-          [](const geometry::Camera& c, const py::dict& d) { return c; },
+          [](const geometry::Camera& c, const py::dict& /* d */) { return c; },
           py::return_value_policy::copy);
   m.def("compute_camera_mapping", geometry::ComputeCameraMapping,
         py::call_guard<py::gil_scoped_release>());
@@ -375,7 +376,7 @@ PYBIND11_MODULE(pygeometry, m) {
           py::return_value_policy::copy)
       .def(
           "__deepcopy__",
-          [](const geometry::Pose& p, const py::dict& d) { return p; },
+          [](const geometry::Pose& p, const py::dict& /* d */) { return p; },
           py::return_value_policy::copy)
       .def("inverse", [](const geometry::Pose& p) {
         geometry::Pose new_pose;
