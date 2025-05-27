@@ -5,8 +5,6 @@
 #include <gtest/gtest.h>
 
 #include <Eigen/Dense>
-#include <random>
-#include <unsupported/Eigen/AutoDiff>
 
 class FunctionFixture : public ::testing::Test {
  public:

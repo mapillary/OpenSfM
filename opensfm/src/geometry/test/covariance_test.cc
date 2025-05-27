@@ -8,8 +8,6 @@
 
 #include <Eigen/Dense>
 #include <cmath>
-#include <random>
-#include <unsupported/Eigen/AutoDiff>
 
 #include "geometry/transformations_functions.h"
 
