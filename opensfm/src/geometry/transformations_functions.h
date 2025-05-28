@@ -304,7 +304,7 @@ struct Normalize : Functor<3, 0, 3> {
   }
 };
 
-static Mat3d VectorToRotationMatrix(const Vec3d& r) {
+inline Mat3d VectorToRotationMatrix(const Vec3d& r) {
   const auto n = r.norm();
   if (n == 0)  // avoid division by 0
   {
@@ -313,7 +313,7 @@ static Mat3d VectorToRotationMatrix(const Vec3d& r) {
     return Eigen::AngleAxisd(n, r / n).toRotationMatrix();
   }
 }
-static Vec3d RotationMatrixToVector(const Mat3d& R) {
+inline Vec3d RotationMatrixToVector(const Mat3d& R) {
   Eigen::AngleAxisd tmp(R);
   return tmp.axis() * tmp.angle();
 }
