@@ -1,10 +1,11 @@
 # pyre-unsafe
+import copy
 from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
 import opensfm.transformations as tf
-from opensfm import align, multiview, pymap, types
+from opensfm import align, geo, multiview, pymap, types
 
 
 def points_errors(
@@ -125,20 +126,34 @@ def aligned_to_reference(
                 coords2.append(shot2.pose.get_origin())
 
     s, A, b = find_alignment(coords1, coords2)
-    aligned = _copy_reconstruction(reconstruction)
+    aligned = copy.deepcopy(reconstruction)
     align.apply_similarity(aligned, s, A, b)
     return aligned
 
 
-def _copy_reconstruction(reconstruction: types.Reconstruction) -> types.Reconstruction:
-    copy = types.Reconstruction()
-    for camera in reconstruction.cameras.values():
-        copy.add_camera(camera)
-    for shot in reconstruction.shots.values():
-        copy.add_shot(shot)
-    for point in reconstruction.points.values():
-        copy.add_point(point)
-    return copy
+def change_geo_reference(
+    reconstruction: types.Reconstruction,
+    latitude: float,
+    longitude: float,
+    altitude: float,
+) -> types.Reconstruction:
+    """Change the geo reference of a reconstruction.
+
+    This assumes that the new lla is close enough that rotation differences
+    between references can be ignored.
+    """
+    t_old_new = reconstruction.reference.to_topocentric(latitude, longitude, altitude)
+
+    s = 1.0
+    A = np.eye(3)
+    b = -np.array(t_old_new)
+    aligned = copy.deepcopy(reconstruction)
+    aligned.reference = geo.TopocentricConverter(latitude, longitude, altitude)
+    align.apply_similarity(aligned, s, A, b)
+    for shot in aligned.shots.values():
+        if shot.metadata.gps_position.has_value:
+            shot.metadata.gps_position.value = shot.metadata.gps_position.value + b
+    return aligned
 
 
 def rmse(errors: np.ndarray) -> float:

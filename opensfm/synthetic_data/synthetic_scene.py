@@ -8,6 +8,7 @@ import opensfm.synthetic_data.synthetic_dataset as sd
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
 from opensfm import geo, pygeometry, pymap, types
+from opensfm.reconstruction_helpers import exif_to_metadata
 
 
 def get_camera(
@@ -452,6 +453,11 @@ class SyntheticInputData:
             causal_gps_noise=causal_gps_noise,
         )
 
+        for shot in self.reconstruction.shots.values():
+            shot.metadata = exif_to_metadata(
+                self.exifs[shot.id], False, self.reconstruction.reference
+            )
+
         if generate_projections:
             (self.features, self.tracks_manager, self.gcps) = sg.generate_track_data(
                 reconstruction,
@@ -473,15 +479,18 @@ def compare(
     reconstruction: types.Reconstruction,
 ) -> Dict[str, float]:
     """Compare a reconstruction with reference groundtruth."""
+    geo = reference.reference
+
     completeness = sm.completeness_errors(reference, reconstruction)
 
-    absolute_position = sm.position_errors(reference, reconstruction)
-    absolute_rotation = sm.rotation_errors(reference, reconstruction)
-    absolute_points = sm.points_errors(reference, reconstruction)
-    absolute_gps = sm.gps_errors(reconstruction)
-    absolute_gcp = sm.gcp_errors(reconstruction, gcps)
+    geo_referenced = sm.change_geo_reference(reconstruction, geo.lat, geo.lon, geo.alt)
+    absolute_position = sm.position_errors(reference, geo_referenced)
+    absolute_rotation = sm.rotation_errors(reference, geo_referenced)
+    absolute_points = sm.points_errors(reference, geo_referenced)
+    absolute_gps = sm.gps_errors(geo_referenced)
+    absolute_gcp = sm.gcp_errors(geo_referenced, gcps)
 
-    aligned = sm.aligned_to_reference(reference, reconstruction)
+    aligned = sm.aligned_to_reference(reference, geo_referenced)
     aligned_position = sm.position_errors(reference, aligned)
     aligned_rotation = sm.rotation_errors(reference, aligned)
     aligned_points = sm.points_errors(reference, aligned)

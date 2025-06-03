@@ -1,6 +1,5 @@
 # pyre-unsafe
 from collections import defaultdict
-from distutils.version import LooseVersion
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -18,9 +17,12 @@ def pytest_configure(config) -> None:
 
 
 def use_legacy_numpy_printoptions() -> None:
-    """Ensure numpy use legacy print formant."""
-    if LooseVersion(np.__version__).version[:2] > [1, 13]:
-        np.set_printoptions(legacy="1.13")
+    """Ensure that numpy prints in a consistent way across versions.
+
+    This is needed so that doctests are always tested using the same print format,
+    which matches the one used in the docstrings.
+    """
+    np.set_printoptions(legacy="1.13")
 
 
 @pytest.fixture(scope="module")

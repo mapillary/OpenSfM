@@ -130,7 +130,7 @@ def test_reconstruction_statistics_normal(
     )
 
     assert reconstruction_statistics["components"] == 1
-    assert not reconstruction_statistics["has_gps"]
+    assert reconstruction_statistics["has_gps"]
     assert not reconstruction_statistics["has_gcp"]
     assert 4900 < reconstruction_statistics["initial_points_count"] < 5000
     assert reconstruction_statistics["initial_shots_count"] == 20
@@ -257,7 +257,9 @@ def test_gps_errors_normal(
 ) -> None:
     reference = scene_synthetic.reconstruction
     gps_errors = stats.gps_errors([reference])
-    assert gps_errors == {}
+    assert set(gps_errors.keys()) == {"average_error", "error", "mean", "std"}
+    # scene_synthetic generated GPS noise is 5 meters
+    assert 3.0 < gps_errors["average_error"] < 7.0
 
 
 def test_gps_errors_null(
