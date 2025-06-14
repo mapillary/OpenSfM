@@ -1,20 +1,18 @@
-cloudpickle==0.4.0
-exifread==2.1.2
-flask==2.3.2
-fpdf2==2.4.6
-joblib==0.14.1
-matplotlib
-networkx==2.5
-numpy>=1.19
-Pillow>=8.1.1
-pyproj>=1.9.5.1
-pytest==3.0.7
-python-dateutil>=2.7
-pyyaml>=5.4
-scipy>=1.10.0
-Sphinx==4.2.0
-six
-xmltodict==0.10.2
-wheel
+cloudpickle==3.1.1
+ExifRead==3.3.1
+Flask==3.1.1
+fpdf2==2.8.3
+joblib==1.5.1
+matplotlib==3.5.1
+networkx==3.4.2
+numpy==1.21.5
 opencv-python==4.5.1.48 ; sys_platform == "win32"
-opencv-python ; sys_platform == "linux"
+opencv-python==4.11.0.86 ; sys_platform == "linux"
+Pillow==9.0.1
+pyproj==3.3.0
+pytest==8.4.0
+python-dateutil==2.8.1
+PyYAML==5.4.1
+scipy==1.8.0
+Sphinx==4.2.0
+xmltodict==0.14.2
