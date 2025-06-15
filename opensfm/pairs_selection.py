@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import copy
 import logging
 import math
@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import numpy as np
 import scipy.spatial as spatial
+from numpy.typing import NDArray
 from opensfm import bow, context, feature_loader, geo, geometry, vlad
 from opensfm.dataset_base import DataSetBase
 
@@ -32,7 +33,7 @@ def sorted_pair(im1: str, im2: str) -> Tuple[str, str]:
 
 def get_gps_point(
     exif: Dict[str, Any], reference: geo.TopocentricConverter
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray, NDArray]:
     """Return GPS-based representative point. Direction is returned as Z oriented (vertical assumption)"""
     gps = exif["gps"]
     altitude = 0
@@ -55,7 +56,7 @@ def sign(x: float) -> float:
 
 def get_gps_opk_point(
     exif: Dict[str, Any], reference: geo.TopocentricConverter
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray, NDArray]:
     """Return GPS-based representative point."""
 
     opk = exif["opk"]
@@ -73,7 +74,7 @@ def get_gps_opk_point(
 
 
 def find_best_altitude(
-    origin: Dict[str, np.ndarray], directions: Dict[str, np.ndarray]
+    origin: Dict[str, NDArray], directions: Dict[str, NDArray]
 ) -> float:
     """Find the altitude that minimize X/Y bounding box. Domain is [0, MAXIMUM_Z].
     'origin' contains per-image positions in worl coordinates
@@ -105,7 +106,7 @@ def find_best_altitude(
 
 def get_representative_points(
     images: List[str], exifs: Dict[str, Any], reference: geo.TopocentricConverter
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, NDArray]:
     """Return a topocentric point for each image, that is suited to run distance-based pair selection."""
     origin = {}
     directions = {}
@@ -210,7 +211,7 @@ def match_candidates_by_distance(
     return pairs
 
 
-def norm_2d(vec: np.ndarray) -> float:
+def norm_2d(vec: NDArray) -> float:
     """Return the 2D norm of a vector."""
     return math.sqrt(vec[0] ** 2 + vec[1] ** 2)
 
@@ -226,9 +227,9 @@ def match_candidates_by_graph(
     if len(images_cand) < 4 or rounds < 1:
         return set()
 
-    images_cand_set = set(images_cand)
-    images_ref_set = set(images_ref)
-    images = list(images_cand_set | images_ref_set)
+    images_cand_set: Set[str] = set(images_cand)
+    images_ref_set: Set[str] = set(images_ref)
+    images: List[str] = list(images_cand_set | images_ref_set)
 
     representative_points = get_representative_points(images, exifs, reference)
 
@@ -236,7 +237,9 @@ def match_candidates_by_graph(
     for i, point in enumerate(representative_points.values()):
         points[i] = point[0:2]
 
-    def produce_edges(triangles):
+    def produce_edges(
+        triangles: List[Tuple[int, int, int]],
+    ) -> Iterable[Tuple[Tuple[str, str], Tuple[int, int]]]:
         for triangle in triangles:
             for vertex1, vertex2 in combinations(triangle, 2):
                 image1, image2 = images[vertex1], images[vertex2]
@@ -353,7 +356,7 @@ def match_candidates_with_vlad(
     max_gps_distance: float,
     max_gps_neighbors: int,
     enforce_other_cameras: bool,
-    histograms: Dict[str, np.ndarray],
+    histograms: Dict[str, NDArray],
 ) -> Dict[Tuple[str, str], float]:
     """Find candidate matching pairs using VLAD-based distance.
      If max_gps_distance > 0, then we use first restrain a set of
@@ -395,7 +398,7 @@ def compute_vlad_affinity(
     reference: geo.TopocentricConverter,
     max_gps_distance: float,
     max_gps_neighbors: int,
-    histograms: Dict[str, np.ndarray],
+    histograms: Dict[str, NDArray],
 ) -> List[Tuple[str, List[float], List[str]]]:
     """Compute affinity scores between references and candidates
     images using VLAD-based distance.
@@ -431,7 +434,7 @@ def preempt_candidates(
     reference: geo.TopocentricConverter,
     max_gps_neighbors: int,
     max_gps_distance: float,
-) -> Tuple[Dict[str, list], Set[str]]:
+) -> Tuple[Dict[str, List[str]], Set[str]]:
     """Preempt candidates using GPS to reduce set of images
     from which to load data to save RAM.
     """
@@ -486,9 +489,9 @@ def construct_pairs(
 
 def create_parallel_matching_args(
     data: DataSetBase,
-    preempted_cand: Dict[str, list],
-    histograms: Dict[str, np.ndarray],
-) -> Tuple[List[Tuple[str, list, Dict[str, np.ndarray]]], int, int]:
+    preempted_cand: Dict[str, List[str]],
+    histograms: Dict[str, NDArray],
+) -> Tuple[List[Tuple[str, List[str], Dict[str, NDArray]]], int, int]:
     """Create arguments to matching function"""
     args = [(im, cands, histograms) for im, cands in preempted_cand.items()]
 
@@ -502,7 +505,7 @@ def create_parallel_matching_args(
 
 
 def match_bow_unwrap_args(
-    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]],
+    args: Tuple[str, Iterable[str], Dict[str, NDArray]],
 ) -> Tuple[str, List[float], List[str]]:
     """Wrapper for parallel processing of BoW"""
     image, other_images, histograms = args
@@ -510,7 +513,7 @@ def match_bow_unwrap_args(
 
 
 def match_vlad_unwrap_args(
-    args: Tuple[str, Iterable[str], Dict[str, np.ndarray]],
+    args: Tuple[str, Iterable[str], Dict[str, NDArray]],
 ) -> Tuple[str, List[float], List[str]]:
     """Wrapper for parallel processing of VLAD"""
     image, other_images, histograms = args
@@ -682,7 +685,7 @@ def match_candidates_from_metadata(
 
 
 def bow_distances(
-    image: str, other_images: Iterable[str], histograms: Dict[str, np.ndarray]
+    image: str, other_images: Iterable[str], histograms: Dict[str, NDArray]
 ) -> Tuple[str, List[float], List[str]]:
     """Compute BoW-based distance (L1 on histogram of words)
     between an image and other images.
@@ -701,7 +704,7 @@ def bow_distances(
     return image, distances, other
 
 
-def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.ndarray]:
+def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, NDArray]:
     """Load BoW histograms of given images"""
     min_num_feature = 8
 
@@ -726,7 +729,7 @@ def load_histograms(data: DataSetBase, images: Iterable[str]) -> Dict[str, np.nd
 
 def vlad_histogram_unwrap_args(
     args: Tuple[DataSetBase, str],
-) -> Optional[Tuple[str, np.ndarray]]:
+) -> Optional[Tuple[str, NDArray]]:
     """Helper function for multithreaded VLAD computation.
 
     Returns the image and its descriptor.
@@ -740,7 +743,7 @@ def vlad_histogram_unwrap_args(
         return None
 
 
-def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, np.ndarray]:
+def vlad_histograms(images: Iterable[str], data: DataSetBase) -> Dict[str, NDArray]:
     """Construct VLAD histograms from the image features.
 
     Returns a dictionary of VLAD vectors for the images.
