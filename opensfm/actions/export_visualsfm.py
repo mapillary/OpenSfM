@@ -1,16 +1,17 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import os
 import sys
+from typing import Dict, Optional
 
-from opensfm import io, transformations as tf
+from opensfm import io, pymap, transformations as tf, types
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSet, points, image_list) -> None:
+def run_dataset(data: DataSet, points: bool, image_list: str) -> None:
     udata = data.undistorted_dataset()
 
     validate_image_names(data, udata)
@@ -30,7 +31,11 @@ def run_dataset(data: DataSet, points, image_list) -> None:
 
 
 def export(
-    reconstruction, tracks_manager, udata: UndistortedDataSet, with_points, export_only
+    reconstruction: types.Reconstruction,
+    tracks_manager: pymap.TracksManager,
+    udata: UndistortedDataSet,
+    with_points: bool,
+    export_only: Optional[Dict[str, bool]],
 ) -> None:
     lines = ["NVM_V3", "", str(len(reconstruction.shots))]
     shot_size_cache = {}

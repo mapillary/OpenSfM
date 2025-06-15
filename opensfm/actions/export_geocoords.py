@@ -1,10 +1,11 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import os
 from typing import List, Sequence
 
 import numpy as np
 import pyproj
+from numpy.typing import NDArray
 from opensfm import io, types
 from opensfm.dataset import DataSet, UndistortedDataSet
 from opensfm.geo import TopocentricConverter
@@ -69,7 +70,7 @@ def run_dataset(
 
 def _get_transformation(
     reference: TopocentricConverter, projection: pyproj.Proj
-) -> np.ndarray:
+) -> NDArray:
     """Get the linear transform from reconstruction coords to geocoords."""
     p = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]]
     q = [_transform(point, reference, projection) for point in p]
@@ -85,7 +86,7 @@ def _get_transformation(
     return transformation
 
 
-def _write_transformation(transformation: np.ndarray, filename: str) -> None:
+def _write_transformation(transformation: NDArray, filename: str) -> None:
     """Write the 4x4 matrix transformation to a text file."""
     with io.open_wt(filename) as fout:
         for row in transformation:
@@ -94,7 +95,7 @@ def _write_transformation(transformation: np.ndarray, filename: str) -> None:
 
 
 def _transform(
-    point: Sequence, reference: TopocentricConverter, projection: pyproj.Proj
+    point: Sequence[float], reference: TopocentricConverter, projection: pyproj.Proj
 ) -> List[float]:
     """Transform on point from local coords to a proj4 projection."""
     lat, lon, altitude = reference.to_lla(point[0], point[1], point[2])
@@ -103,7 +104,7 @@ def _transform(
 
 
 def _transform_image_positions(
-    reconstructions: List[types.Reconstruction], transformation: np.ndarray, output: str
+    reconstructions: List[types.Reconstruction], transformation: NDArray, output: str
 ) -> None:
     A, b = transformation[:3, :3], transformation[:3, 3]
 
@@ -121,7 +122,7 @@ def _transform_image_positions(
 
 
 def _transform_reconstruction(
-    reconstruction: types.Reconstruction, transformation: np.ndarray
+    reconstruction: types.Reconstruction, transformation: NDArray
 ) -> None:
     """Apply a transformation to a reconstruction in-place."""
     A, b = transformation[:3, :3], transformation[:3, 3]
@@ -137,7 +138,7 @@ def _transform_reconstruction(
 
 
 def _transform_dense_point_cloud(
-    udata: UndistortedDataSet, transformation: np.ndarray, output_path: str
+    udata: UndistortedDataSet, transformation: NDArray, output_path: str
 ) -> None:
     """Apply a transformation to the merged point cloud."""
     A, b = transformation[:3, :3], transformation[:3, 3]

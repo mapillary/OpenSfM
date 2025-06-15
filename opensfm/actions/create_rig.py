@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 from typing import Dict, List
 
@@ -11,7 +11,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def run_dataset(
-    data: DataSet, method, definition: Dict[str, str], output_debug
+    data: DataSet, method: str, definition: Dict[str, str], output_debug: bool
 ) -> None:
     """Given a dataset that contains rigs, construct rig data files.
 

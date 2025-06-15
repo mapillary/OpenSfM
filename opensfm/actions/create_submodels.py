@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 from collections import defaultdict
 
@@ -32,7 +32,7 @@ def run_dataset(data: DataSet) -> None:
     meta_data.create_submodels(meta_data.load_clusters_with_neighbors())
 
 
-def _create_image_list(data: DataSet, meta_data) -> None:
+def _create_image_list(data: DataSet, meta_data: MetaDataSet) -> None:
     ills = []
     for image in data.images():
         exif = data.load_exif(image)
@@ -105,7 +105,7 @@ def _cluster_images(meta_data: MetaDataSet, cluster_size: float) -> None:
     meta_data.save_clusters(images, positions, labels, centers)
 
 
-def _add_cluster_neighbors(meta_data: MetaDataSet, max_distance) -> None:
+def _add_cluster_neighbors(meta_data: MetaDataSet, max_distance: float) -> None:
     images, positions, labels, centers = meta_data.load_clusters()
     clusters = tools.add_cluster_neighbors(positions, labels, centers, max_distance)
 

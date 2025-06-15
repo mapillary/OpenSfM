@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import os
 
 import numpy as np
@@ -8,7 +8,11 @@ from opensfm.dense import depthmap_to_ply, scale_down_image
 
 
 def run_dataset(
-    data: DataSet, no_cameras: bool, no_points: bool, depthmaps, point_num_views: bool
+    data: DataSet,
+    no_cameras: bool,
+    no_points: bool,
+    depthmaps: bool,
+    point_num_views: bool,
 ) -> None:
     """Export reconstruction to PLY format
 

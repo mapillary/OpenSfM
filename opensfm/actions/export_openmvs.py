@@ -1,12 +1,14 @@
-# pyre-unsafe
+# pyre-strict
 import os
 
+from typing import Dict, Optional
+
 import numpy as np
-from opensfm import io, pydense
+from opensfm import io, pydense, pymap, types
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
-def run_dataset(data: DataSet, image_list) -> None:
+def run_dataset(data: DataSet, image_list: str) -> None:
     """Export reconstruction to OpenMVS format."""
 
     udata = data.undistorted_dataset()
@@ -25,7 +27,10 @@ def run_dataset(data: DataSet, image_list) -> None:
 
 
 def export(
-    reconstruction, tracks_manager, udata: UndistortedDataSet, export_only
+    reconstruction: types.Reconstruction,
+    tracks_manager: pymap.TracksManager,
+    udata: UndistortedDataSet,
+    export_only: Optional[Dict[str, bool]],
 ) -> None:
     exporter = pydense.OpenMVSExporter()
     for camera in reconstruction.cameras.values():
