@@ -245,7 +245,7 @@ def add_gcp_to_bundle(
                     f"Could not triangulate GCP '{point.id}'."
                     f"Using {enu} (derived from lat,lon)"
                 )
-                coordinates = enu
+                coordinates = np.array(enu)
             else:
                 logger.warning(
                     "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)

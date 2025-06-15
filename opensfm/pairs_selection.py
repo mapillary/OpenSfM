@@ -39,7 +39,7 @@ def get_gps_point(
     altitude = 0
     direction = np.array([0, 0, 1])
     return (
-        reference.to_topocentric(gps["latitude"], gps["longitude"], altitude),
+        np.array(reference.to_topocentric(gps["latitude"], gps["longitude"], altitude)),
         direction,
     )
 

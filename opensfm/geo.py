@@ -1,14 +1,26 @@
-# pyre-unsafe
-from typing import Tuple
+# pyre-strict
+from typing import overload, Sequence, Tuple, Union
 
 import numpy as np
-from numpy import ndarray
+from numpy.typing import NDArray
+
+Scalars = Union[float, NDArray]
 
 WGS84_a = 6378137.0
 WGS84_b = 6356752.314245
 
 
-def ecef_from_lla(lat, lon, alt: float) -> Tuple[float, ...]:
+@overload
+def ecef_from_lla(lat: float, lon: float, alt: float) -> Tuple[float, float, float]: ...
+@overload
+def ecef_from_lla(
+    lat: NDArray, lon: NDArray, alt: NDArray
+) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+
+def ecef_from_lla(
+    lat: Scalars, lon: Scalars, alt: Scalars
+) -> Tuple[Scalars, Scalars, Scalars]:
     """
     Compute ECEF XYZ from latitude, longitude and altitude.
 
@@ -32,7 +44,17 @@ def ecef_from_lla(lat, lon, alt: float) -> Tuple[float, ...]:
     return x, y, z
 
 
-def lla_from_ecef(x, y, z):
+@overload
+def lla_from_ecef(x: float, y: float, z: float) -> Tuple[float, float, float]: ...
+@overload
+def lla_from_ecef(
+    x: NDArray, y: NDArray, z: NDArray
+) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+
+def lla_from_ecef(
+    x: Scalars, y: Scalars, z: Scalars
+) -> Tuple[Scalars, Scalars, Scalars]:
     """
     Compute latitude, longitude and altitude from ECEF XYZ.
 
@@ -43,6 +65,7 @@ def lla_from_ecef(x, y, z):
     b = WGS84_b
     ea = np.sqrt((a**2 - b**2) / a**2)
     eb = np.sqrt((a**2 - b**2) / b**2)
+    # pyre-ignore[6]: pyre ignores that x,y are all either scalars or arrays
     p = np.sqrt(x**2 + y**2)
     theta = np.arctan2(z * a, p * b)
     lon = np.arctan2(y, x)
@@ -54,7 +77,7 @@ def lla_from_ecef(x, y, z):
     return np.degrees(lat), np.degrees(lon), alt
 
 
-def ecef_from_topocentric_transform(lat, lon, alt: float) -> ndarray:
+def ecef_from_topocentric_transform(lat: float, lon: float, alt: float) -> NDArray:
     """
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -81,7 +104,9 @@ def ecef_from_topocentric_transform(lat, lon, alt: float) -> ndarray:
     )
 
 
-def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float) -> ndarray:
+def ecef_from_topocentric_transform_finite_diff(
+    lat: float, lon: float, alt: float
+) -> NDArray:
     """
     Transformation from a topocentric frame at reference position to ECEF.
 
@@ -128,7 +153,34 @@ def ecef_from_topocentric_transform_finite_diff(lat, lon, alt: float) -> ndarray
     )
 
 
-def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt: float):
+@overload
+def topocentric_from_lla(
+    lat: float,
+    lon: float,
+    alt: float,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[float, float, float]: ...
+@overload
+def topocentric_from_lla(
+    lat: NDArray,
+    lon: NDArray,
+    alt: NDArray,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+
+def topocentric_from_lla(
+    lat: Scalars,
+    lon: Scalars,
+    alt: Scalars,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[Scalars, Scalars, Scalars]:
     """
     Transform from lat, lon, alt to topocentric XYZ.
 
@@ -142,6 +194,7 @@ def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt: float):
     True
     """
     T = np.linalg.inv(ecef_from_topocentric_transform(reflat, reflon, refalt))
+    # pyre-ignore[6]: pyre gets confused with Scalar vs float vs NDarray
     x, y, z = ecef_from_lla(lat, lon, alt)
     tx = T[0, 0] * x + T[0, 1] * y + T[0, 2] * z + T[0, 3]
     ty = T[1, 0] * x + T[1, 1] * y + T[1, 2] * z + T[1, 3]
@@ -149,7 +202,34 @@ def topocentric_from_lla(lat, lon, alt: float, reflat, reflon, refalt: float):
     return tx, ty, tz
 
 
-def lla_from_topocentric(x, y, z, reflat, reflon, refalt: float):
+@overload
+def lla_from_topocentric(
+    x: float,
+    y: float,
+    z: float,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[float, float, float]: ...
+@overload
+def lla_from_topocentric(
+    x: NDArray,
+    y: NDArray,
+    z: NDArray,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+
+def lla_from_topocentric(
+    x: Scalars,
+    y: Scalars,
+    z: Scalars,
+    reflat: float,
+    reflon: float,
+    refalt: float,
+) -> Tuple[Scalars, Scalars, Scalars]:
     """
     Transform from topocentric XYZ to lat, lon, alt.
     """
@@ -160,7 +240,20 @@ def lla_from_topocentric(x, y, z, reflat, reflon, refalt: float):
     return lla_from_ecef(ex, ey, ez)
 
 
-def gps_distance(latlon_1, latlon_2):
+@overload
+def gps_distance(latlon_1: Sequence[float], latlon_2: Sequence[float]) -> float: ...
+@overload
+def gps_distance(
+    latlon_1: Sequence[NDArray], latlon_2: Sequence[NDArray]
+) -> NDArray: ...
+@overload
+def gps_distance(latlon_1: NDArray, latlon_2: NDArray) -> NDArray: ...
+
+
+def gps_distance(
+    latlon_1: Union[Sequence[Scalars], NDArray],
+    latlon_2: Union[Sequence[Scalars], NDArray],
+) -> Scalars:
     """
     Distance between two (lat,lon) pairs.
 
@@ -180,19 +273,41 @@ def gps_distance(latlon_1, latlon_2):
 class TopocentricConverter:
     """Convert to and from a topocentric reference frame."""
 
-    def __init__(self, reflat, reflon, refalt):
+    def __init__(self, reflat: float, reflon: float, refalt: float) -> None:
         """Init the converter given the reference origin."""
         self.lat = reflat
         self.lon = reflon
         self.alt = refalt
 
-    def to_topocentric(self, lat, lon, alt):
+    @overload
+    def to_topocentric(
+        self, lat: float, lon: float, alt: float
+    ) -> Tuple[float, float, float]: ...
+    @overload
+    def to_topocentric(
+        self, lat: NDArray, lon: NDArray, alt: NDArray
+    ) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+    def to_topocentric(
+        self, lat: Scalars, lon: Scalars, alt: Scalars
+    ) -> Tuple[Scalars, Scalars, Scalars]:
         """Convert lat, lon, alt to topocentric x, y, z."""
+        # pyre-ignore[6]: pyre gets confused with Scalar vs float vs NDarray
         return topocentric_from_lla(lat, lon, alt, self.lat, self.lon, self.alt)
 
-    def to_lla(self, x, y, z):
+    @overload
+    def to_lla(self, x: float, y: float, z: float) -> Tuple[float, float, float]: ...
+    @overload
+    def to_lla(
+        self, x: NDArray, y: NDArray, z: NDArray
+    ) -> Tuple[NDArray, NDArray, NDArray]: ...
+
+    def to_lla(
+        self, x: Scalars, y: Scalars, z: Scalars
+    ) -> Tuple[Scalars, Scalars, Scalars]:
         """Convert topocentric x, y, z to lat, lon, alt."""
+        # pyre-ignore[6]: pyre gets confused with Scalar vs float vs NDarray
         return lla_from_topocentric(x, y, z, self.lat, self.lon, self.alt)
 
-    def __eq__(self, o):
+    def __eq__(self, o: "TopocentricConverter") -> bool:
         return np.allclose([self.lat, self.lon, self.alt], (o.lat, o.lon, o.alt))
