@@ -1,9 +1,9 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import os
 import subprocess
 import tempfile
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import PIL
 from fpdf import FPDF
@@ -15,9 +15,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class Report:
     def __init__(self, data: DataSet) -> None:
-        self.output_path = os.path.join(data.data_path, "stats")
-        self.dataset_name = os.path.basename(data.data_path)
-        self.io_handler = data.io_handler
+        self.output_path: str = os.path.join(data.data_path, "stats")
+        self.dataset_name: str = os.path.basename(data.data_path)
+        self.io_handler: io.IoFilesystemBase = data.io_handler
 
         self.mapi_light_light_green = [210, 245, 226]
         self.mapi_light_green = [5, 203, 99]
@@ -37,7 +37,7 @@ class Report:
         self.cell_height = 7
         self.total_size = 190
 
-        self.stats = self._read_stats_file("stats.json")
+        self.stats: Dict[str, Any] = self._read_stats_file("stats.json")
 
     def save_report(self, filename: str) -> None:
         bytestring = self.pdf.output(dest="S")
@@ -47,7 +47,12 @@ class Report:
         with self.io_handler.open_wb(os.path.join(self.output_path, filename)) as fwb:
             fwb.write(bytestring)
 
-    def _make_table(self, columns_names, rows, row_header=False) -> None:
+    def _make_table(
+        self,
+        columns_names: Optional[List[str]],
+        rows: List[List[str]],
+        row_header: bool = False,
+    ) -> None:
         self.pdf.set_font("Helvetica", "", self.h3)
         self.pdf.set_line_width(0.3)
 
@@ -90,7 +95,7 @@ class Report:
                 self.pdf.cell(size, self.cell_height, col, align="L")
             self.pdf.set_xy(self.margin, self.pdf.get_y() + self.cell_height)
 
-    def _read_stats_file(self, filename) -> Dict[str, Any]:
+    def _read_stats_file(self, filename: str) -> Dict[str, Any]:
         file_path = os.path.join(self.output_path, filename)
         with self.io_handler.open_rt(file_path) as fin:
             return io.json_load(fin)
