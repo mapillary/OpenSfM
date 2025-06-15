@@ -1,9 +1,10 @@
-# pyre-unsafe
+# pyre-strict
 import copy
 import sys
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import pygeometry, pymap, types
 from scipy.stats import special_ortho_group
 
@@ -82,7 +83,7 @@ def test_shot_measurement() -> None:
     assert m.value == 4
 
 
-def _helper_pose_equal_to_T(pose, T_cw) -> None:
+def _helper_pose_equal_to_T(pose: pygeometry.Pose, T_cw: NDArray) -> None:
     assert np.allclose(pose.get_R_world_to_cam(), T_cw[0:3, 0:3])
     assert np.allclose(pose.get_t_world_to_cam(), T_cw[0:3, 3].reshape(3))
     assert np.allclose(pose.translation, T_cw[0:3, 3].reshape(3))
@@ -99,14 +100,16 @@ def _helper_pose_equal_to_T(pose, T_cw) -> None:
     assert np.allclose(pose.get_Rt(), T_cw[0:3, 0:4])
 
 
-def _helper_poses_equal_py_cpp(py_pose, cpp_pose) -> None:
+def _helper_poses_equal_py_cpp(
+    py_pose: pygeometry.Pose, cpp_pose: pygeometry.Pose
+) -> None:
     assert np.allclose(py_pose.translation, cpp_pose.translation)
     assert np.allclose(py_pose.rotation, cpp_pose.rotation)
     assert np.allclose(py_pose.get_rotation_matrix(), cpp_pose.get_rotation_matrix())
     assert np.allclose(py_pose.get_origin(), cpp_pose.get_origin())
 
 
-def _heper_poses_equal(pose1, pose2) -> None:
+def _heper_poses_equal(pose1: pygeometry.Pose, pose2: pygeometry.Pose) -> None:
     assert np.allclose(pose1.translation, pose2.translation)
     assert np.allclose(pose1.rotation, pose2.rotation)
     assert np.allclose(pose1.get_rotation_matrix(), pose2.get_rotation_matrix())

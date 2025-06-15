@@ -1,8 +1,8 @@
-# pyre-unsafe
+# pyre-strict
 import copy
 
 import random
-from typing import Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -19,8 +19,8 @@ from opensfm.types import Reconstruction
 
 def _create_reconstruction(
     n_cameras: int = 0,
-    n_shots_cam=None,
-    n_pano_shots_cam=None,
+    n_shots_cam: Optional[Dict[str, int]] = None,
+    n_pano_shots_cam: Optional[Dict[str, int]] = None,
     n_points: int = 0,
     dist_to_shots: bool = False,
     dist_to_pano_shots: bool = False,
@@ -146,7 +146,9 @@ def test_camera_iterators() -> None:
         assert cam is rec.cameras[cam.id]
 
 
-def _check_common_cam_properties(cam1, cam2) -> None:
+def _check_common_cam_properties(
+    cam1: pygeometry.Camera, cam2: pygeometry.Camera
+) -> None:
     assert cam1.id == cam2.id
     assert cam1.width == cam2.width
     assert cam1.height == cam2.height
@@ -327,7 +329,9 @@ def test_spherical_camera() -> None:
 
 
 # Test Metadata
-def _help_measurement_test(measurement, attr, val) -> None:
+def _help_measurement_test(
+    measurement: object, attr: str, val: Union[float, str]
+) -> None:
     # Test metadata's has_value properties
     assert getattr(measurement, attr).has_value is False
     getattr(measurement, attr).value = val
@@ -357,7 +361,7 @@ def test_shot_measurement_setter_and_getter() -> None:
     _help_measurement_test(m1, "sequence_key", "key_test")
 
 
-def _helper_populate_metadata(m) -> None:
+def _helper_populate_metadata(m: pymap.ShotMeasurements) -> None:
     m.capture_time.value = np.random.rand(1)
     m.gps_position.value = np.random.rand(3)
     m.gps_accuracy.value = np.random.rand(1)

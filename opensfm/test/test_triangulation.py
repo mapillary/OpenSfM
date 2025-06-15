@@ -1,5 +1,6 @@
-# pyre-unsafe
+# pyre-strict
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 from opensfm import io, pygeometry, pymap, reconstruction
 
 
@@ -101,8 +102,7 @@ def test_track_triangulator_coincident_camera_origins() -> None:
     assert not rec.points
 
 
-def unit_vector(x: object) -> np.ndarray:
-    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
+def unit_vector(x: ArrayLike) -> NDArray:
     return np.array(x) / np.linalg.norm(x)
 
 

@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import numpy as np
 from opensfm import dense, pygeometry, types
 

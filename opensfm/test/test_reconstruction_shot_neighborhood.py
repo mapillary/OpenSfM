@@ -1,13 +1,16 @@
-# pyre-unsafe
-import networkx as nx
+# pyre-strict
+from typing import List
+
 from opensfm import pygeometry, pymap, pysfm, reconstruction, types
 
 
-def _add_shot(rec, shot_id, cam) -> None:
+def _add_shot(rec: types.Reconstruction, shot_id: str, cam: pygeometry.Camera) -> None:
     rec.create_shot(shot_id, cam.id)
 
 
-def _add_point(rec, point_id, observations) -> None:
+def _add_point(
+    rec: types.Reconstruction, point_id: str, observations: List[str]
+) -> None:
     rec.create_point(point_id)
     for shot_id in observations:
         obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, int(point_id))

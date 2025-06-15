@@ -1,19 +1,20 @@
-# pyre-unsafe
+# pyre-strict
 import copy
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import pygeometry, pyrobust
 
 
-def line_data() -> Tuple[int, int, np.ndarray, int]:
+def line_data() -> Tuple[int, int, NDArray, int]:
     a, b = 2, 3
     samples = 100
     x = np.linspace(0, 100, samples)
     return a, b, x, samples
 
 
-def similarity_data() -> Tuple[np.ndarray, np.ndarray, int, np.ndarray, int]:
+def similarity_data() -> Tuple[NDArray, NDArray, int, NDArray, int]:
     rotation = np.array([0.1, 0.2, 0.3])
     translation = np.array([4, 5, 6])
     scale = 2
@@ -23,7 +24,7 @@ def similarity_data() -> Tuple[np.ndarray, np.ndarray, int, np.ndarray, int]:
     return rotation, translation, scale, x, samples
 
 
-def add_outliers(ratio_outliers: float, x: np.ndarray, min: float, max: float) -> None:
+def add_outliers(ratio_outliers: float, x: NDArray, min: float, max: float) -> None:
     for index in np.random.permutation(len(x))[: int(ratio_outliers * len(x))]:
         shape = x[index].shape
         noise = np.random.uniform(min, max, size=shape)
@@ -186,7 +187,9 @@ def test_outliers_similarity_ransac() -> None:
     )
 
 
-def test_uniform_essential_ransac(pairs_and_their_E) -> None:
+def test_uniform_essential_ransac(
+    pairs_and_their_E: List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]],
+) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -207,7 +210,9 @@ def test_uniform_essential_ransac(pairs_and_their_E) -> None:
         assert len(result.inliers_indices) == len(f1) == len(f2)
 
 
-def test_outliers_essential_ransac(pairs_and_their_E) -> None:
+def test_outliers_essential_ransac(
+    pairs_and_their_E: List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]],
+) -> None:
     for f1, f2, _, _ in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -233,7 +238,9 @@ def test_outliers_essential_ransac(pairs_and_their_E) -> None:
         assert np.isclose(len(result.inliers_indices), inliers_count, rtol=tolerance)
 
 
-def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
+def test_outliers_relative_pose_ransac(
+    pairs_and_their_E: List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]],
+) -> None:
     for f1, f2, _, pose in pairs_and_their_E:
         points = np.concatenate((f1, f2), axis=1)
 
@@ -265,7 +272,9 @@ def test_outliers_relative_pose_ransac(pairs_and_their_E) -> None:
     assert np.linalg.norm(expected - result.lo_model, ord="fro") < 16e-2
 
 
-def test_outliers_relative_rotation_ransac(pairs_and_their_E) -> None:
+def test_outliers_relative_rotation_ransac(
+    pairs_and_their_E: List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]],
+) -> None:
     for f1, _, _, _ in pairs_and_their_E:
         vec_x = np.random.rand(3)
         vec_x /= np.linalg.norm(vec_x)
@@ -304,7 +313,9 @@ def test_outliers_relative_rotation_ransac(pairs_and_their_E) -> None:
         assert np.linalg.norm(rotation - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_ransac(shots_and_their_points) -> None:
+def test_outliers_absolute_pose_ransac(
+    shots_and_their_points: List[Tuple[pygeometry.Pose, NDArray, NDArray]],
+) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)
@@ -329,7 +340,9 @@ def test_outliers_absolute_pose_ransac(shots_and_their_points) -> None:
         assert np.linalg.norm(expected - result.lo_model, ord="fro") < 8e-2
 
 
-def test_outliers_absolute_pose_known_rotation_ransac(shots_and_their_points) -> None:
+def test_outliers_absolute_pose_known_rotation_ransac(
+    shots_and_their_points: List[Tuple[pygeometry.Pose, NDArray, NDArray]],
+) -> None:
     for pose, bearings, points in shots_and_their_points:
         scale = 1e-3
         bearings = copy.deepcopy(bearings)

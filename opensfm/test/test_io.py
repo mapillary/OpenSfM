@@ -1,15 +1,16 @@
-# pyre-unsafe
+# pyre-strict
 import json
 import os.path
 from io import StringIO
+from typing import List
 
 import numpy as np
 
-from opensfm import io, pygeometry, types
+from opensfm import io, pygeometry, pymap, types
 from opensfm.test import data_generation, utils
 
 
-filename = os.path.join(
+filename: str = os.path.join(
     data_generation.DATA_PATH, "berlin", "reconstruction_example.json"
 )
 
@@ -131,7 +132,7 @@ def test_read_write_ground_control_points() -> None:
 }
     """
 
-    def check_points(points) -> None:
+    def check_points(points: List[pymap.GroundControlPoint]) -> None:
         assert len(points) == 2
         p1, p2 = points
         if p1.id != "1":
