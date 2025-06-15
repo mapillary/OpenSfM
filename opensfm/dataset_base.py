@@ -1,7 +1,7 @@
 # pyre-unsafe
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, IO, List, Optional, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 import numpy as np
 from opensfm import features, geo, io, pygeometry, pymap, types
@@ -31,7 +31,7 @@ class DataSetBase(ABC):
         pass
 
     @abstractmethod
-    def open_image_file(self, image: str) -> IO[Any]:
+    def open_image_file(self, image: str) -> BinaryIO:
         pass
 
     @abstractmethod

@@ -1,35 +1,39 @@
-# pyre-unsafe
+# pyre-strict
+
 import datetime
 import logging
 from codecs import decode, encode
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, Tuple, Union
 
 import exifread
 import numpy as np
 import xmltodict as x2d
 from opensfm import pygeometry
+
 from opensfm.dataset_base import DataSetBase
 from opensfm.geo import ecef_from_lla
-from opensfm.pygeometry import Camera
 from opensfm.sensors import camera_calibration, sensor_data
 
 logger: logging.Logger = logging.getLogger(__name__)
+inch_in_mm: float = 25.4
+cm_in_mm: float = 10
+um_in_mm: float = 0.001
+default_projection: str = "perspective"
+maximum_altitude: float = 1e4
 
-inch_in_mm = 25.4
-cm_in_mm = 10
-um_in_mm = 0.001
-default_projection = "perspective"
-maximum_altitude = 1e4
 
-
-def eval_frac(value) -> Optional[float]:
+def eval_frac(
+    value: exifread.utils.Ratio,
+) -> Optional[float]:
     try:
         return float(value.num) / float(value.den)
     except ZeroDivisionError:
         return None
 
 
-def gps_to_decimal(values, reference) -> Optional[float]:
+def gps_to_decimal(
+    values: List[exifread.utils.Ratio], reference: str
+) -> Optional[float]:
     sign = 1 if reference in "NE" else -1
     degrees = eval_frac(values[0])
     minutes = eval_frac(values[1])
@@ -39,7 +43,7 @@ def gps_to_decimal(values, reference) -> Optional[float]:
     return None
 
 
-def get_tag_as_float(tags, key, index: int = 0) -> Optional[float]:
+def get_tag_as_float(tags: Dict[str, Any], key: str, index: int = 0) -> Optional[float]:
     if key in tags:
         val = tags[key].values[index]
         if isinstance(val, exifread.utils.Ratio):
@@ -57,13 +61,18 @@ def get_tag_as_float(tags, key, index: int = 0) -> Optional[float]:
 
 
 def compute_focal(
-    focal_35: Optional[float], focal: Optional[float], sensor_width, sensor_string
+    focal_35: Optional[float],
+    focal: Optional[float],
+    sensor_width: Optional[float],
+    sensor_string: Optional[str],
 ) -> Tuple[float, float]:
     if focal_35 is not None and focal_35 > 0:
         focal_ratio = focal_35 / 36.0  # 35mm film produces 36x24mm pictures.
     else:
         if not sensor_width:
-            sensor_width = sensor_data().get(sensor_string, None)
+            sensor_width = (
+                sensor_data().get(sensor_string, None) if sensor_string else None
+            )
         if sensor_width and focal:
             focal_ratio = focal / sensor_width
             focal_35 = 36.0 * focal_ratio
@@ -80,7 +89,7 @@ def sensor_string(make: str, model: str) -> str:
     return (make.strip() + " " + model.strip()).strip().lower()
 
 
-def camera_id(exif) -> str:
+def camera_id(exif: Dict[str, Any]) -> str:
     return camera_id_(
         exif["make"],
         exif["model"],
@@ -91,7 +100,9 @@ def camera_id(exif) -> str:
     )
 
 
-def camera_id_(make, model, width, height, projection_type, focal) -> str:
+def camera_id_(
+    make: str, model: str, width: int, height: int, projection_type: str, focal: float
+) -> str:
     if make != "unknown":
         # remove duplicate 'make' information in 'model'
         model = model.replace(make, "")
@@ -109,18 +120,21 @@ def camera_id_(make, model, width, height, projection_type, focal) -> str:
 
 
 def extract_exif_from_file(
-    fileobj, image_size_loader, use_exif_size, name=None
+    fileobj: BinaryIO,
+    image_size_loader: Callable[[], Tuple[int, int]],
+    use_exif_size: bool,
+    name: Optional[str] = None,
 ) -> Dict[str, Any]:
     exif_data = EXIF(fileobj, image_size_loader, use_exif_size, name=name)
     d = exif_data.extract_exif()
     return d
 
 
-def unescape_string(s) -> str:
+def unescape_string(s: str) -> str:
     return decode(encode(s, "latin-1", "backslashreplace"), "unicode-escape")
 
 
-def parse_xmp_string(xmp_str: str):
+def parse_xmp_string(xmp_str: str) -> Optional[Dict[str, Any]]:
     for _ in range(2):
         try:
             return x2d.parse(xmp_str)
@@ -129,7 +143,7 @@ def parse_xmp_string(xmp_str: str):
     return None
 
 
-def get_xmp(fileobj) -> List[str]:
+def get_xmp(fileobj: BinaryIO) -> List[Dict[str, Any]]:
     """Extracts XMP metadata from and image fileobj"""
     img_str = str(fileobj.read())
     xmp_start = img_str.find("<x:xmpmeta")
@@ -151,7 +165,7 @@ def get_xmp(fileobj) -> List[str]:
         return []
 
 
-def get_gpano_from_xmp(xmp) -> Dict[str, Any]:
+def get_gpano_from_xmp(xmp: List[Dict[str, Any]]) -> Dict[str, Any]:
     for i in xmp:
         for k in i:
             if "GPano" in k:
@@ -161,15 +175,19 @@ def get_gpano_from_xmp(xmp) -> Dict[str, Any]:
 
 class EXIF:
     def __init__(
-        self, fileobj, image_size_loader, use_exif_size=True, name=None
+        self,
+        fileobj: BinaryIO,
+        image_size_loader: Callable[[], Tuple[int, int]],
+        use_exif_size: bool = True,
+        name: Optional[str] = None,
     ) -> None:
-        self.image_size_loader = image_size_loader
-        self.use_exif_size = use_exif_size
-        self.fileobj = fileobj
-        self.tags = exifread.process_file(fileobj, details=False)
+        self.image_size_loader: Callable[[], Tuple[int, int]] = image_size_loader
+        self.use_exif_size: bool = use_exif_size
+        self.fileobj: BinaryIO = fileobj
+        self.tags: Dict[str, Any] = exifread.process_file(fileobj, details=False)
         fileobj.seek(0)
-        self.xmp = get_xmp(fileobj)
-        self.fileobj_name = self.fileobj.name if name is None else name
+        self.xmp: List[Dict[str, Any]] = get_xmp(fileobj)
+        self.fileobj_name: str = self.fileobj.name if name is None else name
 
     def extract_image_size(self) -> Tuple[int, int]:
         if (
@@ -194,14 +212,15 @@ class EXIF:
             height, width = self.image_size_loader()
         return width, height
 
-    def _decode_make_model(self, value) -> str:
+    def _decode_make_model(self, value: Union[str, bytes]) -> str:
         """Python 2/3 compatible decoding of make/model field."""
-        if hasattr(value, "decode"):
+        if type(value) is bytes:
             try:
                 return value.decode("utf-8")
             except UnicodeDecodeError:
                 return "unknown"
         else:
+            assert type(value) is str
             return value
 
     def extract_make(self) -> str:
@@ -259,7 +278,7 @@ class EXIF:
         width_in_pixels = self.extract_image_size()[0]
         return width_in_pixels * units_per_pixel * mm_per_unit
 
-    def get_mm_per_unit(self, resolution_unit) -> Optional[float]:
+    def get_mm_per_unit(self, resolution_unit: int) -> Optional[float]:
         """Length of a resolution unit in millimeters.
 
         Uses the values from the EXIF specs in
@@ -268,6 +287,7 @@ class EXIF:
         Args:
             resolution_unit: the resolution unit value given in the EXIF
         """
+        global inch_in_mm
         if resolution_unit == 2:  # inch
             return inch_in_mm
         elif resolution_unit == 3:  # cm
@@ -286,7 +306,7 @@ class EXIF:
         orientation = 1
         if "Image Orientation" in self.tags:
             value = self.tags.get("Image Orientation").values[0]
-            if type(value) == int and value != 0:
+            if type(value) is int and value != 0:
                 orientation = value
         return orientation
 
@@ -463,7 +483,7 @@ class EXIF:
         )
         return 0.0
 
-    def extract_opk(self, geo) -> Optional[Dict[str, Any]]:
+    def extract_opk(self, geo: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         opk = None
 
         if self.has_xmp() and geo and "latitude" in geo and "longitude" in geo:
@@ -614,7 +634,7 @@ class EXIF:
         return d
 
 
-def hard_coded_calibration(exif) -> Optional[Dict[str, Any]]:
+def hard_coded_calibration(exif: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     focal = exif["focal_ratio"]
     fmm35 = int(round(focal * 36.0))
     make = exif["make"].strip().lower()
@@ -636,7 +656,7 @@ def hard_coded_calibration(exif) -> Optional[Dict[str, Any]]:
     return None
 
 
-def focal_ratio_calibration(exif) -> Optional[Dict[str, Any]]:
+def focal_ratio_calibration(exif: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if exif.get("focal_ratio"):
         return {
             "focal": exif["focal_ratio"],
@@ -648,7 +668,7 @@ def focal_ratio_calibration(exif) -> Optional[Dict[str, Any]]:
         }
 
 
-def focal_xy_calibration(exif) -> Optional[Dict[str, Any]]:
+def focal_xy_calibration(exif: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     focal = exif.get("focal_x", exif.get("focal_ratio"))
     if focal:
         return {
@@ -693,7 +713,9 @@ def default_calibration(data: DataSetBase) -> Dict[str, Any]:
     }
 
 
-def calibration_from_metadata(metadata, data: DataSetBase) -> Dict[str, Any]:
+def calibration_from_metadata(
+    metadata: Dict[str, Any], data: DataSetBase
+) -> Dict[str, Any]:
     """Finds the best calibration in one of the calibration sources."""
     pt = metadata.get("projection_type", default_projection).lower()
     if (
@@ -721,8 +743,12 @@ def calibration_from_metadata(metadata, data: DataSetBase) -> Dict[str, Any]:
 
 
 def camera_from_exif_metadata(
-    metadata, data: DataSetBase, calibration_func=calibration_from_metadata
-) -> Camera:
+    metadata: Dict[str, Any],
+    data: DataSetBase,
+    calibration_func: Callable[
+        [Dict[str, Any], DataSetBase], Dict[str, Any]
+    ] = calibration_from_metadata,
+) -> pygeometry.Camera:
     """
     Create a camera object from exif metadata and the calibration
     function that turns metadata into usable calibration parameters.
