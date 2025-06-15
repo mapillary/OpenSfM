@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import math
 import time
@@ -10,6 +10,7 @@ import numpy as np
 import opensfm.synthetic_data.synthetic_dataset as sd
 import scipy.signal as signal
 import scipy.spatial as spatial
+from numpy.typing import NDArray
 from opensfm import (
     features as oft,
     geo,
@@ -25,20 +26,20 @@ from opensfm.types import Reconstruction
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def derivative(func: Callable, x: np.ndarray) -> np.ndarray:
+def derivative(func: Callable[[float], NDArray], x: float) -> NDArray:
     eps = 1e-10
     d = (func(x + eps) - func(x)) / eps
     d /= np.linalg.norm(d)
     return d
 
 
-def samples_generator_random_count(count: int) -> np.ndarray:
+def samples_generator_random_count(count: int) -> NDArray:
     return np.random.rand(count)
 
 
 def samples_generator_interval(
     length: float, end: float, interval: float, interval_noise: float
-) -> np.ndarray:
+) -> NDArray:
     samples = np.linspace(0, end / length, num=int(end / interval))
     samples += np.random.normal(
         0.0, float(interval_noise) / float(length), samples.shape
@@ -47,8 +48,8 @@ def samples_generator_interval(
 
 
 def generate_samples_and_local_frame(
-    samples: np.ndarray, shape: Callable
-) -> Tuple[np.ndarray, np.ndarray]:
+    samples: NDArray, shape: Callable[[float], NDArray]
+) -> Tuple[NDArray, NDArray]:
     points = []
     tangents = []
     for i in samples:
@@ -61,8 +62,8 @@ def generate_samples_and_local_frame(
 
 
 def generate_samples_shifted(
-    samples: np.ndarray, shape: Callable, shift: float
-) -> np.ndarray:
+    samples: NDArray, shape: Callable[[float], NDArray], shift: float
+) -> NDArray:
     plane_points = []
     for i in samples:
         point = shape(i)
@@ -74,8 +75,8 @@ def generate_samples_shifted(
 
 
 def generate_z_plane(
-    samples: np.ndarray, shape: Callable, thickness: float
-) -> np.ndarray:
+    samples: NDArray, shape: Callable[[float], NDArray], thickness: float
+) -> NDArray:
     plane_points = []
     for i in samples:
         point = shape(i)
@@ -89,8 +90,8 @@ def generate_z_plane(
 
 
 def generate_xy_planes(
-    samples: np.ndarray, shape: Callable, z_size: float, y_size: float
-) -> np.ndarray:
+    samples: NDArray, shape: Callable[[float], NDArray], z_size: float, y_size: float
+) -> NDArray:
     xy1 = generate_samples_shifted(samples, shape, y_size)
     xy2 = generate_samples_shifted(samples, shape, -y_size)
     xy1 = np.insert(xy1, 2, values=np.random.rand(xy1.shape[0]) * z_size, axis=1)
@@ -99,16 +100,16 @@ def generate_xy_planes(
 
 
 def generate_street(
-    samples: np.ndarray, shape: Callable, height: float, width: float
-) -> Tuple[np.ndarray, np.ndarray]:
+    samples: NDArray, shape: Callable[[float], NDArray], height: float, width: float
+) -> Tuple[NDArray, NDArray]:
     walls = generate_xy_planes(samples, shape, height, width)
     floor = generate_z_plane(samples, shape, width)
     return walls, floor
 
 
 def generate_cameras(
-    samples: np.ndarray, shape: Callable, height: float
-) -> Tuple[np.ndarray, np.ndarray]:
+    samples: NDArray, shape: Callable[[float], NDArray], height: float
+) -> Tuple[NDArray, NDArray]:
     positions, rotations = generate_samples_and_local_frame(samples, shape)
     positions = np.insert(positions, 2, values=height, axis=1)
     rotations = np.insert(rotations, 2, values=0, axis=2)
@@ -117,8 +118,8 @@ def generate_cameras(
 
 
 def line_generator(
-    length: float, center_x: float, center_y: float, transpose: bool, point: np.ndarray
-) -> np.ndarray:
+    length: float, center_x: float, center_y: float, transpose: bool, point: float
+) -> NDArray:
     x = point * length
     if transpose:
         return np.transpose(
@@ -133,13 +134,13 @@ def line_generator(
         return np.transpose(np.array([x + center_x, center_y]))
 
 
-def ellipse_generator(x_size: float, y_size: float, point: float) -> np.ndarray:
+def ellipse_generator(x_size: float, y_size: float, point: float) -> NDArray:
     y = np.sin(point * 2 * np.pi) * y_size / 2
     x = np.cos(point * 2 * np.pi) * x_size / 2
     return np.transpose(np.array([x, y]))
 
 
-def perturb_points(points: np.ndarray, sigmas: List[float]) -> None:
+def perturb_points(points: NDArray, sigmas: List[float]) -> None:
     eps = 1e-10
     gaussian = np.array([max(s, eps) for s in sigmas])
     for point in points:
@@ -148,7 +149,7 @@ def perturb_points(points: np.ndarray, sigmas: List[float]) -> None:
 
 def generate_causal_noise(
     dimensions: int, sigma: float, n: int, scale: float
-) -> List[np.ndarray]:
+) -> List[NDArray]:
     dims = [np.arange(-scale, scale) for _ in range(dimensions)]
     mesh = np.meshgrid(*dims)
     dist = np.linalg.norm(mesh, axis=0)
@@ -254,7 +255,7 @@ def generate_exifs(
     return exifs
 
 
-def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
+def perturb_rotations(rotations: NDArray, angle_sigma: float) -> None:
     for i in range(len(rotations)):
         rotation = rotations[i]
         rodrigues = cv2.Rodrigues(rotation)[0].ravel()
@@ -265,7 +266,7 @@ def perturb_rotations(rotations: np.ndarray, angle_sigma: float) -> None:
 
 
 def add_points_to_reconstruction(
-    points: np.ndarray, color: np.ndarray, reconstruction: types.Reconstruction
+    points: NDArray, color: NDArray, reconstruction: types.Reconstruction
 ) -> None:
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
@@ -275,8 +276,8 @@ def add_points_to_reconstruction(
 
 def add_shots_to_reconstruction(
     shots: List[List[str]],
-    positions: List[np.ndarray],
-    rotations: List[np.ndarray],
+    positions: List[NDArray],
+    rotations: List[NDArray],
     rig_cameras: List[pymap.RigCamera],
     cameras: List[pygeometry.Camera],
     reconstruction: types.Reconstruction,
@@ -308,13 +309,13 @@ def add_shots_to_reconstruction(
 
 
 def create_reconstruction(
-    points: List[np.ndarray],
-    colors: List[np.ndarray],
+    points: List[NDArray],
+    colors: List[NDArray],
     cameras: List[List[pygeometry.Camera]],
     shot_ids: List[List[str]],
     rig_shots: List[List[List[Tuple[str, str]]]],
-    rig_positions: List[np.ndarray],
-    rig_rotations: List[np.ndarray],
+    rig_positions: List[NDArray],
+    rig_rotations: List[NDArray],
     rig_cameras: List[List[pymap.RigCamera]],
     reference: Optional[geo.TopocentricConverter],
 ) -> Reconstruction:
@@ -355,7 +356,7 @@ def generate_track_data(
     projection_noise: float,
     gcp_noise: Tuple[float, float],
     gcps_count: Optional[int],
-    gcp_shift: Optional[np.ndarray],
+    gcp_shift: Optional[NDArray],
     on_disk_features_filename: Optional[str],
 ) -> Tuple[
     sd.SyntheticFeatures, pymap.TracksManager, Dict[str, pymap.GroundControlPoint]
@@ -490,7 +491,7 @@ def generate_track_data(
     return features, tracks_manager, gcps
 
 
-def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> bool:
+def _is_in_front(point: NDArray, center: NDArray, z_axis: NDArray) -> bool:
     return (
         (point[0] - center[0]) * z_axis[0]
         + (point[1] - center[1]) * z_axis[1]
@@ -498,7 +499,7 @@ def _is_in_front(point: np.ndarray, center: np.ndarray, z_axis: np.ndarray) -> b
     ) > 0
 
 
-def _is_inside_camera(projection: np.ndarray, camera: pygeometry.Camera) -> bool:
+def _is_inside_camera(projection: NDArray, camera: pygeometry.Camera) -> bool:
     w, h = float(camera.width), float(camera.height)
     w2 = float(2 * camera.width)
     h2 = float(2 * camera.height)

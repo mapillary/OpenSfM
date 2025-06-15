@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import functools
 import math
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -7,6 +7,7 @@ import numpy as np
 import opensfm.synthetic_data.synthetic_dataset as sd
 import opensfm.synthetic_data.synthetic_generator as sg
 import opensfm.synthetic_data.synthetic_metrics as sm
+from numpy.typing import NDArray
 from opensfm import geo, pygeometry, pymap, types
 from opensfm.reconstruction_helpers import exif_to_metadata
 
@@ -31,7 +32,9 @@ def get_camera(
     return camera
 
 
-def get_scene_generator(type: str, length: float, **kwargs) -> functools.partial:
+def get_scene_generator(
+    type: str, length: float, **kwargs: Any
+) -> Callable[[float], NDArray]:
     generator = None
     if type == "circle":
         generator = functools.partial(sg.ellipse_generator, length, length)
@@ -51,9 +54,7 @@ def get_scene_generator(type: str, length: float, **kwargs) -> functools.partial
     return generator
 
 
-def camera_pose(
-    position: np.ndarray, lookat: np.ndarray, up: np.ndarray
-) -> pygeometry.Pose:
+def camera_pose(position: NDArray, lookat: NDArray, up: NDArray) -> pygeometry.Pose:
     """
     Pose from position and look at direction
 
@@ -65,7 +66,7 @@ def camera_pose(
     True
     """
 
-    def normalized(x: np.ndarray) -> np.ndarray:
+    def normalized(x: NDArray) -> NDArray:
         return x / np.linalg.norm(x)
 
     ez = normalized(np.array(lookat) - np.array(position))
@@ -87,7 +88,7 @@ class SyntheticCubeScene(SyntheticScene):
 
     def __init__(self, num_cameras: int, num_points: int, noise: float) -> None:
         self.reconstruction = types.Reconstruction()
-        self.cameras = {}
+        self.cameras: Dict[str, pygeometry.Camera] = {}
         for i in range(num_cameras):
             camera = camera = pygeometry.Camera.create_perspective(0.9, -0.1, 0.01)
             camera.id = "camera%04d" % i
@@ -147,30 +148,30 @@ class SyntheticStreetScene(SyntheticScene):
     the shape.
     """
 
-    generator: Optional[Callable]
-    wall_points: Optional[np.ndarray]
-    floor_points: Optional[np.ndarray]
+    generator: Optional[Callable[[float], NDArray]]
+    wall_points: Optional[NDArray]
+    floor_points: Optional[NDArray]
     shot_ids: List[List[str]]
     cameras: List[List[pygeometry.Camera]]
-    instances_positions: List[np.ndarray]
-    instances_rotations: List[np.ndarray]
+    instances_positions: List[NDArray]
+    instances_rotations: List[NDArray]
     rig_instances: List[List[List[Tuple[str, str]]]]
     rig_cameras: List[List[pymap.RigCamera]]
     width: float
 
     def __init__(
         self,
-        generator: Optional[Callable],
+        generator: Optional[Callable[[float], NDArray]],
         reference: Optional[geo.TopocentricConverter] = None,
     ) -> None:
         self.generator = generator
         self.reference = reference
-        self.wall_points = None
-        self.floor_points = None
+        self.wall_points: Optional[NDArray] = None
+        self.floor_points: Optional[NDArray] = None
         self.shot_ids = []
         self.cameras = []
-        self.instances_positions = []
-        self.instances_rotations = []
+        self.instances_positions: List[NDArray] = []
+        self.instances_rotations: List[NDArray] = []
         self.rig_instances = []
         self.rig_cameras = []
         self.width = 0.0
@@ -440,7 +441,7 @@ class SyntheticInputData:
         gcp_noise: Tuple[float, float],
         causal_gps_noise: bool,
         gcps_count: Optional[int] = None,
-        gcps_shift: Optional[np.ndarray] = None,
+        gcps_shift: Optional[NDArray] = None,
         on_disk_features_filename: Optional[str] = None,
         generate_projections: bool = True,
     ) -> None:
