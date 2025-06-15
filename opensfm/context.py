@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import os
 
@@ -8,19 +8,18 @@ except ModuleNotFoundError:
     pass  # Windows
 import ctypes
 import sys
-from typing import Optional
+from typing import Callable, List, Optional, TypeVar
 
 import cv2
 from joblib import delayed, Parallel, parallel_backend
 
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-abspath = os.path.dirname(os.path.realpath(__file__))
-SENSOR_DATA = os.path.join(abspath, "data", "sensor_data.json")
-CAMERA_CALIBRATION = os.path.join(abspath, "data", "camera_calibration.yaml")
-BOW_PATH = os.path.join(abspath, "data", "bow")
+abspath: str = os.path.dirname(os.path.realpath(__file__))
+SENSOR_DATA: str = os.path.join(abspath, "data", "sensor_data.json")
+CAMERA_CALIBRATION: str = os.path.join(abspath, "data", "camera_calibration.yaml")
+BOW_PATH: str = os.path.join(abspath, "data", "bow")
 
 
 # Handle different OpenCV versions
@@ -31,17 +30,23 @@ OPENCV44: bool = (
 )
 OPENCV3: bool = int(cv2.__version__.split(".")[0]) >= 3
 
+flann_Index: Optional[cv2.flann_Index] = None
 if hasattr(cv2, "flann_Index"):
     flann_Index = cv2.flann_Index
 elif hasattr(cv2, "flann") and hasattr(cv2.flann, "Index"):
     flann_Index = cv2.flann.Index
 else:
     logger.warning("Unable to find flann Index")
-    flann_Index = None
 
 
 # Parallel processes
-def parallel_map(func, args, num_proc: int, max_batch_size: int = 1):
+T = TypeVar("T")
+R = TypeVar("R")
+
+
+def parallel_map(
+    func: Callable[[T], R], args: List[T], num_proc: int, max_batch_size: int = 1
+) -> List[R]:
     """Run function for all arguments using multiple processes."""
     # De-activate/Restore any inner OpenCV threading
     threads_used = cv2.getNumThreads()
