@@ -1,10 +1,11 @@
-# pyre-unsafe
+# pyre-strict
 import itertools
 import logging
-from typing import Dict, Iterator, List, Optional
+from typing import Dict, Iterator, List, Optional, Tuple
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import (
     features,
     features_processing,
@@ -124,7 +125,9 @@ def undistort_reconstruction_with_images(
     return undistorted_shots
 
 
-def undistort_image_and_masks(arguments) -> None:
+def undistort_image_and_masks(
+    arguments: Tuple[pymap.Shot, List[pymap.Shot], DataSetBase, UndistortedDataSet],
+) -> None:
     shot, undistorted_shots, data, udata = arguments
     log.setup()
     logger.debug("Undistorting image {}".format(shot.id))
@@ -161,10 +164,10 @@ def undistort_image_and_masks(arguments) -> None:
 def undistort_image(
     shot: pymap.Shot,
     undistorted_shots: List[pymap.Shot],
-    original: Optional[np.ndarray],
-    interpolation,
+    original: Optional[NDArray],
+    interpolation: int,
     max_size: int,
-) -> Dict[str, np.ndarray]:
+) -> Dict[str, NDArray]:
     """Undistort an image into a set of undistorted ones.
 
     Args:
@@ -216,7 +219,7 @@ def undistort_image(
         )
 
 
-def scale_image(image: np.ndarray, max_size: int) -> np.ndarray:
+def scale_image(image: NDArray, max_size: int) -> NDArray:
     """Scale an image not to exceed max_size."""
     height, width = image.shape[:2]
     factor = max_size / float(max(height, width))
@@ -353,12 +356,12 @@ def perspective_views_of_a_panorama(
 
 
 def render_perspective_view_of_a_panorama(
-    image: np.ndarray,
+    image: NDArray,
     panoshot: pymap.Shot,
     perspectiveshot: pymap.Shot,
-    interpolation=cv2.INTER_LINEAR,
-    borderMode=cv2.BORDER_WRAP,
-) -> np.ndarray:
+    interpolation: int = cv2.INTER_LINEAR,
+    borderMode: int = cv2.BORDER_WRAP,
+) -> NDArray:
     """Render a perspective view of a panorama."""
     # Get destination pixel coordinates
     dst_shape = (perspectiveshot.camera.height, perspectiveshot.camera.width)

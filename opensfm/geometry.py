@@ -1,16 +1,17 @@
-# pyre-unsafe
+# pyre-strict
 from typing import Tuple
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import transformations
 
 
-def rotation_from_angle_axis(angle_axis: np.ndarray) -> np.ndarray:
+def rotation_from_angle_axis(angle_axis: NDArray) -> NDArray:
     return cv2.Rodrigues(np.asarray(angle_axis))[0]
 
 
-def rotation_from_ptr(pan: float, tilt: float, roll: float) -> np.ndarray:
+def rotation_from_ptr(pan: float, tilt: float, roll: float) -> NDArray:
     """World-to-camera rotation matrix from pan, tilt and roll."""
     R1 = rotation_from_angle_axis(np.array([0.0, 0.0, roll]))
     R2 = rotation_from_angle_axis(np.array([tilt + np.pi / 2, 0.0, 0.0]))
@@ -19,7 +20,7 @@ def rotation_from_ptr(pan: float, tilt: float, roll: float) -> np.ndarray:
 
 
 def ptr_from_rotation(
-    rotation_matrix: np.ndarray,
+    rotation_matrix: NDArray,
 ) -> Tuple[float, float, float]:
     """Pan tilt and roll from camera rotation matrix"""
     pan = pan_from_rotation(rotation_matrix)
@@ -28,18 +29,18 @@ def ptr_from_rotation(
     return pan, tilt, roll
 
 
-def pan_from_rotation(rotation_matrix: np.ndarray) -> float:
+def pan_from_rotation(rotation_matrix: NDArray) -> float:
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     return np.arctan2(Rt_ez[0], Rt_ez[1])
 
 
-def tilt_from_rotation(rotation_matrix: np.ndarray) -> float:
+def tilt_from_rotation(rotation_matrix: NDArray) -> float:
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     l = np.linalg.norm(Rt_ez[:2])
     return np.arctan2(-Rt_ez[2], l)
 
 
-def roll_from_rotation(rotation_matrix: np.ndarray) -> float:
+def roll_from_rotation(rotation_matrix: NDArray) -> float:
     Rt_ex = np.dot(rotation_matrix.T, [1, 0, 0])
     Rt_ez = np.dot(rotation_matrix.T, [0, 0, 1])
     a = np.cross(Rt_ez, [0, 0, 1])
@@ -48,7 +49,7 @@ def roll_from_rotation(rotation_matrix: np.ndarray) -> float:
     return np.arcsin(np.dot(Rt_ez, b))
 
 
-def rotation_from_ptr_v2(pan: float, tilt: float, roll: float) -> np.ndarray:
+def rotation_from_ptr_v2(pan: float, tilt: float, roll: float) -> NDArray:
     """Camera rotation matrix from pan, tilt and roll.
 
     This is the implementation used in the Single Image Calibration code.
@@ -57,7 +58,7 @@ def rotation_from_ptr_v2(pan: float, tilt: float, roll: float) -> np.ndarray:
     return transformations.euler_matrix(pan, tilt, roll, "szxz")[:3, :3]
 
 
-def ptr_from_rotation_v2(rotation_matrix: np.ndarray) -> Tuple[float, float, float]:
+def ptr_from_rotation_v2(rotation_matrix: NDArray) -> Tuple[float, float, float]:
     """Pan tilt and roll from camera rotation matrix.
 
     This is the implementation used in the Single Image Calibration code.
@@ -68,7 +69,7 @@ def ptr_from_rotation_v2(rotation_matrix: np.ndarray) -> Tuple[float, float, flo
     return pan, tilt - np.pi / 2, roll
 
 
-def rotation_from_opk(omega: float, phi: float, kappa: float) -> np.ndarray:
+def rotation_from_opk(omega: float, phi: float, kappa: float) -> NDArray:
     """World-to-camera rotation matrix from pan, tilt and roll."""
 
     # Omega (ω), the rotation around the Χ axis. (East)
@@ -87,7 +88,7 @@ def rotation_from_opk(omega: float, phi: float, kappa: float) -> np.ndarray:
 
 
 def opk_from_rotation(
-    rotation_matrix: np.ndarray,
+    rotation_matrix: NDArray,
 ) -> Tuple[float, float, float]:
     """Omega, phi, kappa from camera rotation matrix"""
     Rc = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
@@ -98,13 +99,13 @@ def opk_from_rotation(
     return omega, phi, kappa
 
 
-def omega_from_rotation(rotation_matrix: np.ndarray) -> float:
+def omega_from_rotation(rotation_matrix: NDArray) -> float:
     return np.arctan2(-rotation_matrix[1, 2], rotation_matrix[2, 2])
 
 
-def phi_from_rotation(rotation_matrix: np.ndarray) -> float:
+def phi_from_rotation(rotation_matrix: NDArray) -> float:
     return np.arcsin(rotation_matrix[0, 2])
 
 
-def kappa_from_rotation(rotation_matrix: np.ndarray) -> float:
+def kappa_from_rotation(rotation_matrix: NDArray) -> float:
     return np.arctan2(-rotation_matrix[0, 1], rotation_matrix[0, 0])

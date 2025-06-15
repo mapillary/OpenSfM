@@ -1,21 +1,22 @@
-# pyre-unsafe
+# pyre-strict
 import logging
-import typing as t
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import io, log, pydense, pymap, tracking, types
 from opensfm.context import parallel_map
 from opensfm.dataset import UndistortedDataSet
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def compute_depthmaps(
     data: UndistortedDataSet,
     graph: pymap.TracksManager,
     reconstruction: types.Reconstruction,
-):
+) -> None:
     """Compute and refine depthmaps for all shots.
 
     Args:
@@ -61,7 +62,9 @@ def compute_depthmaps(
     data.save_point_cloud(*point_cloud, filename="merged.ply")
 
 
-def compute_depthmap_catched(arguments):
+def compute_depthmap_catched(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], float, float, pymap.Shot],
+) -> None:
     try:
         compute_depthmap(arguments)
     except Exception as e:
@@ -69,7 +72,9 @@ def compute_depthmap_catched(arguments):
         logger.exception(e)
 
 
-def clean_depthmap_catched(arguments):
+def clean_depthmap_catched(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], pymap.Shot],
+) -> None:
     try:
         clean_depthmap(arguments)
     except Exception as e:
@@ -77,7 +82,9 @@ def clean_depthmap_catched(arguments):
         logger.exception(e)
 
 
-def prune_depthmap_catched(arguments):
+def prune_depthmap_catched(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], pymap.Shot],
+) -> None:
     try:
         prune_depthmap(arguments)
     except Exception as e:
@@ -85,15 +92,17 @@ def prune_depthmap_catched(arguments):
         logger.exception(e)
 
 
-def compute_depthmap(arguments):
+def compute_depthmap(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], float, float, pymap.Shot],
+) -> None:
     """Compute depthmap for a single shot."""
     log.setup()
 
     data: UndistortedDataSet = arguments[0]
-    neighbors = arguments[1]
-    min_depth = arguments[2]
-    max_depth = arguments[3]
-    shot = arguments[4]
+    neighbors: List[pymap.Shot] = arguments[1]
+    min_depth: float = arguments[2]
+    max_depth: float = arguments[3]
+    shot: pymap.Shot = arguments[4]
 
     method = data.config["depthmap_method"]
 
@@ -128,6 +137,7 @@ def compute_depthmap(arguments):
     neighbor_ids = [i.id for i in neighbors[1:]]
     data.save_raw_depthmap(shot.id, depth, plane, score, nghbr, neighbor_ids)
 
+    image = None
     if data.config["depthmap_save_debug_files"]:
         image = data.load_undistorted_image(shot.id)
         image = scale_down_image(image, depth.shape[1], depth.shape[0])
@@ -140,8 +150,9 @@ def compute_depthmap(arguments):
 
         plt.figure()
         plt.suptitle("Shot: " + shot.id + ", neighbors: " + ", ".join(neighbor_ids))
-        plt.subplot(2, 3, 1)
-        plt.imshow(image)
+        if image is not None:
+            plt.subplot(2, 3, 1)
+            plt.imshow(image)
         plt.subplot(2, 3, 2)
         plt.imshow(color_plane_normals(plane))
         plt.subplot(2, 3, 3)
@@ -156,7 +167,9 @@ def compute_depthmap(arguments):
         plt.show()
 
 
-def clean_depthmap(arguments):
+def clean_depthmap(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], pymap.Shot],
+) -> None:
     """Clean depthmap by checking consistency with neighbors."""
     log.setup()
 
@@ -200,7 +213,9 @@ def clean_depthmap(arguments):
         plt.show()
 
 
-def prune_depthmap(arguments):
+def prune_depthmap(
+    arguments: Tuple[UndistortedDataSet, List[pymap.Shot], pymap.Shot],
+) -> None:
     """Prune depthmap to remove redundant points."""
     log.setup()
 
@@ -225,7 +240,10 @@ def prune_depthmap(arguments):
         data.save_point_cloud(points, normals, colors, labels, "pruned.npz.ply")
 
 
-def aggregate_depthmaps(shot_ids, depthmap_provider):
+def aggregate_depthmaps(
+    shot_ids: Iterable[str],
+    depthmap_provider: Callable[[str], Tuple[NDArray, NDArray, NDArray, NDArray]],
+) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     """Aggregate depthmaps by concatenation."""
 
     points = []
@@ -249,19 +267,20 @@ def aggregate_depthmaps(shot_ids, depthmap_provider):
 
 def merge_depthmaps(
     data: UndistortedDataSet, reconstruction: types.Reconstruction
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     """Merge depthmaps into a single point cloud."""
     shot_ids = [s for s in reconstruction.shots if data.pruned_depthmap_exists(s)]
 
-    def depthmap_provider(shot_id):
+    def depthmap_provider(shot_id: str) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
         return data.load_pruned_depthmap(shot_id)
 
     return merge_depthmaps_from_provider(shot_ids, depthmap_provider)
 
 
 def merge_depthmaps_from_provider(
-    shot_ids: t.Iterable[str], depthmap_provider: t.Callable
-) -> t.Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    shot_ids: Iterable[str],
+    depthmap_provider: Callable[[str], Tuple[NDArray, NDArray, NDArray, NDArray]],
+) -> Tuple[NDArray, NDArray, NDArray, NDArray]:
     """Merge depthmaps into a single point cloud."""
     logger.info("Merging depthmaps")
 
@@ -272,7 +291,9 @@ def merge_depthmaps_from_provider(
     return aggregate_depthmaps(shot_ids, depthmap_provider)
 
 
-def add_views_to_depth_estimator(data: UndistortedDataSet, neighbors, de):
+def add_views_to_depth_estimator(
+    data: UndistortedDataSet, neighbors: List[pymap.Shot], de: pydense.DepthmapEstimator
+) -> None:
     """Add neighboring views to the DepthmapEstimator."""
     num_neighbors = data.config["depthmap_num_matching_views"]
     for shot in neighbors[: num_neighbors + 1]:
@@ -291,7 +312,9 @@ def add_views_to_depth_estimator(data: UndistortedDataSet, neighbors, de):
         de.add_view(K, R, t, image, mask)
 
 
-def add_views_to_depth_cleaner(data: UndistortedDataSet, neighbors, dc):
+def add_views_to_depth_cleaner(
+    data: UndistortedDataSet, neighbors: List[pymap.Shot], dc: pydense.DepthmapCleaner
+) -> None:
     for shot in neighbors:
         if not data.raw_depthmap_exists(shot.id):
             continue
@@ -303,7 +326,7 @@ def add_views_to_depth_cleaner(data: UndistortedDataSet, neighbors, dc):
         dc.add_view(K, R, t, depth)
 
 
-def load_combined_mask(data: UndistortedDataSet, shot):
+def load_combined_mask(data: UndistortedDataSet, shot: pymap.Shot) -> NDArray:
     """Load the undistorted mask.
 
     If no mask exists return an array of ones.
@@ -316,7 +339,7 @@ def load_combined_mask(data: UndistortedDataSet, shot):
         return mask
 
 
-def load_segmentation_labels(data: UndistortedDataSet, shot):
+def load_segmentation_labels(data: UndistortedDataSet, shot: pymap.Shot) -> NDArray:
     """Load the undistorted segmentation labels.
 
     If no segmentation exists return an array of zeros.
@@ -328,7 +351,9 @@ def load_segmentation_labels(data: UndistortedDataSet, shot):
         return np.zeros(size, dtype=np.uint8)
 
 
-def add_views_to_depth_pruner(data: UndistortedDataSet, neighbors, dp):
+def add_views_to_depth_pruner(
+    data: UndistortedDataSet, neighbors: List[pymap.Shot], dp: pydense.DepthmapPruner
+) -> None:
     for shot in neighbors:
         if not data.clean_depthmap_exists(shot.id):
             continue
@@ -345,7 +370,12 @@ def add_views_to_depth_pruner(data: UndistortedDataSet, neighbors, dp):
         dp.add_view(K, R, t, depth, plane, image, labels)
 
 
-def compute_depth_range(tracks_manager, reconstruction, shot, config):
+def compute_depth_range(
+    tracks_manager: pymap.TracksManager,
+    reconstruction: types.Reconstruction,
+    shot: pymap.Shot,
+    config: Dict[str, Any],
+) -> Tuple[float, float]:
     """Compute min and max depth based on reconstruction points."""
     depths = []
     for track in tracks_manager.get_shot_observations(shot.id):
@@ -364,7 +394,7 @@ def compute_depth_range(tracks_manager, reconstruction, shot, config):
 
 def common_tracks_double_dict(
     tracks_manager: pymap.TracksManager,
-) -> t.Dict[str, t.Dict[str, t.List[str]]]:
+) -> Dict[str, Dict[str, List[str]]]:
     """List of track ids observed by each image pair.
 
     Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
@@ -380,10 +410,10 @@ def common_tracks_double_dict(
 
 def find_neighboring_images(
     shot: pymap.Shot,
-    common_tracks: t.Dict[str, t.Dict[str, t.List[str]]],
+    common_tracks: Dict[str, Dict[str, List[str]]],
     reconstruction: types.Reconstruction,
     num_neighbors: int,
-):
+) -> List[pymap.Shot]:
     """Find neighboring images based on common tracks."""
     theta_min = np.pi / 60
     theta_max = np.pi / 6
@@ -408,7 +438,11 @@ def find_neighboring_images(
     return [shot] + [n for n, s in ns[:num_neighbors]]
 
 
-def angle_between_points(origin, p1, p2):
+def angle_between_points(
+    origin: Union[NDArray, List[float]],
+    p1: Union[NDArray, List[float]],
+    p2: Union[NDArray, List[float]],
+) -> float:
     a0 = p1[0] - origin[0]
     a1 = p1[1] - origin[1]
     a2 = p1[2] - origin[2]
@@ -421,28 +455,26 @@ def angle_between_points(origin, p1, p2):
     return np.arccos(dot / np.sqrt(la * lb))
 
 
-def distance_between_shots(shot, other):
+def distance_between_shots(shot: pymap.Shot, other: pymap.Shot) -> float:
     o1 = shot.pose.get_origin()
     o2 = other.pose.get_origin()
     d = o2 - o1
     return np.sqrt(np.sum(d**2))
 
 
-def scale_image(
-    image: np.ndarray, width: int, height: int, interpolation: int
-) -> np.ndarray:
+def scale_image(image: NDArray, width: int, height: int, interpolation: int) -> NDArray:
     return cv2.resize(image, (width, height), interpolation=interpolation)
 
 
 def scale_down_image(
-    image: np.ndarray, width: int, height: int, interpolation=cv2.INTER_AREA
-) -> np.ndarray:
+    image: NDArray, width: int, height: int, interpolation: int = cv2.INTER_AREA
+) -> NDArray:
     width = min(width, image.shape[1])
     height = min(height, image.shape[0])
     return scale_image(image, width, height, interpolation)
 
 
-def depthmap_to_ply(shot, depth, image):
+def depthmap_to_ply(shot: pymap.Shot, depth: NDArray, image: NDArray) -> str:
     """Export depthmap points as a PLY string"""
     height, width = depth.shape
     K = shot.camera.get_K_in_pixel_coordinates(width, height)
@@ -462,7 +494,7 @@ def depthmap_to_ply(shot, depth, image):
     return io.points_to_ply_string(vertices)
 
 
-def color_plane_normals(plane):
+def color_plane_normals(plane: NDArray) -> NDArray:
     norm = np.linalg.norm(plane, axis=2)
     normal = plane / norm[..., np.newaxis]
     normal[..., 1] *= -1  # Reverse Y because it points down

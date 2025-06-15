@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import sys
 from os.path import abspath, dirname, join
 

@@ -1,7 +1,10 @@
 # Source: https://www.ics.uci.edu/~eppstein/PADS/UnionFind.py
 # Licence: MIT
 
-# pyre-unsafe
+# pyre-strict
+from typing import Dict, Generic, Hashable, Iterator, TypeVar
+
+T = TypeVar("T", bound=Hashable)
 
 
 # This is PADS, a library of Python Algorithms and Data Structures
@@ -44,7 +47,7 @@ with significant additional changes by D. Eppstein.
 """
 
 
-class UnionFind:
+class UnionFind(Generic[T]):
     """Union-find data structure.
 
     Each unionFind instance X maintains a family of disjoint sets of
@@ -61,12 +64,12 @@ class UnionFind:
       in X, it is added to X as one of the members of the merged set.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new empty union-find structure."""
-        self.weights = {}
-        self.parents = {}
+        self.weights: Dict[T, int] = {}
+        self.parents: Dict[T, T] = {}
 
-    def __getitem__(self, object):
+    def __getitem__(self, object: T) -> T:
         """Find and return the name of the set containing the object."""
 
         # check for previously unknown object
@@ -87,11 +90,11 @@ class UnionFind:
             self.parents[ancestor] = root
         return root
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         """Iterate through all items ever found or unioned by this structure."""
         return iter(self.parents)
 
-    def union(self, *objects):
+    def union(self, *objects: T) -> None:
         """Find the sets containing the objects and merge them all."""
         roots = [self[x] for x in objects]
         heaviest = max((self.weights[r], r) for r in roots)[1]
