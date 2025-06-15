@@ -1,6 +1,6 @@
 # transformations.py
 
-# pyre-unsafe
+# pyre-strict
 
 # Copyright (c) 2006-2013, Christoph Gohlke
 # Copyright (c) 2006-2013, The Regents of the University of California
@@ -191,13 +191,14 @@ import math
 from typing import Dict, List, Optional, Tuple
 
 import numpy
+from numpy.typing import NDArray
 
 __version__ = "2013.06.29"
 __docformat__ = "restructuredtext en"
-__all__ = []
+__all__: List[str] = []
 
 
-def identity_matrix() -> numpy.ndarray:
+def identity_matrix() -> NDArray:
     """Return 4x4 identity/unit matrix.
 
     >>> I = identity_matrix()
@@ -212,7 +213,7 @@ def identity_matrix() -> numpy.ndarray:
     return numpy.identity(4)
 
 
-def translation_matrix(direction: numpy.ndarray) -> numpy.ndarray:
+def translation_matrix(direction: NDArray) -> NDArray:
     """Return matrix to translate by direction vector.
 
     >>> v = numpy.random.random(3) - 0.5
@@ -225,7 +226,7 @@ def translation_matrix(direction: numpy.ndarray) -> numpy.ndarray:
     return M
 
 
-def translation_from_matrix(matrix: numpy.ndarray) -> numpy.ndarray:
+def translation_from_matrix(matrix: NDArray) -> NDArray:
     """Return translation vector from translation matrix.
 
     >>> v0 = numpy.random.random(3) - 0.5
@@ -237,7 +238,7 @@ def translation_from_matrix(matrix: numpy.ndarray) -> numpy.ndarray:
     return numpy.array(matrix, copy=False)[:3, 3].copy()
 
 
-def reflection_matrix(point: numpy.ndarray, normal: numpy.ndarray) -> numpy.ndarray:
+def reflection_matrix(point: NDArray, normal: NDArray) -> NDArray:
     """Return matrix to mirror at plane defined by point and normal vector.
 
     >>> v0 = numpy.random.random(4) - 0.5
@@ -264,8 +265,8 @@ def reflection_matrix(point: numpy.ndarray, normal: numpy.ndarray) -> numpy.ndar
 
 
 def reflection_from_matrix(
-    matrix: numpy.ndarray,
-) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    matrix: NDArray,
+) -> Tuple[NDArray, NDArray]:
     """Return mirror plane point and normal vector from reflection matrix.
 
     >>> v0 = numpy.random.random(3) - 0.5
@@ -296,9 +297,9 @@ def reflection_from_matrix(
 
 def rotation_matrix(
     angle: float,
-    direction: numpy.ndarray,
-    point: Optional[numpy.ndarray] = None,
-) -> numpy.ndarray:
+    direction: NDArray,
+    point: Optional[NDArray] = None,
+) -> NDArray:
     """Return matrix to rotate about axis defined by point and direction.
 
     >>> R = rotation_matrix(math.pi/2, [0, 0, 1], [1, 0, 0])
@@ -347,8 +348,8 @@ def rotation_matrix(
 
 
 def rotation_from_matrix(
-    matrix: numpy.ndarray,
-) -> Tuple[float, numpy.ndarray, numpy.ndarray]:
+    matrix: NDArray,
+) -> Tuple[float, NDArray, NDArray]:
     """Return rotation angle and axis from rotation matrix.
 
     >>> angle = (numpy.random.random() - 0.5) * (2*math.pi)
@@ -389,10 +390,10 @@ def rotation_from_matrix(
 
 
 def scale_matrix(
-    factor: numpy.ndarray,
-    origin: Optional[numpy.ndarray] = None,
-    direction: Optional[numpy.ndarray] = None,
-) -> numpy.ndarray:
+    factor: NDArray,
+    origin: Optional[NDArray] = None,
+    direction: Optional[NDArray] = None,
+) -> NDArray:
     """Return matrix to scale by factor around origin in direction.
 
     Use factor -1 for point symmetry.
@@ -428,8 +429,8 @@ def scale_matrix(
 
 
 def scale_from_matrix(
-    matrix: numpy.ndarray,
-) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    matrix: NDArray,
+) -> Tuple[NDArray, NDArray, NDArray]:
     """Return scaling factor, origin and direction from scaling matrix.
 
     >>> factor = numpy.random.random() * 10 - 5
@@ -475,12 +476,12 @@ def scale_from_matrix(
 
 
 def projection_matrix(
-    point: numpy.ndarray,
-    normal: numpy.ndarray,
-    direction: Optional[numpy.ndarray] = None,
-    perspective: Optional[numpy.ndarray] = None,
+    point: NDArray,
+    normal: NDArray,
+    direction: Optional[NDArray] = None,
+    perspective: Optional[NDArray] = None,
     pseudo: bool = False,
-) -> numpy.ndarray:
+) -> NDArray:
     """Return matrix to project onto plane defined by point and normal.
 
     Using either perspective point, projection direction, or none of both.
@@ -541,10 +542,8 @@ def projection_matrix(
 
 
 def projection_from_matrix(
-    matrix: numpy.ndarray, pseudo: bool = False
-) -> Tuple[
-    numpy.ndarray, numpy.ndarray, Optional[numpy.ndarray], Optional[numpy.ndarray], bool
-]:
+    matrix: NDArray, pseudo: bool = False
+) -> Tuple[NDArray, NDArray, Optional[NDArray], Optional[NDArray], bool]:
     """Return projection plane and perspective point from projection matrix.
 
     Return values are same as arguments for projection_matrix function:
@@ -617,14 +616,14 @@ def projection_from_matrix(
 
 
 def clip_matrix(
-    left: numpy.ndarray,
-    right: numpy.ndarray,
-    bottom: numpy.ndarray,
-    top: numpy.ndarray,
-    near: numpy.ndarray,
-    far: numpy.ndarray,
+    left: NDArray,
+    right: NDArray,
+    bottom: NDArray,
+    top: NDArray,
+    near: NDArray,
+    far: NDArray,
     perspective: bool = False,
-) -> numpy.ndarray:
+) -> NDArray:
     """Return matrix to obtain normalized device coordinates from frustum.
 
     The frustum bounds are axis-aligned along x (left, right),
@@ -682,10 +681,10 @@ def clip_matrix(
 
 def shear_matrix(
     angle: float,
-    direction: numpy.ndarray,
-    point: numpy.ndarray,
-    normal: numpy.ndarray,
-) -> numpy.ndarray:
+    direction: NDArray,
+    point: NDArray,
+    normal: NDArray,
+) -> NDArray:
     """Return matrix to shear by angle along direction vector on shear plane.
 
     The shear plane is defined by a point and normal vector. The direction
@@ -717,8 +716,8 @@ def shear_matrix(
 
 
 def shear_from_matrix(
-    matrix: numpy.ndarray,
-) -> Tuple[float, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    matrix: NDArray,
+) -> Tuple[float, NDArray, NDArray, NDArray]:
     """Return shear angle, direction and plane from shear matrix.
 
     # Test disabled because it fails from time to time.
@@ -765,8 +764,8 @@ def shear_from_matrix(
 
 
 def decompose_matrix(
-    matrix: numpy.ndarray,
-) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+    matrix: NDArray,
+) -> Tuple[NDArray, NDArray, NDArray, NDArray, NDArray]:
     """Return sequence of transformations from transformation matrix.
 
     matrix : array_like
@@ -852,12 +851,12 @@ def decompose_matrix(
 
 
 def compose_matrix(
-    scale: Optional[numpy.ndarray] = None,
-    shear: Optional[numpy.ndarray] = None,
-    angles: Optional[numpy.ndarray] = None,
-    translate: Optional[numpy.ndarray] = None,
-    perspective: Optional[numpy.ndarray] = None,
-) -> numpy.ndarray:
+    scale: Optional[NDArray] = None,
+    shear: Optional[NDArray] = None,
+    angles: Optional[NDArray] = None,
+    translate: Optional[NDArray] = None,
+    perspective: Optional[NDArray] = None,
+) -> NDArray:
     """Return transformation matrix from sequence of transformations.
 
     This is the inverse of the decompose_matrix function.
@@ -909,9 +908,7 @@ def compose_matrix(
     return M
 
 
-def orthogonalization_matrix(
-    lengths: numpy.ndarray, angles: numpy.ndarray
-) -> numpy.ndarray:
+def orthogonalization_matrix(lengths: NDArray, angles: NDArray) -> NDArray:
     """Return orthogonalization matrix for crystallographic cell coordinates.
 
     Angles are expected in degrees.
@@ -942,12 +939,12 @@ def orthogonalization_matrix(
 
 
 def affine_matrix_from_points(
-    v0: numpy.ndarray,
-    v1: numpy.ndarray,
+    v0: NDArray,
+    v1: NDArray,
     shear: bool = True,
     scale: bool = True,
     usesvd: bool = True,
-) -> numpy.ndarray:
+) -> NDArray:
     r"""Return affine transform matrix to register two point sets.
 
     v0 and v1 are shape (ndims, \*) arrays of at least ndims non-homogeneous
@@ -1060,8 +1057,8 @@ def affine_matrix_from_points(
 
 
 def superimposition_matrix(
-    v0: numpy.ndarray, v1: numpy.ndarray, scale: bool = False, usesvd: bool = True
-) -> numpy.ndarray:
+    v0: NDArray, v1: NDArray, scale: bool = False, usesvd: bool = True
+) -> NDArray:
     r"""Return matrix to transform given 3D point set into second point set.
 
     v0 and v1 are shape (3, \*) or (4, \*) arrays of at least 3 points.
@@ -1111,7 +1108,7 @@ def superimposition_matrix(
     return affine_matrix_from_points(v0, v1, shear=False, scale=scale, usesvd=usesvd)
 
 
-def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> numpy.ndarray:
+def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> NDArray:
     """Return homogeneous rotation matrix from Euler angles and axis sequence.
 
     ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -1179,7 +1176,7 @@ def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> numpy.n
 
 
 def euler_from_matrix(
-    matrix: numpy.ndarray, axes: str = "sxyz"
+    matrix: NDArray, axes: str = "sxyz"
 ) -> Tuple[float, float, float]:
     """Return Euler angles from rotation matrix for specified axis sequence.
 
@@ -1276,7 +1273,7 @@ def euler_from_matrix(
 
 
 def euler_from_quaternion(
-    quaternion: numpy.ndarray, axes: str = "sxyz"
+    quaternion: NDArray, axes: str = "sxyz"
 ) -> Tuple[float, float, float]:
     """Return Euler angles from quaternion for specified axis sequence.
 
@@ -1289,8 +1286,8 @@ def euler_from_quaternion(
 
 
 def quaternion_from_euler(
-    ai: numpy.ndarray, aj: numpy.ndarray, ak: numpy.ndarray, axes: str = "sxyz"
-) -> numpy.ndarray:
+    ai: NDArray, aj: NDArray, ak: NDArray, axes: str = "sxyz"
+) -> NDArray:
     """Return quaternion from Euler angles and axis sequence.
 
     ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -1354,7 +1351,7 @@ def quaternion_from_euler(
     return q
 
 
-def quaternion_about_axis(angle: numpy.ndarray, axis: numpy.ndarray) -> numpy.ndarray:
+def quaternion_about_axis(angle: NDArray, axis: NDArray) -> NDArray:
     """Return quaternion for rotation about axis.
 
     >>> q = quaternion_about_axis(0.123, [1, 0, 0])
@@ -1370,7 +1367,7 @@ def quaternion_about_axis(angle: numpy.ndarray, axis: numpy.ndarray) -> numpy.nd
     return q
 
 
-def quaternion_matrix(quaternion: numpy.ndarray) -> numpy.ndarray:
+def quaternion_matrix(quaternion: NDArray) -> NDArray:
     """Return homogeneous rotation matrix from quaternion.
 
     >>> M = quaternion_matrix([0.99810947, 0.06146124, 0, 0])
@@ -1400,9 +1397,7 @@ def quaternion_matrix(quaternion: numpy.ndarray) -> numpy.ndarray:
     )
 
 
-def quaternion_from_matrix(
-    matrix: numpy.ndarray, isprecise: bool = False
-) -> numpy.ndarray:
+def quaternion_from_matrix(matrix: NDArray, isprecise: bool = False) -> NDArray:
     """Return quaternion from rotation matrix.
 
     If isprecise is True, the input matrix is assumed to be a precise rotation
@@ -1483,9 +1478,7 @@ def quaternion_from_matrix(
     return q
 
 
-def quaternion_multiply(
-    quaternion1: numpy.ndarray, quaternion0: numpy.ndarray
-) -> numpy.ndarray:
+def quaternion_multiply(quaternion1: NDArray, quaternion0: NDArray) -> NDArray:
     """Return multiplication of two quaternions.
 
     >>> q = quaternion_multiply([4, 1, -2, 3], [8, -5, 6, 7])
@@ -1506,7 +1499,7 @@ def quaternion_multiply(
     )
 
 
-def quaternion_conjugate(quaternion: numpy.ndarray) -> numpy.ndarray:
+def quaternion_conjugate(quaternion: NDArray) -> NDArray:
     """Return conjugate of quaternion.
 
     >>> q0 = random_quaternion()
@@ -1520,7 +1513,7 @@ def quaternion_conjugate(quaternion: numpy.ndarray) -> numpy.ndarray:
     return q
 
 
-def quaternion_inverse(quaternion: numpy.ndarray) -> numpy.ndarray:
+def quaternion_inverse(quaternion: NDArray) -> NDArray:
     """Return inverse of quaternion.
 
     >>> q0 = random_quaternion()
@@ -1534,7 +1527,7 @@ def quaternion_inverse(quaternion: numpy.ndarray) -> numpy.ndarray:
     return q / numpy.dot(q, q)
 
 
-def quaternion_real(quaternion: numpy.ndarray) -> float:
+def quaternion_real(quaternion: NDArray) -> float:
     """Return real part of quaternion.
 
     >>> quaternion_real([3, 0, 1, 2])
@@ -1544,7 +1537,7 @@ def quaternion_real(quaternion: numpy.ndarray) -> float:
     return float(quaternion[0])
 
 
-def quaternion_imag(quaternion: numpy.ndarray) -> numpy.ndarray:
+def quaternion_imag(quaternion: NDArray) -> NDArray:
     """Return imaginary part of quaternion.
 
     >>> quaternion_imag([3, 0, 1, 2])
@@ -1555,12 +1548,12 @@ def quaternion_imag(quaternion: numpy.ndarray) -> numpy.ndarray:
 
 
 def quaternion_slerp(
-    quat0: numpy.ndarray,
-    quat1: numpy.ndarray,
-    fraction: numpy.ndarray,
+    quat0: NDArray,
+    quat1: NDArray,
+    fraction: NDArray,
     spin: int = 0,
     shortestpath: bool = True,
-) -> numpy.ndarray:
+) -> NDArray:
     """Return spherical linear interpolation between two quaternions.
 
     >>> q0 = random_quaternion()
@@ -1601,7 +1594,7 @@ def quaternion_slerp(
     return q0
 
 
-def random_quaternion(rand: Optional[numpy.ndarray] = None) -> numpy.ndarray:
+def random_quaternion(rand: Optional[NDArray] = None) -> NDArray:
     """Return uniform random unit quaternion.
 
     rand: array like or None
@@ -1630,7 +1623,7 @@ def random_quaternion(rand: Optional[numpy.ndarray] = None) -> numpy.ndarray:
     )
 
 
-def random_rotation_matrix(rand: Optional[numpy.ndarray] = None) -> numpy.ndarray:
+def random_rotation_matrix(rand: Optional[NDArray] = None) -> NDArray:
     """Return uniform random rotation matrix.
 
     rand: array like
@@ -1683,7 +1676,7 @@ _TUPLE2AXES: Dict[Tuple[int, ...], str] = {v: k for k, v in _AXES2TUPLE.items()}
 
 
 def vector_norm(
-    data: numpy.ndarray, axis: Optional[int] = None, out: Optional[numpy.ndarray] = None
+    data: NDArray, axis: Optional[int] = None, out: Optional[NDArray] = None
 ) -> float:
     """Return length, i.e. Euclidean norm, of ndarray along axis.
 
@@ -1728,8 +1721,8 @@ def vector_norm(
 
 
 def unit_vector(
-    data: numpy.ndarray, axis: Optional[int] = None, out: Optional[numpy.ndarray] = None
-) -> numpy.ndarray:
+    data: NDArray, axis: Optional[int] = None, out: Optional[NDArray] = None
+) -> NDArray:
     """Return ndarray normalized by length, i.e. Euclidean norm, along axis.
 
     >>> v0 = numpy.random.random(3)
@@ -1772,7 +1765,7 @@ def unit_vector(
     return data
 
 
-def random_vector(size: int) -> numpy.ndarray:
+def random_vector(size: int) -> NDArray:
     """Return array of random doubles in the half-open interval [0.0, 1.0).
 
     >>> v = random_vector(10000)
@@ -1787,9 +1780,7 @@ def random_vector(size: int) -> numpy.ndarray:
     return numpy.random.random(size)
 
 
-def vector_product(
-    v0: numpy.ndarray, v1: numpy.ndarray, axis: int = 0
-) -> numpy.ndarray:
+def vector_product(v0: NDArray, v1: NDArray, axis: int = 0) -> NDArray:
     """Return vector perpendicular to vectors.
 
     >>> v = vector_product([2, 0, 0], [0, 3, 0])
@@ -1811,7 +1802,7 @@ def vector_product(
 
 
 def angle_between_vectors(
-    v0: numpy.ndarray, v1: numpy.ndarray, directed: bool = True, axis: int = 0
+    v0: NDArray, v1: NDArray, directed: bool = True, axis: int = 0
 ) -> float:
     """Return angle between vectors.
 
@@ -1844,7 +1835,7 @@ def angle_between_vectors(
     return numpy.arccos(dot if directed else numpy.fabs(dot))
 
 
-def inverse_matrix(matrix: numpy.ndarray) -> numpy.ndarray:
+def inverse_matrix(matrix: NDArray) -> NDArray:
     """Return inverse of square transformation matrix.
 
     >>> M0 = random_rotation_matrix()
@@ -1860,7 +1851,7 @@ def inverse_matrix(matrix: numpy.ndarray) -> numpy.ndarray:
     return numpy.linalg.inv(matrix)
 
 
-def concatenate_matrices(*matrices: List[numpy.ndarray]) -> numpy.ndarray:
+def concatenate_matrices(*matrices: List[NDArray]) -> NDArray:
     """Return concatenation of series of transformation matrices.
 
     >>> M = numpy.random.rand(16).reshape((4, 4)) - 0.5
@@ -1876,7 +1867,7 @@ def concatenate_matrices(*matrices: List[numpy.ndarray]) -> numpy.ndarray:
     return M
 
 
-def is_same_transform(matrix0: numpy.ndarray, matrix1: numpy.ndarray) -> numpy.ndarray:
+def is_same_transform(matrix0: NDArray, matrix1: NDArray) -> NDArray:
     """Return True if two matrices perform same transformation.
 
     >>> is_same_transform(numpy.identity(4), numpy.identity(4))
