@@ -1,4 +1,8 @@
-# pyre-unsafe
+# pyre-strict
+
+from types import ModuleType
+from typing import List
+
 from . import (
     align_submodels,
     bundle,
@@ -27,7 +31,7 @@ from . import (
 from .command_runner import command_runner
 
 
-opensfm_commands = [
+opensfm_commands: List[ModuleType] = [
     extract_metadata,
     detect_features,
     match_features,

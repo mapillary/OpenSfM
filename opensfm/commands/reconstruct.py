@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import argparse
 
 from opensfm import reconstruction

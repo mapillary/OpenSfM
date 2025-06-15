@@ -1,12 +1,16 @@
-# pyre-unsafe
+# pyre-strict
 import argparse
-from typing import Any, Callable, List
+from types import ModuleType
+from typing import Callable, ContextManager, List
 
 from opensfm import log
+from opensfm.dataset import DataSet
 
 
 def command_runner(
-    all_commands_types: List[Any], dataset_factory: Callable, dataset_choices: List[str]
+    all_commands_types: List[ModuleType],
+    dataset_factory: Callable[[str, str], ContextManager[DataSet]],
+    dataset_choices: List[str],
 ) -> None:
     """Main entry point for running the passed SfM commands types."""
     log.setup()
