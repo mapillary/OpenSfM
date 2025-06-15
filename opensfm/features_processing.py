@@ -1,19 +1,35 @@
-# pyre-unsafe
+# pyre-strict
 import itertools
 import logging
 import math
 import queue
 import threading
 from timeit import default_timer as timer
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import bow, features, io, log, masking, pygeometry, upright
 from opensfm.context import parallel_map
 from opensfm.dataset_base import DataSetBase
 
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+ProcessQueue = queue.Queue[
+    Optional[
+        Tuple[str, NDArray, Optional[NDArray], Optional[NDArray], DataSetBase, bool]
+    ]
+]
+ProducerArgs = Tuple[
+    ProcessQueue,
+    DataSetBase,
+    List[str],
+    "Counter",
+    int,
+    bool,
+]
+ConsumerArgs = ProcessQueue
 
 
 def run_features_processing(data: DataSetBase, images: List[str], force: bool) -> None:
@@ -47,8 +63,8 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
         f"Expecting to queue at most {expected_images} images while parallel processing of {processes} images."
     )
 
-    process_queue = queue.Queue(expected_images)
-    arguments: List[Tuple[str, Any]] = []
+    process_queue: ProcessQueue = queue.Queue(expected_images)
+    arguments: List[Tuple[str, Union[ProducerArgs, ConsumerArgs]]] = []
 
     if processes == 1:
         for image in images:
@@ -76,7 +92,7 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
                 )
             )
         for _ in range(processes):
-            arguments.append(("consumer", (process_queue)))
+            arguments.append(("consumer", process_queue))
         parallel_map(process, arguments, processes, 1)
 
 
@@ -103,7 +119,7 @@ def average_processing_size(data: DataSetBase) -> float:
 
 
 def is_high_res_panorama(
-    data: DataSetBase, image_key: str, image_array: np.ndarray
+    data: DataSetBase, image_key: str, image_array: NDArray
 ) -> bool:
     """Detect if image is a panorama."""
     exif = data.load_exif(image_key)
@@ -127,7 +143,7 @@ class Counter:
 
     def __init__(self) -> None:
         self.number_of_read = 0
-        self.counter = itertools.count()
+        self.counter: itertools.count[int] = itertools.count()
         self.read_lock = threading.Lock()
 
     def increment(self) -> None:
@@ -140,18 +156,18 @@ class Counter:
         return value
 
 
-def process(args: Tuple[str, Any]) -> None:
+def process(args: Tuple[str, Union[ProducerArgs, ConsumerArgs]]) -> None:
     process_type, real_args = args
     if process_type == "producer":
-        queue, data, images, counter, expected, force = real_args
+        queue, data, images, counter, expected, force = cast(ProducerArgs, real_args)
         read_images(queue, data, images, counter, expected, force)
     if process_type == "consumer":
-        queue = real_args
+        queue = cast(ConsumerArgs, real_args)
         run_detection(queue)
 
 
 def read_images(
-    queue: queue.Queue,
+    queue: ProcessQueue,
     data: DataSetBase,
     images: List[str],
     counter: Counter,
@@ -167,7 +183,8 @@ def read_images(
             instances_array = data.load_instances(image)
         else:
             segmentation_array, instances_array = None, None
-        args = image, image_array, segmentation_array, instances_array, data, force
+        args = (image, image_array, segmentation_array, instances_array, data, force)
+
         queue.put(args, block=True, timeout=full_queue_timeout)
         counter.increment()
         if counter.value() == expected:
@@ -175,7 +192,7 @@ def read_images(
             queue.put(None)
 
 
-def run_detection(queue: queue.Queue):
+def run_detection(queue: ProcessQueue) -> None:
     while True:
         args = queue.get()
         if args is None:
@@ -189,12 +206,12 @@ def run_detection(queue: queue.Queue):
 
 
 def bake_segmentation(
-    image: np.ndarray,
-    points: np.ndarray,
-    segmentation: Optional[np.ndarray],
-    instances: Optional[np.ndarray],
+    image: NDArray,
+    points: NDArray,
+    segmentation: Optional[NDArray],
+    instances: Optional[NDArray],
     exif: Dict[str, Any],
-) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+) -> Tuple[Optional[NDArray], Optional[NDArray]]:
     exif_height, exif_width, exif_orientation = (
         exif["height"],
         exif["width"],
@@ -227,9 +244,9 @@ def bake_segmentation(
 
 def detect(
     image: str,
-    image_array: np.ndarray,
-    segmentation_array: Optional[np.ndarray],
-    instances_array: Optional[np.ndarray],
+    image_array: NDArray,
+    segmentation_array: Optional[NDArray],
+    instances_array: Optional[NDArray],
     data: DataSetBase,
     force: bool = False,
 ) -> None:
