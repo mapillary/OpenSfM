@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 """Tools to align a reconstruction to GPS and GCP data."""
 
 import logging
@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import multiview, pygeometry, pymap, transformations as tf, types
 
 
@@ -20,7 +21,7 @@ def align_reconstruction(
     config: Dict[str, Any],
     use_gps: bool = True,
     bias_override: bool = False,
-) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+) -> Optional[Tuple[float, NDArray, NDArray]]:
     """Align a reconstruction with GPS and GCP data."""
     has_scaled_rigs = any(
         [True for ri in reconstruction.rig_instances.values() if len(ri.shots) > 1]
@@ -39,7 +40,7 @@ def align_reconstruction(
 
 
 def apply_similarity_pose(
-    pose: pygeometry.Pose, s: float, A: np.ndarray, b: np.ndarray
+    pose: pygeometry.Pose, s: float, A: NDArray, b: NDArray
 ) -> None:
     """Apply a similarity (y = s A x + b) to an object having a 'pose' member."""
     R = pose.get_rotation_matrix()
@@ -51,7 +52,7 @@ def apply_similarity_pose(
 
 
 def apply_similarity(
-    reconstruction: types.Reconstruction, s: float, A: np.ndarray, b: np.ndarray
+    reconstruction: types.Reconstruction, s: float, A: NDArray, b: NDArray
 ) -> None:
     """Apply a similarity (y = s A x + b) to a reconstruction.
 
@@ -79,7 +80,7 @@ def compute_reconstruction_similarity(
     config: Dict[str, Any],
     use_gps: bool,
     use_scale: bool,
-) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+) -> Optional[Tuple[float, NDArray, NDArray]]:
     """Compute similarity so that the reconstruction is aligned with GPS and GCP data.
 
     Config parameter `align_method` can be used to choose the alignment method.
@@ -120,7 +121,7 @@ def alignment_constraints(
     reconstruction: types.Reconstruction,
     gcp: List[pymap.GroundControlPoint],
     use_gps: bool,
-) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+) -> Tuple[List[NDArray], List[NDArray]]:
     """Gather alignment constraints to be used by checking bundle_use_gcp and bundle_use_gps."""
 
     X, Xp = [], []
@@ -187,7 +188,7 @@ def compute_naive_similarity(
     gcp: List[pymap.GroundControlPoint],
     use_gps: bool,
     use_scale: bool,
-) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+) -> Optional[Tuple[float, NDArray, NDArray]]:
     """Compute similarity with GPS and GCP data using direct 3D-3D matches."""
     X, Xp = alignment_constraints(config, reconstruction, gcp, use_gps)
 
@@ -232,7 +233,7 @@ def compute_orientation_prior_similarity(
     gcp: List[pymap.GroundControlPoint],
     use_gps: bool,
     use_scale: bool,
-) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+) -> Optional[Tuple[float, NDArray, NDArray]]:
     """Compute similarity with GPS data assuming particular a camera orientation.
 
     In some cases, using 3D-3D matches directly fails to find proper
@@ -311,7 +312,7 @@ def set_gps_bias(
     config: Dict[str, Any],
     gcp: List[pymap.GroundControlPoint],
     use_scale: bool,
-) -> Optional[Tuple[float, np.ndarray, np.ndarray]]:
+) -> Optional[Tuple[float, NDArray, NDArray]]:
     """Compute and set the bias transform of the GPS coordinate system wrt. to the GCP one."""
 
     # Compute similarity ('gps_bias') that brings the reconstruction on the GCPs ONLY
@@ -364,7 +365,7 @@ def set_gps_bias(
 
 def estimate_ground_plane(
     reconstruction: types.Reconstruction, config: Dict[str, Any]
-) -> Optional[np.ndarray]:
+) -> Optional[NDArray]:
     """Estimate ground plane orientation.
 
     It assumes cameras are all at a similar height and uses the
@@ -407,8 +408,8 @@ def estimate_ground_plane(
 
 
 def get_horizontal_and_vertical_directions(
-    R: np.ndarray, orientation: int
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    R: NDArray, orientation: int
+) -> Tuple[NDArray, NDArray, NDArray]:
     """Get orientation vectors from camera rotation matrix and orientation tag.
 
     Return a 3D vectors pointing to the positive XYZ directions of the image.
@@ -437,7 +438,7 @@ def get_horizontal_and_vertical_directions(
 
 def triangulate_all_gcp(
     reconstruction: types.Reconstruction, gcp: List[pymap.GroundControlPoint]
-) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+) -> Tuple[List[NDArray], List[NDArray]]:
     """Group and triangulate Ground Control Points seen in 2+ images."""
     triangulated, measured = [], []
     for point in gcp:
