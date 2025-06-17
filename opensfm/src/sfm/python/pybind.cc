@@ -8,8 +8,6 @@
 #include <sfm/retriangulation.h>
 #include <sfm/tracks_helpers.h>
 
-#include <optional>
-
 PYBIND11_MODULE(pysfm, m) {
   py::module::import("opensfm.pymap");
   py::module::import("opensfm.pygeometry");
