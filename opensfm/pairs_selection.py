@@ -610,7 +610,7 @@ def match_candidates_from_metadata(
 
     if not all(map(has_gps_info, exifs.values())):
         if gps_neighbors != 0:
-            logger.warn(
+            logger.warning(
                 "Not all images have GPS info. " "Disabling matching_gps_neighbors."
             )
         gps_neighbors = 0
