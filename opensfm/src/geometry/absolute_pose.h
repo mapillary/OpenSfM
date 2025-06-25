@@ -15,7 +15,7 @@ Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
 // Perspective-Three-Point Problem" from Ke and al.
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
-                                                                 IT end) {
+                                                                 IT /* end */) {
   std::vector<Eigen::Matrix<double, 3, 4>> RTs;
 
   const Eigen::Vector3d b1 = begin->first;

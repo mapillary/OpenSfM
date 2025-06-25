@@ -7,9 +7,12 @@ namespace {
 class TempFile {
  public:
   TempFile() {
-    char tmpname[L_tmpnam];
-    tmpnam(tmpname);
-    filename = std::string(tmpname);
+    char filenameTmp[] = "/tmp/opensfm_tracks_manager_test_XXXXXX";
+    int fd = mkstemp(filenameTmp);
+    if (fd == -1) {
+      std::runtime_error("Could not create temporary file");
+    }
+    filename = std::string(filenameTmp);
   }
 
   ~TempFile() { remove(filename.c_str()); }
