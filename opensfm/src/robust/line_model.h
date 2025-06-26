@@ -9,7 +9,7 @@ class Line : public Model<Line, 1, 1> {
   static const int MINIMAL_SAMPLES = 2;
 
   template <class IT>
-  static int Estimate(IT begin, IT end, Type* models) {
+  static int Estimate(IT begin, IT /* end */, Type* models) {
     const auto x1 = *begin;
     const auto x2 = *(++begin);
     const auto b = (x1[0] * x2[1] - x1[1] * x2[0]) / (x1[0] - x2[0]);

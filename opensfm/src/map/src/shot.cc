@@ -152,7 +152,7 @@ geometry::Pose Shot::GetPoseInRig() const {
   return rig_camera_pose.Compose(pose_instance);
 }
 
-const geometry::Pose* const Shot::GetPose() const {
+const geometry::Pose* Shot::GetPose() const {
   *pose_ = GetPoseInRig();
   if (IsSingleShotRig(rig_instance_, rig_camera_)) {
     return &rig_instance_->GetPose();
@@ -160,7 +160,7 @@ const geometry::Pose* const Shot::GetPose() const {
   return pose_.get();
 }
 
-geometry::Pose* const Shot::GetPose() {
+geometry::Pose* Shot::GetPose() {
   *pose_ = GetPoseInRig();
   if (IsSingleShotRig(rig_instance_, rig_camera_)) {
     return &rig_instance_->GetPose();
