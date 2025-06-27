@@ -25,7 +25,6 @@ dependencies:
         - pyyaml>5.4
         - scipy>=1.10.0
         - Sphinx==4.2.0
-        - six
         - xmltodict==0.10.2
         - wheel
         - sphinx_rtd_theme
