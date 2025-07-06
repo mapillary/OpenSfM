@@ -1,4 +1,5 @@
 # pyre-strict
+from __future__ import annotations
 import itertools
 import logging
 from functools import lru_cache
