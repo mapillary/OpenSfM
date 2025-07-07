@@ -1,0 +1,32 @@
+name: Ubuntu Conda CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build-test:
+    name: Build conda environment and run tests
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: conda.yml
+          activate-environment: opensfm
+
+      - name: Build OpenSfM
+        shell: bash -l {0}
+        run: python setup.py build
+
+      - name: Run C++ tests
+        shell: bash -l {0}
+        run: cd cmake_build && ctest
+
+      - name: Run Python tests
+        shell: bash -l {0}
+        run: python -m pytest

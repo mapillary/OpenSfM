@@ -4,7 +4,8 @@ dependencies:
     - cmake=3.31
     - make
     - libxcrypt
-    - opencv
+    - libopencv *=headless*
+    - py-opencv
     - ceres-solver=2.1
     - conda-forge::llvm-openmp
     - conda-forge::cxx-compiler
