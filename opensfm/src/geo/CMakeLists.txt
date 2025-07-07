@@ -29,7 +29,6 @@ target_link_libraries(pygeo
   PRIVATE
     geo
     foundation
-    pybind11
 )
 set_target_properties(pygeo PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
