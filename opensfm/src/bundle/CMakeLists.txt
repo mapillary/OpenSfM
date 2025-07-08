@@ -54,8 +54,7 @@ pybind11_add_module(pybundle python/pybind.cc)
 target_link_libraries(pybundle PRIVATE
   bundle
   geometry
-  foundation
-  pybind11)
+  foundation)
 set_target_properties(pybundle PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )

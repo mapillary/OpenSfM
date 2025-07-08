@@ -1,31 +1,31 @@
 name: opensfm
 dependencies:
-    - python=3.8
+    - python=3.10
     - cmake=3.31
     - make
     - libxcrypt
-    - opencv
+    - libopencv *=headless*
+    - py-opencv
     - ceres-solver=2.1
     - conda-forge::llvm-openmp
     - conda-forge::cxx-compiler
     - pip
     - pip:
-        - cloudpickle==0.4.0
-        - exifread==2.1.2
-        - flask==2.3.2
-        - fpdf2==2.4.6
-        - joblib==0.14.1
-        - matplotlib
-        - networkx==2.5
-        - numpy>=1.19
-        - Pillow>=8.1.1
-        - pyproj>=1.9.5.1
-        - pytest==6.2.0
-        - python-dateutil>=2.7
-        - pyyaml>5.4
-        - scipy>=1.10.0
+        - cloudpickle==3.1.1
+        - ExifRead==3.3.1
+        - Flask==3.1.1
+        - fpdf2==2.8.3
+        - joblib==1.5.1
+        - matplotlib==3.5.1
+        - networkx==3.4.2
+        - numpy==1.21.5
+        - Pillow==9.0.1
+        - pyproj>=3.3.0
+        - pytest==8.4.0
+        - python-dateutil==2.8.1
+        - PyYAML>=5.4.1
+        - scipy==1.8.0
         - Sphinx==4.2.0
-        - six
-        - xmltodict==0.10.2
+        - xmltodict==0.14.2
         - wheel
         - sphinx_rtd_theme
