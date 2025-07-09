@@ -3,6 +3,7 @@ import itertools
 import logging
 import math
 import queue
+import sys
 import threading
 from timeit import default_timer as timer
 from typing import Any, cast, Dict, List, Optional, Tuple, Union
@@ -16,11 +17,23 @@ from opensfm.dataset_base import DataSetBase
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-ProcessQueue = queue.Queue[
-    Optional[
-        Tuple[str, NDArray, Optional[NDArray], Optional[NDArray], DataSetBase, bool]
+
+if sys.version_info >= (3, 9):
+    ProcessQueue = queue.Queue[
+        Optional[
+            Tuple[
+                str,
+                NDArray,
+                Optional[NDArray],
+                Optional[NDArray],
+                DataSetBase,
+                bool,
+            ]
+        ]
     ]
-]
+else:
+    ProcessQueue = queue.Queue
+
 ProducerArgs = Tuple[
     ProcessQueue,
     DataSetBase,

@@ -12,7 +12,6 @@ set(FOUNDATION_FILES
 add_library(foundation ${FOUNDATION_FILES})
 target_link_libraries(foundation
   PUBLIC
-    pybind11
     ${OpenCV_LIBS}
     ${OpenMP_libomp_LIBRARY}
     Eigen3::Eigen
@@ -22,6 +21,7 @@ target_link_libraries(foundation
 )
 target_include_directories(foundation
   PUBLIC
+    ${PYBIND11_INCLUDE_DIR}
     ${PYTHON_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
     ${OpenMP_CXX_INCLUDE_DIR}
