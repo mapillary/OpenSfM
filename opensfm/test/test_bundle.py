@@ -1,8 +1,9 @@
-# pyre-unsafe
+# pyre-strict
 import copy
 
 import numpy as np
 import pytest
+from numpy.typing import NDArray
 from opensfm import (
     config,
     geometry,
@@ -13,6 +14,7 @@ from opensfm import (
     tracking,
     types,
 )
+from opensfm.synthetic_data import synthetic_scene
 
 
 def test_unicode_strings_in_bundle() -> None:
@@ -89,14 +91,16 @@ def test_singleton_pan_tilt_roll(bundle_adjuster: pybundle.BundleAdjuster) -> No
     assert np.allclose(ptr, (pan, tilt, roll))
 
 
-def _projection_errors_std(points) -> float:
+def _projection_errors_std(points: pymap.LandmarkView) -> float:
     all_errors = []
     for p in points.values():
         all_errors += p.reprojection_errors.values()
     return np.std(all_errors)
 
 
-def test_bundle_projection_fixed_internals(scene_synthetic) -> None:
+def test_bundle_projection_fixed_internals(
+    scene_synthetic: synthetic_scene.SyntheticInputData,
+) -> None:
     reference = scene_synthetic.reconstruction
     camera_priors = dict(reference.cameras.items())
     rig_priors = dict(reference.rig_cameras.items())
@@ -667,7 +671,7 @@ def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.add_reconstruction_instance("123", 1, "3")
     sa.set_scale_sharing("123", True)
 
-    def bell_heatmap(size, r, mu_x, mu_y):
+    def bell_heatmap(size: int, r: float, mu_x: float, mu_y: float) -> NDArray:
         sigma_x = r * 0.5
         sigma_y = r * 0.5
         x = np.linspace(-r, r, size)
@@ -692,7 +696,7 @@ def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     hmap_size, hmap_r = 101, 10
     res = 2 * hmap_r / (hmap_size - 1)
     hmap = bell_heatmap(size=hmap_size, r=hmap_r, mu_x=hmap_x, mu_y=hmap_y)
-    sa.add_heatmap("hmap1", hmap.flatten(), hmap_size, res)
+    sa.add_heatmap("hmap1", hmap.flatten().tolist(), hmap_size, res)
     x1_offset, y1_offset = 2, 0
     x2_offset, y2_offset = 0, 2
     x3_offset, y3_offset = -2, 0

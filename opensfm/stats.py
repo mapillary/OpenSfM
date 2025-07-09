@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import datetime
 import math
 import os
@@ -6,20 +6,21 @@ import random
 import statistics
 from collections import defaultdict
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import feature_loader, io, multiview, pygeometry, pymap, types
 from opensfm.dataset import DataSet, DataSetBase
 
 RESIDUAL_PIXEL_CUTOFF = 4
 
 
-def _norm2d(point: np.ndarray) -> float:
+def _norm2d(point: NDArray) -> float:
     return math.sqrt(point[0] * point[0] + point[1] * point[1])
 
 
@@ -35,7 +36,7 @@ def _length_histogram(
     return list(hist.keys()), list(hist.values())
 
 
-def _gps_errors(reconstruction: types.Reconstruction) -> List[np.ndarray]:
+def _gps_errors(reconstruction: types.Reconstruction) -> List[NDArray]:
     errors = []
     for shot in reconstruction.shots.values():
         if shot.metadata.gps_position.has_value:
@@ -47,7 +48,7 @@ def _gps_errors(reconstruction: types.Reconstruction) -> List[np.ndarray]:
     return errors
 
 
-def _gps_gcp_errors_stats(errors: Optional[np.ndarray]) -> Dict[str, Any]:
+def _gps_gcp_errors_stats(errors: Optional[NDArray]) -> Dict[str, Any]:
     if errors is None or len(errors) == 0:
         return {}
 
@@ -109,9 +110,11 @@ def gcp_errors(
 
 def _compute_errors(
     reconstructions: List[types.Reconstruction], tracks_manager: pymap.TracksManager
-) -> Any:
+) -> Callable[[int, pymap.ErrorType], Dict[str, Dict[str, NDArray]]]:
     @lru_cache(10)
-    def _compute_errors_cached(index, error_type) -> Dict[str, Dict[str, np.ndarray]]:
+    def _compute_errors_cached(
+        index: int, error_type: pymap.ErrorType
+    ) -> Dict[str, Dict[str, NDArray]]:
         return reconstructions[index].map.compute_reprojection_errors(
             tracks_manager,
             error_type,
@@ -122,17 +125,17 @@ def _compute_errors(
 
 def _get_valid_observations(
     reconstructions: List[types.Reconstruction], tracks_manager: pymap.TracksManager
-) -> Any:
+) -> Callable[[int], Dict[str, Dict[str, pymap.Observation]]]:
     @lru_cache(10)
     def _get_valid_observations_cached(
-        index,
+        index: int,
     ) -> Dict[str, Dict[str, pymap.Observation]]:
         return reconstructions[index].map.get_valid_observations(tracks_manager)
 
     return _get_valid_observations_cached
 
 
-THist = Tuple[np.ndarray, np.ndarray]
+THist = Tuple[NDArray, NDArray]
 
 
 def _projection_error(
@@ -472,7 +475,7 @@ def _heatmap_buckets(camera: pygeometry.Camera) -> Tuple[int, int]:
         return buckets, int(buckets / camera.width * camera.height)
 
 
-def _get_gaussian_kernel(radius: int, ratio: float) -> np.ndarray:
+def _get_gaussian_kernel(radius: int, ratio: float) -> NDArray:
     std_dev = radius / ratio
     half_kernel = list(range(1, radius + 1))
     kernel = np.array(half_kernel + [radius + 1] + list(reversed(half_kernel)))

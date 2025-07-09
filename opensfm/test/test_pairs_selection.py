@@ -1,7 +1,7 @@
-# pyre-unsafe
+# pyre-strict
 import argparse
 import os.path
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Iterator
 
 import numpy as np
 import pytest
@@ -15,7 +15,7 @@ NEIGHBORS = 6
 
 
 @pytest.fixture(scope="module", autouse=True)
-def clear_cache() -> Generator[None, Any, Any]:
+def clear_cache() -> Iterator[None]:
     """
     Clear feature loader cache to avoid using cached
     masks etc from berlin dataset which has the same
@@ -27,6 +27,7 @@ def clear_cache() -> Generator[None, Any, Any]:
 
 
 @pytest.fixture(scope="module", autouse=True)
+# pyre-fixme[2]: switch from tmpdir to tmp_path
 def lund_path(tmpdir_factory) -> str:
     """
     Precompute exif and features to avoid doing
@@ -78,8 +79,8 @@ def match_candidates_from_metadata(
     assert count >= assert_count
 
 
-def create_match_candidates_config(**kwargs) -> Dict[str, Any]:
-    config = {
+def create_match_candidates_config(**kwargs: Any) -> Dict[str, Any]:
+    config: Dict[str, Any] = {
         "matcher_type": "BRUTEFORCE",
         "matching_gps_distance": 0,
         "matching_gps_neighbors": 0,
@@ -96,14 +97,14 @@ def create_match_candidates_config(**kwargs) -> Dict[str, Any]:
     return config
 
 
-def test_match_candidates_from_metadata_vlad(lund_path) -> None:
+def test_match_candidates_from_metadata_vlad(lund_path: str) -> None:
     config = create_match_candidates_config(matching_vlad_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_bow(lund_path) -> None:
+def test_match_candidates_from_metadata_bow(lund_path: str) -> None:
     config = create_match_candidates_config(
         matching_bow_neighbors=NEIGHBORS, matcher_type="WORDS"
     )
@@ -112,21 +113,21 @@ def test_match_candidates_from_metadata_bow(lund_path) -> None:
     match_candidates_from_metadata(data, assert_count=5)
 
 
-def test_match_candidates_from_metadata_gps(lund_path) -> None:
+def test_match_candidates_from_metadata_gps(lund_path: str) -> None:
     config = create_match_candidates_config(matching_gps_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_time(lund_path) -> None:
+def test_match_candidates_from_metadata_time(lund_path: str) -> None:
     config = create_match_candidates_config(matching_time_neighbors=NEIGHBORS)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)
     match_candidates_from_metadata(data)
 
 
-def test_match_candidates_from_metadata_graph(lund_path) -> None:
+def test_match_candidates_from_metadata_graph(lund_path: str) -> None:
     config = create_match_candidates_config(matching_graph_rounds=50)
     data_generation.save_config(config, lund_path)
     data = dataset.DataSet(lund_path)

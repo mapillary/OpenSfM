@@ -1,9 +1,10 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import math
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import exif as oexif, geometry, multiview, pygeometry, pymap, rig, types
 from opensfm.dataset_base import DataSetBase
 
@@ -11,7 +12,7 @@ from opensfm.dataset_base import DataSetBase
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def guess_gravity_up_from_orientation_tag(orientation: int) -> np.ndarray:
+def guess_gravity_up_from_orientation_tag(orientation: int) -> NDArray:
     """Guess upward vector in camera coordinates given the orientation tag.
 
     Assumes camera is looking towards the horizon and horizon is horizontal
@@ -37,7 +38,7 @@ def guess_gravity_up_from_orientation_tag(orientation: int) -> np.ndarray:
     raise RuntimeError(f"Error: Unknown orientation tag: {orientation}")
 
 
-def shot_gravity_up_in_image_axis(shot: pymap.Shot) -> Optional[np.ndarray]:
+def shot_gravity_up_in_image_axis(shot: pymap.Shot) -> Optional[NDArray]:
     """Get or guess shot's gravity up direction."""
     if shot.metadata.gravity_down.has_value:
         return -shot.metadata.gravity_down.value
@@ -54,14 +55,14 @@ def shot_gravity_up_in_image_axis(shot: pymap.Shot) -> Optional[np.ndarray]:
     return guess_gravity_up_from_orientation_tag(orientation)
 
 
-def rotation_from_shot_metadata(shot: pymap.Shot) -> Optional[np.ndarray]:
+def rotation_from_shot_metadata(shot: pymap.Shot) -> Optional[NDArray]:
     rotation = rotation_from_angles(shot)
     if rotation is None:
         rotation = rotation_from_orientation_compass(shot)
     return rotation
 
 
-def rotation_from_orientation_compass(shot: pymap.Shot) -> Optional[np.ndarray]:
+def rotation_from_orientation_compass(shot: pymap.Shot) -> Optional[NDArray]:
     up_vector = shot_gravity_up_in_image_axis(shot)
     if up_vector is None:
         return None
@@ -72,7 +73,7 @@ def rotation_from_orientation_compass(shot: pymap.Shot) -> Optional[np.ndarray]:
     return multiview.rotation_matrix_from_up_vector_and_compass(list(up_vector), angle)
 
 
-def rotation_from_angles(shot: pymap.Shot) -> Optional[np.ndarray]:
+def rotation_from_angles(shot: pymap.Shot) -> Optional[NDArray]:
     if not shot.metadata.opk_angles.has_value:
         return None
     opk_degrees = shot.metadata.opk_angles.value

@@ -1,7 +1,7 @@
-# pyre-unsafe
+# pyre-strict
 from timeit import default_timer as timer
 
-from opensfm import io, tracking
+from opensfm import io, pymap, tracking
 from opensfm.dataset_base import DataSetBase
 
 
@@ -38,7 +38,11 @@ def run_dataset(data: DataSetBase) -> None:
 
 
 def write_report(
-    data: DataSetBase, tracks_manager, features_time, matches_time, tracks_time
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    features_time: float,
+    matches_time: float,
+    tracks_time: float,
 ) -> None:
     view_graph = [
         (k[0], k[1], v) for k, v in tracks_manager.get_all_pairs_connectivity().items()

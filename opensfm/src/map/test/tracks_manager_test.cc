@@ -7,9 +7,12 @@ namespace {
 class TempFile {
  public:
   TempFile() {
-    char tmpname[L_tmpnam];
-    tmpnam(tmpname);
-    filename = std::string(tmpname);
+    char filenameTmp[] = "/tmp/opensfm_tracks_manager_test_XXXXXX";
+    int fd = mkstemp(filenameTmp);
+    if (fd == -1) {
+      std::runtime_error("Could not create temporary file");
+    }
+    filename = std::string(filenameTmp);
   }
 
   ~TempFile() { remove(filename.c_str()); }
@@ -129,30 +132,41 @@ TEST_F(TracksManagerTest, MergeThreeTracksManager) {
   auto merged =
       map::TracksManager::MergeTracksManager({&manager1, &manager2, &manager3});
 
-  std::unordered_map<map::ShotId, map::Observation> track0;
-  track0["1"] = o1;
-  track0["2"] = o2;
-  track0["3"] = o3;
-  track0["4"] = o4;
-  track0["5"] = o5;
-
-  std::unordered_map<map::ShotId, map::Observation> track1;
-  track1["6"] = o6;
-  track1["7"] = o7;
-
-  std::unordered_map<map::ShotId, map::Observation> track2;
-  track2["8"] = o8;
-
-  std::unordered_map<map::ShotId, map::Observation> track3;
-  track3["1"] = o0;
+  const auto track0 = merged.GetTrackObservations("0");
+  const auto track1 = merged.GetTrackObservations("1");
+  const auto track2 = merged.GetTrackObservations("2");
+  const auto track3 = merged.GetTrackObservations("3");
 
   EXPECT_THAT(
       merged.GetTrackIds(),
       ::testing::WhenSorted(::testing::ElementsAre("0", "1", "2", "3")));
-  EXPECT_EQ(merged.GetTrackObservations("0"), track2);
-  EXPECT_EQ(merged.GetTrackObservations("1"), track3);
-  EXPECT_EQ(merged.GetTrackObservations("2"), track1);
-  EXPECT_EQ(merged.GetTrackObservations("3"), track0);
+
+  std::unordered_map<map::ShotId, map::Observation> gt_trackA;
+  gt_trackA["1"] = o1;
+  gt_trackA["2"] = o2;
+  gt_trackA["3"] = o3;
+  gt_trackA["4"] = o4;
+  gt_trackA["5"] = o5;
+
+  std::unordered_map<map::ShotId, map::Observation> gt_trackB;
+  gt_trackB["6"] = o6;
+  gt_trackB["7"] = o7;
+
+  std::unordered_map<map::ShotId, map::Observation> gt_trackC;
+  gt_trackC["8"] = o8;
+
+  std::unordered_map<map::ShotId, map::Observation> gt_trackD;
+  gt_trackD["1"] = o0;
+
+  // Expect the two sets of tracks to be the same for some reordering
+  EXPECT_TRUE(track0 == gt_trackA || track1 == gt_trackA ||
+              track2 == gt_trackA || track3 == gt_trackA);
+  EXPECT_TRUE(track0 == gt_trackB || track1 == gt_trackB ||
+              track2 == gt_trackB || track3 == gt_trackB);
+  EXPECT_TRUE(track0 == gt_trackC || track1 == gt_trackC ||
+              track2 == gt_trackC || track3 == gt_trackC);
+  EXPECT_TRUE(track0 == gt_trackD || track1 == gt_trackD ||
+              track2 == gt_trackD || track3 == gt_trackD);
 }
 
 TEST_F(TracksManagerTest, HasIOFileConsistency) {

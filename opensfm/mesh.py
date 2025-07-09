@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
-
-# pyre-unsafe
+# pyre-strict
 import itertools
 import logging
 from typing import Any, List, Tuple
 
 import numpy as np
 import scipy.spatial
+from numpy.typing import NDArray
 from opensfm import pygeometry, pymap, types
 
 
@@ -15,7 +14,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 def triangle_mesh(
     shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[List[float]], List[List[int]]]:
     """
     Create triangle meshes in a list
     """
@@ -49,14 +48,14 @@ def triangle_mesh(
 
 def triangle_mesh_perspective(
     shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[List[float]], List[List[int]]]:
     shot = r.shots[shot_id]
     cam = shot.camera
 
     dx = float(cam.width) / 2 / max(cam.width, cam.height)
     dy = float(cam.height) / 2 / max(cam.width, cam.height)
     pixels = [[-dx, -dy], [-dx, dy], [dx, dy], [dx, -dy]]
-    vertices = [None for i in range(4)]
+    vertices = [[0.0, 0.0, 0.0] for i in range(4)]
     for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id]
@@ -94,7 +93,7 @@ def triangle_mesh_perspective(
 
 def back_project_no_distortion(
     shot: pymap.Shot, pixel: List[float], depth: float
-) -> np.ndarray:
+) -> NDArray:
     """
     Back-project a pixel of a perspective camera ignoring its radial distortion
     """
@@ -107,14 +106,14 @@ def back_project_no_distortion(
 
 def triangle_mesh_fisheye(
     shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[List[float]], List[List[int]]]:
     shot = r.shots[shot_id]
 
     bearings = []
     vertices = []
 
     # Add boundary vertices
-    num_circle_points = 20
+    num_circle_points: int = 20
     for i in range(num_circle_points):
         a = 2 * np.pi * float(i) / num_circle_points
         point = 30 * np.array([np.cos(a), np.sin(a), 0])
@@ -145,7 +144,7 @@ def triangle_mesh_fisheye(
     faces = tri.simplices.tolist()
 
     # Remove faces having only boundary vertices
-    def good_face(face: List[Any]) -> bool:
+    def good_face(face: List[int]) -> bool:
         return (
             face[0] >= num_circle_points
             or face[1] >= num_circle_points
@@ -159,7 +158,7 @@ def triangle_mesh_fisheye(
 
 def triangle_mesh_spherical(
     shot_id: str, r: types.Reconstruction, tracks_manager: pymap.TracksManager
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[List[float]], List[List[int]]]:
     shot = r.shots[shot_id]
 
     bearings = []

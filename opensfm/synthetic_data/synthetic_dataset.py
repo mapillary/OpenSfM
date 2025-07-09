@@ -1,11 +1,12 @@
-# pyre-unsafe
+# pyre-strict
 import collections
 import logging
 import os
 import shelve
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import features as oft, geo, io, pygeometry, pymap, tracking, types
 from opensfm.dataset import DataSet
 
@@ -13,7 +14,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SyntheticFeatures(collections.abc.MutableMapping):
-    database: Union[Dict[str, oft.FeaturesData], shelve.Shelf]
+    database: MutableMapping[str, oft.FeaturesData]
 
     def __init__(self, on_disk_filename: Optional[str]) -> None:
         if on_disk_filename:
@@ -28,16 +29,16 @@ class SyntheticFeatures(collections.abc.MutableMapping):
         database = self.database
         if type(database) is dict:
             return
-        else:
+        elif type(database) is shelve.Shelf:
             database.sync()
 
-    def __getitem__(self, key) -> oft.FeaturesData:
+    def __getitem__(self, key: str) -> oft.FeaturesData:
         return self.database.__getitem__(key)
 
-    def __setitem__(self, key, item) -> None:
+    def __setitem__(self, key: str, item: oft.FeaturesData) -> None:
         return self.database.__setitem__(key, item)
 
-    def __delitem__(self, key) -> None:
+    def __delitem__(self, key: str) -> None:
         return self.database.__delitem__(key)
 
     def __iter__(self) -> Iterator[str]:
@@ -73,16 +74,16 @@ class SyntheticDataSet(DataSet):
         self.gcps = gcps
         self.features = features
         self.tracks_manager = tracks_manager
-        self.image_list = list(reconstruction.shots.keys())
+        self.image_list: List[str] = list(reconstruction.shots.keys())
         self.reference = reconstruction.reference
-        self.matches = None
+        self.matches: Optional[Dict[str, Dict[str, NDArray]]] = None
         self.config["use_altitude_tag"] = True
         self.config["align_method"] = "naive"
 
     def images(self) -> List[str]:
         return self.image_list
 
-    def _raise_if_absent_image(self, image: str):
+    def _raise_if_absent_image(self, image: str) -> None:
         if image not in self.image_list:
             raise RuntimeError("Image isn't present in the synthetic dataset")
 
@@ -121,10 +122,8 @@ class SyntheticDataSet(DataSet):
             return False
         return image in feat
 
-    def load_words(self, image: str):
-        self._raise_if_absent_image(image)
-        n_closest = 50
-        return [image] * n_closest
+    def load_words(self, image: str) -> NDArray:
+        raise NotImplementedError
 
     def load_features(self, image: str) -> Optional[oft.FeaturesData]:
         self._raise_if_absent_image(image)
@@ -146,7 +145,7 @@ class SyntheticDataSet(DataSet):
             return False
         return True
 
-    def load_matches(self, image: str) -> Dict[str, np.ndarray]:
+    def load_matches(self, image: str) -> Dict[str, NDArray]:
         self._raise_if_absent_image(image)
         self._check_and_create_matches()
         if self.matches is not None:
@@ -161,7 +160,7 @@ class SyntheticDataSet(DataSet):
         if self.matches is None:
             self.matches = self._construct_matches()
 
-    def _construct_matches(self) -> Dict[str, Any]:
+    def _construct_matches(self) -> Dict[str, Dict[str, NDArray]]:
         matches = {}
         tracks_manager = self.load_tracks_manager()
         for im1 in self.images():

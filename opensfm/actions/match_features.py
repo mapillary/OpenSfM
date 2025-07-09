@@ -1,5 +1,6 @@
-# pyre-unsafe
+# pyre-strict
 from timeit import default_timer as timer
+from typing import Any, Dict, List, Tuple
 
 from opensfm import io, matching
 from opensfm.dataset_base import DataSetBase
@@ -18,7 +19,12 @@ def run_dataset(data: DataSetBase) -> None:
     write_report(data, preport, list(pairs_matches.keys()), end - start)
 
 
-def write_report(data: DataSetBase, preport, pairs, wall_time) -> None:
+def write_report(
+    data: DataSetBase,
+    preport: Dict[str, Any],
+    pairs: List[Tuple[str, str]],
+    wall_time: float,
+) -> None:
     report = {
         "wall_time": wall_time,
         "num_pairs": len(pairs),

@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 import argparse
 from timeit import default_timer as timer
 
@@ -11,7 +11,7 @@ class CommandBase:
     name = "Undefined command"
     help = "Undefined command help"
 
-    def run(self, data, args: argparse.Namespace) -> None:
+    def run(self, data: DataSet, args: argparse.Namespace) -> None:
         start = timer()
         self.run_impl(data, args)
         end = timer()

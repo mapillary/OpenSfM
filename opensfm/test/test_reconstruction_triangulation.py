@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 from opensfm import reconstruction
 from opensfm.synthetic_data import synthetic_dataset, synthetic_scene
 

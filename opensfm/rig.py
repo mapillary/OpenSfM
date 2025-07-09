@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 """Tool for handling rigs"""
 
 import logging

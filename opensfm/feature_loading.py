@@ -1,9 +1,12 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 from functools import lru_cache
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
+
+import cv2
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import features as ft, masking, pygeometry
 from opensfm.dataset_base import DataSetBase
 
@@ -26,7 +29,7 @@ class FeatureLoader:
         self.load_words.cache_clear()
 
     @lru_cache(1000)
-    def load_mask(self, data: DataSetBase, image: str) -> Optional[np.ndarray]:
+    def load_mask(self, data: DataSetBase, image: str) -> Optional[NDArray]:
         all_features_data = self._load_all_data_unmasked(data, image)
         if not all_features_data:
             return None
@@ -88,7 +91,7 @@ class FeatureLoader:
         image: str,
         masked: bool,
         camera: pygeometry.Camera,
-    ) -> Optional[np.ndarray]:
+    ) -> Optional[NDArray]:
         if masked:
             features_data = self._load_all_data_masked(data, image)
         else:
@@ -174,7 +177,7 @@ class FeatureLoader:
         image: str,
         masked: bool,
         segmentation_in_descriptor: bool,
-    ) -> Optional[Tuple[ft.FeaturesData, Any]]:
+    ) -> Optional[Tuple[ft.FeaturesData, cv2.flann_Index]]:
         features_data = self.load_all_data(
             data, image, masked, segmentation_in_descriptor
         )
@@ -189,7 +192,7 @@ class FeatureLoader:
         )
 
     @lru_cache(200)
-    def load_words(self, data: DataSetBase, image: str, masked: bool) -> np.ndarray:
+    def load_words(self, data: DataSetBase, image: str, masked: bool) -> NDArray:
         words = data.load_words(image)
         if masked:
             mask = self.load_mask(data, image)

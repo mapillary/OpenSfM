@@ -1,6 +1,6 @@
 # Test utils for python
 
-# pyre-unsafe
+# pyre-strict
 import numpy as np
 from opensfm import pygeo, pygeometry, pymap
 

@@ -1,17 +1,18 @@
-# pyre-unsafe
+# pyre-strict
 from typing import Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def opensfm_to_upright(
-    coords: np.ndarray,
+    coords: NDArray,
     width: int,
     height: int,
     orientation: int,
     new_width: Optional[int] = None,
     new_height: Optional[int] = None,
-) -> np.ndarray:
+) -> NDArray:
     """
     Transform opensfm coordinates to upright coordinates, correcting for EXIF orientation.
 

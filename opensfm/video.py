@@ -1,15 +1,15 @@
-# pyre-unsafe
+# pyre-strict
 import datetime
 import os
 from subprocess import PIPE, Popen
-from typing import List
+from typing import List, Optional
 
 import cv2
 import dateutil.parser
 from opensfm import context, geotag_from_gpx, io
 
 
-def video_orientation(video_file) -> int:
+def video_orientation(video_file: str) -> int:
     # Rotation
     # pyre-fixme[16]: Optional type has no attribute `read`.
     rotation = Popen(
@@ -33,14 +33,13 @@ def video_orientation(video_file) -> int:
 
 
 def import_video_with_gpx(
-    video_file,
-    gpx_file,
+    video_file: str,
+    gpx_file: str,
     output_path: str,
     dx: float,
-    dt=None,
-    start_time=None,
+    dt: Optional[float] = None,
+    start_time: Optional[str] = None,
     visual: bool = False,
-    image_description=None,
 ) -> List[str]:
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
 

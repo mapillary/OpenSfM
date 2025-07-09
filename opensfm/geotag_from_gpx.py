@@ -59,7 +59,7 @@ def utc_to_localtime(utc_time):
     return utc_time - utc_offset_timedelta
 
 
-def get_lat_lon_time(gpx_file, gpx_time: str = "utc"):
+def get_lat_lon_time(gpx_file: str, gpx_time: str = "utc"):
     """
     Read location and time stamps from a track in a GPX file.
 

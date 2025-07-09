@@ -975,19 +975,6 @@ _vl_resize_buffer (void ** buffer, vl_size * bufferSize, vl_size targetSize) {
   }
 }
 
-/** @brief Enlarge buffer
- ** @param buffer
- ** @param bufferSize
- ** @param targetSize
- ** @return error code
- **/
-
-static int
-_vl_enlarge_buffer (void ** buffer, vl_size * bufferSize, vl_size targetSize) {
-  if (*bufferSize >= targetSize) return VL_ERR_OK ;
-  return _vl_resize_buffer(buffer,bufferSize,targetSize) ;
-}
-
 /* ---------------------------------------------------------------- */
 /*                                            Finding local extrema */
 /* ---------------------------------------------------------------- */

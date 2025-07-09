@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <Eigen/Dense>
-#include <unsupported/Eigen/AutoDiff>
 
 class ReprojectionError2DFixtureBase : public ::testing::Test {
  public:

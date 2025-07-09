@@ -71,8 +71,8 @@ class Shot {
 
   // Pose
   void SetPose(const geometry::Pose& pose);
-  const geometry::Pose* const GetPose() const;
-  geometry::Pose* const GetPose();
+  const geometry::Pose* GetPose() const;
+  geometry::Pose* GetPose();
   Mat4d GetWorldToCam() const { return GetPose()->WorldToCamera(); }
   Mat4d GetCamToWorld() const { return GetPose()->CameraToWorld(); }
 
@@ -134,7 +134,7 @@ class Shot {
   bool operator<=(const Shot& shot) const { return id_ <= shot.id_; }
   bool operator>(const Shot& shot) const { return id_ > shot.id_; }
   bool operator>=(const Shot& shot) const { return id_ >= shot.id_; }
-  const geometry::Camera* const GetCamera() const { return shot_camera_; }
+  const geometry::Camera* GetCamera() const { return shot_camera_; }
 
   // Camera-related
   Vec2d Project(const Vec3d& global_pos) const;

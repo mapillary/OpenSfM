@@ -1,9 +1,11 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import typing as t
+from typing import cast, Dict, List, Tuple
 
 import networkx as nx
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import pymap
 from opensfm.dataset_base import DataSetBase
 from opensfm.pymap import TracksManager
@@ -14,13 +16,13 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def load_features(
-    dataset: DataSetBase, images: t.List[str]
-) -> t.Tuple[
-    t.Dict[str, np.ndarray],
-    t.Dict[str, np.ndarray],
-    t.Dict[str, np.ndarray],
-    t.Dict[str, np.ndarray],
-    t.Dict[str, np.ndarray],
+    dataset: DataSetBase, images: List[str]
+) -> Tuple[
+    Dict[str, NDArray[np.float64]],
+    Dict[str, NDArray[np.int32]],
+    Dict[str, NDArray[np.int32]],
+    Dict[str, NDArray[np.int32]],
+    Dict[str, NDArray[np.float64]],
 ]:
     logging.info("reading features")
     features = {}
@@ -51,8 +53,8 @@ def load_features(
 
 
 def load_matches(
-    dataset: DataSetBase, images: t.List[str]
-) -> t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]]:
+    dataset: DataSetBase, images: List[str]
+) -> Dict[Tuple[str, str], List[Tuple[int, int]]]:
     matches = {}
     for im1 in images:
         try:
@@ -66,13 +68,13 @@ def load_matches(
 
 
 def create_tracks_manager(
-    features: t.Dict[str, np.ndarray],
-    colors: t.Dict[str, np.ndarray],
-    segmentations: t.Dict[str, np.ndarray],
-    instances: t.Dict[str, np.ndarray],
-    matches: t.Dict[t.Tuple[str, str], t.List[t.Tuple[int, int]]],
+    features: Dict[str, NDArray[np.float64]],
+    colors: Dict[str, NDArray[np.int32]],
+    segmentations: Dict[str, NDArray[np.int32]],
+    instances: Dict[str, NDArray[np.int32]],
+    matches: Dict[Tuple[str, str], List[Tuple[int, int]]],
     min_length: int,
-    depths: t.Dict[str, np.ndarray],
+    depths: Dict[str, NDArray[np.float64]],
     depth_is_radial: bool = True,
     depth_std_deviation: float = 1.0,
 ) -> TracksManager:
@@ -103,10 +105,15 @@ def create_tracks_manager(
                 continue
             x, y, s = features[image][featureid]
             r, g, b = colors[image][featureid]
-            segmentation, instance = (
-                segmentations[image][featureid] if image in segmentations else NO_VALUE,
-                instances[image][featureid] if image in instances else NO_VALUE,
+            segmentation = (
+                int(segmentations[image][featureid])
+                if image in segmentations
+                else NO_VALUE
             )
+            instance = (
+                int(instances[image][featureid]) if image in instances else NO_VALUE
+            )
+
             obs = pymap.Observation(
                 x,
                 y,
@@ -115,11 +122,7 @@ def create_tracks_manager(
                 int(g),
                 int(b),
                 featureid,
-                # pyre-fixme[6]: For 8th argument expected `int` but got
-                #  `Union[ndarray[typing.Any, typing.Any], int]`.
                 segmentation,
-                # pyre-fixme[6]: For 9th argument expected `int` but got
-                #  `Union[ndarray[typing.Any, typing.Any], int]`.
                 instance,
             )
             if image in depths:
@@ -146,7 +149,7 @@ def create_tracks_manager(
 
 def common_tracks(
     tracks_manager: pymap.TracksManager, im1: str, im2: str
-) -> t.Tuple[t.List[str], np.ndarray, np.ndarray]:
+) -> Tuple[List[str], NDArray[np.float64], NDArray[np.float64]]:
     """List of tracks observed in both images.
 
     Args:
@@ -170,34 +173,34 @@ def common_tracks(
     return tracks, p1, p2
 
 
-TPairTracks = t.Tuple[t.List[str], np.ndarray, np.ndarray]
+TPairTracks = Tuple[List[str], NDArray[np.float64], NDArray[np.float64]]
 
 
 def all_common_tracks_with_features(
     tracks_manager: pymap.TracksManager,
     min_common: int = 50,
-) -> t.Dict[t.Tuple[str, str], TPairTracks]:
+) -> Dict[Tuple[str, str], TPairTracks]:
     tracks = all_common_tracks(
         tracks_manager, include_features=True, min_common=min_common
     )
-    return t.cast(t.Dict[t.Tuple[str, str], TPairTracks], tracks)
+    return cast(Dict[Tuple[str, str], TPairTracks], tracks)
 
 
 def all_common_tracks_without_features(
     tracks_manager: pymap.TracksManager,
     min_common: int = 50,
-) -> t.Dict[t.Tuple[str, str], t.List[str]]:
+) -> Dict[Tuple[str, str], List[str]]:
     tracks = all_common_tracks(
         tracks_manager, include_features=False, min_common=min_common
     )
-    return t.cast(t.Dict[t.Tuple[str, str], t.List[str]], tracks)
+    return cast(Dict[Tuple[str, str], List[str]], tracks)
 
 
 def all_common_tracks(
     tracks_manager: pymap.TracksManager,
     include_features: bool = True,
     min_common: int = 50,
-) -> t.Dict[t.Tuple[str, str], t.Union[TPairTracks, t.List[str]]]:
+) -> Dict[Tuple[str, str], t.Union[TPairTracks, List[str]]]:
     """List of tracks observed by each image pair.
 
     Args:
@@ -227,7 +230,7 @@ def all_common_tracks(
     return common_tracks
 
 
-def _good_track(track: t.List[t.Tuple[str, int]], min_length: int) -> bool:
+def _good_track(track: List[Tuple[str, int]], min_length: int) -> bool:
     if len(track) < min_length:
         return False
     images = [f[0] for f in track]

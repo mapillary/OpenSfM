@@ -1,17 +1,21 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 import os
+from typing import Dict, Optional
 
 import cv2
+import networkx as nx
 import numpy as np
-from opensfm import features, io, tracking
+from opensfm import features, io, pymap, tracking, types
 from opensfm.dataset import DataSet, UndistortedDataSet
 
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def run_dataset(data: DataSet, points, image_list, output, undistorted) -> None:
+def run_dataset(
+    data: DataSet, points: bool, image_list: str, output: str, undistorted: bool
+) -> None:
     """Export reconstruction to PLY format
 
     Args:
@@ -69,16 +73,16 @@ def run_dataset(data: DataSet, points, image_list, output, undistorted) -> None:
 
 
 def export(
-    reconstruction,
-    index,
-    image_graph,
-    tracks_manager,
-    base_output_path,
+    reconstruction: types.Reconstruction,
+    index: int,
+    image_graph: Optional[nx.Graph],
+    tracks_manager: Optional[pymap.TracksManager],
+    base_output_path: str,
     data: DataSet,
-    undistorted,
+    undistorted: bool,
     udata: UndistortedDataSet,
-    with_points,
-    export_only,
+    with_points: bool,
+    export_only: Optional[Dict[str, bool]],
 ) -> None:
     logger.info("Reconstruction %d" % index)
     output_path = os.path.join(base_output_path, "recon%d" % index)
@@ -102,7 +106,7 @@ def export(
         if image_graph:
             adj_indices = []
             for adj_image in image_graph[image]:
-                weight = image_graph[image][adj_image]["weight"]
+                weight = float(image_graph[image][adj_image]["weight"])
                 if weight > 0 and adj_image in shot_index:
                     adj_indices.append(shot_index[adj_image])
 

@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 from typing import Optional
 
 import opensfm.reconstruction as orec

@@ -1,4 +1,4 @@
-# pyre-unsafe
+# pyre-strict
 from opensfm import io, reconstruction
 from opensfm.dataset_base import DataSetBase
 

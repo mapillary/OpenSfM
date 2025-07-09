@@ -29,7 +29,7 @@ class DepthmapEstimatorWrapper {
 
   void SetMinPatchSD(float sd) { de_.SetMinPatchSD(sd); }
 
-  py::object ComputePatchMatch() {
+  py::list ComputePatchMatch() {
     DepthmapEstimatorResult result;
     {
       py::gil_scoped_release release;
@@ -38,7 +38,7 @@ class DepthmapEstimatorWrapper {
     return ComputeReturnValues(result);
   }
 
-  py::object ComputePatchMatchSample() {
+  py::list ComputePatchMatchSample() {
     DepthmapEstimatorResult result;
     {
       py::gil_scoped_release release;
@@ -47,7 +47,7 @@ class DepthmapEstimatorWrapper {
     return ComputeReturnValues(result);
   }
 
-  py::object ComputeBruteForce() {
+  py::list ComputeBruteForce() {
     DepthmapEstimatorResult result;
     {
       py::gil_scoped_release release;
@@ -56,7 +56,7 @@ class DepthmapEstimatorWrapper {
     return ComputeReturnValues(result);
   }
 
-  py::object ComputeReturnValues(const DepthmapEstimatorResult& result) {
+  py::list ComputeReturnValues(const DepthmapEstimatorResult& result) {
     py::list retn;
     retn.append(foundation::py_array_from_data(
         result.depth.ptr<float>(0), result.depth.rows, result.depth.cols));
@@ -66,7 +66,7 @@ class DepthmapEstimatorWrapper {
         result.score.ptr<float>(0), result.score.rows, result.score.cols));
     retn.append(foundation::py_array_from_data(
         result.nghbr.ptr<int>(0), result.nghbr.rows, result.nghbr.cols));
-    return std::move(retn);
+    return retn;
   }
 
  private:
@@ -86,7 +86,7 @@ class DepthmapCleanerWrapper {
                 depth.shape(0));
   }
 
-  py::object Clean() {
+  foundation::pyarray_f Clean() {
     cv::Mat depth;
     {
       py::gil_scoped_release release;
@@ -126,7 +126,7 @@ class DepthmapPrunerWrapper {
                 color.data(), label.data(), depth.shape(1), depth.shape(0));
   }
 
-  py::object Prune() {
+  py::list Prune() {
     std::vector<float> points;
     std::vector<float> normals;
     std::vector<unsigned char> colors;
@@ -143,7 +143,7 @@ class DepthmapPrunerWrapper {
     retn.append(foundation::py_array_from_data(normals.data(), n, 3));
     retn.append(foundation::py_array_from_data(colors.data(), n, 3));
     retn.append(foundation::py_array_from_data(labels.data(), n));
-    return std::move(retn);
+    return retn;
   }
 
  private:

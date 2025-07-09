@@ -3,7 +3,6 @@
 #include <pybind11/pybind11.h>
 
 #include <cstdint>
-#include <iostream>
 #include <vector>
 
 #include "opencv2/core/core.hpp"

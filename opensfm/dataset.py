@@ -5,7 +5,7 @@ import logging
 import os
 import pickle
 from io import BytesIO
-from typing import Any, Dict, IO, List, Optional, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
@@ -84,7 +84,7 @@ class DataSet(DataSetBase):
         """Path to the image file."""
         return self.image_files[image]
 
-    def open_image_file(self, image: str) -> IO[bytes]:
+    def open_image_file(self, image: str) -> BinaryIO:
         """Open image file and return file object."""
         return self.io_handler.open_rb(self._image_file(image))
 
@@ -886,7 +886,7 @@ class UndistortedDataSet:
         plane: NDArray,
         score: NDArray,
         nghbr: NDArray,
-        nghbrs: NDArray,
+        nghbrs: List[str],
     ) -> None:
         self.io_handler.mkdir_p(self._depthmap_path())
         filepath = self.depthmap_file(image, "raw.npz")
@@ -897,7 +897,7 @@ class UndistortedDataSet:
 
     def load_raw_depthmap(
         self, image: str
-    ) -> Tuple[NDArray, NDArray, NDArray, NDArray, NDArray]:
+    ) -> Tuple[NDArray, NDArray, NDArray, NDArray, List[str]]:
         with self.io_handler.open_rb(self.depthmap_file(image, "raw.npz")) as f:
             o = np.load(f)
             return o["depth"], o["plane"], o["score"], o["nghbr"], o["nghbrs"]

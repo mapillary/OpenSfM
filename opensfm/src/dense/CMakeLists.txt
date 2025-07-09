@@ -23,7 +23,7 @@ endif()
 
 pybind11_add_module(pydense python/pybind.cc)
 target_include_directories(pydense PRIVATE ${GLOG_INCLUDE_DIR})
-target_link_libraries(pydense PRIVATE dense foundation pybind11)
+target_link_libraries(pydense PRIVATE dense foundation)
 set_target_properties(pydense PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )

@@ -1,18 +1,17 @@
-# pyre-unsafe
+# pyre-strict
 import logging
 from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from opensfm import upright
 from opensfm.dataset_base import DataSetBase
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def mask_from_segmentation(
-    segmentation: np.ndarray, ignore_values: List[int]
-) -> np.ndarray:
+def mask_from_segmentation(segmentation: NDArray, ignore_values: List[int]) -> NDArray:
     """Binary mask that is 0 for pixels with segmentation value to ignore."""
     mask = np.ones(segmentation.shape, dtype=np.uint8)
     for value in ignore_values:
@@ -21,8 +20,8 @@ def mask_from_segmentation(
 
 
 def combine_masks(
-    mask1: Optional[np.ndarray], mask2: Optional[np.ndarray]
-) -> Optional[np.ndarray]:
+    mask1: Optional[NDArray], mask2: Optional[NDArray]
+) -> Optional[NDArray]:
     """Combine two masks as mask1 AND mask2.
 
     Ignore any missing mask argument.
@@ -41,9 +40,9 @@ def combine_masks(
 
 
 def _resize_masks_to_match(
-    im1: np.ndarray,
-    im2: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+    im1: NDArray,
+    im2: NDArray,
+) -> Tuple[NDArray, NDArray]:
     h, w = max(im1.shape, im2.shape)
     if im1.shape != (h, w):
         im1 = cv2.resize(im1, (w, h), interpolation=cv2.INTER_NEAREST)
@@ -55,9 +54,9 @@ def _resize_masks_to_match(
 def load_features_mask(
     data: DataSetBase,
     image: str,
-    points: np.ndarray,
-    mask_image: Optional[np.ndarray] = None,
-) -> np.ndarray:
+    points: NDArray,
+    mask_image: Optional[NDArray] = None,
+) -> NDArray:
     """Load a feature-wise mask.
 
     This is a binary array true for features that lie inside the
@@ -99,7 +98,7 @@ def load_features_mask(
     return np.array(mask, dtype=bool)
 
 
-def _load_segmentation_mask(data: DataSetBase, image: str) -> Optional[np.ndarray]:
+def _load_segmentation_mask(data: DataSetBase, image: str) -> Optional[NDArray]:
     """Build a mask from segmentation ignore values.
 
     The mask is non-zero only for pixels with segmentation
@@ -116,7 +115,7 @@ def _load_segmentation_mask(data: DataSetBase, image: str) -> Optional[np.ndarra
     return mask_from_segmentation(segmentation, ignore_values)
 
 
-def _load_combined_mask(data: DataSetBase, image: str) -> Optional[np.ndarray]:
+def _load_combined_mask(data: DataSetBase, image: str) -> Optional[NDArray]:
     """Combine binary mask with segmentation mask.
 
     Return a mask that is non-zero only where the binary
