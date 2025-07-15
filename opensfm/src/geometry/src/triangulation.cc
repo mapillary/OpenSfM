@@ -70,8 +70,6 @@ struct BearingErrorCost : public ceres::CostFunction {
   const Vec3d &point_;
 };
 
-constexpr int BearingErrorCost::Size;
-
 }  // namespace
 
 namespace geometry {
