@@ -23,7 +23,23 @@ import numpy as np
 import opensfm.actions.undistort as osfm_u
 from matplotlib import cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from opensfm import dataset, features, pygeometry, pymap, types
+
+
+#Handing the opensfm
+try:
+    from opensfm import dataset, features, pygeometry, pymap, types
+except ImportError:
+    try:
+        from opensfm import dataset, features, pygeometry, pymap
+        types = None 
+    except ImportError as e:
+        print(f"Fallback import failed: {e}")
+        dataset = features = pygeometry = pymap = types = None
+except Exception as e:
+    print(f"Unexpected error importing OpenSfM: {e}")
+    dataset = features = pygeometry = pymap = types = None
+
+
 
 EXPORT_DIR_NAME = "opensfm_export"
 logger = logging.getLogger(__name__)
