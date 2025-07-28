@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import cv2
 import numpy as np
+from numpy import typing as npt
 from numpy.typing import NDArray
 from opensfm import (
     log,
@@ -1609,6 +1610,50 @@ def triangulation_reconstruction(
     return report, [reconstruction]
 
 
+def _get_common_feature_arrays(
+    tracks_manager: pymap.TracksManager,
+    im1: str,
+    im2: str,
+) -> tuple[npt.NDArray, npt.NDArray]:
+    """Return the feature arrays of common tracks between two images."""
+    features1 = []
+    features2 = []
+    for _, p1, p2 in tracks_manager.get_all_common_observations(im1, im2):
+        features1.append(p1.point)
+        features2.append(p2.point)
+    features1 = np.array(features1)
+    features2 = np.array(features2)
+    return (features1, features2)
+
+
+def compute_image_pairs_sequential(
+    data: DataSetBase,
+    tracks_manager: pymap.TracksManager,
+    min_common: int = 50,
+) -> list[tuple[str, str]]:
+    """Compute all possible pairs of images that share at least `min_common` points.
+    The pairs are sorted by "reconstructability" which is estimated by the
+    pairwise_reconstructability function.
+    """
+    cameras = data.load_camera_models()
+    threshold = 4 * data.config["five_point_algo_threshold"]
+    results = []
+    connectivity = tracks_manager.get_all_pairs_connectivity()
+    for (im1, im2), size in connectivity.items():
+        if size < min_common:
+            continue
+        features1, features2 = _get_common_feature_arrays(tracks_manager, im1, im2)
+        camera1 = cameras[data.load_exif(im1)["camera"]]
+        camera2 = cameras[data.load_exif(im2)["camera"]]
+        result = _compute_pair_reconstructability(
+            (im1, im2, features1, features2, camera1, camera2, threshold)
+        )
+        if result[2] > 0:
+            results.append(result)
+    results.sort(key=lambda x: x[2], reverse=True)
+    return [(im1, im2) for im1, im2, _ in results]
+
+
 def incremental_reconstruction(
     data: DataSetBase, tracks_manager: pymap.TracksManager
 ) -> Tuple[Dict[str, Any], List[types.Reconstruction]]:
@@ -1624,9 +1669,22 @@ def incremental_reconstruction(
     remaining_images = set(images)
     gcp = data.load_ground_control_points()
     logger.info(f"Loaded {len(gcp)} ground control points.")
-    common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
+
+    common_tracks = None
+    if data.config["processes"] > 1:
+        # Get pairs in parallel, preload all features for all
+        # pairs of image. Features of an image can be stored
+        # repeatedly in multiple image pairs.
+        # Pros: fast; Cons: high memory usage
+        common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
+        pairs = compute_image_pairs(common_tracks, data)
+    else:
+        # Get pairs sequentially, load features lazily.
+        # Pros: low memory usage; Cons: slow
+        pairs = compute_image_pairs_sequential(data, tracks_manager)
+    logging.info(f"Estimated reconstructability of {len(pairs)} image pairs.")
+
     reconstructions = []
-    pairs = compute_image_pairs(common_tracks, data)
     chrono.lap("compute_image_pairs")
     report["num_candidate_image_pairs"] = len(pairs)
     report["reconstructions"] = []
@@ -1634,7 +1692,13 @@ def incremental_reconstruction(
         if im1 in remaining_images and im2 in remaining_images:
             rec_report = {}
             report["reconstructions"].append(rec_report)
-            _, p1, p2 = common_tracks[im1, im2]
+            if common_tracks is not None:
+                # Save time if the common features are preloaded
+                _, p1, p2 = common_tracks[im1, im2]
+            else:
+                # At the sacrifice of lazily reloading the features, we avoid
+                # storing features for all view pairs in memory
+                p1, p2 = _get_common_feature_arrays(tracks_manager, im1, im2)
             reconstruction, rec_report["bootstrap"] = bootstrap_reconstruction(
                 data, tracks_manager, im1, im2, p1, p2
             )
