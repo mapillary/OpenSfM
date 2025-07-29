@@ -2,7 +2,6 @@
 #include <bundle/error/absolute_motion_errors.h>
 #include <bundle/error/motion_prior_errors.h>
 #include <bundle/error/parameters_errors.h>
-#include <bundle/error/position_functors.h>
 #include <bundle/error/prior_error.h>
 #include <bundle/error/projection_errors.h>
 #include <bundle/error/relative_depth_error.h>
