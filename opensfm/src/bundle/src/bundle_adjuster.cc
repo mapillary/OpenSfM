@@ -425,7 +425,7 @@ ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   } else if (name.compare("ArctanLoss") == 0) {
     return new ceres::ArctanLoss(threshold);
   }
-  throw std::runtime_error("ceres::LossFunction with name " + name + " not found.");
+  throw std::runtime_error("CreateLossFunction has no implementation for loss " + name + ".");
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,
