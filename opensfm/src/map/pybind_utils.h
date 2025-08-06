@@ -57,9 +57,8 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename... Extra>
 iterator make_ref_value_iterator(Iterator first, Sentinel last,
                                  Extra &&...extra) {
-  typedef detail::sfm_iterator_state<Iterator, Sentinel,
-                                     detail::RefValueIterator, Policy>
-      state;
+  using state = detail::sfm_iterator_state<Iterator, Sentinel,
+                                           detail::RefValueIterator, Policy>;
 
   if (!detail::get_type_info(typeid(state), false)) {
     class_<state>(handle(), "ref_value_iterator", pybind11::module_local())
@@ -91,9 +90,8 @@ template <
         pybind11::tuple,  // decltype(&((*std::declval<Iterator>()).second)),
     typename... Extra>
 iterator make_ref_iterator(Iterator first, Sentinel last, Extra &&...extra) {
-  typedef detail::sfm_iterator_state<Iterator, Sentinel, detail::ValueIterator,
-                                     Policy>
-      state;
+  using state = detail::sfm_iterator_state<Iterator, Sentinel,
+                                           detail::ValueIterator, Policy>;
 
   if (!detail::get_type_info(typeid(state), false)) {
     class_<state>(handle(), "ref_iterator", pybind11::module_local())
