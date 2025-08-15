@@ -276,6 +276,8 @@ class OpenSfMConfig:
     # Maximum optimizer iterations.
     bundle_max_iterations: int = 100
 
+    # Ratio of (resection candidates / total tracks) of a given image so that it is culled at resection and resected later
+    resect_redundancy_threshold: float = 0.7
     # Retriangulate all points from time to time
     retriangulation: bool = True
     # Retriangulate when the number of points grows by this ratio
