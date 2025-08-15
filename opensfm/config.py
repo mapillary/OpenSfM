@@ -292,6 +292,10 @@ class OpenSfMConfig:
     local_bundle_min_common_points: int = 20
     # Max number of shots to optimize during local bundle adjustment
     local_bundle_max_shots: int = 30
+    # Number of grid division for seleccting tracks in local bundle adjustment
+    local_bundle_grid: int = 8
+    # Number of grid division for selecting tracks in final bundle adjustment
+    final_bundle_grid: int = 32
 
     # Save reconstructions at every iteration
     save_partial_reconstructions: bool = False
