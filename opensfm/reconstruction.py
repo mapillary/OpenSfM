@@ -51,7 +51,7 @@ def _get_camera_from_bundle(
 
 def log_bundle_stats(bundle_type: str, bundle_report: Dict[str, Any]) -> None:
     times = bundle_report["wall_times"]
-    time_secs = times["run"] + times["setup"] + times["teardown"]
+    time_secs = times["run"] + times["setup"] + times["teardown"] + times["triangulate"]
     num_images, num_points, num_reprojections = (
         bundle_report["num_images"],
         bundle_report["num_points"],
@@ -71,6 +71,7 @@ def bundle(
     camera_priors: Dict[str, pygeometry.Camera],
     rig_camera_priors: Dict[str, pymap.RigCamera],
     gcp: Optional[List[pymap.GroundControlPoint]],
+    grid_size: int,
     config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Bundle adjust a reconstruction."""
@@ -79,6 +80,7 @@ def bundle(
         dict(camera_priors),
         dict(rig_camera_priors),
         gcp if gcp is not None else [],
+        grid_size,
         config,
     )
     log_bundle_stats("GLOBAL", report)
@@ -109,6 +111,7 @@ def bundle_local(
     camera_priors: Dict[str, pygeometry.Camera],
     rig_camera_priors: Dict[str, pymap.RigCamera],
     gcp: Optional[List[pymap.GroundControlPoint]],
+    grid_size: int,
     central_shot_id: str,
     config: Dict[str, Any],
 ) -> Tuple[Dict[str, Any], List[int]]:
@@ -119,6 +122,7 @@ def bundle_local(
         dict(rig_camera_priors),
         gcp if gcp is not None else [],
         central_shot_id,
+        grid_size,
         config,
     )
     log_bundle_stats("LOCAL", report)
@@ -1509,7 +1513,7 @@ def grow_reconstruction(
     paint_reconstruction(data, tracks_manager, reconstruction)
     align_reconstruction(reconstruction, gcp, config)
 
-    bundle(reconstruction, camera_priors, rig_camera_priors, None, config)
+    bundle(reconstruction, camera_priors, rig_camera_priors, None, 0, config)
     remove_outliers(reconstruction, config)
     paint_reconstruction(data, tracks_manager, reconstruction)
 
@@ -1522,6 +1526,10 @@ def grow_reconstruction(
         list(reconstruction.points.keys()),
     )
     
+    local_ba_radius = config["local_bundle_radius"]
+    local_ba_grid = config["local_bundle_grid"]
+    final_bundle_grid = config["final_bundle_grid"]
+
     while True:
         if config["save_partial_reconstructions"]:
             paint_reconstruction(data, tracks_manager, reconstruction)
@@ -1579,12 +1587,12 @@ def grow_reconstruction(
                 logger.info("Re-triangulating")
                 align_reconstruction(reconstruction, gcp, config)
                 b1rep = bundle(
-                    reconstruction, camera_priors, rig_camera_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, local_ba_grid, config
                 )
                 rrep = retriangulate(tracks_manager, reconstruction, config)
                 resection_candidates.update(reconstruction)
                 b2rep = bundle(
-                    reconstruction, camera_priors, rig_camera_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, local_ba_grid, config
                 )
                 resection_candidates.remove(*remove_outliers(reconstruction, config))
                 step["bundle"] = b1rep
@@ -1595,17 +1603,18 @@ def grow_reconstruction(
             elif should_bundle.should():
                 align_reconstruction(reconstruction, gcp, config)
                 brep = bundle(
-                    reconstruction, camera_priors, rig_camera_priors, None, config
+                    reconstruction, camera_priors, rig_camera_priors, None, local_ba_grid, config
                 )
                 resection_candidates.remove(*remove_outliers(reconstruction, config))
                 step["bundle"] = brep
                 should_bundle.done()
-            elif config["local_bundle_radius"] > 0:
+            elif local_ba_radius > 0:
                 bundled_points, brep = bundle_local(
                     reconstruction,
                     camera_priors,
                     rig_camera_priors,
                     None,
+                    local_ba_grid,
                     image,
                     config,
                 )
@@ -1627,7 +1636,7 @@ def grow_reconstruction(
         overidden_config["bundle_compensate_gps_bias"] = False
         config = overidden_config
 
-    bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
+    bundle(reconstruction, camera_priors, rig_camera_priors, gcp, final_bundle_grid, config)
     resection_candidates.remove(*remove_outliers(reconstruction, config))
 
     if config["filter_final_point_cloud"]:
