@@ -1521,14 +1521,16 @@ def grow_reconstruction(
     should_bundle = ShouldBundle(data, reconstruction)
     should_retriangulate = ShouldRetriangulate(data, reconstruction)
 
+    local_ba_radius = config["local_bundle_radius"]
+    local_ba_grid = config["local_bundle_grid"]
+    final_bundle_grid = config["final_bundle_grid"]
+
     resection_candidates.add(
         list(reconstruction.shots.keys()),
         list(reconstruction.points.keys()),
     )
-    
-    local_ba_radius = config["local_bundle_radius"]
-    local_ba_grid = config["local_bundle_grid"]
-    final_bundle_grid = config["final_bundle_grid"]
+    redundant_shots = set()
+    ratio_redundant = config["resect_redundancy_threshold"]
 
     while True:
         if config["save_partial_reconstructions"]:
@@ -1547,7 +1549,17 @@ def grow_reconstruction(
         logger.info("-------------------------------------------------------")
         threshold = data.config["resection_threshold"]
         min_inliers = data.config["resection_min_inliers"]
-        for image, _ in candidates:
+
+        for image, resect_points in candidates:
+
+            new_tracks = {t for t in tracks_manager.get_shot_observations(image)}
+            ratio_existing = resect_points / len(new_tracks) if new_tracks else 1.0
+            logger.info("Ratio of resected tracks in {}: {:.2f}".format(image, ratio_existing))
+            if ratio_existing > ratio_redundant:
+                redundant_shots.add(image)
+                images.remove(image)
+                continue
+
             ok, new_shots, resected_tracks, resrep = resect(
                 data,
                 tracks_manager,
@@ -1560,6 +1572,7 @@ def grow_reconstruction(
                 continue
 
             images -= new_shots
+            redundant_shots -= new_shots
             bundle_shot_poses(
                 reconstruction,
                 new_shots,
@@ -1625,8 +1638,14 @@ def grow_reconstruction(
 
             break
         else:
-            logger.info("Some images can not be added")
-            break
+            if redundant_shots:
+                images.update(redundant_shots)
+                redundant_shots.clear()
+                ratio_redundant = 1
+                local_ba_radius = 0
+            else:
+                logger.info("Some images can not be added")
+                break
 
     logger.info("-------------------------------------------------------")
 
