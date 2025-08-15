@@ -1,4 +1,5 @@
 # pyre-strict
+import gc
 from opensfm import io, reconstruction
 from opensfm.dataset_base import DataSetBase
 
@@ -21,5 +22,8 @@ def run_dataset(
     else:
         raise RuntimeError(f"Unsupported algorithm for reconstruction {algorithm}")
 
-    data.save_reconstruction(reconstructions)
+    del tracks_manager
+    gc.collect()
+
     data.save_report(io.json_dumps(report), "reconstruction.json")
+    data.save_reconstruction(reconstructions)

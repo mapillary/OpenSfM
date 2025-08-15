@@ -33,6 +33,9 @@ class TracksManager {
   using KeyPointTuple = std::tuple<TrackId, Observation, Observation>;
   std::vector<KeyPointTuple> GetAllCommonObservations(
       const ShotId& shot1, const ShotId& shot2) const;
+  std::tuple<std::vector<map::TrackId>, MatX2f, MatX2f> GetAllCommonObservationsArrays(
+    const ShotId& shot1,
+    const ShotId& shot2) const;
 
   using ShotPair = std::pair<ShotId, ShotId>;
   std::unordered_map<ShotPair, int, HashPair> GetAllPairsConnectivity(

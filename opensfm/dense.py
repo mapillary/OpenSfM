@@ -30,7 +30,7 @@ def compute_depthmaps(
     num_neighbors = config["depthmap_num_neighbors"]
 
     neighbors = {}
-    common_tracks = common_tracks_double_dict(graph)
+    common_tracks = common_tracks_double_dict(graph, processes)
     for shot in reconstruction.shots.values():
         neighbors[shot.id] = find_neighboring_images(
             shot, common_tracks, reconstruction, num_neighbors
@@ -394,13 +394,14 @@ def compute_depth_range(
 
 def common_tracks_double_dict(
     tracks_manager: pymap.TracksManager,
+    processes: int,
 ) -> Dict[str, Dict[str, List[str]]]:
     """List of track ids observed by each image pair.
 
     Return a dict, ``res``, such that ``res[im1][im2]`` is the list of
     common tracks between ``im1`` and ``im2``.
     """
-    common_tracks_per_pair = tracking.all_common_tracks_without_features(tracks_manager)
+    common_tracks_per_pair = tracking.all_common_tracks_without_features(tracks_manager, processes=processes)
     res = {image: {} for image in tracks_manager.get_shot_ids()}
     for (im1, im2), v in common_tracks_per_pair.items():
         res[im1][im2] = v

@@ -235,7 +235,6 @@ def _pair_reconstructability_arguments(
 
 
 def _compute_pair_reconstructability(args: TPairArguments) -> Tuple[str, str, float]:
-    log.setup()
     im1, im2, p1, p2, camera1, camera2, threshold = args
     R, inliers = two_view_reconstruction_rotation_only(
         p1, p2, camera1, camera2, threshold
@@ -1684,7 +1683,7 @@ def incremental_reconstruction(
         # pairs of image. Features of an image can be stored
         # repeatedly in multiple image pairs.
         # Pros: fast; Cons: high memory usage
-        common_tracks = tracking.all_common_tracks_with_features(tracks_manager)
+        common_tracks = tracking.all_common_tracks_with_features(tracks_manager, processes=data.config["processes"])
         pairs = compute_image_pairs(common_tracks, data)
     else:
         # Get pairs sequentially, load features lazily.

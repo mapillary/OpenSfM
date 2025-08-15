@@ -13,9 +13,10 @@ def run_dataset(data: DataSetBase) -> None:
         data, data.images()
     )
     features_end = timer()
-    matches = tracking.load_matches(data, data.images())
+    matches = lambda: tracking.load_matches(data, data.images())
     matches_end = timer()
-    tracks_manager = tracking.create_tracks_manager(
+
+    tracks_manager = tracking.create_tracks_manager_from_matches_iter(
         features,
         colors,
         segmentations,
