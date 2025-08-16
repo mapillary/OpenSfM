@@ -809,8 +809,7 @@ void BundleAdjuster::Run() {
         projection_type, use_analytic_, observation, projection_loss, &problem);
 
     // Add relative depth error blocks
-    geometry::Dispatch<AddRelativeDepthError>(projection_type, observation,
-                                              projection_loss, &problem);
+    geometry::Dispatch<AddRelativeDepthError>(projection_type, observation, projection_loss, &problem);
   }
 
   // Add relative motion errors

@@ -40,7 +40,7 @@ def test_reconstruction_triangulation(
     assert 0.01 < errors["absolute_gps_rmse"] < 0.1
 
     # Sanity check that GCP error is similar to the generated gcp_noise
-    assert 0.01 < errors["absolute_gcp_rmse_horizontal"] < 0.05
+    assert 0.01 < errors["absolute_gcp_rmse_horizontal"] < 0.03
     assert 0.005 < errors["absolute_gcp_rmse_vertical"] < 0.04
 
     # Check that the GPS bias (only translation) is recovered

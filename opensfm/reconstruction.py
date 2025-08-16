@@ -1511,7 +1511,7 @@ def grow_reconstruction(
     rig_camera_priors = data.load_rig_cameras()
 
     paint_reconstruction(data, tracks_manager, reconstruction)
-    align_reconstruction(reconstruction, gcp, config)
+    align_reconstruction(reconstruction, [], config)
 
     bundle(reconstruction, camera_priors, rig_camera_priors, None, 0, config)
     remove_outliers(reconstruction, config)
@@ -1598,7 +1598,7 @@ def grow_reconstruction(
 
             if should_retriangulate.should():
                 logger.info("Re-triangulating")
-                align_reconstruction(reconstruction, gcp, config)
+                align_reconstruction(reconstruction, [], config)
                 b1rep = bundle(
                     reconstruction, camera_priors, rig_camera_priors, None, local_ba_grid, config
                 )
@@ -1614,7 +1614,7 @@ def grow_reconstruction(
                 should_retriangulate.done()
                 should_bundle.done()
             elif should_bundle.should():
-                align_reconstruction(reconstruction, gcp, config)
+                align_reconstruction(reconstruction, [], config)
                 brep = bundle(
                     reconstruction, camera_priors, rig_camera_priors, None, local_ba_grid, config
                 )
@@ -1711,7 +1711,7 @@ def triangulation_reconstruction(
 
             step = {}
             logger.info(f"Triangulation SfM. Inner iteration {j}, running bundle ...")
-            align_reconstruction(reconstruction, gcp, config_override)
+            align_reconstruction(reconstruction, [], config_override)
             b1rep = bundle(
                 reconstruction, camera_priors, rig_camera_priors, None, config_override
             )
