@@ -10,15 +10,6 @@
 
 namespace {
 
-double AngleBetweenVectors(const Vec3d &u, const Vec3d &v) {
-  double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
-  if (std::fabs(c) >= 1.0) {
-    return 0.0;
-  } else {
-    return acos(c);
-  }
-}
-
 struct BearingErrorCost : public ceres::CostFunction {
   constexpr static int Size = 3;
 
@@ -74,6 +65,14 @@ struct BearingErrorCost : public ceres::CostFunction {
 
 namespace geometry {
 
+double AngleBetweenVectors(const Vec3d &u, const Vec3d &v) {
+  double c = (u.dot(v)) / sqrt(u.dot(u) * v.dot(v));
+  if (std::fabs(c) >= 1.0) {
+    return 0.0;
+  } else {
+    return acos(c);
+  }
+}
 std::pair<bool, Vec3d> TriangulateBearingsDLT(const std::vector<Mat34d> &Rts,
                                               const MatX3d &bearings,
                                               double threshold,

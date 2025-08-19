@@ -18,6 +18,12 @@ PYBIND11_MODULE(pysfm, m) {
         py::call_guard<py::gil_scoped_release>());
   m.def("remove_connections", &sfm::tracks_helpers::RemoveConnections,
         py::call_guard<py::gil_scoped_release>());
+  m.def("filter_badly_conditioned_points",
+        &sfm::tracks_helpers::FilterBadlyConditionedPoints,
+        py::arg("map"),
+        py::arg("min_angle_deg") = 1.0,
+        py::arg("min_abs_det") = 1e-15,
+        py::call_guard<py::gil_scoped_release>());
 
   py::class_<sfm::BAHelpers>(m, "BAHelpers")
       .def_static("bundle", &sfm::BAHelpers::Bundle)

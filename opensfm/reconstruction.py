@@ -1263,6 +1263,7 @@ def remove_outliers(
                 removed_tracks.add(track)
 
     logger.info("Removed outliers: {}".format(len(outliers)))
+
     return outliers, removed_tracks
 
 
@@ -1657,6 +1658,10 @@ def grow_reconstruction(
 
     bundle(reconstruction, camera_priors, rig_camera_priors, gcp, final_bundle_grid, config)
     resection_candidates.remove(*remove_outliers(reconstruction, config))
+
+    if config["filter_final_point_cloud"]:
+        bad_condition = pysfm.filter_badly_conditioned_points(reconstruction.map, config["triangulation_min_ray_angle"])
+        logger.info("Removed bad-condition: {}".format(bad_condition))
     paint_reconstruction(data, tracks_manager, reconstruction)
     return reconstruction, report
 
