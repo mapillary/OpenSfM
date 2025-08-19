@@ -94,7 +94,10 @@ PYBIND11_MODULE(pybundle, m) {
       .def("add_linear_motion", &bundle::BundleAdjuster::AddLinearMotion)
       .def("set_gauge_fix_shots", &bundle::BundleAdjuster::SetGaugeFixShots)
       .def("set_internal_parameters_prior_sd",
-           &bundle::BundleAdjuster::SetInternalParametersPriorSD)
+           &bundle::BundleAdjuster::SetInternalParametersPriorSD,
+           py::arg("focal_sd"), py::arg("aspect_ratio_sd"), py::arg("c_sd"),
+           py::arg("k1_sd"), py::arg("k2_sd"), py::arg("p1_sd"),
+           py::arg("p2_sd"), py::arg("k3_sd"), py::arg("k4_sd"))
       .def("set_compute_covariances",
            &bundle::BundleAdjuster::SetComputeCovariances)
       .def("get_covariance_estimation_valid",

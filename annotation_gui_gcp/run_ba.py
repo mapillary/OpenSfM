@@ -301,6 +301,7 @@ def bundle_with_fixed_images(
     )
     ba.set_internal_parameters_prior_sd(
         config["exif_focal_sd"],
+        config["aspect_ratio_sd"],
         config["principal_point_sd"],
         config["radial_distortion_k1_sd"],
         config["radial_distortion_k2_sd"],
