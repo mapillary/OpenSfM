@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import cv2
 import numpy as np
-from numpy import typing as npt
 from numpy.typing import NDArray
 from opensfm import (
     log,
@@ -1614,7 +1613,7 @@ def _get_common_feature_arrays(
     tracks_manager: pymap.TracksManager,
     im1: str,
     im2: str,
-) -> tuple[npt.NDArray, npt.NDArray]:
+) -> Tuple[NDArray, NDArray]:
     """Return the feature arrays of common tracks between two images."""
     features1 = []
     features2 = []
@@ -1630,7 +1629,7 @@ def compute_image_pairs_sequential(
     data: DataSetBase,
     tracks_manager: pymap.TracksManager,
     min_common: int = 50,
-) -> list[tuple[str, str]]:
+) -> List[Tuple[str, str]]:
     """Compute all possible pairs of images that share at least `min_common` points.
     The pairs are sorted by "reconstructability" which is estimated by the
     pairwise_reconstructability function.
