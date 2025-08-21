@@ -25,6 +25,12 @@ PYBIND11_MODULE(pysfm, m) {
         py::arg("min_abs_det") = 1e-15,
         py::call_guard<py::gil_scoped_release>());
 
+  m.def("remove_isolated_points",
+        &sfm::tracks_helpers::RemoveIsolatedPoints,
+        py::arg("map"),
+        py::arg("k") = 7,
+        py::call_guard<py::gil_scoped_release>());
+
   py::class_<sfm::BAHelpers>(m, "BAHelpers")
       .def_static("bundle", &sfm::BAHelpers::Bundle)
       .def_static("bundle_local", &sfm::BAHelpers::BundleLocal)

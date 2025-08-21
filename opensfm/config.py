@@ -299,6 +299,9 @@ class OpenSfMConfig:
     # Number of grid division for selecting tracks in final bundle adjustment
     final_bundle_grid: int = 32
 
+    # Point cloud filtering
+    filter_final_point_cloud: bool = True
+
     # Save reconstructions at every iteration
     save_partial_reconstructions: bool = False
 
