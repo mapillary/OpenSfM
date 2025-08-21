@@ -8,8 +8,13 @@
 #include <vector>
 #include <cmath>
 #include <numeric>
+#include <iostream>
 #include <unordered_set>
 #include <algorithm>
+
+extern "C" {
+#include <third_party/vlfeat/vl/kdtree.h>
+}
 
 namespace sfm::tracks_helpers {
 std::unordered_map<map::ShotId, int> CountTracksPerShot(
@@ -197,6 +202,68 @@ int FilterBadlyConditionedPoints(map::Map& map,
     }
   }
 
+  return removed;
+}
+
+int RemoveIsolatedPoints(map::Map& map, int k) {
+  const auto& landmarks = map.GetLandmarks();
+  if (landmarks.size() <= k) {
+    return 0;
+  }
+
+  // Gather all positions
+  std::vector<map::LandmarkId> lm_ids;
+  std::vector<float> positions; // flattened for VLFeat (x0,y0,z0,x1,y1,z1,...)
+  lm_ids.reserve(landmarks.size());
+  positions.reserve(landmarks.size() * 3);
+  for (const auto& kv : landmarks) {
+    lm_ids.push_back(kv.first);
+    const Vec3d& pos = kv.second.GetGlobalPos();
+    positions.push_back(static_cast<float>(pos.x()));
+    positions.push_back(static_cast<float>(pos.y()));
+    positions.push_back(static_cast<float>(pos.z()));
+  }
+
+  // Build VLFeat KD-tree
+  VlKDForest* forest = vl_kdforest_new(VL_TYPE_FLOAT, 3, 1, VlDistanceL2);
+  vl_kdforest_build(forest, lm_ids.size(), positions.data());
+
+  // Query kNN for each point in parallel
+  std::vector<double> avg_dists(lm_ids.size(), 0.0);
+  std::vector<VlKDForestNeighbor> neighbors(k+1);
+  for (vl_size i = 0; i < lm_ids.size(); ++i) {
+    const float* query = positions.data() + 3*i;
+    vl_kdforest_query(forest, neighbors.data(), k+1, query);
+
+    // neighbors[0] is always the query point itself (distance 0)
+    double sum = 0.0;
+    int found = 0;
+    for (int j = 1; j < k+1; ++j) {
+      if (std::isfinite(neighbors[j].distance)) {
+        sum += neighbors[j].distance;
+        ++found;
+      }
+    }
+    avg_dists[i] = found > 0 ? sum / found : 0.0;
+  }
+  vl_kdforest_delete(forest);
+
+  // Compute mean and stddev of average neighbor distances
+  const double mean = std::accumulate(avg_dists.begin(), avg_dists.end(), 0.0) / avg_dists.size();
+  const double std_dev = std::sqrt(std::accumulate(avg_dists.begin(), avg_dists.end(), 0.0,
+      [mean](double sum, double val) { return sum + (val - mean) * (val - mean); }) / avg_dists.size());
+
+  // Remove points whose avg kNN distance > mean + stddev
+  constexpr double kSigmaMultiplier = 1.25;
+  int removed = 0;
+  for (size_t i = 0; i < lm_ids.size(); ++i) {
+    if (avg_dists[i] > mean + kSigmaMultiplier * std_dev) {
+      if (map.HasLandmark(lm_ids[i])) {
+        map.RemoveLandmark(lm_ids[i]);
+        ++removed;
+      }
+    }
+  }
   return removed;
 }
 
