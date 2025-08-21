@@ -94,7 +94,9 @@ def gcp_errors(
 
         triangulated = None
         for rec in reconstructions:
-            triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
+            triangulated = multiview.triangulate_gcp(
+                gcp, rec.shots, data.config["gcp_reprojection_error_threshold"]
+            )
             if triangulated is None:
                 continue
             else:
@@ -583,7 +585,9 @@ def save_residual_histogram(
         n,
         _,
         p_angular,
-    ) = axs[2].hist(b_angular[:-1], b_angular, weights=h_angular)
+    ) = axs[
+        2
+    ].hist(b_angular[:-1], b_angular, weights=h_angular)
     n = n.astype("int")
     for i in range(len(p_angular)):
         p_angular[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
