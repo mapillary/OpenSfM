@@ -260,7 +260,7 @@ class OpenSfMConfig:
     # The default vertical standard deviation of the GCPs (in meters)
     gcp_vertical_sd: float = 0.1
     # Global weight for GCPs, expressed a ratio of the sum of (# projections) + (# shots) + (# relative motions)
-    gcp_global_weight: float = 0.01
+    gcp_global_weight: float = 0.02
     # The standard deviation of the rig translation
     rig_translation_sd: float = 0.1
     # The standard deviation of the rig rotation
@@ -276,6 +276,8 @@ class OpenSfMConfig:
     # Maximum optimizer iterations.
     bundle_max_iterations: int = 100
 
+    # Ratio of (resection candidates / total tracks) of a given image so that it is culled at resection and resected later
+    resect_redundancy_threshold: float = 0.7
     # Retriangulate all points from time to time
     retriangulation: bool = True
     # Retriangulate when the number of points grows by this ratio
@@ -292,12 +294,19 @@ class OpenSfMConfig:
     local_bundle_min_common_points: int = 20
     # Max number of shots to optimize during local bundle adjustment
     local_bundle_max_shots: int = 30
+    # Number of grid division for seleccting tracks in local bundle adjustment
+    local_bundle_grid: int = 8
+    # Number of grid division for selecting tracks in final bundle adjustment
+    final_bundle_grid: int = 32
+
+    # Point cloud filtering
+    filter_final_point_cloud: bool = True
 
     # Save reconstructions at every iteration
     save_partial_reconstructions: bool = False
 
     ##################################
-    # Params for GPS alignment
+    # Params for GPS/GCP alignment
     ##################################
     # Use or ignore EXIF altitude tag
     use_altitude_tag: bool = True
@@ -311,6 +320,8 @@ class OpenSfMConfig:
     bundle_use_gcp: bool = True
     # Compensate GPS with a per-camera similarity transform
     bundle_compensate_gps_bias: bool = False
+    # Thrershold for the reprojection error of GCPs to be considered outliers
+    gcp_reprojection_error_threshold: float = 0.05
 
     ##################################
     # Params for rigs

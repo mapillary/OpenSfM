@@ -13,7 +13,9 @@ target_link_libraries(sfm
   PRIVATE
     foundation
     map
+    geometry
     bundle
+    vl
 )
 target_include_directories(sfm PUBLIC ${CMAKE_SOURCE_DIR})
 

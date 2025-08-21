@@ -41,8 +41,14 @@ def vlad_distances(
     Returns the image, the order of the other images,
     and the other images.
     """
+
+    # avoid passing a gigantic VLAD dictionary in case of preemption : copy instead
+    ratio_copy = 0.5
+    need_copy = len(other_images) < ratio_copy*len(histograms)
+    candidates = {k: histograms[k] for k in other_images + [image]} if need_copy else histograms
+
     distances, others = pyfeatures.compute_vlad_distances(
-        histograms, image, set(other_images)
+        candidates, image, set(other_images)
     )
     return image, distances, others
 
