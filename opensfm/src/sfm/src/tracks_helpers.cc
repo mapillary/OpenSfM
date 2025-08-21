@@ -11,8 +11,15 @@ std::unordered_map<map::ShotId, int> CountTracksPerShot(
   for (const auto& track : tracks) {
     tracks_set.insert(track);
   }
+  
   std::unordered_map<map::ShotId, int> counts;
-  for (const auto& shot : shots) {
+
+#pragma omp parallel
+{
+  std::vector<int> thread_counts(shots.size(), 0);
+#pragma omp for
+  for (int i = 0; i < shots.size(); ++i) {
+    const auto& shot = shots[i];
     const auto& observations = manager.GetShotObservations(shot);
 
     int sum = 0;
@@ -23,8 +30,19 @@ std::unordered_map<map::ShotId, int> CountTracksPerShot(
       }
       ++sum;
     }
-    counts[shot] = sum;
+    thread_counts[i] = sum;
   }
+
+#pragma omp critical
+  {
+    for (int i = 0; i < shots.size(); ++i) {
+      if (thread_counts[i] > 0) {
+        counts[shots[i]] = thread_counts[i];
+      }
+    }
+  }
+}
+
   return counts;
 }
 
