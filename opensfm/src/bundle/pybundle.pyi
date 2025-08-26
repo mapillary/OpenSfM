@@ -25,6 +25,7 @@ __all__ = [
     "ReconstructionAlignment",
     "RelativeMotion",
     "RelativeRotation",
+    "StaticExtensionLoader",
 ]
 
 class BundleAdjuster:
@@ -36,7 +37,7 @@ class BundleAdjuster:
     def add_absolute_roll(self, arg0: str, arg1: float, arg2: float) -> None: ...
     def add_absolute_tilt(self, arg0: str, arg1: float, arg2: float) -> None: ...
     def add_absolute_up_vector(
-        self, arg0: str, arg1: numpy.ndarray, arg2: float
+        self, arg0: str, arg1: numpy.typing.NDArray, arg2: float
     ) -> None: ...
     def add_camera(
         self,
@@ -49,20 +50,24 @@ class BundleAdjuster:
         self, arg0: str, arg1: str, arg2: float, arg3: float
     ) -> None: ...
     def add_heatmap(
-        self, arg0: str, arg1: List[float], arg2: int, arg3: float
+        self, arg0: str, arg1: list[float], arg2: int, arg3: float
     ) -> None: ...
     def add_linear_motion(
         self, arg0: str, arg1: str, arg2: str, arg3: float, arg4: float, arg5: float
     ) -> None: ...
-    def add_point(self, arg0: str, arg1: numpy.ndarray, arg2: bool) -> None: ...
+    def add_point(self, arg0: str, arg1: numpy.typing.NDArray, arg2: bool) -> None: ...
     def add_point_prior(
-        self, arg0: str, arg1: numpy.ndarray, arg2: numpy.ndarray, arg3: bool
+        self,
+        arg0: str,
+        arg1: numpy.typing.NDArray,
+        arg2: numpy.typing.NDArray,
+        arg3: bool,
     ) -> None: ...
     def add_point_projection_observation(
         self,
         shot: str,
         point: str,
-        observation: numpy.ndarray,
+        observation: numpy.typing.NDArray,
         std_deviation: float,
         depth_prior: Optional[opensfm.pymap.Depth] = None,
     ) -> None: ...
@@ -83,12 +88,16 @@ class BundleAdjuster:
         self,
         arg0: str,
         arg1: opensfm.pygeometry.Pose,
-        arg2: Dict[str, str],
-        arg3: Dict[str, str],
+        arg2: dict[str, str],
+        arg3: dict[str, str],
         arg4: bool,
     ) -> None: ...
     def add_rig_instance_position_prior(
-        self, arg0: str, arg1: numpy.ndarray, arg2: numpy.ndarray, arg3: str
+        self,
+        arg0: str,
+        arg1: numpy.typing.NDArray,
+        arg2: numpy.typing.NDArray,
+        arg3: str,
     ) -> None: ...
     def brief_report(self) -> str: ...
     def full_report(self) -> str: ...
@@ -106,14 +115,15 @@ class BundleAdjuster:
     def set_gauge_fix_shots(self, arg0: str, arg1: str) -> None: ...
     def set_internal_parameters_prior_sd(
         self,
-        arg0: float,
-        arg1: float,
-        arg2: float,
-        arg3: float,
-        arg4: float,
-        arg5: float,
-        arg6: float,
-        arg7: float,
+        focal_sd: float,
+        aspect_ratio_sd: float,
+        c_sd: float,
+        k1_sd: float,
+        k2_sd: float,
+        p1_sd: float,
+        p2_sd: float,
+        k3_sd: float,
+        k4_sd: float,
     ) -> None: ...
     def set_linear_solver_type(self, arg0: str) -> None: ...
     def set_max_num_iterations(self, arg0: int) -> None: ...
@@ -127,11 +137,11 @@ class Point:
     @property
     def id(self) -> str: ...
     @property
-    def p(self) -> numpy.ndarray: ...
+    def p(self) -> numpy.typing.NDArray: ...
     @property
-    def reprojection_errors(self) -> Dict[str, numpy.ndarray]: ...
+    def reprojection_errors(self) -> dict[str, numpy.typing.NDArray]: ...
     @reprojection_errors.setter
-    def reprojection_errors(self, arg0: Dict[str, numpy.ndarray]) -> None: ...
+    def reprojection_errors(self, arg0: dict[str, numpy.typing.NDArray]) -> None: ...
 
 class RAReconstruction:
     def __init__(self) -> None: ...
@@ -314,13 +324,13 @@ class RelativeMotion:
         self,
         arg0: str,
         arg1: str,
-        arg2: numpy.ndarray,
-        arg3: numpy.ndarray,
+        arg2: numpy.typing.NDArray,
+        arg3: numpy.typing.NDArray,
         arg4: float,
         arg5: float,
         arg6: bool,
     ) -> None: ...
-    def set_scale_matrix(self, arg0: numpy.ndarray) -> None: ...
+    def set_scale_matrix(self, arg0: numpy.typing.NDArray) -> None: ...
     @property
     def rig_instance_i(self) -> str: ...
     @rig_instance_i.setter
@@ -331,12 +341,12 @@ class RelativeMotion:
     def rig_instance_j(self, arg0: str) -> None: ...
 
 class RelativeRotation:
-    def __init__(self, arg0: str, arg1: str, arg2: numpy.ndarray) -> None: ...
-    def set_scale_matrix(self, arg0: numpy.ndarray) -> None: ...
+    def __init__(self, arg0: str, arg1: str, arg2: numpy.typing.NDArray) -> None: ...
+    def set_scale_matrix(self, arg0: numpy.typing.NDArray) -> None: ...
     @property
-    def r(self) -> numpy.ndarray: ...
+    def r(self) -> numpy.typing.NDArray: ...
     @r.setter
-    def r(self, arg1: numpy.ndarray) -> None: ...
+    def r(self, arg1: numpy.typing.NDArray) -> None: ...
     @property
     def shot_i(self) -> str: ...
     @shot_i.setter
@@ -345,3 +355,6 @@ class RelativeRotation:
     def shot_j(self) -> str: ...
     @shot_j.setter
     def shot_j(self, arg0: str) -> None: ...
+
+class StaticExtensionLoader:
+    pass

@@ -255,6 +255,7 @@ py::tuple BAHelpers::BundleLocal(
       config["loss_function_threshold"].cast<double>());
   ba.SetInternalParametersPriorSD(
       config["exif_focal_sd"].cast<double>(),
+      config["aspect_ratio_sd"].cast<double>(),
       config["principal_point_sd"].cast<double>(),
       config["radial_distortion_k1_sd"].cast<double>(),
       config["radial_distortion_k2_sd"].cast<double>(),
@@ -536,6 +537,7 @@ py::dict BAHelpers::BundleShotPoses(
       config["loss_function_threshold"].cast<double>());
   ba.SetInternalParametersPriorSD(
       config["exif_focal_sd"].cast<double>(),
+      config["aspect_ratio_sd"].cast<double>(),
       config["principal_point_sd"].cast<double>(),
       config["radial_distortion_k1_sd"].cast<double>(),
       config["radial_distortion_k2_sd"].cast<double>(),
@@ -728,6 +730,7 @@ py::dict BAHelpers::Bundle(
       config["loss_function_threshold"].cast<double>());
   ba.SetInternalParametersPriorSD(
       config["exif_focal_sd"].cast<double>(),
+      config["aspect_ratio_sd"].cast<double>(),
       config["principal_point_sd"].cast<double>(),
       config["radial_distortion_k1_sd"].cast<double>(),
       config["radial_distortion_k2_sd"].cast<double>(),

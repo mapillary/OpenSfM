@@ -239,6 +239,8 @@ class OpenSfMConfig:
     reprojection_error_sd: float = 0.004
     # The standard deviation of the exif focal length in log-scale
     exif_focal_sd: float = 0.01
+    # The standard deviation of aspect ratio, i.e. fu/fv, in log-scale
+    aspect_ratio_sd: float = 0.01
     # The standard deviation of the principal point coordinates
     principal_point_sd: float = 0.01
     # The standard deviation of the first radial distortion parameter

@@ -25,6 +25,7 @@ BundleAdjuster::BundleAdjuster() {
   SetPointProjectionLossFunction("CauchyLoss", 1.0);
   SetRelativeMotionLossFunction("CauchyLoss", 1.0);
   focal_prior_sd_ = 1;
+  aspect_ratio_prior_sd_ = 1;
   c_prior_sd_ = 1;
   k1_sd_ = 1;
   k2_sd_ = 1;
@@ -48,7 +49,7 @@ geometry::Camera BundleAdjuster::GetDefaultCameraSigma(
   std_dev_map[static_cast<int>(geometry::Camera::Parameters::Focal)] =
       focal_prior_sd_;
   std_dev_map[static_cast<int>(geometry::Camera::Parameters::AspectRatio)] =
-      focal_prior_sd_;
+      aspect_ratio_prior_sd_;
   std_dev_map[static_cast<int>(geometry::Camera::Parameters::Cx)] = c_prior_sd_;
   std_dev_map[static_cast<int>(geometry::Camera::Parameters::Cy)] = c_prior_sd_;
   std_dev_map[static_cast<int>(geometry::Camera::Parameters::K1)] = k1_sd_;
@@ -376,11 +377,11 @@ void BundleAdjuster::SetCovarianceAlgorithmType(std::string t) {
   covariance_algorithm_type_ = t;
 }
 
-void BundleAdjuster::SetInternalParametersPriorSD(double focal_sd, double c_sd,
-                                                  double k1_sd, double k2_sd,
-                                                  double p1_sd, double p2_sd,
-                                                  double k3_sd, double k4_sd) {
+void BundleAdjuster::SetInternalParametersPriorSD(
+    double focal_sd, double aspect_ratio_sd, double c_sd, double k1_sd,
+    double k2_sd, double p1_sd, double p2_sd, double k3_sd, double k4_sd) {
   focal_prior_sd_ = focal_sd;
+  aspect_ratio_prior_sd_ = aspect_ratio_sd;
   c_prior_sd_ = c_sd;
   k1_sd_ = k1_sd;
   k2_sd_ = k2_sd;
@@ -424,7 +425,8 @@ ceres::LossFunction *CreateLossFunction(std::string name, double threshold) {
   } else if (name.compare("ArctanLoss") == 0) {
     return new ceres::ArctanLoss(threshold);
   }
-  return nullptr;
+  throw std::runtime_error("ceres::LossFunction with name " + name +
+                           " not found.");
 }
 
 void BundleAdjuster::AddLinearMotion(const std::string &shot0_id,

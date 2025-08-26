@@ -127,7 +127,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
 
   // Compute the solutions from action matrix's eigenvectors.
   Eigen::EigenSolver<Eigen::MatrixXd> es(At);
-  typedef Eigen::EigenSolver<Eigen::MatrixXd>::EigenvectorsType Matc;
+  using Matc = Eigen::EigenSolver<Eigen::MatrixXd>::EigenvectorsType;
   Matc V = es.eigenvectors();
   Matc solutions(4, 10);
   solutions.row(0) = V.row(6).array() / V.row(9).array();

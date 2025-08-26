@@ -252,9 +252,10 @@ class BundleAdjuster {
   void SetLinearSolverType(std::string t);
   void SetCovarianceAlgorithmType(std::string t);
 
-  void SetInternalParametersPriorSD(double focal_sd, double c_sd, double k1_sd,
-                                    double k2_sd, double p1_sd, double p2_sd,
-                                    double k3_sd, double k4_sd);
+  void SetInternalParametersPriorSD(double focal_sd, double aspect_ratio_sd,
+                                    double c_sd, double k1_sd, double k2_sd,
+                                    double p1_sd, double p2_sd, double k3_sd,
+                                    double k4_sd);
   void SetRigParametersPriorSD(double rig_translation_sd,
                                double rig_rotation_sd);
 
@@ -324,6 +325,7 @@ class BundleAdjuster {
 
   // Camera parameters prior
   double focal_prior_sd_;
+  double aspect_ratio_prior_sd_;
   double c_prior_sd_;
   double k1_sd_;
   double k2_sd_;

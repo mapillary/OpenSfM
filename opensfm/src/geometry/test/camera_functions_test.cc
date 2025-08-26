@@ -115,7 +115,7 @@ TEST_F(FunctionFixture, EvaluatesDerivativesCorrectly) {
   ASSERT_NEAR(expected, evaluated, 1e-20);
 
   /* Jacobian ordering : d_input | d_parameters */
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<VecXd>;
   VecX<AScalar> eval_adiff(1);
   eval_adiff(0).value() = in[0];
   eval_adiff(0).derivatives() = VecXd::Unit(7, 0);
@@ -163,7 +163,7 @@ TEST_F(PoseFixture, EvaluatesCorrectly) {
 }
 
 TEST_F(PoseFixture, EvaluatesAllDerivativesCorrectly) {
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<VecXd>;
 
   VecX<AScalar> point_adiff(3);
   constexpr int size = 9;
@@ -197,7 +197,7 @@ TEST_F(PoseFixture, EvaluatesAllDerivativesCorrectly) {
 }
 
 TEST_F(PoseFixture, EvaluatesPointDerivativesCorrectly) {
-  typedef Eigen::AutoDiffScalar<VecXd> AScalar;
+  using AScalar = Eigen::AutoDiffScalar<VecXd>;
 
   VecX<AScalar> point_adiff(3);
 
