@@ -515,11 +515,7 @@ def save_matchgraph(
             continue
         o1 = reconstructions[comp1].shots[node1].pose.get_origin()
         o2 = reconstructions[comp2].shots[node2].pose.get_origin()
-        # pyre-fixme[58]: `-` is not supported for operand types `int` and
-        #  `floating[Any]`.
-        # pyre-fixme[58]: `/` is not supported for operand types `int` and
-        #  `floating[Any]`.
-        c = max(0, min(1.0, 1 - (edge - lowest) / (highest - lowest)))
+        c = max(0, min(1.0, 1 - (float(edge) - lowest) / (highest - lowest)))
         plt.plot([o1[0], o2[0]], [o1[1], o2[1]], linestyle="-", color=cmap(c))
 
     for i, rec in enumerate(reconstructions):
