@@ -293,6 +293,9 @@ class OpenSfMConfig:
     # Max number of shots to optimize during local bundle adjustment
     local_bundle_max_shots: int = 30
 
+    # Point cloud filtering
+    filter_final_point_cloud: bool = False
+
     # Save reconstructions at every iteration
     save_partial_reconstructions: bool = False
 

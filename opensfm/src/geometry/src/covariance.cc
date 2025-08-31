@@ -26,7 +26,7 @@ std::pair<Mat3d, double> ComputePointInverseCovariance(
     const std::vector<Vec2d>& observations, const Vec3d& point) {
   double sigma2 = 0;  // Assume centered errors
   Mat3d covariance = Mat3d::Zero();
-  for (int i = 0; i < cameras.size(); ++i) {
+  for (int i = 0; i < observations.size(); ++i) {
     const auto result = ComputeJacobianReprojectionError(
         cameras[i], poses[i], observations[i], point);
     const auto& jacobian = result.first;
