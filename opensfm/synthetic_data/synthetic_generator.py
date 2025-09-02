@@ -196,14 +196,12 @@ def generate_exifs(
 
     speed_ms = 10.0
     previous_pose = None
-    previous_time = 0
+    previous_time = 0.0
     for rig_instance in sorted(
         reconstruction.rig_instances.values(), key=lambda x: x.id
     ):
         pose = rig_instance.pose.get_origin()
         if previous_pose is not None:
-            # pyre-fixme[58]: `+` is not supported for operand types `int` and
-            #  `floating[typing.Any]`.
             previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         for shot_id in rig_instance.shots:
