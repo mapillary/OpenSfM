@@ -15,8 +15,7 @@ except ImportError:
     DATA_PATH = os.path.abspath("data")
 
 
-# pyre-fixme[2]: switch from tmpdir to tmp_path
-def create_berlin_test_folder(tmpdir) -> opensfm.dataset.DataSet:
+def create_berlin_test_folder(tmpdir: Any) -> opensfm.dataset.DataSet:
     src = os.path.join(DATA_PATH, "berlin")
     dst = str(tmpdir.mkdir("berlin"))
     files = ["images", "masks", "config.yaml", "ground_control_points.json"]
