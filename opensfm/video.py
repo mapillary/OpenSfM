@@ -11,10 +11,11 @@ from opensfm import context, geotag_from_gpx, io
 
 def video_orientation(video_file: str) -> int:
     # Rotation
-    # pyre-fixme[16]: Optional type has no attribute `read`.
-    rotation = Popen(
-        ["exiftool", "-Rotation", "-b", video_file], stdout=PIPE
-    ).stdout.read()
+    process = Popen(["exiftool", "-Rotation", "-b", video_file], stdout=PIPE)
+    assert (
+        process.stdout is not None
+    ), "stdout should not be None when stdout=PIPE is specified"
+    rotation = process.stdout.read().decode("utf-8").strip()
     if rotation:
         rotation = float(rotation)
         if rotation == 0:
@@ -49,10 +50,11 @@ def import_video_with_gpx(
         video_start_time = dateutil.parser.parse(start_time)
     else:
         try:
-            # pyre-fixme[16]: Optional type has no attribute `read`.
-            exifdate = Popen(
-                ["exiftool", "-CreateDate", "-b", video_file], stdout=PIPE
-            ).stdout.read()
+            process = Popen(["exiftool", "-CreateDate", "-b", video_file], stdout=PIPE)
+            assert (
+                process.stdout is not None
+            ), "stdout should not be None when stdout=PIPE is specified"
+            exifdate = process.stdout.read().decode("utf-8").strip()
             video_start_time = datetime.datetime.strptime(exifdate, "%Y:%m:%d %H:%M:%S")
         except Exception:
             print("Video recording timestamp not found. Using first GPS point time.")
