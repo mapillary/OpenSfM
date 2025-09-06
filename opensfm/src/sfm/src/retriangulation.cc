@@ -2,8 +2,10 @@
 #include <map/tracks_manager.h>
 #include <sfm/retriangulation.h>
 
+#include <geometry/triangulation.h>
+#include <map/map.h>
+
 #include <limits>
-#include <unordered_set>
 
 namespace sfm::retriangulation {
 void RealignMaps(const map::Map& map_from, map::Map& map_to,
@@ -113,4 +115,80 @@ void RealignMaps(const map::Map& map_from, map::Map& map_to,
     map_to.RemoveShot(shot_id);
   }
 }
+
+int Triangulate(map::Map& map, const std::unordered_set<map::TrackId>& track_ids, float min_angle, float min_depth, int processing_threads) {
+    constexpr size_t kDefaultObservations = 10;
+    const float min_angle_rad = min_angle * M_PI / 180.0;
+
+    int count = 0;
+    std::vector<map::TrackId> track_ids_vec(track_ids.begin(), track_ids.end());
+    std::vector<map::TrackId> to_delete;
+#pragma omp parallel num_threads(processing_threads)
+    {
+      std::vector<map::TrackId> thread_to_delete;
+
+      std::vector<double> threshold_list(kDefaultObservations, 1.0);
+      MatX3d origins(kDefaultObservations, 3);
+      MatX3d bearings(kDefaultObservations, 3);
+#pragma omp for schedule(static)
+      for (int i = 0; i < static_cast<int>(track_ids_vec.size()); ++i) {
+          const auto& track_id = track_ids_vec.at(i);
+          if (!map.HasLandmark(track_id)) {
+              continue;
+          }
+          auto& landmark = map.GetLandmark(track_id);
+          const auto& observations = landmark.GetObservations();
+          const size_t num_observations = observations.size();
+          if (num_observations < 2) {
+              thread_to_delete.push_back(track_id);
+              continue;
+          }
+
+          if(threshold_list.size() != num_observations) {
+              threshold_list.resize(num_observations, 1.0);
+          }
+          if(origins.rows() !=  num_observations) {
+              origins.resize(num_observations, 3);
+          }
+          if(bearings.rows() !=  num_observations) {
+              bearings.resize(num_observations, 3);
+          }
+
+          int idx = 0;
+          for (const auto& obs_pair : observations) {
+              const map::Shot* shot = obs_pair.first;
+              origins.row(idx) = shot->GetPose()->GetOrigin();
+              bearings.row(idx) = shot->LandmarkBearing(&landmark);
+              ++idx;
+          }
+
+          // Triangulate using midpoint method
+          const auto ok_pos = geometry::TriangulateBearingsMidpoint(origins, bearings, threshold_list,
+                                                                    min_angle_rad, min_depth);
+          if (!ok_pos.first) {
+            thread_to_delete.push_back(track_id);
+          }
+          else  {
+            landmark.SetGlobalPos(ok_pos.second);
+
+            // Refine the triangulated point
+            const auto pos_refined = geometry::PointRefinement(origins, bearings, landmark.GetGlobalPos(), 20);
+            landmark.SetGlobalPos(pos_refined);
+          }
+      }
+#pragma omp critical
+      {
+        to_delete.insert(to_delete.end(), thread_to_delete.begin(), thread_to_delete.end());
+      }  
+    }
+
+    // Remove landmarks that were not triangulated
+    for (const auto& track_id : to_delete) {
+      if (map.HasLandmark(track_id)) {
+        map.RemoveLandmark(track_id);
+      }
+    }
+    return count;
+}
+
 }  // namespace sfm::retriangulation

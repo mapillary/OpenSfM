@@ -6,9 +6,12 @@ dependencies:
     - libxcrypt
     - libopencv *=headless*
     - py-opencv
-    - ceres-solver=2.1
+    - conda-forge::ceres-solver=2.2
     - conda-forge::llvm-openmp
     - conda-forge::cxx-compiler
+    - anaconda::suitesparse
+    - conda-forge::openblas
+    - anaconda::metis
     - pip
     - pip:
         - cloudpickle==3.1.1
