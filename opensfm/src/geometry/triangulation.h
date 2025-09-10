@@ -9,6 +9,8 @@
 
 namespace geometry {
 
+double AngleBetweenVectors(const Vec3d &u, const Vec3d &v);
+
 std::pair<bool, Vec3d> TriangulateBearingsDLT(const std::vector<Mat34d> &Rts,
                                               const MatX3d &bearings,
                                               double threshold,
