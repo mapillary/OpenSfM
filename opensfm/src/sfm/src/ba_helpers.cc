@@ -318,8 +318,8 @@ py::tuple BAHelpers::BundleLocal(
 bool BAHelpers::TriangulateGCP(
     const map::GroundControlPoint& point,
     const std::unordered_map<map::ShotId, map::Shot>& shots,
+    float reproj_threshold,
     Vec3d& coordinates) {
-  constexpr auto reproj_threshold{1.0};
   constexpr auto min_ray_angle = 0.1 * M_PI / 180.0;
   constexpr auto min_depth = 1e-3;  // Assume GCPs 1mm+ away from the camera
   MatX3d os, bs;
@@ -357,35 +357,47 @@ size_t BAHelpers::AddGCPToBundle(
   const auto& reference = map.GetTopocentricConverter();
   const auto& shots = map.GetShots();
 
-  const auto dominant_terms = ba.GetRigInstances().size() +
-                              ba.GetProjectionsCount() +
-                              ba.GetRelativeMotionsCount();
 
-  size_t total_terms = 0;
-  for (const auto& point : gcp) {
-    Vec3d coordinates;
-    if (TriangulateGCP(point, shots, coordinates) || !point.lla_.empty()) {
-      ++total_terms;
-    }
-    for (const auto& obs : point.observations_) {
-      total_terms += (shots.count(obs.shot_id_) > 0);
-    }
-  }
-
-  double global_weight = config["gcp_global_weight"].cast<double>() *
-                         dominant_terms / std::max<size_t>(1, total_terms);
+  const float reproj_threshold =
+      config["gcp_reprojection_error_threshold"].cast<float>();
 
   size_t added_gcp_observations = 0;
   for (const auto& point : gcp) {
     const auto point_id = "gcp-" + point.id_;
     Vec3d coordinates;
-    if (!TriangulateGCP(point, shots, coordinates)) {
+    if (!TriangulateGCP(point, shots, reproj_threshold, coordinates)) {
       if (!point.lla_.empty()) {
         coordinates = reference.ToTopocentric(point.GetLlaVec3d());
       } else {
         continue;
       }
     }
+
+    double avg_observations = 0.;
+    int valid_shots = 0;
+    for (const auto& obs : point.observations_) {
+      const auto shot_it = shots.find(obs.shot_id_);
+      if (shot_it != shots.end()) {
+        const auto& shot = (shot_it->second);
+        avg_observations += shot.GetLandmarkObservations().size();
+        ++valid_shots;
+      }
+    }
+
+    if(!valid_shots) {
+      continue;
+    }
+    avg_observations /= valid_shots;
+
+    int gcp_obs = 0;
+    for (const auto& obs : point.observations_) {
+      const auto& shot_id = obs.shot_id_;
+      if (shots.count(shot_id) > 0) {
+        ++gcp_obs;
+      }
+    }
+
+    const double prior_weight = config["gcp_global_weight"].cast<double>() * avg_observations / gcp_obs;
     constexpr auto point_constant{false};
     ba.AddPoint(point_id, coordinates, point_constant);
     if (!point.lla_.empty()) {
@@ -393,16 +405,17 @@ size_t BAHelpers::AddGCPToBundle(
                                    config["gcp_horizontal_sd"].cast<double>(),
                                    config["gcp_vertical_sd"].cast<double>());
       ba.AddPointPrior(point_id, reference.ToTopocentric(point.GetLlaVec3d()),
-                       point_std / global_weight, point.has_altitude_);
+                       point_std / prior_weight, point.has_altitude_);
     }
 
     // Now iterate through the observations
+    const double obs_weight = config["gcp_global_weight"].cast<double>() * avg_observations / gcp_obs;
     for (const auto& obs : point.observations_) {
       const auto& shot_id = obs.shot_id_;
       if (shots.count(shot_id) > 0) {
         constexpr double scale{0.001};
         ba.AddPointProjectionObservation(shot_id, point_id, obs.projection_,
-                                         scale / global_weight);
+                                         scale  / obs_weight);
         ++added_gcp_observations;
       }
     }
@@ -718,7 +731,7 @@ py::dict BAHelpers::Bundle(
     AddGCPToBundle(ba, map, gcp, config);
   }
 
-  if (config["bundle_compensate_gps_bias"].cast<bool>()) {
+  if (config["bundle_compensate_gps_bias"].cast<bool>() && !gcp.empty()) {
     const auto& biases = map.GetBiases();
     for (const auto& camera : map.GetCameras()) {
       ba.SetCameraBias(camera.first, biases.at(camera.first));
@@ -861,7 +874,7 @@ void BAHelpers::AlignmentConstraints(
         continue;
       }
       Vec3d coordinates;
-      if (TriangulateGCP(point, shots, coordinates)) {
+      if (TriangulateGCP(point, shots, config["gcp_reprojection_error_threshold"].cast<float>(), coordinates)) {
         Xp.row(idx) = topocentricConverter.ToTopocentric(point.GetLlaVec3d());
         X.row(idx) = coordinates;
         ++idx;
