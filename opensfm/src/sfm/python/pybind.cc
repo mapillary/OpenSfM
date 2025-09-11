@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <sfm/ba_helpers.h>
+#include <sfm/map_helpers.h>
 #include <sfm/retriangulation.h>
 #include <sfm/tracks_helpers.h>
 
@@ -19,11 +20,11 @@ PYBIND11_MODULE(pysfm, m) {
   m.def("remove_connections", &sfm::tracks_helpers::RemoveConnections,
         py::call_guard<py::gil_scoped_release>());
   m.def("filter_badly_conditioned_points",
-        &sfm::tracks_helpers::FilterBadlyConditionedPoints, py::arg("map"),
+        &sfm::map_helpers::FilterBadlyConditionedPoints, py::arg("map"),
         py::arg("min_angle_deg") = 1.0, py::arg("min_abs_det") = 1e-15,
         py::call_guard<py::gil_scoped_release>());
 
-  m.def("remove_isolated_points", &sfm::tracks_helpers::RemoveIsolatedPoints,
+  m.def("remove_isolated_points", &sfm::map_helpers::RemoveIsolatedPoints,
         py::arg("map"), py::arg("k") = 7,
         py::call_guard<py::gil_scoped_release>());
 
