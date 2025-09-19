@@ -34,6 +34,10 @@ class OpenSfMConfig:
     feature_use_adaptive_suppression: bool = False
     # Bake segmentation info (class and instance) in the feature data. Thus it is done once for all at extraction time.
     features_bake_segmentation: bool = False
+    # Maximum amount of memory to use for feature extraction (in MB). See default in features_processing.py.
+    mem_ceiling: int | None = None
+    # Ratio of the memory ceiling to use for feature extraction. See default in features_processing.py.
+    mem_ratio: float | None = None
 
     ##################################
     # Params for SIFT
