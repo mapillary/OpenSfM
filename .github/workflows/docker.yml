@@ -1,4 +1,4 @@
-name: Docker CI
+name: Docker Ubuntu 20.04
 
 on: [push, pull_request]
 
