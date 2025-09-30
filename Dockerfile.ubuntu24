@@ -28,25 +28,25 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python packages in the virtual environment
 RUN pip install \
-        setuptools \
-        wheel \
-        cloudpickle \
-        ExifRead \
-        Flask \
-        fpdf2 \
-        joblib \
-        matplotlib \
-        networkx \
-        "numpy<2.0" \
-        opencv-python \
-        Pillow \
-        pyproj \
-        pytest \
-        python-dateutil \
-        PyYAML \
-        scipy \
-        "Sphinx<7.0" \
-        xmltodict 
+        cloudpickle==3.1.1 \
+        ExifRead==3.5.1 \
+        Flask==3.1.2 \
+        fpdf2==2.8.4 \
+        joblib==1.5.2 \
+        matplotlib==3.10.6 \
+        networkx==3.5 \
+        numpy==1.26.4 \
+        opencv-python==4.11.0.86 \
+        pillow==11.3.0 \
+        pyproj==3.7.2 \
+        pytest==8.4.2 \
+        python-dateutil==2.9.0.post0 \
+        PyYAML==6.0.3 \
+        scipy==1.16.2 \
+        setuptools==80.9.0 \
+        Sphinx==6.2.1 \
+        wheel==0.45.1 \
+        xmltodict==1.0.2
 
 COPY . /source/OpenSfM
 
