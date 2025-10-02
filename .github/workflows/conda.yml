@@ -1,4 +1,4 @@
-name: Conda CI
+name: Conda
 
 on: [push, pull_request]
 
