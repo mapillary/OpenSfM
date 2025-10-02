@@ -505,7 +505,7 @@ def save_matchgraph(
     highest = np.percentile(list(all_values), 95)
 
     plt.clf()
-    cmap = cm.get_cmap("viridis")
+    cmap = mpl.colormaps["viridis"]
     for (node1, node2), edge in sorted(connectivity.items(), key=lambda x: x[1]):
         if edge < 2 * data.config["resection_min_inliers"]:
             continue
@@ -701,8 +701,8 @@ def save_topview(
         sorted_shots = sorted(
             rec.shots.values(), key=lambda x: x.metadata.capture_time.value
         )
-        c_camera = cm.get_cmap("cool")(0 / len(reconstructions))
-        c_gps = cm.get_cmap("autumn")(0 / len(reconstructions))
+        c_camera = mpl.colormaps["cool"](0 / len(reconstructions))
+        c_gps = mpl.colormaps["autumn"](0 / len(reconstructions))
         for j, shot in enumerate(sorted_shots):
             o = shot.pose.get_origin()
             x, y = (
@@ -965,7 +965,7 @@ def save_residual_grids(
         )
 
         norm = colors.Normalize(vmin=lowest, vmax=highest)
-        cmap = cm.get_cmap("viridis_r")
+        cmap = mpl.colormaps["viridis_r"]
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
         plt.colorbar(
