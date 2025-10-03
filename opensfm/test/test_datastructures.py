@@ -127,7 +127,7 @@ def test_camera_iterators() -> None:
     visited_cams = set()
     for cam in rec.cameras.values():
         visited_cams.add(cam.id)
-        focal = np.random.rand(1)
+        focal = np.random.rand(1).item()
         cam.focal = focal
         assert rec.cameras[cam.id].focal == focal
         assert cam is rec.cameras[cam.id]
@@ -140,7 +140,7 @@ def test_camera_iterators() -> None:
 
     for cam_id, cam in rec.cameras.items():
         assert cam_id == cam.id
-        focal = np.random.rand(1)
+        focal = np.random.rand(1).item()
         cam.focal = focal
         assert rec.cameras[cam.id].focal == focal
         assert cam is rec.cameras[cam.id]
@@ -349,12 +349,12 @@ def _help_measurement_test(
 def test_shot_measurement_setter_and_getter() -> None:
     m1 = pymap.ShotMeasurements()
     # Test basic functionality
-    _help_measurement_test(m1, "capture_time", np.random.rand(1))
+    _help_measurement_test(m1, "capture_time", np.random.rand(1).item())
     _help_measurement_test(m1, "gps_position", np.random.rand(3))
-    _help_measurement_test(m1, "gps_accuracy", np.random.rand(1))
-    _help_measurement_test(m1, "compass_accuracy", np.random.rand(1))
-    _help_measurement_test(m1, "compass_angle", np.random.rand(1))
-    _help_measurement_test(m1, "opk_accuracy", np.random.rand(1))
+    _help_measurement_test(m1, "gps_accuracy", np.random.rand(1).item())
+    _help_measurement_test(m1, "compass_accuracy", np.random.rand(1).item())
+    _help_measurement_test(m1, "compass_angle", np.random.rand(1).item())
+    _help_measurement_test(m1, "opk_accuracy", np.random.rand(1).item())
     _help_measurement_test(m1, "opk_angles", np.random.rand(3))
     _help_measurement_test(m1, "gravity_down", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
@@ -362,12 +362,12 @@ def test_shot_measurement_setter_and_getter() -> None:
 
 
 def _helper_populate_metadata(m: pymap.ShotMeasurements) -> None:
-    m.capture_time.value = np.random.rand(1)
+    m.capture_time.value = np.random.rand(1).item()
     m.gps_position.value = np.random.rand(3)
-    m.gps_accuracy.value = np.random.rand(1)
-    m.compass_accuracy.value = np.random.rand(1)
-    m.compass_angle.value = np.random.rand(1)
-    m.opk_accuracy.value = np.random.rand(1)
+    m.gps_accuracy.value = np.random.rand(1).item()
+    m.compass_accuracy.value = np.random.rand(1).item()
+    m.compass_angle.value = np.random.rand(1).item()
+    m.opk_accuracy.value = np.random.rand(1).item()
     m.opk_angles.value = np.random.rand(3)
     m.gravity_down.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
@@ -973,7 +973,7 @@ def test_many_observations_delete() -> None:
         m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        cam_id = "cam" + str(int(np.random.rand(1).item() * 10 % n_cams))
         shot_id = str(shot_id)
         m.create_rig_instance(shot_id)
         m.create_shot(shot_id, cam_id, cam_id, shot_id, pygeometry.Pose())
@@ -1013,7 +1013,7 @@ def test_clean_landmarks_with_min_observations() -> None:
         m.create_rig_camera(pymap.RigCamera(pygeometry.Pose(), cam.id))
 
     for shot_id in range(n_shots):
-        cam_id = "cam" + str(int(np.random.rand(1) * 10 % n_cams))
+        cam_id = "cam" + str(int(np.random.rand(1).item() * 10 % n_cams))
         m.create_rig_instance(str(shot_id))
         m.create_shot(str(shot_id), cam_id, cam_id, str(shot_id), pygeometry.Pose())
 

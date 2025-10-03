@@ -11,5 +11,4 @@ pyproj, 2.5.0, "OSI Approved"
 pytest, 3.0.7, MIT
 python-dateutil, 2.6.0, "Simplified BSD"
 scipy, 1.4.1, BSD
-six, 1.14.0, MIT
 xmltodict, 0.10.2, MIT

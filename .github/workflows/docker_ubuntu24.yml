@@ -1,0 +1,23 @@
+name: Docker Ubuntu 24.04
+
+on: [push, pull_request]
+
+jobs:
+
+  build-test:
+    name: Build docker and run tests on Ubuntu 24.04
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile.ubuntu24 --tag mapillary/opensfm.ubuntu24:$GITHUB_SHA
+
+      - name: Run C++ tests
+        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA /bin/sh -c "cd cmake_build && ctest"
+
+      - name: Run Python tests
+        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA python3 -m pytest
