@@ -505,7 +505,7 @@ def save_matchgraph(
     highest = np.percentile(list(all_values), 95)
 
     plt.clf()
-    cmap = cm.get_cmap("viridis")
+    cmap = cm.viridis
     for (node1, node2), edge in sorted(connectivity.items(), key=lambda x: x[1]):
         if edge < 2 * data.config["resection_min_inliers"]:
             continue
@@ -515,11 +515,7 @@ def save_matchgraph(
             continue
         o1 = reconstructions[comp1].shots[node1].pose.get_origin()
         o2 = reconstructions[comp2].shots[node2].pose.get_origin()
-        # pyre-fixme[58]: `-` is not supported for operand types `int` and
-        #  `floating[Any]`.
-        # pyre-fixme[58]: `/` is not supported for operand types `int` and
-        #  `floating[Any]`.
-        c = max(0, min(1.0, 1 - (edge - lowest) / (highest - lowest)))
+        c = max(0, min(1.0, 1 - (float(edge) - lowest) / (highest - lowest)))
         plt.plot([o1[0], o2[0]], [o1[1], o2[1]], linestyle="-", color=cmap(c))
 
     for i, rec in enumerate(reconstructions):
@@ -542,6 +538,7 @@ def save_matchgraph(
         orientation="horizontal",
         label="Number of matches between images",
         pad=0.0,
+        ax=plt.gca(),
     )
 
     with io_handler.open_wb(os.path.join(output_path, "matchgraph.png")) as fwb:
@@ -704,8 +701,8 @@ def save_topview(
         sorted_shots = sorted(
             rec.shots.values(), key=lambda x: x.metadata.capture_time.value
         )
-        c_camera = cm.get_cmap("cool")(0 / len(reconstructions))
-        c_gps = cm.get_cmap("autumn")(0 / len(reconstructions))
+        c_camera = cm.cool(0 / len(reconstructions))
+        c_gps = cm.autumn(0 / len(reconstructions))
         for j, shot in enumerate(sorted_shots):
             o = shot.pose.get_origin()
             x, y = (
@@ -968,7 +965,7 @@ def save_residual_grids(
         )
 
         norm = colors.Normalize(vmin=lowest, vmax=highest)
-        cmap = cm.get_cmap("viridis_r")
+        cmap = cm.viridis_r
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])
         plt.colorbar(
@@ -977,6 +974,7 @@ def save_residual_grids(
             label="Residual Norm",
             pad=0.08,
             aspect=40,
+            ax=plt.gca(),
         )
 
         plt.xticks(

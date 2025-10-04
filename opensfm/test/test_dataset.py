@@ -1,12 +1,13 @@
 # pyre-strict
+from typing import Any
+
 import numpy as np
 
 from opensfm import features
 from opensfm.test import data_generation
 
 
-# pyre-fixme[2]: switch from tmpdir to tmp_path
-def test_dataset_load_features_sift(tmpdir) -> None:
+def test_dataset_load_features_sift(tmpdir: Any) -> None:
     data = data_generation.create_berlin_test_folder(tmpdir)
 
     assert len(data.images()) == 3

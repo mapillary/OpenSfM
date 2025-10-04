@@ -2,9 +2,11 @@ set(SFM_FILES
     retriangulation.h
     ba_helpers.h
     tracks_helpers.h
+    map_helpers.h
     src/retriangulation.cc
     src/ba_helpers.cc
     src/tracks_helpers.cc
+    src/map_helpers.cc
 )
 add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm
@@ -14,6 +16,7 @@ target_link_libraries(sfm
     foundation
     map
     bundle
+    vl
 )
 target_include_directories(sfm PUBLIC ${CMAKE_SOURCE_DIR})
 

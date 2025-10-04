@@ -1538,6 +1538,15 @@ def grow_reconstruction(
 
     bundle(reconstruction, camera_priors, rig_camera_priors, gcp, config)
     remove_outliers(reconstruction, config)
+
+    if config["filter_final_point_cloud"]:
+        bad_condition = pysfm.filter_badly_conditioned_points(
+            reconstruction.map, config["triangulation_min_ray_angle"]
+        )
+        logger.info("Removed bad-condition: {}".format(bad_condition))
+        isolated = pysfm.remove_isolated_points(reconstruction.map)
+        logger.info("Removed isolated: {}".format(isolated))
+
     paint_reconstruction(data, tracks_manager, reconstruction)
     return reconstruction, report
 

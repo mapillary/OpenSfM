@@ -50,11 +50,11 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
     default_queue_size = 10
     max_queue_size = 200
 
-    mem_ceiling = data.config.get("mem_ceiling", log.memory_available())
+    mem_ceiling = data.config.get("mem_ceiling") or log.memory_available()
 
     processes = data.config["processes"]
     if mem_ceiling:
-        ratio_use = data.config.get("mem_ratio", 0.9)
+        ratio_use = data.config.get("mem_ratio") or 0.9
         mem_available = mem_ceiling * ratio_use
         logger.info(
             f"Planning to use {mem_available} MB of RAM (out of {mem_ceiling} MB RAM available) for both processing queue and parallel processing. Memory ratio is {ratio_use}."

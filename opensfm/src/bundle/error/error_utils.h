@@ -5,6 +5,7 @@
 
 #include <initializer_list>
 
+#include "autodiff_ceres_compat.h"
 #include "ceres/ceres.h"
 #include "ceres/rotation.h"
 

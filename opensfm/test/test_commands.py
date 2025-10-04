@@ -2,7 +2,7 @@
 import argparse
 from os.path import join
 from types import ModuleType
-from typing import List
+from typing import Any, List
 
 from opensfm import commands, dataset
 from opensfm.test import data_generation, utils
@@ -15,8 +15,7 @@ def run_command(command: ModuleType, args: List[str]) -> None:
     command.run(dataset.DataSet(parsed_args.dataset), parsed_args)
 
 
-# pyre-fixme[2]: switch from tmpdir to tmp_path
-def test_run_all(tmpdir) -> None:
+def test_run_all(tmpdir: Any) -> None:
     data = data_generation.create_berlin_test_folder(tmpdir)
     run_all_commands = [
         commands.extract_metadata,

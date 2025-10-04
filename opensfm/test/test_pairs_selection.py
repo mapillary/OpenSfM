@@ -27,8 +27,7 @@ def clear_cache() -> Iterator[None]:
 
 
 @pytest.fixture(scope="module", autouse=True)
-# pyre-fixme[2]: switch from tmpdir to tmp_path
-def lund_path(tmpdir_factory) -> str:
+def lund_path(tmpdir_factory: Any) -> str:
     """
     Precompute exif and features to avoid doing
     it for every test which is time consuming.

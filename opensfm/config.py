@@ -1,4 +1,7 @@
 # pyre-strict
+
+from __future__ import annotations
+
 import os
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, IO, Union
@@ -34,6 +37,10 @@ class OpenSfMConfig:
     feature_use_adaptive_suppression: bool = False
     # Bake segmentation info (class and instance) in the feature data. Thus it is done once for all at extraction time.
     features_bake_segmentation: bool = False
+    # Maximum amount of memory to use for feature extraction (in MB). See default in features_processing.py.
+    mem_ceiling: int | None = None
+    # Ratio of the memory ceiling to use for feature extraction. See default in features_processing.py.
+    mem_ratio: float | None = None
 
     ##################################
     # Params for SIFT
@@ -292,6 +299,9 @@ class OpenSfMConfig:
     local_bundle_min_common_points: int = 20
     # Max number of shots to optimize during local bundle adjustment
     local_bundle_max_shots: int = 30
+
+    # Remove uncertain and isolated points from the final point cloud
+    filter_final_point_cloud: bool = False
 
     # Save reconstructions at every iteration
     save_partial_reconstructions: bool = False
