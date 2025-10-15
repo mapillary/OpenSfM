@@ -1,8 +1,5 @@
 #include "sfm/tracks_helpers.h"
 
-#include <map/landmark.h>
-#include <map/shot.h>
-
 #include <unordered_set>
 #include <vector>
 
