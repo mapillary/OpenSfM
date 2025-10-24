@@ -19,6 +19,8 @@ if __name__ == "__main__":
     parser.add_argument('--start_time',
         help='time of the first frame of the video (in ISO8601 format, example {0})'.format(
             datetime.datetime.now().isoformat()))
+    parser.add_argument('--frame_time', action='append',
+        help='extract additional frame at specific time (in ISO8601 format). Can be used multiple times.')
     args = parser.parse_args()
 
     dx = float(args.dx)
@@ -28,5 +30,6 @@ if __name__ == "__main__":
     output_path = args.output
     start_time = args.start_time
     gpx_file = args.gpx
+    frame_times = args.frame_time or []
 
-    video.import_video_with_gpx(video_file, gpx_file, output_path, dx, dt, start_time)
+    video.import_video_with_gpx(video_file, gpx_file, output_path, dx, dt, start_time, frame_times=frame_times)

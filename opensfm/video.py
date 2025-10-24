@@ -41,6 +41,7 @@ def import_video_with_gpx(
     dt: Optional[float] = None,
     start_time: Optional[str] = None,
     visual: bool = False,
+    frame_times: Optional[List[str]] = None,
 ) -> List[str]:
     points = geotag_from_gpx.get_lat_lon_time(gpx_file)
 
@@ -103,6 +104,62 @@ def import_video_with_gpx(
                     if cv2.waitKey(1) & 0xFF == 27:
                         break
                 image_files.append(filepath)
+
+    # Extract frames at specific times if provided
+    if frame_times:
+        for frame_time_str in frame_times:
+            try:
+                # Parse the ISO timestamp
+                frame_time = dateutil.parser.parse(frame_time_str)
+
+                # Calculate video offset
+                dt = (frame_time - video_start_time).total_seconds()
+                if dt >= 0:
+                    # Set video position
+                    CAP_PROP_POS_MSEC = (
+                        cv2.CAP_PROP_POS_MSEC
+                        if context.OPENCV3
+                        else cv2.cv.CV_CAP_PROP_POS_MSEC
+                    )
+                    cap.set(CAP_PROP_POS_MSEC, int(dt * 1000))
+                    ret, frame = cap.read()
+                    if ret:
+                        print("Grabbing frame for specific time {}".format(frame_time))
+                        filepath = os.path.join(
+                            output_path, frame_time.strftime("%Y_%m_%d_%H_%M_%S_%f")[:-3] + "_specific.jpg"
+                        )
+                        cv2.imwrite(filepath, frame)
+
+                        # Interpolate GPS coordinates for this timestamp
+                        try:
+                            geotag_from_gpx.add_exif_using_timestamp(
+                                filepath, points, timestamp=frame_time, orientation=orientation
+                            )
+                        except ValueError as e:
+                            print("Warning: Could not interpolate GPS for time {}: {}".format(frame_time, e))
+                            # Still save the frame without GPS data
+
+                        # Display the frame if visual mode is enabled
+                        if visual:
+                            max_display_size = 800
+                            resize_ratio = float(max_display_size) / max(
+                                frame.shape[0], frame.shape[1]
+                            )
+                            frame = cv2.resize(
+                                frame, dsize=(0, 0), fx=resize_ratio, fy=resize_ratio
+                            )
+                            cv2.imshow("frame", frame)
+                            if cv2.waitKey(1) & 0xFF == 27:
+                                break
+
+                        image_files.append(filepath)
+                    else:
+                        print("Warning: Could not extract frame at time {}".format(frame_time))
+                else:
+                    print("Warning: Frame time {} is before video start time".format(frame_time))
+            except Exception as e:
+                print("Error processing frame time {}: {}".format(frame_time_str, e))
+
     # When everything done, release the capture
     cap.release()
     if visual:
