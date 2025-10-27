@@ -9,8 +9,7 @@ namespace features {
 py::tuple akaze(foundation::pyarray_uint8 image, AKAZEOptions options) {
   py::gil_scoped_release release;
 
-  const cv::Mat img(image.shape(0), image.shape(1), CV_8U,
-                    (void *)image.data());
+  const cv::Mat img(image.shape(0), image.shape(1), CV_8U, (void*)image.data());
 
   cv::Mat img_32;
   img.convertTo(img_32, CV_32F, 1.0 / 255.0, 0);

@@ -10,7 +10,7 @@
 namespace bundle {
 
 struct DataNode {
-  explicit DataNode(const std::string &id) : id_(id) {}
+  explicit DataNode(const std::string& id) : id_(id) {}
   std::string GetID() const { return id_; }
 
  protected:
@@ -22,12 +22,12 @@ struct Data : public DataNode {
  public:
   using ValueType = T;
 
-  Data(const std::string &id, const T &value, const T &prior, const T &sigma)
+  Data(const std::string& id, const T& value, const T& prior, const T& sigma)
       : DataNode(id), value_(value), prior_(prior), sigma_(sigma) {}
-  Data(const std::string &id, const T &value) : DataNode(id), value_(value) {}
+  Data(const std::string& id, const T& value) : DataNode(id), value_(value) {}
   virtual ~Data() {}
 
-  VecXd &GetValueData() { return value_data_; }
+  VecXd& GetValueData() { return value_data_; }
   T GetValue() const {
     T v = value_;
     DataToValue(value_data_, v);
@@ -43,7 +43,7 @@ struct Data : public DataNode {
     ValueToData(prior_.Value(), prior_data);
     return prior_data;
   }
-  void SetPrior(const T &prior) { prior_.SetValue(prior); }
+  void SetPrior(const T& prior) { prior_.SetValue(prior); }
 
   VecXd GetSigmaData() const {
     if (!sigma_.HasValue()) {
@@ -53,9 +53,9 @@ struct Data : public DataNode {
     ValueToData(sigma_.Value(), sigma_data);
     return sigma_data;
   }
-  void SetSigma(const T &sigma) { sigma_.SetValue(sigma); }
+  void SetSigma(const T& sigma) { sigma_.SetValue(sigma); }
 
-  void SetCovariance(const MatXd &covariance) {
+  void SetCovariance(const MatXd& covariance) {
     covariance_.SetValue(covariance);
   }
   bool HasCovariance() const { return covariance_.HasValue(); }
@@ -66,15 +66,15 @@ struct Data : public DataNode {
     return covariance_.Value();
   }
 
-  const std::vector<int> &GetParametersToOptimize() const {
+  const std::vector<int>& GetParametersToOptimize() const {
     return parameters_to_optimize_;
   }
-  void SetParametersToOptimize(const std::vector<int> &parameters) {
+  void SetParametersToOptimize(const std::vector<int>& parameters) {
     parameters_to_optimize_ = parameters;
   }
 
-  virtual void ValueToData(const T &value, VecXd &data) const = 0;
-  virtual void DataToValue(const VecXd &data, T &value) const = 0;
+  virtual void ValueToData(const T& value, VecXd& data) const = 0;
+  virtual void DataToValue(const VecXd& data, T& value) const = 0;
 
  protected:
   VecXd value_data_;
@@ -94,13 +94,13 @@ struct Data : public DataNode {
 };
 
 struct DataContainer : public DataNode {
-  explicit DataContainer(const std::string &id) : DataNode(id) {}
+  explicit DataContainer(const std::string& id) : DataNode(id) {}
 
  protected:
-  void RegisterData(const std::string &id, DataNode *data) {
+  void RegisterData(const std::string& id, DataNode* data) {
     ba_nodes_[id] = data;
   }
-  DataNode *GetData(const std::string &id) {
+  DataNode* GetData(const std::string& id) {
     const auto find_data = ba_nodes_.find(id);
     if (find_data == ba_nodes_.end()) {
       throw std::runtime_error("Data " + id +
@@ -108,7 +108,7 @@ struct DataContainer : public DataNode {
     }
     return find_data->second;
   }
-  const DataNode *GetData(const std::string &id) const {
+  const DataNode* GetData(const std::string& id) const {
     const auto find_data = ba_nodes_.find(id);
     if (find_data == ba_nodes_.end()) {
       throw std::runtime_error("Data " + id +
@@ -118,6 +118,6 @@ struct DataContainer : public DataNode {
   }
 
  private:
-  std::unordered_map<std::string, DataNode *> ba_nodes_;
+  std::unordered_map<std::string, DataNode*> ba_nodes_;
 };
 }  // namespace bundle

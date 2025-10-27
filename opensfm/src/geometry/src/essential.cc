@@ -1,8 +1,8 @@
 #include "../essential.h"
 
 // Multiply two polynomials of degree 1.
-Eigen::Matrix<double, -1, 1> o1(const Eigen::Matrix<double, -1, 1> &a,
-                                const Eigen::Matrix<double, -1, 1> &b) {
+Eigen::Matrix<double, -1, 1> o1(const Eigen::Matrix<double, -1, 1>& a,
+                                const Eigen::Matrix<double, -1, 1>& b) {
   Eigen::Matrix<double, -1, 1> res = Eigen::Matrix<double, -1, 1>::Zero(20);
 
   res(coef_xx) = a(coef_x) * b(coef_x);
@@ -20,8 +20,8 @@ Eigen::Matrix<double, -1, 1> o1(const Eigen::Matrix<double, -1, 1> &a,
 }
 
 // Multiply a polynomial of degree 2, a, by a polynomial of degree 1, b.
-Eigen::Matrix<double, -1, 1> o2(const Eigen::Matrix<double, -1, 1> &a,
-                                const Eigen::Matrix<double, -1, 1> &b) {
+Eigen::Matrix<double, -1, 1> o2(const Eigen::Matrix<double, -1, 1>& a,
+                                const Eigen::Matrix<double, -1, 1>& b) {
   Eigen::Matrix<double, -1, 1> res(20);
 
   res(coef_xxx) = a(coef_xx) * b(coef_x);
@@ -54,7 +54,7 @@ Eigen::Matrix<double, -1, 1> o2(const Eigen::Matrix<double, -1, 1> &a,
 
 // Builds the polynomial constraint matrix M.
 Eigen::MatrixXd FivePointsPolynomialConstraints(
-    const Eigen::MatrixXd &E_basis) {
+    const Eigen::MatrixXd& E_basis) {
   // Build the polynomial form of E (equation (8) in Stewenius et al. [1])
   Eigen::Matrix<double, -1, 1> E[3][3];
   for (int i = 0; i < 3; ++i) {
@@ -111,8 +111,8 @@ Eigen::MatrixXd FivePointsPolynomialConstraints(
 }
 
 // Gauss--Jordan elimination for the constraint matrix.
-bool FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
-  Eigen::MatrixXd &M = *Mp;
+bool FivePointsGaussJordan(Eigen::MatrixXd* Mp) {
+  Eigen::MatrixXd& M = *Mp;
 
   // Gauss Elimination.
   for (int i = 0; i < 10; ++i) {
@@ -141,8 +141,8 @@ bool FivePointsGaussJordan(Eigen::MatrixXd *Mp) {
 
 namespace geometry {
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
-    const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2) {
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2) {
   if ((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())) {
     throw std::runtime_error("Features matrices have different sizes.");
   }
@@ -155,8 +155,8 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(
 }
 
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialNPoints(
-    const Eigen::Matrix<double, -1, 3> &x1,
-    const Eigen::Matrix<double, -1, 3> &x2) {
+    const Eigen::Matrix<double, -1, 3>& x1,
+    const Eigen::Matrix<double, -1, 3>& x2) {
   if ((x1.cols() != x2.cols()) || (x1.rows() != x2.rows())) {
     throw std::runtime_error("Features matrices have different sizes.");
   }

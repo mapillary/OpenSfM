@@ -19,15 +19,14 @@ PYBIND11_NAMESPACE_BEGIN_(detail)
 // See https://github.com/pybind/pybind11/issues/637
 
 using ListCasterBase =
-    pybind11::detail::list_caster<std::vector<map::Landmark *>,
-                                  map::Landmark *>;
+    pybind11::detail::list_caster<std::vector<map::Landmark*>, map::Landmark*>;
 template <>
-struct type_caster<std::vector<map::Landmark *>> : ListCasterBase {
-  static handle cast(const std::vector<map::Landmark *> &src,
+struct type_caster<std::vector<map::Landmark*>> : ListCasterBase {
+  static handle cast(const std::vector<map::Landmark*>& src,
                      return_value_policy, handle parent) {
     return ListCasterBase::cast(src, return_value_policy::reference, parent);
   }
-  static handle cast(const std::vector<map::Landmark *> *src,
+  static handle cast(const std::vector<map::Landmark*>* src,
                      return_value_policy pol, handle parent) {
     return cast(*src, pol, parent);
   }
@@ -56,16 +55,16 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename KeyType = decltype(&((*std::declval<Iterator>()).second)),
           typename... Extra>
 iterator make_ref_value_iterator(Iterator first, Sentinel last,
-                                 Extra &&...extra) {
+                                 Extra&&... extra) {
   using state = detail::sfm_iterator_state<Iterator, Sentinel,
                                            detail::RefValueIterator, Policy>;
 
   if (!detail::get_type_info(typeid(state), false)) {
     class_<state>(handle(), "ref_value_iterator", pybind11::module_local())
-        .def("__iter__", [](state &s) -> state & { return s; })
+        .def("__iter__", [](state& s) -> state& { return s; })
         .def(
             "__next__",
-            [](state &s) -> KeyType {
+            [](state& s) -> KeyType {
               if (!s.first_or_done) {
                 ++s.it;
               } else {
@@ -89,16 +88,16 @@ template <
     typename KeyType =
         pybind11::tuple,  // decltype(&((*std::declval<Iterator>()).second)),
     typename... Extra>
-iterator make_ref_iterator(Iterator first, Sentinel last, Extra &&...extra) {
+iterator make_ref_iterator(Iterator first, Sentinel last, Extra&&... extra) {
   using state = detail::sfm_iterator_state<Iterator, Sentinel,
                                            detail::ValueIterator, Policy>;
 
   if (!detail::get_type_info(typeid(state), false)) {
     class_<state>(handle(), "ref_iterator", pybind11::module_local())
-        .def("__iter__", [](state &s) -> state & { return s; })
+        .def("__iter__", [](state& s) -> state& { return s; })
         .def(
             "__next__",
-            [](state &s) -> KeyType {
+            [](state& s) -> KeyType {
               if (!s.first_or_done) {
                 ++s.it;
               } else {

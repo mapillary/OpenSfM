@@ -10,8 +10,8 @@ PYBIND11_MODULE(pybundle, m) {
   py::module::import("opensfm.pymap");
 
   py::class_<bundle::RelativeMotion>(m, "RelativeMotion")
-      .def(py::init<const std::string &, const std::string &,
-                    const Eigen::Vector3d &, const Eigen::Vector3d &, double,
+      .def(py::init<const std::string&, const std::string&,
+                    const Eigen::Vector3d&, const Eigen::Vector3d&, double,
                     double, bool>())
       .def_readwrite("rig_instance_i",
                      &bundle::RelativeMotion::rig_instance_id_i)
@@ -20,8 +20,8 @@ PYBIND11_MODULE(pybundle, m) {
       .def("set_scale_matrix", &bundle::RelativeMotion::SetScaleMatrix);
 
   py::class_<bundle::RelativeRotation>(m, "RelativeRotation")
-      .def(py::init<const std::string &, const std::string &,
-                    const Eigen::Vector3d &>())
+      .def(py::init<const std::string&, const std::string&,
+                    const Eigen::Vector3d&>())
       .def_readwrite("shot_i", &bundle::RelativeRotation::shot_id_i)
       .def_readwrite("shot_j", &bundle::RelativeRotation::shot_id_j)
       .def_property("r", &bundle::RelativeRotation::GetRotation,
@@ -36,9 +36,9 @@ PYBIND11_MODULE(pybundle, m) {
 
   py::class_<bundle::Point>(m, "Point")
       .def_property_readonly(
-          "p", [](const bundle::Point &p) { return p.GetValue(); })
+          "p", [](const bundle::Point& p) { return p.GetValue(); })
       .def_property_readonly("id",
-                             [](const bundle::Point &p) { return p.GetID(); })
+                             [](const bundle::Point& p) { return p.GetID(); })
       .def_readwrite("reprojection_errors",
                      &bundle::Point::reprojection_errors);
 
@@ -54,14 +54,14 @@ PYBIND11_MODULE(pybundle, m) {
       .def("get_camera", &bundle::BundleAdjuster::GetCamera)
       .def("add_rig_camera", &bundle::BundleAdjuster::AddRigCamera)
       .def("get_rig_camera_pose",
-           [](const bundle::BundleAdjuster &ba,
-              const std::string &rig_camera_id) {
+           [](const bundle::BundleAdjuster& ba,
+              const std::string& rig_camera_id) {
              return ba.GetRigCamera(rig_camera_id).GetValue();
            })
       .def("add_rig_instance", &bundle::BundleAdjuster::AddRigInstance)
       .def("get_rig_instance_pose",
-           [](const bundle::BundleAdjuster &ba,
-              const std::string &rig_instance_id) {
+           [](const bundle::BundleAdjuster& ba,
+              const std::string& rig_instance_id) {
              return ba.GetRigInstance(rig_instance_id).GetValue();
            })
       .def("add_rig_instance_position_prior",
@@ -162,7 +162,7 @@ PYBIND11_MODULE(pybundle, m) {
       .def_readwrite("id", &RAReconstruction::id);
 
   py::class_<RARelativeMotionConstraint>(m, "RARelativeMotionConstraint")
-      .def(py::init<const std::string &, const std::string &, double, double,
+      .def(py::init<const std::string&, const std::string&, double, double,
                     double, double, double, double>())
       .def_readwrite("reconstruction",
                      &RARelativeMotionConstraint::reconstruction_id)

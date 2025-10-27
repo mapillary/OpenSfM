@@ -2,7 +2,7 @@
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
                                          const double sin_theta,
-                                         const Eigen::Vector3d &v) {
+                                         const Eigen::Vector3d& v) {
   Eigen::Matrix3d R;
   const auto one_minus_cos_theta = 1.0 - cos_theta;
   R(0, 0) = cos_theta + v[0] * v[0] * one_minus_cos_theta;
@@ -19,8 +19,8 @@ Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
 
 namespace geometry {
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points) {
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points) {
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(
       bearings.rows());
   for (int i = 0; i < bearings.rows(); ++i) {
@@ -31,8 +31,8 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
 }
 
 Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points) {
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points) {
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(
       bearings.rows());
   for (int i = 0; i < bearings.rows(); ++i) {
@@ -43,8 +43,8 @@ Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(
 }
 
 Eigen::Vector3d AbsolutePoseNPointsKnownRotation(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points) {
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points) {
   std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> samples(
       bearings.rows());
   for (int i = 0; i < bearings.rows(); ++i) {

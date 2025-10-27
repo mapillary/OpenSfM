@@ -15,7 +15,7 @@ namespace py = pybind11;
 
 namespace features {
 
-float DistanceL1(const float *pa, const float *pb, int n) {
+float DistanceL1(const float* pa, const float* pb, int n) {
   float distance = 0;
   for (int i = 0; i < n; ++i) {
     distance += fabs(pa[i] - pb[i]);
@@ -23,7 +23,7 @@ float DistanceL1(const float *pa, const float *pb, int n) {
   return distance;
 }
 
-float DistanceL2(const float *pa, const float *pb, int n) {
+float DistanceL2(const float* pa, const float* pb, int n) {
   float distance = 0;
   for (int i = 0; i < n; ++i) {
     distance += (pa[i] - pb[i]) * (pa[i] - pb[i]);
@@ -31,12 +31,12 @@ float DistanceL2(const float *pa, const float *pb, int n) {
   return sqrt(distance);
 }
 
-void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
-                     const cv::Mat &w2, float lowes_ratio, int max_checks,
-                     cv::Mat *matches) {
+void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
+                     const cv::Mat& w2, float lowes_ratio, int max_checks,
+                     cv::Mat* matches) {
   // Index features on the second image.
   std::multimap<int, int> index2;
-  const int *pw2 = &w2.at<int>(0, 0);
+  const int* pw2 = &w2.at<int>(0, 0);
   for (unsigned int i = 0; i < w2.rows * w2.cols; ++i) {
     index2.insert(std::pair<int, int>(pw2[i], i));
   }
@@ -55,8 +55,8 @@ void MatchUsingWords(const cv::Mat &f1, const cv::Mat &w1, const cv::Mat &f2,
       auto range = index2.equal_range(word);
       for (auto it = range.first; it != range.second; ++it) {
         int match = it->second;
-        const float *pa = f1.ptr<float>(i);
-        const float *pb = f2.ptr<float>(match);
+        const float* pa = f1.ptr<float>(i);
+        const float* pb = f2.ptr<float>(match);
         float distance = DistanceL2(pa, pb, f1.cols);
         if (distance < best_distance[i]) {
           second_best_distance[i] = best_distance[i];
@@ -98,8 +98,8 @@ py::array_t<int> match_using_words(foundation::pyarray_f features1,
   return foundation::py_array_from_cvmat<int>(matches);
 }
 
-VecXf compute_vlad_descriptor(const MatXf &features,
-                              const MatXf &vlad_centers) {
+VecXf compute_vlad_descriptor(const MatXf& features,
+                              const MatXf& vlad_centers) {
   const auto vlad_center_size = vlad_centers.cols();
   const auto vlad_center_count = vlad_centers.rows();
 
@@ -111,7 +111,7 @@ VecXf compute_vlad_descriptor(const MatXf &features,
   vlad_descriptor.setZero();
 
   for (int i = 0; i < features.rows(); ++i) {
-    const auto &feature = features.row(i);
+    const auto& feature = features.row(i);
 
     float best_distance = std::numeric_limits<float>::max();
     int best_center = -1;
@@ -130,16 +130,16 @@ VecXf compute_vlad_descriptor(const MatXf &features,
 }
 
 std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
-    const std::map<std::string, VecXf> &vlad_descriptors,
-    const std::string &image, std::set<std::string> &other_images) {
+    const std::map<std::string, VecXf>& vlad_descriptors,
+    const std::string& image, std::set<std::string>& other_images) {
   if (vlad_descriptors.find(image) == vlad_descriptors.end()) {
     return std::make_pair(std::vector<double>(), std::vector<std::string>());
   }
 
   std::vector<double> distances;
   std::vector<std::string> others;
-  const auto &reference = vlad_descriptors.at(image);
-  for (const auto &candidate : other_images) {
+  const auto& reference = vlad_descriptors.at(image);
+  for (const auto& candidate : other_images) {
     if (candidate == image) {
       continue;
     }

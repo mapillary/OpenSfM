@@ -9,12 +9,12 @@ namespace bundle {
 struct Point : public Data<Vec3d> {
   enum Parameter { PX, PY, PZ, NUM_PARAMS };
 
-  Point(const std::string &id, const Vec3d &value) : Data<Vec3d>(id, value) {
+  Point(const std::string& id, const Vec3d& value) : Data<Vec3d>(id, value) {
     Init();
   }
 
-  Point(const std::string &id, const Vec3d &value, const Vec3d &prior,
-        const Vec3d &sigma)
+  Point(const std::string& id, const Vec3d& value, const Vec3d& prior,
+        const Vec3d& sigma)
       : Data<Vec3d>(id, value, prior, sigma) {
     Init();
   }
@@ -23,11 +23,11 @@ struct Point : public Data<Vec3d> {
   bool has_altitude_prior{true};
 
  private:
-  void ValueToData(const Vec3d &value, VecXd &data) const final {
+  void ValueToData(const Vec3d& value, VecXd& data) const final {
     data = value;
   }
 
-  void DataToValue(const VecXd &data, Vec3d &value) const final {
+  void DataToValue(const VecXd& data, Vec3d& value) const final {
     value = data;
   }
 };
