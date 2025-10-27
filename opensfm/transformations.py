@@ -1927,7 +1927,6 @@ def _import_module(
 
 if __name__ == "__main__":
     import doctest
-    import random  # used in doctests
 
     numpy.set_printoptions(suppress=True, precision=5)
     doctest.testmod()
