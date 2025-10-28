@@ -15,5 +15,5 @@ scipy>=1.10.0
 Sphinx==4.2.0
 xmltodict==0.10.2
 wheel
-opencv-python==4.5.1.48 ; sys_platform == "win32"
+opencv-python==4.8.1.78 ; sys_platform == "win32"
 opencv-python ; sys_platform == "linux"
