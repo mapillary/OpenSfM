@@ -62,3 +62,4 @@ endif()
 set_target_properties(pymap PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pymap LIBRARY DESTINATION .)

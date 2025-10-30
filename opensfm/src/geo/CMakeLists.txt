@@ -33,3 +33,4 @@ target_link_libraries(pygeo
 set_target_properties(pygeo PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pygeo LIBRARY DESTINATION .)

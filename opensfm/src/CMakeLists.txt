@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.15)
 
 project(opensfm C CXX)
 
@@ -75,14 +75,23 @@ else()
     set(CERES_LIBRARIES ceres)
 endif()
 
-find_package(OpenCV)
+# Only link against the OpenCV components we actually need
+# This avoids pulling in unnecessary dependencies like viz (which requires VTK)
 # OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0
-# (even if OPTIONAL_COMPONENTS) so we remove it as we don't need it
+# (even if OPTIONAL_COMPONENTS) so we handle version detection carefully
 # Cause is imread/imwrite moved to imgcodecs on > 3.0
-if(${OpenCV_VERSION} LESS 3.0)
-    find_package(OpenCV REQUIRED core imgproc calib3d)
+find_package(OpenCV QUIET)
+if(OpenCV_FOUND AND ${OpenCV_VERSION} VERSION_LESS "3.0")
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d)
 else()
-    find_package(OpenCV REQUIRED core imgproc calib3d OPTIONAL_COMPONENTS imgcodecs)
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d OPTIONAL_COMPONENTS imgcodecs)
+endif()
+
+# Override OpenCV_LIBS to only include the components we explicitly requested
+# This prevents linking against all OpenCV modules (especially viz which requires VTK)
+set(OpenCV_LIBS opencv_core opencv_imgproc opencv_calib3d)
+if(TARGET opencv_imgcodecs)
+    list(APPEND OpenCV_LIBS opencv_imgcodecs)
 endif()
 
 ####### Third party libraries #######
@@ -136,3 +145,7 @@ add_subdirectory(geometry)
 add_subdirectory(robust)
 add_subdirectory(sfm)
 add_subdirectory(map)
+
+####### Data files are handled by Python packaging (pyproject.toml) #######
+# Not by CMake - data files in opensfm/data/ are automatically included
+# as package data by scikit-build-core when wheel.packages = ["opensfm"]

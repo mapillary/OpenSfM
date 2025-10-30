@@ -33,3 +33,4 @@ target_link_libraries(pyrobust
 set_target_properties(pyrobust PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pyrobust LIBRARY DESTINATION .)

@@ -2,6 +2,7 @@
 
 #include <foundation/types.h>
 
+#include <cassert>
 #include <Eigen/LU>
 #include <Eigen/QR>
 #include <Eigen/SVD>

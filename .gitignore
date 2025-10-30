@@ -6,6 +6,7 @@ xcode
 launch.json
 .vscode
 .idea
+uv.lock
 
 # Ignore generated files
 /build
