@@ -1,0 +1,103 @@
+[build-system]
+requires = ["scikit-build-core>=0.8.0", "pybind11>=2.10.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "opensfm"
+version = "0.5.2"
+description = "A Structure from Motion library"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "BSD"}
+authors = [
+    {name = "Mapillary"},
+]
+
+dependencies = [
+    "cloudpickle==0.4.0",
+    "exifread==2.1.2",
+    "flask==2.3.2",
+    "fpdf2==2.4.6",
+    "joblib==0.14.1",
+    "matplotlib",
+    "networkx==2.5",
+    "numpy>=1.19",
+    "Pillow>=8.1.1",
+    "pyproj>=1.9.5.1",
+    "python-dateutil>=2.7",
+    "pyyaml>=5.4",
+    "scipy>=1.10.0",
+    "xmltodict==0.10.2",
+    "opencv-python==4.5.1.48; sys_platform == 'win32'",
+    "opencv-python; sys_platform == 'linux' or sys_platform == 'darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==3.0.7",
+    "wheel",
+]
+docs = [
+    "Sphinx==4.2.0",
+]
+test = [
+    "pytest==3.0.7",
+]
+
+# Note: The original bin/opensfm and bin/opensfm_run_all are bash scripts
+# For Phase 1, we'll install them as scripts using scikit-build's script handling
+# TODO Phase 2: Create proper Python entry points by moving bin/opensfm_main.py
+# into the opensfm package (e.g., opensfm/__main__.py or opensfm/cli.py)
+# [project.scripts]
+# opensfm = "opensfm.cli:main"
+# opensfm_run_all = "opensfm.cli:run_all"
+
+[project.urls]
+Homepage = "https://github.com/mapillary/OpenSfM"
+Documentation = "https://docs.opensfm.org/"
+
+[tool.scikit-build]
+# CMake source directory containing CMakeLists.txt
+cmake.source-dir = "opensfm/src"
+cmake.build-type = "Release"
+
+# Minimum CMake version
+cmake.minimum-version = "3.0"
+
+# Specify where to install the Python package
+wheel.install-dir = "opensfm"
+
+# Package discovery - automatically find Python packages
+wheel.packages = ["opensfm"]
+
+# Note: Script installation
+# The bin/opensfm and bin/opensfm_run_all bash scripts need to be installed
+# This will be handled via CMake install() commands in Phase 3
+# or by creating Python entry points in [project.scripts] (Phase 2)
+
+# Include files in the sdist (source distribution)
+sdist.include = [
+    "opensfm/data/**",          # sensor_data.json, camera_calibration.yaml, bow/*.npz
+    "opensfm/src/**",           # CMake source files
+    "bin/**",                   # All utility scripts
+    "requirements.txt",         # Keep for reference
+    "setup.py",                 # Keep for backwards compatibility (optional)
+]
+
+# Exclude unnecessary files from sdist
+sdist.exclude = [
+    ".git/**",
+    ".github/**",
+    "cmake_build/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
+]
+
+# CMake configuration options
+[tool.scikit-build.cmake.define]
+# Don't build C++ tests in the wheel (only for development)
+OPENSFM_BUILD_TESTS = "OFF"
+
+# Ensure we're using the correct Python executable
+# This will be automatically set by scikit-build-core
+# PYTHON_EXECUTABLE will be set automatically
