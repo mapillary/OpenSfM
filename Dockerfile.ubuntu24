@@ -25,4 +25,6 @@ COPY . /source/OpenSfM
 WORKDIR /source/OpenSfM
 
 # Build and install OpenSfM using pip with pyproject.toml
+# C++ tests are built automatically (OPENSFM_BUILD_TESTS=ON in pyproject.toml)
+# and will be available in cmake_build/ directory for running with ctest
 RUN pip install --no-cache-dir -e .[test]

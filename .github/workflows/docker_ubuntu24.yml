@@ -17,7 +17,7 @@ jobs:
         run: docker build . --file Dockerfile.ubuntu24 --tag mapillary/opensfm.ubuntu24:$GITHUB_SHA
 
       - name: Run C++ tests
-        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA /bin/sh -c "cd cmake_build && ctest"
+        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA /bin/bash -c "cd cmake_build && ctest --output-on-failure"
 
       - name: Run Python tests
-        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA python3 -m pytest
+        run: docker run mapillary/opensfm.ubuntu24:$GITHUB_SHA python -m pytest -v

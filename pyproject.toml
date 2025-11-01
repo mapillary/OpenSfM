@@ -60,6 +60,9 @@ Documentation = "https://docs.opensfm.org/"
 cmake.source-dir = "opensfm/src"
 cmake.build-type = "Release"
 
+# Use a fixed build directory (useful for running C++ tests)
+build-dir = "cmake_build"
+
 # Minimum CMake version
 cmake.version = ">=3.15"
 
@@ -97,8 +100,8 @@ sdist.exclude = [
 
 # CMake configuration options
 [tool.scikit-build.cmake.define]
-# Don't build C++ tests in the wheel (only for development)
-OPENSFM_BUILD_TESTS = "OFF"
+# Build C++ tests (enabled for Docker/CI environments)
+OPENSFM_BUILD_TESTS = "ON"
 
 # Ensure we're using the correct Python executable
 # This will be automatically set by scikit-build-core
