@@ -86,8 +86,6 @@ sdist.include = [
     "opensfm/data/**",          # sensor_data.json, camera_calibration.yaml, bow/*.npz
     "opensfm/src/**",           # CMake source files
     "bin/**",                   # All utility scripts
-    "requirements.txt",         # Keep for reference
-    "setup.py",                 # Keep for backwards compatibility (optional)
 ]
 
 # Exclude unnecessary files from sdist
