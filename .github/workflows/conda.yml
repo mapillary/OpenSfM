@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -26,7 +26,7 @@ jobs:
 
       - name: Build OpenSfM
         shell: bash -l {0}
-        run: python setup.py build
+        run: pip install -e .
 
       - name: Run C++ tests
         shell: bash -l {0}
