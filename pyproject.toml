@@ -21,7 +21,7 @@ dependencies = [
     "joblib>=1.0.0",
     "matplotlib",
     "networkx>=2.5",
-    "numpy>=1.19,<2.0",
+    "numpy>=1.19",
     "Pillow>=8.1.1",
     "pyproj>=1.9.5.1",
     "python-dateutil>=2.7",
