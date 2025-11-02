@@ -159,6 +159,7 @@ IF (GLOG_FOUND)
   SET(GLOG_LIBRARIES ${GLOG_LIBRARY})
 
   # Create imported target for modern CMake usage
+  # This provides compatibility with systems that don't have glog CMake config
   IF (NOT TARGET glog::glog)
     ADD_LIBRARY(glog::glog UNKNOWN IMPORTED)
     SET_TARGET_PROPERTIES(glog::glog PROPERTIES

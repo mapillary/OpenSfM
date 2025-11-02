@@ -63,7 +63,16 @@ find_package(SuiteSparse)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres)
 find_package(Gflags REQUIRED)
-find_package(Glog REQUIRED)
+
+# Try to find glog using its native CMake config first (modern systems)
+# Fall back to custom FindGlog.cmake for older systems (e.g., Ubuntu 20.04)
+find_package(glog QUIET CONFIG)
+if(glog_FOUND)
+  message(STATUS "Using glog native CMake config (modern glog)")
+else()
+  message(STATUS "glog CMake config not found, using FindGlog.cmake (Ubuntu 20.04 compatibility)")
+  find_package(Glog REQUIRED)
+endif()
 
 # Ceres2 exposes Ceres::ceres target.
 # Ceres1 exposes just ceres.
@@ -126,7 +135,7 @@ if (OPENSFM_BUILD_TESTS)
               third_party/gtest/gmock_gtest_all.cc
               third_party/gtest/gmock_main.cc)
   target_include_directories(gtest PRIVATE ${GFLAGS_INCLUDE_DIR})
-  target_compile_definitions(gtest PRIVATE GLOG_USE_GLOG_EXPORT)
+  target_link_libraries(gtest PRIVATE glog::glog)
 
   set(TEST_MAIN test_main)
   add_library(${TEST_MAIN} testing_main.cc)

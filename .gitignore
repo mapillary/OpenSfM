@@ -6,6 +6,7 @@ xcode
 launch.json
 .vscode
 .idea
+.claude
 uv.lock
 
 # Ignore generated files
