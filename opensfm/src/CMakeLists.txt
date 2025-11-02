@@ -126,12 +126,13 @@ if (OPENSFM_BUILD_TESTS)
               third_party/gtest/gmock_gtest_all.cc
               third_party/gtest/gmock_main.cc)
   target_include_directories(gtest PRIVATE ${GFLAGS_INCLUDE_DIR})
+  target_compile_definitions(gtest PRIVATE GLOG_USE_GLOG_EXPORT)
 
   set(TEST_MAIN test_main)
   add_library(${TEST_MAIN} testing_main.cc)
   target_link_libraries(${TEST_MAIN}
                         ${GFLAGS_LIBRARY}
-                        ${GLOG_LIBRARY}
+                        glog::glog
                         gtest)
 endif()
 
@@ -145,7 +146,3 @@ add_subdirectory(geometry)
 add_subdirectory(robust)
 add_subdirectory(sfm)
 add_subdirectory(map)
-
-####### Data files are handled by Python packaging (pyproject.toml) #######
-# Not by CMake - data files in opensfm/data/ are automatically included
-# as package data by scikit-build-core when wheel.packages = ["opensfm"]
