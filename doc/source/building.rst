@@ -4,6 +4,24 @@
 Building
 ========
 
+Quick start
+-----------
+To build OpenSfM, follow these steps:
+
+1.  Download the OpenSfM code from Github
+
+    git clone --recursive https://github.com/mapillary/OpenSfM
+
+2.  Install the dependencies (we recommend using conda)
+
+    conda env create --file conda.yml --yes
+    conda activate opensfm
+
+3.  Build OpenSfM
+
+    pip install -e .
+
+
 Download
 --------
 
@@ -20,7 +38,7 @@ If you already have the code or you downloaded a release_, make sure to update t
 Install dependencies
 --------------------
 
-OpenSfM depends on multiple libraries (OpenCV_, `Ceres Solver`_, ...) and python packages that need to be installed before building it.
+OpenSfM depends on multiple libraries (OpenCV_, `Ceres Solver`_, ...) that need to be installed before building it.
 
 The way to install these dependencies depends on your system. We recommend using a virtual environment manager such as anaconda or miniconda, not to mess up with your current setup. Anaconda will take care of installing both systems and python dependencies.
 
@@ -42,7 +60,7 @@ and you are ready to build OpenSfM.
 Installing dependencies on Ubuntu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you are not using conda, see this `Dockerfile <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile>`_ for the commands to install all dependencies on Ubuntu 20.04.
+If you are not using conda, see this `Dockerfile.ubuntu24 <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile.ubuntu24>`_ for the commands to install all dependencies on Ubuntu 24.04.
 
 
 Installing dependencies on MacOSX
@@ -73,28 +91,22 @@ Then install OpenCV, Ceres, SuiteSparse and LAPACK (this will take a while)::
 
     vcpkg install opencv4 ceres ceres[suitesparse] lapack suitesparse --triplet x64-windows
 
-Finally install the PIP requirements::
-
-    pip install -r requirements.txt
-
 
 Building the library
 --------------------
 
 Once the dependencies have been installed, you can build OpenSfM by running the following command from the main folder::
 
-    python setup.py build
+    pip install -e .
+
+This will first install python dependencies on your current python environment, and then build OpenSfM and install it in editable mode.
 
 Building Docker images
 ----------------------
 
-Once dependencies have been installed, you can build OpenSfM Docker images by running the following command from the main folder::
+You can also use OpenSfM inside docker. We provide example Dockerfiles for Ubuntu 20.04 and 24.04.  Build it by running the following command from the main folder::
 
-    docker build -t opensfm -f Dockerfile .
-
-To build an image using the Ceres 2 solver, use::
-
-  docker build -t opensfm:ceres2 -f Dockerfile.ceres2 .
+    docker build -t opensfm.ubuntu24 -f Dockerfile.ubuntu24 .
 
 Building the documentation
 --------------------------
