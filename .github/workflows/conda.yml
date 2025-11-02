@@ -26,7 +26,7 @@ jobs:
 
       - name: Build OpenSfM
         shell: bash -l {0}
-        run: pip install -e .
+        run: pip install -e .[test]
 
       - name: Run C++ tests
         shell: bash -l {0}
