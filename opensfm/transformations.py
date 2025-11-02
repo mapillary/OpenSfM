@@ -513,11 +513,11 @@ def projection_matrix(
 
     """
     M = numpy.identity(4)
-    point = numpy.array(point[:3], dtype=numpy.float64, copy=False)
+    point = numpy.array(point[:3], dtype=numpy.float64, copy=None)
     normal = unit_vector(normal[:3])
     if perspective is not None:
         # perspective projection
-        perspective = numpy.array(perspective[:3], dtype=numpy.float64, copy=False)
+        perspective = numpy.array(perspective[:3], dtype=numpy.float64, copy=None)
         M[0, 0] = M[1, 1] = M[2, 2] = numpy.dot(perspective - point, normal)
         M[:3, :3] -= numpy.outer(perspective, normal)
         if pseudo:
@@ -530,7 +530,7 @@ def projection_matrix(
         M[3, 3] = numpy.dot(perspective, normal)
     elif direction is not None:
         # parallel projection
-        direction = numpy.array(direction[:3], dtype=numpy.float64, copy=False)
+        direction = numpy.array(direction[:3], dtype=numpy.float64, copy=None)
         scale = numpy.dot(direction, normal)
         M[:3, :3] -= numpy.outer(direction, normal) / scale
         M[:3, 3] = direction * (numpy.dot(point, normal) / scale)

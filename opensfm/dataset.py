@@ -348,8 +348,10 @@ class DataSet(DataSetBase):
         # than the numpy ones we allow.
         class MatchingUnpickler(pickle.Unpickler):
             modules_map = {
-                "numpy.core.multiarray._reconstruct": np.core.multiarray,
-                "numpy.core.multiarray.scalar": np.core.multiarray,
+                "numpy.core.multiarray._reconstruct": np._core.multiarray,
+                "numpy.core.multiarray.scalar": np._core.multiarray,
+                "numpy._core.multiarray._reconstruct": np._core.multiarray,
+                "numpy._core.multiarray.scalar": np._core.multiarray,
                 "numpy.ndarray": np,
                 "numpy.dtype": np,
             }

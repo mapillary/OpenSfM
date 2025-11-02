@@ -530,7 +530,7 @@ class EXIF:
                     )
                 )
 
-            if np.all(ypr) is not None:
+            if not np.any(ypr == None):
                 ypr = np.radians(ypr)
 
                 # Convert YPR --> OPK
