@@ -52,12 +52,12 @@ Reconstruction Details
 
 |rec|
 
- - Average reprojection error (normalized/pixels): normalized (by features uncertainty) average norm of reprojection errors and same, but pixel-wise,
- un-normalized, error. Errors bigger than 4 pixels are pruned out.
- - Average Track Length : average number of images in which a reconstructed points has been detected.
- - Average Track Length (> 2) : same as above but ignoring 2-images points.
+- Average reprojection error (normalized/pixels): normalized (by features uncertainty) average norm of reprojection errors and same, but pixel-wise,
+  un-normalized, error. Errors bigger than 4 pixels are pruned out.
+- Average Track Length : average number of images in which a reconstructed points has been detected.
+- Average Track Length (> 2) : same as above but ignoring 2-images points.
 
- |residual_histogram|
+|residual_histogram|
 
  The tables are the histogram of the certainty-normalized and un-normalized reprojection errors norm. Errors bigger than 4 pixels are pruned out.
 

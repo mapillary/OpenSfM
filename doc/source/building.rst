@@ -6,18 +6,19 @@ Building
 
 Quick start
 -----------
+
 To build OpenSfM, follow these steps:
 
-1.  Download the OpenSfM code from Github
+1. Download the OpenSfM code from Github::
 
     git clone --recursive https://github.com/mapillary/OpenSfM
 
-2.  Install the dependencies (we recommend using conda)
+2. Install the dependencies (we recommend using conda)::
 
     conda env create --file conda.yml --yes
     conda activate opensfm
 
-3.  Build OpenSfM
+3. Build OpenSfM::
 
     pip install -e .
 
@@ -45,7 +46,7 @@ The way to install these dependencies depends on your system. We recommend using
 Installing dependencies using Conda (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Creating a conda environment will take care of installing all dependencies. Make sure you have conda or miniconda installed.  From the project root directory, run::
+Creating a conda environment will take care of installing all dependencies. Make sure you have conda or miniconda installed. From the project root directory, run::
 
     conda env create --file conda.yml --yes
 
@@ -58,19 +59,19 @@ and you are ready to build OpenSfM.
 (Anaconda dependencies installation has been tested under MacOS (Sequoia), Ubuntu 24.04 and Fedora 42.)
 
 Installing dependencies on Ubuntu
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you are not using conda, see this `Dockerfile.ubuntu24 <https://github.com/mapillary/OpenSfM/blob/main/Dockerfile.ubuntu24>`_ for the commands to install all dependencies on Ubuntu 24.04.
 
 
 Installing dependencies on MacOSX
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While it is possible to install all dependencies using brew, we recommend using the conda instructions above instead.
 
 
 Installing dependencies on Windows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Install git_.
 
@@ -101,22 +102,36 @@ Once the dependencies have been installed, you can build OpenSfM by running the 
 
 This will first install python dependencies on your current python environment, and then build OpenSfM and install it in editable mode.
 
+
 Building Docker images
 ----------------------
 
-You can also use OpenSfM inside docker. We provide example Dockerfiles for Ubuntu 20.04 and 24.04.  Build it by running the following command from the main folder::
+You can also use OpenSfM inside docker. We provide example Dockerfiles for Ubuntu 20.04 and 24.04. Build it by running the following command from the main folder::
 
     docker build -t opensfm.ubuntu24 -f Dockerfile.ubuntu24 .
 
+
 Building the documentation
 --------------------------
-To build the documentation and browse it locally use::
 
-    pip install sphinx_rtd_theme
-    python setup.py build_doc
-    python -m http.server --directory build/doc/html/
+To build the documentation and browse it locally, first install Sphinx::
+
+    pip install -e .[docs]
+
+Then build the documentation using make::
+
+    cd doc
+    make html
+
+To browse the documentation locally::
+
+    make serve
 
 and browse `http://localhost:8000/ <http://localhost:8000/>`_
+
+To clean the build artifacts::
+
+    make clean
 
 
 .. _Github: https://github.com/mapillary/OpenSfM

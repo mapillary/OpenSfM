@@ -22,7 +22,7 @@ First, build the OpenSfM Docker image, as described under "building".
 
 Then, start a Docker container. The following command mounts the `data/` folder to `/data/` inside the Docker container::
 
-    docker run -it -p 8080:8080 -v ${PWD}/data/:/data/ opensfm:ceres2
+    docker run -it -p 8080:8080 -v ${PWD}/data/:/data/ opensfm.ubuntu24 /bin/bash
 
 Once inside the running Docker container, start the reconstruction process with the usual command::
 
@@ -316,4 +316,4 @@ Checkout `the default configuration <_modules/opensfm/config.html>`_ to see the 
 
 
 .. include:: gcp.rst
-.. _fisheye https://docs.opencv.org/master/db/d58/group__calib3d__fisheye.html
+.. _fisheye: https://docs.opencv.org/master/db/d58/group__calib3d__fisheye.html
