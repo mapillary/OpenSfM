@@ -347,11 +347,13 @@ class DataSet(DataSetBase):
         # as 'pickle.load' is RCE-prone. Will raise on any class other
         # than the numpy ones we allow.
         class MatchingUnpickler(pickle.Unpickler):
+            # Handle both numpy <2.0 (np.core) and numpy >=2.0 (np._core)
+            _multiarray = np._core.multiarray if hasattr(np, '_core') else np.core.multiarray
             modules_map = {
-                "numpy.core.multiarray._reconstruct": np._core.multiarray,
-                "numpy.core.multiarray.scalar": np._core.multiarray,
-                "numpy._core.multiarray._reconstruct": np._core.multiarray,
-                "numpy._core.multiarray.scalar": np._core.multiarray,
+                "numpy.core.multiarray._reconstruct": _multiarray,
+                "numpy.core.multiarray.scalar": _multiarray,
+                "numpy._core.multiarray._reconstruct": _multiarray,
+                "numpy._core.multiarray.scalar": _multiarray,
                 "numpy.ndarray": np,
                 "numpy.dtype": np,
             }
