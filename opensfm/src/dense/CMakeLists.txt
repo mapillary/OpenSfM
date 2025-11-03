@@ -27,3 +27,4 @@ target_link_libraries(pydense PRIVATE dense foundation)
 set_target_properties(pydense PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pydense LIBRARY DESTINATION .)

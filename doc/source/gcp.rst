@@ -12,8 +12,6 @@ In the bundle adjustment step, GCP observations are used as a constraint to refi
 
 GPSs can be specified in two file formats.  If existing, both are loaded.
 
-.. _json-gcps:
-
 JSON file format
 ~~~~~~~~~~~~~~~~
 GCPs can be specified by adding a text file named ``ground_control_points.json`` at the root folder of the dataset. The format of the file should be as follows::

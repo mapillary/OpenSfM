@@ -157,6 +157,16 @@ ENDIF (GLOG_LIBRARY AND
 IF (GLOG_FOUND)
   SET(GLOG_INCLUDE_DIRS ${GLOG_INCLUDE_DIR})
   SET(GLOG_LIBRARIES ${GLOG_LIBRARY})
+
+  # Create imported target for modern CMake usage
+  # This provides compatibility with systems that don't have glog CMake config
+  IF (NOT TARGET glog::glog)
+    ADD_LIBRARY(glog::glog UNKNOWN IMPORTED)
+    SET_TARGET_PROPERTIES(glog::glog PROPERTIES
+      IMPORTED_LOCATION "${GLOG_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${GLOG_INCLUDE_DIR}"
+      INTERFACE_COMPILE_DEFINITIONS "GLOG_USE_GLOG_EXPORT")
+  ENDIF()
 ENDIF (GLOG_FOUND)
 
 # Handle REQUIRED / QUIET optional arguments.

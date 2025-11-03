@@ -6,6 +6,7 @@
 #include <Eigen/QR>
 #include <Eigen/SVD>
 #include <Eigen/StdVector>
+#include <cassert>
 
 namespace geometry {
 

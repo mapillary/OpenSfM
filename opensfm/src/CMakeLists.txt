@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.15)
 
 project(opensfm C CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      "Choose the type of build, options are: None Debug Release "
+      "RelWithDebInfo MinSizeRel."
       FORCE)
 endif()
 set(CMAKE_MODULE_PATH ${opensfm_SOURCE_DIR}/cmake)
@@ -63,7 +64,19 @@ find_package(SuiteSparse)
 find_package(Eigen3 REQUIRED)
 find_package(Ceres)
 find_package(Gflags REQUIRED)
-find_package(Glog REQUIRED)
+
+# Try to find glog using its native CMake config first (modern systems)
+# Fall back to custom FindGlog.cmake for older systems (e.g., Ubuntu 20.04)
+find_package(glog QUIET CONFIG)
+if(glog_FOUND)
+  message(STATUS "Using glog native CMake config (modern glog)")
+else()
+  message(STATUS
+    "glog CMake config not found, using FindGlog.cmake "
+    "(Ubuntu 20.04 compatibility)"
+  )
+  find_package(Glog REQUIRED)
+endif()
 
 # Ceres2 exposes Ceres::ceres target.
 # Ceres1 exposes just ceres.
@@ -75,14 +88,25 @@ else()
     set(CERES_LIBRARIES ceres)
 endif()
 
-find_package(OpenCV)
+# Only link against the OpenCV components we actually need
+# This avoids pulling in unnecessary dependencies like viz (which requires VTK)
 # OpenCV's OpenCVConfig will enforce imgcodecs for < 3.0
-# (even if OPTIONAL_COMPONENTS) so we remove it as we don't need it
+# (even if OPTIONAL_COMPONENTS) so we handle version detection carefully
 # Cause is imread/imwrite moved to imgcodecs on > 3.0
-if(${OpenCV_VERSION} LESS 3.0)
-    find_package(OpenCV REQUIRED core imgproc calib3d)
+find_package(OpenCV QUIET)
+if(OpenCV_FOUND AND ${OpenCV_VERSION} VERSION_LESS "3.0")
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d)
 else()
-    find_package(OpenCV REQUIRED core imgproc calib3d OPTIONAL_COMPONENTS imgcodecs)
+    find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d
+                 OPTIONAL_COMPONENTS imgcodecs)
+endif()
+
+# Override OpenCV_LIBS to only include the components we explicitly requested
+# This prevents linking against all OpenCV modules
+# (especially viz which requires VTK)
+set(OpenCV_LIBS opencv_core opencv_imgproc opencv_calib3d)
+if(TARGET opencv_imgcodecs)
+    list(APPEND OpenCV_LIBS opencv_imgcodecs)
 endif()
 
 ####### Third party libraries #######
@@ -111,18 +135,21 @@ if (OPENSFM_BUILD_TESTS)
 
   # Gtest if old now and trigger these
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-field-initializers")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy")
+  set(CMAKE_CXX_FLAGS
+      "${CMAKE_CXX_FLAGS} -Wno-deprecated-copy-with-user-provided-copy"
+  )
 
   add_library(gtest
               third_party/gtest/gmock_gtest_all.cc
               third_party/gtest/gmock_main.cc)
   target_include_directories(gtest PRIVATE ${GFLAGS_INCLUDE_DIR})
+  target_link_libraries(gtest PRIVATE glog::glog)
 
   set(TEST_MAIN test_main)
   add_library(${TEST_MAIN} testing_main.cc)
   target_link_libraries(${TEST_MAIN}
                         ${GFLAGS_LIBRARY}
-                        ${GLOG_LIBRARY}
+                        glog::glog
                         gtest)
 endif()
 

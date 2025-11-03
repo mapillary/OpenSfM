@@ -27,3 +27,4 @@ target_link_libraries(pyfeatures
 set_target_properties(pyfeatures PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pyfeatures LIBRARY DESTINATION .)

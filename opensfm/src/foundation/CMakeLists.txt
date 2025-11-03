@@ -17,7 +17,7 @@ target_link_libraries(foundation
     Eigen3::Eigen
   PRIVATE
     ${GFLAGS_LIBRARY}
-    ${GLOG_LIBRARY}
+    glog::glog
 )
 target_include_directories(foundation
   PUBLIC

@@ -12,18 +12,19 @@ Coordinate Systems
 Rig are defined by a fixed assembly of cameras that are triggered at the same instant.
 The following terms define such assembly and capture in OpenSfM terminology :
 
- - A `RigCamera` is a camera of the rig assembly defined as a combination of an existing camera model (it refers only to its ID) and its pose wrt. the rig assembly coordinate frame. `RigCamera` are defined in the `rig_cameras.json` as the following::
+- A `RigCamera` is a camera of the rig assembly defined as a combination of an existing camera model (it refers only to its ID) and its pose wrt. the rig assembly coordinate frame. `RigCamera` are defined in the `rig_cameras.json` as the following::
 
- {
-    "RIG_CAMERA_ID":
     {
-        "translation": translation of the rig frame wrt. the RigCamera frame
-        "rotation": rotation bringing a point from rig frame to the RigCamera frame
-        "camera": camera model ID of this RigCamera
-    },
-    ...
+        "RIG_CAMERA_ID":
+        {
+            "translation": translation of the rig frame wrt. the RigCamera frame
+            "rotation": rotation bringing a point from rig frame to the RigCamera frame
+            "camera": camera model ID of this RigCamera
+        },
+        ...
+    }
 
- - A `RigInstance` is a list of `Shots`, each of which correspond to a `RigCamera` of the `RigModel` and the actual pose of the `RigModel` in the world : it's indeed an instantiation of the `RigModel` by combining `Shots`. These instances are defined in the `rig_assignments.json` file as follows::
+- A `RigInstance` is a list of `Shots`, each of which correspond to a `RigCamera` of the `RigModel` and the actual pose of the `RigModel` in the world : it's indeed an instantiation of the `RigModel` by combining `Shots`. These instances are defined in the `rig_assignments.json` file as follows::
 
     {
         "RIG_INSTANCE_ID1": {
@@ -57,8 +58,7 @@ The following terms define such assembly and capture in OpenSfM terminology :
             ]
         },
         ...
-
-
+    }
 
 A picture is often worth many words :
 |rig_frame|

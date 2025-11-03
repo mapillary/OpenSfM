@@ -49,9 +49,9 @@ Main toolbox
 ~~~~~~~~~~~~
 
 The main toolbox contains the list of existing control points as well as several controls.
-The basic controls are explained here. Scroll to :ref:`additional-controls` for information on the rest.
+The basic controls are explained here. Scroll to :ref:`advanced-features` for information on the rest.
 
-- The 'Load', 'Save' buttons save and load the ground control points into a ``ground_control_points.json`` file with :ref:`json-gcps`.
+- The 'Load', 'Save' buttons save and load the ground control points into a ``ground_control_points.json`` file (see the JSON file format section in the Ground Control Points documentation).
 - If there is a ``ground_control_points.json`` file in the dataset directory, it will be loaded upon launch.
 - Control points can be added or removed with the 'Add GCP' and 'Remove GCP' buttons. The active point can be selected from the dropdown.
 - By selecting a point in the list it becomes active and can be annotated on all images.
@@ -84,6 +84,7 @@ Assuming that you have a set of ground control points whose geodetic coordinates
    You can use ``data/berlin`` for this example.
 2. Generate a ``ground_control_points.json`` file with all your measured ground control points and place it in the root of the dataset
    See the example below. Note how the 'observations' is empty as we will generate those using the annotation tool.
+
 ::
 
     "points": [
@@ -93,6 +94,7 @@ Assuming that you have a set of ground control points whose geodetic coordinates
         "observations": []
       }
     ]
+
 3. Launch the annotation tool, note how the control points dropdown contains your ground control points.
 4. Scroll through all the images, annotating each GCP on all the locations where it is visible.
 5. Click on 'save' to overwrite the ``ground_control_points.json`` file with your annotations.
@@ -121,6 +123,8 @@ folder and can be viewed in 3D with the OpenSfM viewer.
 The 'Flex' and 'Full' buttons produce additional analysis results and
 are explained in :ref:`two-reconstruction-annotation`
 
+
+.. _advanced-features:
 
 Advanced features
 -----------------
