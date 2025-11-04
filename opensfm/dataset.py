@@ -349,7 +349,7 @@ class DataSet(DataSetBase):
         class MatchingUnpickler(pickle.Unpickler):
             # Handle both numpy <2.0 (np.core) and numpy >=2.0 (np._core)
             _multiarray = (
-                np._core.multiarray if hasattr(np, "_core") else np.core.multiarray
+                np.core.multiarray if hasattr(np, "core") else np._core.multiarray
             )
             modules_map = {
                 "numpy.core.multiarray._reconstruct": _multiarray,
