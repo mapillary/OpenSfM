@@ -7,12 +7,12 @@ namespace dense {
 
 static const double z_epsilon = 1e-8;
 
-bool IsInsideImage(const cv::Mat &image, int i, int j) {
+bool IsInsideImage(const cv::Mat& image, int i, int j) {
   return i >= 0 && i < image.rows && j >= 0 && j < image.cols;
 }
 
 template <typename T>
-float LinearInterpolation(const cv::Mat &image, float y, float x) {
+float LinearInterpolation(const cv::Mat& image, float y, float x) {
   if (x < 0.0f || x >= image.cols - 1 || y < 0.0f || y >= image.rows - 1) {
     return 0.0f;
   }
@@ -29,7 +29,7 @@ float LinearInterpolation(const cv::Mat &image, float y, float x) {
   return (1 - dy) * im0 + dy * im1;
 }
 
-float Variance(float *x, int n) {
+float Variance(float* x, int n) {
   float sum = 0;
   for (int i = 0; i < n; ++i) {
     sum += x[i];
@@ -73,8 +73,8 @@ float NCCEstimator::Get() {
   }
 }
 
-void ApplyHomography(const cv::Matx33f &H, float x1, float y1, float *x2,
-                     float *y2) {
+void ApplyHomography(const cv::Matx33f& H, float x1, float y1, float* x2,
+                     float* y2) {
   float w = H(2, 0) * x1 + H(2, 1) * y1 + H(2, 2);
   if (w == 0.0) {
     *x2 = 0.0f;
@@ -85,40 +85,40 @@ void ApplyHomography(const cv::Matx33f &H, float x1, float y1, float *x2,
   *y2 = (H(1, 0) * x1 + H(1, 1) * y1 + H(1, 2)) / w;
 }
 
-cv::Matx33d PlaneInducedHomography(const cv::Matx33d &K1, const cv::Matx33d &R1,
-                                   const cv::Vec3d &t1, const cv::Matx33d &K2,
-                                   const cv::Matx33d &R2, const cv::Vec3d &t2,
-                                   const cv::Vec3d &v) {
+cv::Matx33d PlaneInducedHomography(const cv::Matx33d& K1, const cv::Matx33d& R1,
+                                   const cv::Vec3d& t1, const cv::Matx33d& K2,
+                                   const cv::Matx33d& R2, const cv::Vec3d& t2,
+                                   const cv::Vec3d& v) {
   cv::Matx33d R2R1 = R2 * R1.t();
   return K2 * (R2R1 + (R2R1 * t1 - t2) * v.t()) * K1.inv();
 }
 
-cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d &K1inv,
-                                        const cv::Matx33d &Q2,
-                                        const cv::Vec3d &a2,
-                                        const cv::Matx33d &K2,
-                                        const cv::Vec3d &v) {
+cv::Matx33f PlaneInducedHomographyBaked(const cv::Matx33d& K1inv,
+                                        const cv::Matx33d& Q2,
+                                        const cv::Vec3d& a2,
+                                        const cv::Matx33d& K2,
+                                        const cv::Vec3d& v) {
   return K2 * (Q2 + a2 * v.t()) * K1inv;
 }
 
-cv::Vec3d Project(const cv::Vec3d &x, const cv::Matx33d &K,
-                  const cv::Matx33d &R, const cv::Vec3d &t) {
+cv::Vec3d Project(const cv::Vec3d& x, const cv::Matx33d& K,
+                  const cv::Matx33d& R, const cv::Vec3d& t) {
   return K * (R * x + t);
 }
 
-cv::Vec3d Backproject(double x, double y, double depth, const cv::Matx33d &K,
-                      const cv::Matx33d &R, const cv::Vec3d &t) {
+cv::Vec3d Backproject(double x, double y, double depth, const cv::Matx33d& K,
+                      const cv::Matx33d& R, const cv::Vec3d& t) {
   return R.t() * (depth * K.inv() * cv::Vec3d(x, y, 1) - t);
 }
 
-float DepthOfPlaneBackprojection(double x, double y, const cv::Matx33d &K,
-                                 const cv::Vec3d &plane) {
+float DepthOfPlaneBackprojection(double x, double y, const cv::Matx33d& K,
+                                 const cv::Vec3d& plane) {
   float denom = -(plane.t() * K.inv() * cv::Vec3d(x, y, 1))(0);
   return 1.0f / std::max(1e-6f, denom);
 }
 
-cv::Vec3f PlaneFromDepthAndNormal(float x, float y, const cv::Matx33d &K,
-                                  float depth, const cv::Vec3f &normal) {
+cv::Vec3f PlaneFromDepthAndNormal(float x, float y, const cv::Matx33d& K,
+                                  float depth, const cv::Vec3f& normal) {
   cv::Vec3f point = depth * K.inv() * cv::Vec3d(x, y, 1);
   float denom = -normal.dot(point);
   return normal / std::max(1e-6f, denom);
@@ -143,9 +143,9 @@ DepthmapEstimator::DepthmapEstimator()
       unit_normal_(0, 1),
       patch_variance_buffer_(patch_size_ * patch_size_) {}
 
-void DepthmapEstimator::AddView(const double *pK, const double *pR,
-                                const double *pt, const unsigned char *pimage,
-                                const unsigned char *pmask, int width,
+void DepthmapEstimator::AddView(const double* pK, const double* pR,
+                                const double* pt, const unsigned char* pimage,
+                                const unsigned char* pmask, int width,
                                 int height) {
   Ks_.emplace_back(pK);
   Rs_.emplace_back(pR);
@@ -153,8 +153,8 @@ void DepthmapEstimator::AddView(const double *pK, const double *pR,
   Kinvs_.emplace_back(Ks_.back().inv());
   Qs_.emplace_back(Rs_.back() * Rs_.front().t());
   as_.emplace_back(Qs_.back() * ts_.front() - ts_.back());
-  images_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pimage).clone());
-  masks_.emplace_back(cv::Mat(height, width, CV_8U, (void *)pmask).clone());
+  images_.emplace_back(cv::Mat(height, width, CV_8U, (void*)pimage).clone());
+  masks_.emplace_back(cv::Mat(height, width, CV_8U, (void*)pmask).clone());
   std::size_t size = images_.size();
   int a = (size > 1) ? 1 : 0;
   int b = (size > 1) ? size - 1 : 0;
@@ -181,7 +181,7 @@ void DepthmapEstimator::SetMinPatchSD(float sd) {
   min_patch_variance_ = sd * sd;
 }
 
-void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult *result) {
+void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult* result) {
   AssignMatrices(result);
 
   int hpz = (patch_size_ - 1) / 2;
@@ -199,7 +199,7 @@ void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult *result) {
   }
 }
 
-void DepthmapEstimator::ComputePatchMatch(DepthmapEstimatorResult *result) {
+void DepthmapEstimator::ComputePatchMatch(DepthmapEstimatorResult* result) {
   AssignMatrices(result);
   RandomInitialization(result, false);
   ComputeIgnoreMask(result);
@@ -213,7 +213,7 @@ void DepthmapEstimator::ComputePatchMatch(DepthmapEstimatorResult *result) {
 }
 
 void DepthmapEstimator::ComputePatchMatchSample(
-    DepthmapEstimatorResult *result) {
+    DepthmapEstimatorResult* result) {
   AssignMatrices(result);
   RandomInitialization(result, true);
   ComputeIgnoreMask(result);
@@ -226,7 +226,7 @@ void DepthmapEstimator::ComputePatchMatchSample(
   PostProcess(result);
 }
 
-void DepthmapEstimator::AssignMatrices(DepthmapEstimatorResult *result) {
+void DepthmapEstimator::AssignMatrices(DepthmapEstimatorResult* result) {
   result->depth = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
   result->plane = cv::Mat(images_[0].rows, images_[0].cols, CV_32FC3, 0.0f);
   result->score = cv::Mat(images_[0].rows, images_[0].cols, CV_32F, 0.0f);
@@ -234,7 +234,7 @@ void DepthmapEstimator::AssignMatrices(DepthmapEstimatorResult *result) {
       cv::Mat(images_[0].rows, images_[0].cols, CV_32S, cv::Scalar(0));
 }
 
-void DepthmapEstimator::RandomInitialization(DepthmapEstimatorResult *result,
+void DepthmapEstimator::RandomInitialization(DepthmapEstimatorResult* result,
                                              bool sample) {
   int hpz = (patch_size_ - 1) / 2;
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
@@ -255,7 +255,7 @@ void DepthmapEstimator::RandomInitialization(DepthmapEstimatorResult *result,
   }
 }
 
-void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult *result) {
+void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult* result) {
   int hpz = (patch_size_ - 1) / 2;
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
     for (int j = hpz; j < result->depth.cols - hpz; ++j) {
@@ -269,7 +269,7 @@ void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult *result) {
 }
 
 float DepthmapEstimator::PatchVariance(int i, int j) {
-  float *patch = patch_variance_buffer_.data();
+  float* patch = patch_variance_buffer_.data();
   int hpz = (patch_size_ - 1) / 2;
   int counter = 0;
   for (int u = -hpz; u <= hpz; ++u) {
@@ -280,7 +280,7 @@ float DepthmapEstimator::PatchVariance(int i, int j) {
   return Variance(patch, patch_size_ * patch_size_);
 }
 
-void DepthmapEstimator::PatchMatchForwardPass(DepthmapEstimatorResult *result,
+void DepthmapEstimator::PatchMatchForwardPass(DepthmapEstimatorResult* result,
                                               bool sample) {
   int adjacent[2][2] = {{-1, 0}, {0, -1}};
   int hpz = (patch_size_ - 1) / 2;
@@ -291,7 +291,7 @@ void DepthmapEstimator::PatchMatchForwardPass(DepthmapEstimatorResult *result,
   }
 }
 
-void DepthmapEstimator::PatchMatchBackwardPass(DepthmapEstimatorResult *result,
+void DepthmapEstimator::PatchMatchBackwardPass(DepthmapEstimatorResult* result,
                                                bool sample) {
   int adjacent[2][2] = {{0, 1}, {1, 0}};
   int hpz = (patch_size_ - 1) / 2;
@@ -302,7 +302,7 @@ void DepthmapEstimator::PatchMatchBackwardPass(DepthmapEstimatorResult *result,
   }
 }
 
-void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult *result,
+void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult* result,
                                               int i, int j, int adjacent[2][2],
                                               bool sample) {
   // Ignore pixels with depth == 0.
@@ -373,9 +373,9 @@ void DepthmapEstimator::PatchMatchUpdatePixel(DepthmapEstimatorResult *result,
   CheckPlaneImageCandidate(result, i, j, plane, other_nghbr);
 }
 
-void DepthmapEstimator::CheckPlaneCandidate(DepthmapEstimatorResult *result,
+void DepthmapEstimator::CheckPlaneCandidate(DepthmapEstimatorResult* result,
                                             int i, int j,
-                                            const cv::Vec3f &plane) {
+                                            const cv::Vec3f& plane) {
   float score;
   int nghbr;
   ComputePlaneScore(i, j, plane, &score, &nghbr);
@@ -386,7 +386,7 @@ void DepthmapEstimator::CheckPlaneCandidate(DepthmapEstimatorResult *result,
 }
 
 void DepthmapEstimator::CheckPlaneImageCandidate(
-    DepthmapEstimatorResult *result, int i, int j, const cv::Vec3f &plane,
+    DepthmapEstimatorResult* result, int i, int j, const cv::Vec3f& plane,
     int nghbr) {
   float score = ComputePlaneImageScore(i, j, plane, nghbr);
   if (score > result->score.at<float>(i, j)) {
@@ -395,9 +395,9 @@ void DepthmapEstimator::CheckPlaneImageCandidate(
   }
 }
 
-void DepthmapEstimator::AssignPixel(DepthmapEstimatorResult *result, int i,
+void DepthmapEstimator::AssignPixel(DepthmapEstimatorResult* result, int i,
                                     int j, const float depth,
-                                    const cv::Vec3f &plane, const float score,
+                                    const cv::Vec3f& plane, const float score,
                                     const int nghbr) {
   result->depth.at<float>(i, j) = depth;
   result->plane.at<cv::Vec3f>(i, j) = plane;
@@ -405,8 +405,8 @@ void DepthmapEstimator::AssignPixel(DepthmapEstimatorResult *result, int i,
   result->nghbr.at<int>(i, j) = nghbr;
 }
 
-void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f &plane,
-                                          float *score, int *nghbr) {
+void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
+                                          float* score, int* nghbr) {
   *score = -1.0f;
   *nghbr = 0;
   for (int other = 1; other < images_.size(); ++other) {
@@ -419,7 +419,7 @@ void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f &plane,
 }
 
 float DepthmapEstimator::ComputePlaneImageScoreUnoptimized(
-    int i, int j, const cv::Vec3f &plane, int other) {
+    int i, int j, const cv::Vec3f& plane, int other) {
   cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
                                               Ks_[other], plane);
   int hpz = (patch_size_ - 1) / 2;
@@ -439,7 +439,7 @@ float DepthmapEstimator::ComputePlaneImageScoreUnoptimized(
 }
 
 float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
-                                                const cv::Vec3f &plane,
+                                                const cv::Vec3f& plane,
                                                 int other) {
   cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
                                               Ks_[other], plane);
@@ -486,7 +486,7 @@ float DepthmapEstimator::BilateralWeight(float dcolor, float dx, float dy) {
              (dx * dx + dy * dy) * dx_factor);
 }
 
-void DepthmapEstimator::PostProcess(DepthmapEstimatorResult *result) {
+void DepthmapEstimator::PostProcess(DepthmapEstimatorResult* result) {
   cv::Mat depth_filtered;
   cv::medianBlur(result->depth, depth_filtered, 5);
 
@@ -512,16 +512,16 @@ void DepthmapCleaner::SetMinConsistentViews(int n) {
   min_consistent_views_ = n;
 }
 
-void DepthmapCleaner::AddView(const double *pK, const double *pR,
-                              const double *pt, const float *pdepth, int width,
+void DepthmapCleaner::AddView(const double* pK, const double* pR,
+                              const double* pt, const float* pdepth, int width,
                               int height) {
   Ks_.emplace_back(pK);
   Rs_.emplace_back(pR);
   ts_.emplace_back(pt);
-  depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
+  depths_.emplace_back(cv::Mat(height, width, CV_32F, (void*)pdepth).clone());
 }
 
-void DepthmapCleaner::Clean(cv::Mat *clean_depth) {
+void DepthmapCleaner::Clean(cv::Mat* clean_depth) {
   *clean_depth = cv::Mat(depths_[0].rows, depths_[0].cols, CV_32F, 0.0f);
 
   for (int i = 0; i < depths_[0].rows; ++i) {
@@ -560,25 +560,24 @@ void DepthmapPruner::SetSameDepthThreshold(float t) {
   same_depth_threshold_ = t;
 }
 
-void DepthmapPruner::AddView(const double *pK, const double *pR,
-                             const double *pt, const float *pdepth,
-                             const float *pplane, const unsigned char *pcolor,
-                             const unsigned char *plabel, int width,
+void DepthmapPruner::AddView(const double* pK, const double* pR,
+                             const double* pt, const float* pdepth,
+                             const float* pplane, const unsigned char* pcolor,
+                             const unsigned char* plabel, int width,
                              int height) {
   Ks_.emplace_back(pK);
   Rs_.emplace_back(pR);
   ts_.emplace_back(pt);
-  depths_.emplace_back(cv::Mat(height, width, CV_32F, (void *)pdepth).clone());
-  planes_.emplace_back(
-      cv::Mat(height, width, CV_32FC3, (void *)pplane).clone());
-  colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void *)pcolor).clone());
-  labels_.emplace_back(cv::Mat(height, width, CV_8U, (void *)plabel).clone());
+  depths_.emplace_back(cv::Mat(height, width, CV_32F, (void*)pdepth).clone());
+  planes_.emplace_back(cv::Mat(height, width, CV_32FC3, (void*)pplane).clone());
+  colors_.emplace_back(cv::Mat(height, width, CV_8UC3, (void*)pcolor).clone());
+  labels_.emplace_back(cv::Mat(height, width, CV_8U, (void*)plabel).clone());
 }
 
-void DepthmapPruner::Prune(std::vector<float> *merged_points,
-                           std::vector<float> *merged_normals,
-                           std::vector<unsigned char> *merged_colors,
-                           std::vector<unsigned char> *merged_labels) {
+void DepthmapPruner::Prune(std::vector<float>* merged_points,
+                           std::vector<float>* merged_normals,
+                           std::vector<unsigned char>* merged_colors,
+                           std::vector<unsigned char>* merged_labels) {
   cv::Matx33f Rinv = Rs_[0].t();
   for (int i = 0; i < depths_[0].rows; ++i) {
     for (int j = 0; j < depths_[0].cols; ++j) {

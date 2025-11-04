@@ -22,23 +22,22 @@ class CovarianceFixture : public ::testing::Test {
     observation << 0.0, 0.0;
   }
 
-  void RunAutodiffEval(const geometry::Camera& camera,
-                       const geometry::Pose& pose) {
+  void RunAutodiffEval(const geometry::Camera& cam, const geometry::Pose& p) {
     // Prepare Eigen's Autodiff structures
     for (int i = 0; i < 3; ++i) {
       point_adiff[i].derivatives() = VecXd::Unit(3, i);
     }
 
     VecX<AScalar> pose_adiff(6);
-    pose_adiff.segment<3>(3) = pose.TranslationCameraToWorld();
-    pose_adiff.segment<3>(0) = pose.RotationCameraToWorldMin();
+    pose_adiff.segment<3>(3) = p.TranslationCameraToWorld();
+    pose_adiff.segment<3>(0) = p.RotationCameraToWorldMin();
     for (int i = 0; i < 6; ++i) {
       pose_adiff(i).derivatives().resize(3);
       pose_adiff(i).derivatives().setZero();
     }
 
     VecX<AScalar> camera_adiff(3);
-    const VecXd camera_params = camera.GetParametersValues();
+    const VecXd camera_params = cam.GetParametersValues();
     for (int i = 0; i < camera_params.size(); ++i) {
       camera_adiff(i).value() = camera_params(i);
       camera_adiff(i).derivatives().resize(3);
@@ -50,7 +49,7 @@ class CovarianceFixture : public ::testing::Test {
     geometry::PoseFunctor::Forward(point_adiff, pose_adiff.data(),
                                    &transformed[0]);
     geometry::Dispatch<geometry::ProjectFunction>(
-        camera.GetProjectionType(), transformed, camera_adiff.data(),
+        cam.GetProjectionType(), transformed, camera_adiff.data(),
         projection_expected);
   }
 

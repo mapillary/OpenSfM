@@ -6,7 +6,7 @@ namespace dense {
 
 class OpenMVSExporter {
  public:
-  void AddCamera(const std::string &camera_id, foundation::pyarray_d K,
+  void AddCamera(const std::string& camera_id, foundation::pyarray_d K,
                  uint32_t width, uint32_t height) {
     MVS::Interface::Platform platform;
     platform.name = camera_id;
@@ -22,13 +22,13 @@ class OpenMVSExporter {
     scene_.platforms.push_back(platform);
   }
 
-  void AddShot(const std::string &path, const std::string &maskPath,
-               const std::string &shot_id, const std::string &camera_id,
+  void AddShot(const std::string& path, const std::string& maskPath,
+               const std::string& shot_id, const std::string& camera_id,
                foundation::pyarray_d R, foundation::pyarray_d C) {
-    const double *C_data = C.data();
+    const double* C_data = C.data();
 
     int platform_id = platform_ids_[camera_id];
-    MVS::Interface::Platform &platform = scene_.platforms[platform_id];
+    MVS::Interface::Platform& platform = scene_.platforms[platform_id];
 
     MVS::Interface::Platform::Pose pose;
     pose.R = cv::Matx33d(R.data());
@@ -48,7 +48,7 @@ class OpenMVSExporter {
   }
 
   void AddPoint(foundation::pyarray_d coordinates, py::list shot_ids) {
-    const double *x = coordinates.data();
+    const double* x = coordinates.data();
 
     MVS::Interface::Vertex vertex;
     vertex.X = cv::Point3_<double>(x[0], x[1], x[2]);

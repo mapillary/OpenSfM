@@ -3,7 +3,6 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
-import numpy as np
 from numpy.typing import NDArray
 from opensfm import features, geo, io, pygeometry, pymap, types
 

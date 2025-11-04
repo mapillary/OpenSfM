@@ -58,3 +58,4 @@ target_link_libraries(pybundle PRIVATE
 set_target_properties(pybundle PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pybundle LIBRARY DESTINATION .)

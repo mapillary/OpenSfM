@@ -43,3 +43,4 @@ target_link_libraries(pysfm
 set_target_properties(pysfm PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${opensfm_SOURCE_DIR}/.."
 )
+install(TARGETS pysfm LIBRARY DESTINATION .)

@@ -9,7 +9,7 @@
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
                                          const double sin_theta,
-                                         const Eigen::Vector3d &v);
+                                         const Eigen::Vector3d& v);
 
 // Implements "An Efficient Algebraic Solution to the
 // Perspective-Three-Point Problem" from Ke and al.
@@ -92,7 +92,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   e1 << 1, 0, 0;
   e2 << 0, 1, 0;
 
-  for (const auto &root : roots) {
+  for (const auto& root : roots) {
     const auto cos_theta_1 = root;
     const auto sin_theta_1 =
         foundation::Sign(k3_b3) * std::sqrt(1.0 - SQUARE(cos_theta_1));
@@ -123,7 +123,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
 
 template <class IT>
 Eigen::Vector3d TranslationBetweenPoints(IT begin, IT end,
-                                         const Eigen::Matrix3d &rotation) {
+                                         const Eigen::Matrix3d& rotation) {
   Eigen::Matrix3d F1 = Eigen::Matrix3d::Zero();
   Eigen::Vector3d F2 = Eigen::Vector3d::Zero();
   const Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
@@ -193,14 +193,14 @@ Eigen::Vector3d AbsolutePoseNPointsKnownRotation(IT begin, IT end) {
 
 namespace geometry {
 std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points);
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points);
 
 Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points);
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points);
 
 Eigen::Vector3d AbsolutePoseNPointsKnownRotation(
-    const Eigen::Matrix<double, -1, 3> &bearings,
-    const Eigen::Matrix<double, -1, 3> &points);
+    const Eigen::Matrix<double, -1, 3>& bearings,
+    const Eigen::Matrix<double, -1, 3>& points);
 }  // namespace geometry

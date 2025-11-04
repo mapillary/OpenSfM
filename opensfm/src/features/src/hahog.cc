@@ -12,14 +12,14 @@ extern "C" {
 namespace features {
 
 // from VLFeat implementation of _vl_compare_scores
-static int vlfeat_compare_scores(const void *a, const void *b) {
-  float fa = ((VlCovDetFeature *)a)->peakScore;
-  float fb = ((VlCovDetFeature *)b)->peakScore;
+static int vlfeat_compare_scores(const void* a, const void* b) {
+  float fa = ((VlCovDetFeature*)a)->peakScore;
+  float fb = ((VlCovDetFeature*)b)->peakScore;
   return (fb > fa) - (fb < fa);
 }
 
 // select 'target_num_features' for using feature's scores
-vl_size select_best_features(VlCovDet *covdet, vl_size num_features,
+vl_size select_best_features(VlCovDet* covdet, vl_size num_features,
                              vl_size target_num_features) {
   if (num_features > target_num_features) {
     qsort(vl_covdet_get_features(covdet), num_features, sizeof(VlCovDetFeature),
@@ -33,11 +33,11 @@ vl_size select_best_features(VlCovDet *covdet, vl_size num_features,
 // select 'target_num_features' that have a maximum score in their neighbhood.
 // The neighborhood is computing using the feature's scale and
 // 'non_extrema_suppression' as : neighborhood = non_extrema_suppression * scale
-vl_size run_non_maxima_suppression(VlCovDet *covdet, vl_size num_features,
+vl_size run_non_maxima_suppression(VlCovDet* covdet, vl_size num_features,
                                    double non_extrema_suppression) {
   vl_index i, j;
   double tol = non_extrema_suppression;
-  VlCovDetFeature *features = (VlCovDetFeature *)vl_covdet_get_features(covdet);
+  VlCovDetFeature* features = (VlCovDetFeature*)vl_covdet_get_features(covdet);
   for (i = 0; i < (signed)num_features; ++i) {
     double x = features[i].frame.x;
     double y = features[i].frame.y;
@@ -69,7 +69,7 @@ vl_size run_non_maxima_suppression(VlCovDet *covdet, vl_size num_features,
   return j;
 }
 
-vl_size run_features_selection(VlCovDet *covdet, vl_size target_num_features) {
+vl_size run_features_selection(VlCovDet* covdet, vl_size target_num_features) {
   vl_size numFeaturesKept = vl_covdet_get_num_features(covdet);
 
   // keep only 1.5 x targetNumFeatures for speeding-up duplicate detection
@@ -91,15 +91,15 @@ vl_size run_features_selection(VlCovDet *covdet, vl_size target_num_features) {
 }
 
 std::vector<VlCovDetFeature> vlfeat_covdet_extract_orientations(
-    VlCovDet *covdet, vl_size num_features) {
-  VlCovDetFeature *features = (VlCovDetFeature *)vl_covdet_get_features(covdet);
+    VlCovDet* covdet, vl_size num_features) {
+  VlCovDetFeature* features = (VlCovDetFeature*)vl_covdet_get_features(covdet);
   std::vector<VlCovDetFeature> vecFeatures;
   vecFeatures.reserve(num_features);
   vl_index i, j;
   for (i = 0; i < (signed)num_features; ++i) {
     vl_size numOrientations;
     VlCovDetFeature feature = features[i];
-    VlCovDetFeatureOrientation *orientations =
+    VlCovDetFeatureOrientation* orientations =
         vl_covdet_extract_orientations_for_frame(covdet, &numOrientations,
                                                  feature.frame);
 
@@ -110,7 +110,7 @@ std::vector<VlCovDetFeature> vlfeat_covdet_extract_orientations(
       double r2 = sin(orientations[j].angle);
 
       vecFeatures.emplace_back(features[i]);
-      VlCovDetFeature &oriented = vecFeatures.back();
+      VlCovDetFeature& oriented = vecFeatures.back();
 
       oriented.orientationScore = orientations[j].score;
       oriented.frame.a11 = +A[0] * r1 + A[2] * r2;
@@ -137,7 +137,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     py::gil_scoped_release release;
 
     // create a detector object
-    VlCovDet *covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
+    VlCovDet* covdet = vl_covdet_new(VL_COVDET_METHOD_HESSIAN);
     // set various parameters (optional)
     vl_covdet_set_first_octave(covdet, 0);
     vl_covdet_set_peak_threshold(covdet, peak_threshold);
@@ -157,7 +157,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     numFeatures = vecFeatures.size();
 
     // get feature descriptors
-    VlSiftFilt *sift = vl_sift_new(16, 16, 1, 3, 0);
+    VlSiftFilt* sift = vl_sift_new(16, 16, 1, 3, 0);
     vl_index i;
     vl_index patchResolution = 15;
     double patchRelativeExtent = 7.5;
@@ -171,7 +171,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
 
     vl_sift_set_magnif(sift, 3.0);
     for (i = 0; i < (signed)numFeatures; ++i) {
-      const VlFrameOrientedEllipse &frame = vecFeatures.at(i).frame;
+      const VlFrameOrientedEllipse& frame = vecFeatures.at(i).frame;
       float det = frame.a11 * frame.a22 - frame.a12 * frame.a21;
       float size = sqrt(fabs(det));
       float angle = atan2(frame.a21, frame.a11) * 180.0f / M_PI;

@@ -20,7 +20,7 @@
 namespace py = pybind11;
 
 template <typename T>
-void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
+void DeclareShotMeasurement(py::module& m, const std::string& type_name) {
   using SM = foundation::OptionalValue<T>;
 
   std::string class_name = std::string("ShotMeasurement") + type_name;
@@ -32,7 +32,7 @@ void DeclareShotMeasurement(py::module &m, const std::string &type_name) {
                     &SM::SetValue)
       .def("reset", &SM::Reset)
       .def(py::pickle(
-          [](const SM &sm) {
+          [](const SM& sm) {
             return py::make_tuple(sm.HasValue(), sm.Value());
           },
           [](py::tuple p) {
@@ -89,14 +89,14 @@ PYBIND11_MODULE(pymap, m) {
                            &map::Observation::NO_SEMANTIC_VALUE)
       .def(
           "copy",
-          [](const map::Observation &to_copy) {
+          [](const map::Observation& to_copy) {
             map::Observation copy = to_copy;
             return copy;
           },
           py::return_value_policy::copy);
 
   py::class_<map::Landmark>(m, "Landmark")
-      .def(py::init<const map::LandmarkId &, const Vec3d &>())
+      .def(py::init<const map::LandmarkId&, const Vec3d&>())
       .def_readonly("id", &map::Landmark::id_)
       .def_property("coordinates", &map::Landmark::GetGlobalPos,
                     &map::Landmark::SetGlobalPos)
@@ -125,7 +125,7 @@ PYBIND11_MODULE(pymap, m) {
       .def_property("attributes", &map::ShotMeasurements::GetAttributes,
                     &map::ShotMeasurements::SetAttributes)
       .def(py::pickle(
-          [](const map::ShotMeasurements &s) {
+          [](const map::ShotMeasurements& s) {
             return py::make_tuple(
                 s.gps_accuracy_, s.gps_position_, s.orientation_,
                 s.capture_time_, s.gravity_down_, s.compass_angle_,
@@ -149,7 +149,7 @@ PYBIND11_MODULE(pymap, m) {
           }))
       .def(
           "__copy__",
-          [](const map::ShotMeasurements &to_copy) {
+          [](const map::ShotMeasurements& to_copy) {
             map::ShotMeasurements copy;
             copy.Set(to_copy);
             return copy;
@@ -165,12 +165,12 @@ PYBIND11_MODULE(pymap, m) {
 
   py::class_<map::RigCamera>(m, "RigCamera")
       .def(py::init<>())
-      .def(py::init<const geometry::Pose &, const map::RigCameraId &>())
+      .def(py::init<const geometry::Pose&, const map::RigCameraId&>())
       .def_readwrite("id", &map::RigCamera::id)
       .def_readwrite("pose", &map::RigCamera::pose)
       // pickle support
       .def(py::pickle(
-          [](const map::RigCamera &rc) {
+          [](const map::RigCamera& rc) {
             return py::make_tuple(rc.pose, rc.id);
           },
           [](py::tuple s) {
@@ -189,17 +189,17 @@ PYBIND11_MODULE(pymap, m) {
           py::return_value_policy::reference_internal)
       .def_property_readonly(
           "rig_camera_ids",
-          [](const map::RigInstance &ri) {
+          [](const map::RigInstance& ri) {
             std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
-            for (const auto &rig_camera : ri.GetRigCameras()) {
+            for (const auto& rig_camera : ri.GetRigCameras()) {
               rig_camera_ids[rig_camera.first] = rig_camera.second->id;
             }
             return rig_camera_ids;
           })
       .def_property_readonly("camera_ids",
-                             [](const map::RigInstance &ri) {
+                             [](const map::RigInstance& ri) {
                                std::map<map::ShotId, map::CameraId> camera_ids;
-                               for (const auto &shot : ri.GetShots()) {
+                               for (const auto& shot : ri.GetShots()) {
                                  camera_ids[shot.first] =
                                      shot.second->GetCamera()->id;
                                }
@@ -216,8 +216,8 @@ PYBIND11_MODULE(pymap, m) {
       .def("update_rig_camera_pose", &map::RigInstance::UpdateRigCameraPose);
 
   shotCls
-      .def(py::init<const map::ShotId &, const geometry::Camera &,
-                    const geometry::Pose &>())
+      .def(py::init<const map::ShotId&, const geometry::Camera&,
+                    const geometry::Pose&>())
       .def_readonly("id", &map::Shot::id_)
       .def_readwrite("mesh", &map::Shot::mesh)
       .def_property("covariance", &map::Shot::GetCovariance,
@@ -254,7 +254,7 @@ PYBIND11_MODULE(pymap, m) {
   py::class_<map::GroundControlPointObservation>(
       m, "GroundControlPointObservation")
       .def(py::init())
-      .def(py::init<const map::ShotId &, const Vec2d &>())
+      .def(py::init<const map::ShotId&, const Vec2d&>())
       .def_readwrite("shot_id", &map::GroundControlPointObservation::shot_id_)
       .def_readwrite("uid", &map::GroundControlPointObservation::uid_)
       .def_readwrite("projection",
@@ -314,34 +314,34 @@ PYBIND11_MODULE(pymap, m) {
            py::call_guard<py::gil_scoped_release>());
 
   py::class_<map::PanoShotView>(m, "PanoShotView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::PanoShotView::NumberOfShots)
       .def(
           "items",
-          [](const map::PanoShotView &sv) {
-            auto &shots = sv.GetShots();
+          [](const map::PanoShotView& sv) {
+            auto& shots = sv.GetShots();
             return py::make_ref_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](const map::PanoShotView &sv) {
-            auto &shots = sv.GetShots();
+          [](const map::PanoShotView& sv) {
+            auto& shots = sv.GetShots();
             return py::make_ref_value_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::PanoShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::PanoShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_key_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::PanoShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::PanoShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_key_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -352,34 +352,34 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::PanoShotView::HasShot);
 
   py::class_<map::ShotView>(m, "ShotView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::ShotView::NumberOfShots)
       .def(
           "items",
-          [](const map::ShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::ShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_ref_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](const map::ShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::ShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_ref_value_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::ShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::ShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_key_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::ShotView &sv) {
-            const auto &shots = sv.GetShots();
+          [](const map::ShotView& sv) {
+            const auto& shots = sv.GetShots();
             return py::make_key_iterator(shots.begin(), shots.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -390,34 +390,34 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::ShotView::HasShot);
 
   py::class_<map::LandmarkView>(m, "LandmarkView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::LandmarkView::NumberOfLandmarks)
       .def(
           "items",
-          [](const map::LandmarkView &sv) {
-            auto &lms = sv.GetLandmarks();
+          [](const map::LandmarkView& sv) {
+            auto& lms = sv.GetLandmarks();
             return py::make_ref_iterator(lms.begin(), lms.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](const map::LandmarkView &sv) {
-            auto &lms = sv.GetLandmarks();
+          [](const map::LandmarkView& sv) {
+            auto& lms = sv.GetLandmarks();
             return py::make_ref_value_iterator(lms.begin(), lms.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::LandmarkView &sv) {
-            const auto &lms = sv.GetLandmarks();
+          [](const map::LandmarkView& sv) {
+            const auto& lms = sv.GetLandmarks();
             return py::make_key_iterator(lms.begin(), lms.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::LandmarkView &sv) {
-            const auto &lms = sv.GetLandmarks();
+          [](const map::LandmarkView& sv) {
+            const auto& lms = sv.GetLandmarks();
             return py::make_key_iterator(lms.begin(), lms.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -428,34 +428,34 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::LandmarkView::HasLandmark);
 
   py::class_<map::CameraView>(m, "CameraView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::CameraView::NumberOfCameras)
       .def(
           "items",
-          [](const map::CameraView &sv) {
-            const auto &cams = sv.GetCameras();
+          [](const map::CameraView& sv) {
+            const auto& cams = sv.GetCameras();
             return py::make_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](map::CameraView &sv) {
-            auto &cams = sv.GetCameras();
+          [](map::CameraView& sv) {
+            auto& cams = sv.GetCameras();
             return py::make_ref_value_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::CameraView &sv) {
-            const auto &cams = sv.GetCameras();
+          [](const map::CameraView& sv) {
+            const auto& cams = sv.GetCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::CameraView &sv) {
-            const auto &cams = sv.GetCameras();
+          [](const map::CameraView& sv) {
+            const auto& cams = sv.GetCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -466,34 +466,34 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::CameraView::HasCamera);
 
   py::class_<map::BiasView>(m, "BiasView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::BiasView::NumberOfBiases)
       .def(
           "items",
-          [](const map::BiasView &sv) {
-            const auto &biases = sv.GetBiases();
+          [](const map::BiasView& sv) {
+            const auto& biases = sv.GetBiases();
             return py::make_iterator(biases.begin(), biases.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](map::BiasView &sv) {
-            auto &biases = sv.GetBiases();
+          [](map::BiasView& sv) {
+            auto& biases = sv.GetBiases();
             return py::make_ref_value_iterator(biases.begin(), biases.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::BiasView &sv) {
-            const auto &biases = sv.GetBiases();
+          [](const map::BiasView& sv) {
+            const auto& biases = sv.GetBiases();
             return py::make_key_iterator(biases.begin(), biases.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::BiasView &sv) {
-            const auto &biases = sv.GetBiases();
+          [](const map::BiasView& sv) {
+            const auto& biases = sv.GetBiases();
             return py::make_key_iterator(biases.begin(), biases.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -504,34 +504,34 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::BiasView::HasBias);
 
   py::class_<map::RigCameraView>(m, "RigCameraView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::RigCameraView::NumberOfRigCameras)
       .def(
           "items",
-          [](const map::RigCameraView &sv) {
-            const auto &cams = sv.GetRigCameras();
+          [](const map::RigCameraView& sv) {
+            const auto& cams = sv.GetRigCameras();
             return py::make_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](map::RigCameraView &sv) {
-            auto &cams = sv.GetRigCameras();
+          [](map::RigCameraView& sv) {
+            auto& cams = sv.GetRigCameras();
             return py::make_ref_value_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::RigCameraView &sv) {
-            const auto &cams = sv.GetRigCameras();
+          [](const map::RigCameraView& sv) {
+            const auto& cams = sv.GetRigCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::RigCameraView &sv) {
-            const auto &cams = sv.GetRigCameras();
+          [](const map::RigCameraView& sv) {
+            const auto& cams = sv.GetRigCameras();
             return py::make_key_iterator(cams.begin(), cams.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -542,35 +542,35 @@ PYBIND11_MODULE(pymap, m) {
       .def("__contains__", &map::RigCameraView::HasRigCamera);
 
   py::class_<map::RigInstanceView>(m, "RigInstanceView")
-      .def(py::init<map::Map &>(),
+      .def(py::init<map::Map&>(),
            py::keep_alive<1, 2>())  // Keep map alive while view is used
       .def("__len__", &map::RigInstanceView::NumberOfRigInstances)
       .def(
           "items",
-          [](const map::RigInstanceView &sv) {
-            const auto &instances = sv.GetRigInstances();
+          [](const map::RigInstanceView& sv) {
+            const auto& instances = sv.GetRigInstances();
             return py::make_iterator(instances.begin(), instances.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "values",
-          [](map::RigInstanceView &sv) {
-            auto &instances = sv.GetRigInstances();
+          [](map::RigInstanceView& sv) {
+            auto& instances = sv.GetRigInstances();
             return py::make_ref_value_iterator(instances.begin(),
                                                instances.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "__iter__",
-          [](const map::RigInstanceView &sv) {
-            const auto &instances = sv.GetRigInstances();
+          [](const map::RigInstanceView& sv) {
+            const auto& instances = sv.GetRigInstances();
             return py::make_iterator(instances.begin(), instances.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
       .def(
           "keys",
-          [](const map::RigInstanceView &sv) {
-            const auto &instances = sv.GetRigInstances();
+          [](const map::RigInstanceView& sv) {
+            const auto& instances = sv.GetRigInstances();
             return py::make_key_iterator(instances.begin(), instances.end());
           },
           py::keep_alive<0, 1>())  // Keep view alive while iterator is used
@@ -588,7 +588,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_camera", &map::Map::CreateCamera, py::arg("camera"),
            py::return_value_policy::reference_internal)
       .def("get_camera",
-           py::overload_cast<const map::CameraId &>(&map::Map::GetCamera),
+           py::overload_cast<const map::CameraId&>(&map::Map::GetCamera),
            py::return_value_policy::reference_internal)
       // Bias
       .def("set_bias", &map::Map::SetBias,
@@ -607,34 +607,35 @@ PYBIND11_MODULE(pymap, m) {
       .def("create_landmark", &map::Map::CreateLandmark, py::arg("lm_id"),
            py::arg("global_position"),
            py::return_value_policy::reference_internal)
-      .def("remove_landmark", (void(map::Map::*)(const map::Landmark *const)) &
-                                  map::Map::RemoveLandmark)
-      .def("remove_landmark", (void(map::Map::*)(const map::LandmarkId &)) &
-                                  map::Map::RemoveLandmark)
+      .def("remove_landmark",
+           (void (map::Map::*)(
+               const map::Landmark* const))&map::Map::RemoveLandmark)
+      .def(
+          "remove_landmark",
+          (void (map::Map::*)(const map::LandmarkId&))&map::Map::RemoveLandmark)
       .def("has_landmark", &map::Map::HasLandmark)
       .def("get_landmark",
-           py::overload_cast<const map::LandmarkId &>(&map::Map::GetLandmark),
+           py::overload_cast<const map::LandmarkId&>(&map::Map::GetLandmark),
            py::return_value_policy::reference_internal)
       .def("clear_observations_and_landmarks",
            &map::Map::ClearObservationsAndLandmarks)
       .def("clean_landmarks_below_min_observations",
            &map::Map::CleanLandmarksBelowMinObservations)
       // Shot
+      .def("create_shot",
+           py::overload_cast<const map::ShotId&, const map::CameraId&,
+                             const map::RigCameraId&, const map::RigInstanceId&,
+                             const geometry::Pose&>(&map::Map::CreateShot),
+           py::return_value_policy::reference_internal)
       .def(
           "create_shot",
-          py::overload_cast<const map::ShotId &, const map::CameraId &,
-                            const map::RigCameraId &,
-                            const map::RigInstanceId &, const geometry::Pose &>(
+          py::overload_cast<const map::ShotId&, const map::CameraId&,
+                            const map::RigCameraId&, const map::RigInstanceId&>(
               &map::Map::CreateShot),
           py::return_value_policy::reference_internal)
-      .def("create_shot",
-           py::overload_cast<const map::ShotId &, const map::CameraId &,
-                             const map::RigCameraId &,
-                             const map::RigInstanceId &>(&map::Map::CreateShot),
-           py::return_value_policy::reference_internal)
       .def("remove_shot", &map::Map::RemoveShot)
       .def("get_shot",
-           py::overload_cast<const map::ShotId &>(&map::Map::GetShot),
+           py::overload_cast<const map::ShotId&>(&map::Map::GetShot),
            py::return_value_policy::reference_internal)
       .def("update_shot", &map::Map::UpdateShot,
            py::return_value_policy::reference_internal)
@@ -643,24 +644,25 @@ PYBIND11_MODULE(pymap, m) {
            py::return_value_policy::reference_internal)
       .def("remove_pano_shot", &map::Map::RemovePanoShot)
       .def("get_pano_shot",
-           py::overload_cast<const map::ShotId &>(&map::Map::GetPanoShot),
+           py::overload_cast<const map::ShotId&>(&map::Map::GetPanoShot),
            py::return_value_policy::reference_internal)
       .def("update_pano_shot", &map::Map::UpdatePanoShot,
            py::return_value_policy::reference_internal)
       // Observation
       .def("add_observation",
-           (void(map::Map::*)(map::Shot *const, map::Landmark *const,
-                              const map::Observation &)) &
-               map::Map::AddObservation,
+           (void (map::Map::*)(
+               map::Shot* const, map::Landmark* const,
+               const map::Observation&))&map::Map::AddObservation,
            py::arg("shot"), py::arg("landmark"), py::arg("observation"))
       .def("add_observation",
-           (void(map::Map::*)(const map::ShotId &, const map::LandmarkId &,
-                              const map::Observation &)) &
-               map::Map::AddObservation,
+           (void (map::Map::*)(
+               const map::ShotId&, const map::LandmarkId&,
+               const map::Observation&))&map::Map::AddObservation,
            py::arg("shot_Id"), py::arg("landmark_id"), py::arg("observation"))
       .def("remove_observation",
-           (void(map::Map::*)(const map::ShotId &, const map::LandmarkId &)) &
-               map::Map::RemoveObservation,
+           (void (map::Map::*)(
+               const map::ShotId&,
+               const map::LandmarkId&))&map::Map::RemoveObservation,
            py::arg("shot"), py::arg("landmark"))
       // Getters
       .def("get_shots", &map::Map::GetShotView)
@@ -673,7 +675,7 @@ PYBIND11_MODULE(pymap, m) {
       .def("set_reference", &map::Map::SetTopocentricConverter)
       // Reference
       .def("get_reference",
-           [](const map::Map &map) {
+           [](const map::Map& map) {
              py::module::import("opensfm.pygeo");
              return map.GetTopocentricConverter();
            })

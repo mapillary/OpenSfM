@@ -4,7 +4,7 @@
 
 #include <Eigen/Dense>
 
-MatX3d generateNoisyBearings(const MatX3d &bearings, double maxNoise) {
+MatX3d generateNoisyBearings(const MatX3d& bearings, double maxNoise) {
   MatX3d bearings_noisy = MatX3d::Zero(bearings.rows(), 3);
   for (int i = 0; i < bearings.rows(); ++i) {
     const Vec3d bearing = bearings.row(i);
@@ -14,7 +14,7 @@ MatX3d generateNoisyBearings(const MatX3d &bearings, double maxNoise) {
   return bearings_noisy;
 }
 
-std::vector<Mat34d> generateRts(const MatX3d &centers) {
+std::vector<Mat34d> generateRts(const MatX3d& centers) {
   const int num_cameras = centers.rows();
   std::vector<Mat34d> Rts(num_cameras);
   for (int i = 0; i < num_cameras; ++i) {
@@ -26,9 +26,9 @@ std::vector<Mat34d> generateRts(const MatX3d &centers) {
   return Rts;
 }
 
-void generate_triangulation_data(const MatX3d &centers, MatX3d &bearings,
-                                 MatX3d &bearings_noisy,
-                                 std::vector<Mat34d> &Rts, Vec3d &gt_point) {
+void generate_triangulation_data(const MatX3d& centers, MatX3d& bearings,
+                                 MatX3d& bearings_noisy,
+                                 std::vector<Mat34d>& Rts, Vec3d& gt_point) {
   const int num_cameras = centers.rows();
 
   gt_point = Vec3d(0.0, 0.0, 1.0);
@@ -166,7 +166,7 @@ class TwoCamsManyPointsFixture : public ::testing::Test {
     bearings1 = MatX3d(gt_points.size(), 3);
     bearings2 = MatX3d(gt_points.size(), 3);
     for (int i = 0; i < gt_points.size(); ++i) {
-      const Vec3d &gt_point = gt_points[i];
+      const Vec3d& gt_point = gt_points[i];
       bearings1.row(i) = gt_point.normalized();
       bearings2.row(i) =
           (rotation_1_2.transpose() * (gt_point - translation_1_2))

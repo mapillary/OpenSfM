@@ -6,46 +6,47 @@
 #include <Eigen/QR>
 #include <Eigen/SVD>
 #include <Eigen/StdVector>
+#include <cassert>
 
 namespace geometry {
 
-double AngleBetweenVectors(const Vec3d &u, const Vec3d &v);
+double AngleBetweenVectors(const Vec3d& u, const Vec3d& v);
 
-std::pair<bool, Vec3d> TriangulateBearingsDLT(const std::vector<Mat34d> &Rts,
-                                              const MatX3d &bearings,
+std::pair<bool, Vec3d> TriangulateBearingsDLT(const std::vector<Mat34d>& Rts,
+                                              const MatX3d& bearings,
                                               double threshold,
                                               double min_angle,
                                               double min_depth);
 
-Vec4d TriangulateBearingsDLTSolve(const MatX3d &bs,
-                                  const std::vector<Mat34d> &Rts);
+Vec4d TriangulateBearingsDLTSolve(const MatX3d& bs,
+                                  const std::vector<Mat34d>& Rts);
 
 std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
-    const MatX3d &centers, const MatX3d &bearings,
-    const std::vector<double> &threshold_list, double min_angle,
+    const MatX3d& centers, const MatX3d& bearings,
+    const std::vector<double>& threshold_list, double min_angle,
     double min_depth);
 
 template <class T>
 Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
-    const Eigen::Matrix<T, Eigen::Dynamic, 3> &centers,
-    const Eigen::Matrix<T, Eigen::Dynamic, 3> &bearings);
+    const Eigen::Matrix<T, Eigen::Dynamic, 3>& centers,
+    const Eigen::Matrix<T, Eigen::Dynamic, 3>& bearings);
 
 std::vector<std::pair<bool, Vec3d>> TriangulateTwoBearingsMidpointMany(
-    const MatX3d &bearings1, const MatX3d &bearings2, const Mat3d &rotation,
-    const Vec3d &translation);
+    const MatX3d& bearings1, const MatX3d& bearings2, const Mat3d& rotation,
+    const Vec3d& translation);
 
 template <class T>
 std::pair<bool, Eigen::Matrix<T, 3, 1>> TriangulateTwoBearingsMidpointSolve(
-    const Eigen::Matrix<T, 2, 3> &centers,
-    const Eigen::Matrix<T, 2, 3> &bearings);
+    const Eigen::Matrix<T, 2, 3>& centers,
+    const Eigen::Matrix<T, 2, 3>& bearings);
 
-MatXd EpipolarAngleTwoBearingsMany(const MatX3d &bearings1,
-                                   const MatX3d &bearings2,
-                                   const Mat3d &rotation,
-                                   const Vec3d &translation);
+MatXd EpipolarAngleTwoBearingsMany(const MatX3d& bearings1,
+                                   const MatX3d& bearings2,
+                                   const Mat3d& rotation,
+                                   const Vec3d& translation);
 
-Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
-                      const Vec3d &point, int iterations);
+Vec3d PointRefinement(const MatX3d& centers, const MatX3d& bearings,
+                      const Vec3d& point, int iterations);
 
 // Template implementations
 
@@ -56,8 +57,8 @@ Vec3d PointRefinement(const MatX3d &centers, const MatX3d &bearings,
 //   CVIU 2006
 template <class T>
 Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
-    const Eigen::Matrix<T, Eigen::Dynamic, 3> &centers,
-    const Eigen::Matrix<T, Eigen::Dynamic, 3> &bearings) {
+    const Eigen::Matrix<T, Eigen::Dynamic, 3>& centers,
+    const Eigen::Matrix<T, Eigen::Dynamic, 3>& bearings) {
   int nviews = bearings.rows();
   assert(nviews == centers.rows());
   assert(nviews >= 2);
@@ -82,8 +83,8 @@ Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
 
 template <class T>
 std::pair<bool, Eigen::Matrix<T, 3, 1>> TriangulateTwoBearingsMidpointSolve(
-    const Eigen::Matrix<T, 2, 3> &centers,
-    const Eigen::Matrix<T, 2, 3> &bearings) {
+    const Eigen::Matrix<T, 2, 3>& centers,
+    const Eigen::Matrix<T, 2, 3>& bearings) {
   const auto translation = centers.row(1) - centers.row(0);
   Eigen::Matrix<T, 2, 1> b;
   b[0] = translation.dot(bearings.row(0));

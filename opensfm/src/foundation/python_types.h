@@ -19,21 +19,21 @@ using pyarray_uint8 =
     py::array_t<unsigned char, py::array::c_style | py::array::forcecast>;
 
 template <typename T>
-py::array_t<T> py_array_from_data(const T *data, size_t shape0) {
+py::array_t<T> py_array_from_data(const T* data, size_t shape0) {
   py::array_t<T> res(shape0);
   std::copy(data, data + shape0, res.mutable_data());
   return res;
 }
 
 template <typename T>
-py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1) {
+py::array_t<T> py_array_from_data(const T* data, size_t shape0, size_t shape1) {
   py::array_t<T> res({shape0, shape1});
   std::copy(data, data + shape0 * shape1, res.mutable_data());
   return res;
 }
 
 template <typename T>
-py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1,
+py::array_t<T> py_array_from_data(const T* data, size_t shape0, size_t shape1,
                                   size_t shape2) {
   py::array_t<T> res({shape0, shape1, shape2});
   std::copy(data, data + shape0 * shape1 * shape2, res.mutable_data());
@@ -41,19 +41,19 @@ py::array_t<T> py_array_from_data(const T *data, size_t shape0, size_t shape1,
 }
 
 template <typename T>
-py::array_t<T> py_array_from_vector(const std::vector<T> &v) {
-  const T *data = v.size() ? v.data() : NULL;
+py::array_t<T> py_array_from_vector(const std::vector<T>& v) {
+  const T* data = v.size() ? v.data() : NULL;
   return py_array_from_data(data, v.size());
 }
 
 template <typename T>
-py::array_t<T> py_array_from_cvmat(const cv::Mat &m) {
-  const T *data = m.rows ? m.ptr<T>(0) : NULL;
+py::array_t<T> py_array_from_cvmat(const cv::Mat& m) {
+  const T* data = m.rows ? m.ptr<T>(0) : NULL;
   return py_array_from_data(data, m.rows, m.cols);
 }
 
 template <typename T>
-cv::Mat pyarray_cv_mat_view_typed(T &array, int type) {
+cv::Mat pyarray_cv_mat_view_typed(T& array, int type) {
   int height = 1;
   int width = 1;
 
@@ -67,8 +67,8 @@ cv::Mat pyarray_cv_mat_view_typed(T &array, int type) {
   return cv::Mat(height, width, type, array.mutable_data());
 }
 
-cv::Mat pyarray_cv_mat_view(pyarray_f &array);
-cv::Mat pyarray_cv_mat_view(pyarray_d &array);
-cv::Mat pyarray_cv_mat_view(pyarray_int &array);
-cv::Mat pyarray_cv_mat_view(pyarray_uint8 &array);
+cv::Mat pyarray_cv_mat_view(pyarray_f& array);
+cv::Mat pyarray_cv_mat_view(pyarray_d& array);
+cv::Mat pyarray_cv_mat_view(pyarray_int& array);
+cv::Mat pyarray_cv_mat_view(pyarray_uint8& array);
 }  // namespace foundation
