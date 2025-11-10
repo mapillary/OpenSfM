@@ -143,6 +143,9 @@ std::pair<bool, Vec3d> TriangulateBearingsMidpoint(
     const std::vector<double>& threshold_list, double min_angle,
     double min_depth) {
   const int count = centers.rows();
+  if (threshold_list.size() < static_cast<size_t>(count)) {
+    return std::make_pair(false, Vec3d());
+  }
 
   // Check angle between rays
   bool angle_ok = false;
