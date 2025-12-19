@@ -20,8 +20,8 @@ class ReprojectionError2DFixtureBase : public ::testing::Test {
   AScalar residual_adiff[size_residual];
   AScalar point_adiff[size_point];
 
-  double residuals[size_residual];
-  double jac_point[size_residual * size_point];
+  double residuals[size_residual]{};
+  double jac_point[size_residual * size_point]{};
 };
 
 class ReprojectionError2DFixture : public ReprojectionError2DFixtureBase {
@@ -104,11 +104,11 @@ class ReprojectionError2DFixture : public ReprojectionError2DFixtureBase {
 
   const double rt_instance[size_rt] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
   AScalar rt_instance_adiff[size_rt];
-  double jac_rt_instance[size_residual * size_rt];
+  double jac_rt_instance[size_residual * size_rt]{};
 
   const double rt_camera[size_rt] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6};
   AScalar rt_camera_adiff[size_rt];
-  double jac_rt_camera[size_residual * size_rt];
+  double jac_rt_camera[size_residual * size_rt]{};
 };
 
 TEST_F(ReprojectionError2DFixture, BrownAnalyticErrorEvaluatesOK) {
@@ -234,10 +234,10 @@ class ReprojectionError3DFixture : public ::testing::Test {
   AScalar rt_instance_adiff[size_rt];
   AScalar rt_camera_adiff[size_rt];
 
-  double residuals[size];
-  double jac_instance_rt[size * size_rt];
-  double jac_camera_rt[size * size_rt];
-  double jac_point[size * size_point];
+  double residuals[size]{};
+  double jac_instance_rt[size * size_rt]{};
+  double jac_camera_rt[size * size_rt]{};
+  double jac_point[size * size_point]{};
 };
 
 TEST_F(ReprojectionError3DFixture, AnalyticErrorEvaluatesOK) {

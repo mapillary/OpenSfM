@@ -76,7 +76,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   const auto alpha0 = SQUARE(g7) - SQUARE(g2) - SQUARE(g4);
 
   std::array<double, 5> coefficients = {alpha0, alpha1, alpha2, alpha3, alpha4};
-  std::array<double, 4> roots;
+  std::array<double, 4> roots{};
   const auto solve_result = foundation::SolveQuartic(coefficients, roots);
   if (!solve_result) {
     return RTs;

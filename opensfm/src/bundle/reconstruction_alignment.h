@@ -36,8 +36,8 @@ enum {
 
 struct RAShot {
   std::string id;
-  double parameters[RA_SHOT_NUM_PARAMS];
-  bool constant;
+  double parameters[RA_SHOT_NUM_PARAMS]{};
+  bool constant{};
 
   double GetRX() { return parameters[RA_SHOT_RX]; }
   double GetRY() { return parameters[RA_SHOT_RY]; }
@@ -55,8 +55,8 @@ struct RAShot {
 
 struct RAReconstruction {
   std::string id;
-  double parameters[RA_RECONSTRUCTION_NUM_PARAMS];
-  bool constant;
+  double parameters[RA_RECONSTRUCTION_NUM_PARAMS]{};
+  bool constant{};
 
   double GetRX() { return parameters[RA_RECONSTRUCTION_RX]; }
   double GetRY() { return parameters[RA_RECONSTRUCTION_RY]; }
@@ -110,8 +110,8 @@ struct RARelativeMotionConstraint {
 
   std::string reconstruction_id;
   std::string shot_id;
-  double parameters[RA_SHOT_NUM_PARAMS];
-  double scale_matrix[RA_SHOT_NUM_PARAMS * RA_SHOT_NUM_PARAMS];
+  double parameters[RA_SHOT_NUM_PARAMS]{};
+  double scale_matrix[RA_SHOT_NUM_PARAMS * RA_SHOT_NUM_PARAMS]{};
 };
 
 struct RAAbsolutePositionConstraint {
@@ -420,7 +420,7 @@ class ReconstructionAlignment {
 
   void AddAbsolutePositionConstraint(const std::string& shot_id, double x,
                                      double y, double z, double std_deviation) {
-    RAAbsolutePositionConstraint a;
+    RAAbsolutePositionConstraint a{};
     a.shot = &shots_[shot_id];
     a.position[0] = x;
     a.position[1] = y;
@@ -432,7 +432,7 @@ class ReconstructionAlignment {
   void AddRelativeAbsolutePositionConstraint(
       const std::string& reconstruction_id, const std::string& shot_id,
       double x, double y, double z, double std_deviation) {
-    RARelativeAbsolutePositionConstraint a;
+    RARelativeAbsolutePositionConstraint a{};
     a.reconstruction = &reconstructions_[reconstruction_id];
     a.shot = &shots_[shot_id];
     a.position[0] = x;
@@ -447,7 +447,7 @@ class ReconstructionAlignment {
                                 const std::string& reconstruction_b_id,
                                 double xb, double yb, double zb,
                                 double std_deviation) {
-    RACommonPointConstraint c;
+    RACommonPointConstraint c{};
     c.reconstruction_a = &reconstructions_[reconstruction_a_id];
     c.point_a[0] = xa;
     c.point_a[1] = ya;
@@ -466,7 +466,7 @@ class ReconstructionAlignment {
                                  const std::string& shot_b_id,
                                  double std_deviation_center,
                                  double std_deviation_rotation) {
-    RACommonCameraConstraint c;
+    RACommonCameraConstraint c{};
     c.reconstruction_a = &reconstructions_[reconstruction_a_id];
     c.shot_a = &shots_[shot_a_id];
     c.reconstruction_b = &reconstructions_[reconstruction_b_id];
