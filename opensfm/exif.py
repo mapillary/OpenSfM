@@ -592,7 +592,13 @@ class EXIF:
                 # Unit vector pointing north
                 xnp /= m
 
-                znp = np.array([0, 0, -1]).T
+                # Unit vector pointing up and perpendicular to north(xnp)
+                znp = p1
+                znp -= znp.dot(xnp) * xnp
+                m = np.linalg.norm(znp)
+                if m == 0:
+                    logger.debug("Cannot compute OPK angles, divider = 0")
+                    return
                 ynp = np.cross(znp, xnp)
 
                 cen = np.array([xnp, ynp, znp]).T
