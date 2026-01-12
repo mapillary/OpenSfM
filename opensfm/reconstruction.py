@@ -60,7 +60,7 @@ def log_bundle_stats(bundle_type: str, bundle_report: Dict[str, Any]) -> None:
 
     msg = f"Ran {bundle_type} bundle in {time_secs:.2f} secs."
     if num_points > 0:
-        msg += f"with {num_images}/{num_points}/{num_reprojections} ({num_reprojections/num_points:.2f}) "
+        msg += f"with {num_images}/{num_points}/{num_reprojections} ({num_reprojections / num_points:.2f}) "
         msg += "shots/points/proj. (avg. length)"
 
     logger.info(msg)
@@ -1587,7 +1587,7 @@ def triangulation_reconstruction(
             if config_override["save_partial_reconstructions"]:
                 paint_reconstruction(data, tracks_manager, reconstruction)
                 data.save_reconstruction(
-                    [reconstruction], f"reconstruction.{i*inner_iterations+j}.json"
+                    [reconstruction], f"reconstruction.{i * inner_iterations + j}.json"
                 )
 
             step = {}

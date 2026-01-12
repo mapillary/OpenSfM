@@ -9,7 +9,6 @@ import exifread
 import numpy as np
 import xmltodict as x2d
 from opensfm import pygeometry
-
 from opensfm.dataset_base import DataSetBase
 from opensfm.geo import ecef_from_lla
 from opensfm.sensors import camera_calibration, sensor_data

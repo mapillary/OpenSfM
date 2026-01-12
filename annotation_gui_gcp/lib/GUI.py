@@ -73,7 +73,7 @@ class Gui:
             v = ImageView(
                 self,
                 self.app,
-                f"/sequence_view_{ix+1}",
+                f"/sequence_view_{ix + 1}",
                 image_keys,
                 has_views_that_need_tracking,
             )
@@ -84,7 +84,7 @@ class Gui:
 
         self.cad_views = []
         for ix, cad_path in enumerate(cad_paths):
-            v = CADView(self, self.app, f"/cad_view_{ix+1}", cad_path)
+            v = CADView(self, self.app, f"/cad_view_{ix + 1}", cad_path)
             self.cad_views.append(v)
 
         subpane_routes = [

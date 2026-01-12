@@ -218,9 +218,9 @@ class GroundControlPointManager:
         assert self.get_observation(point_id, shot_id) is None
         if geo:
             mtime = geo["measured_at"]
-            assert isinstance(
-                mtime, int
-            ), "Measurement time should be integer (unix time)"
+            assert isinstance(mtime, int), (
+                "Measurement time should be integer (unix time)"
+            )
             point.geodetic_measurement = GeodeticMeasurement(
                 longitude=geo["longitude"],
                 latitude=geo["latitude"],

@@ -1,6 +1,5 @@
 # pyre-strict
 import copy
-
 import random
 from typing import Dict, Optional, Tuple, Union
 

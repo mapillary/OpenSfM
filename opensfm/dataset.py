@@ -128,7 +128,7 @@ class DataSet(DataSetBase):
             mask = self.io_handler.imread(mask_path, grayscale=True)
             if mask is None:
                 raise IOError(
-                    "Unable to load mask for image {} " "from file {}".format(
+                    "Unable to load mask for image {} from file {}".format(
                         image, mask_path
                     )
                 )

@@ -1,6 +1,5 @@
 # pyre-strict
 import os
-
 from typing import Dict, Optional
 
 import numpy as np

@@ -200,7 +200,7 @@ class SyntheticStreetScene(SyntheticScene):
         shift = 0
         for subshots in combined_scene.shot_ids:
             for i in range(len(subshots)):
-                subshots[i] = f"Shot {i+shift:04d}"
+                subshots[i] = f"Shot {i + shift:04d}"
             shift += len(subshots)
         return combined_scene
 
@@ -300,7 +300,7 @@ class SyntheticStreetScene(SyntheticScene):
             positions += np.array(positions_shift)
 
         shift = 0 if len(self.shot_ids) == 0 else sum(len(s) for s in self.shot_ids)
-        new_shot_ids = [f"Shot {shift+i:04d}" for i in range(len(positions))]
+        new_shot_ids = [f"Shot {shift + i:04d}" for i in range(len(positions))]
         self.shot_ids.append(new_shot_ids)
         self.cameras.append([camera])
 
@@ -364,7 +364,7 @@ class SyntheticStreetScene(SyntheticScene):
             camera_shot_ids = []
             for i in range(len(positions)):
                 shot_index = i * len(relative_positions) + j
-                camera_shot_ids.append(f"Shot {shift+shot_index:04d}")
+                camera_shot_ids.append(f"Shot {shift + shot_index:04d}")
             shots_ids_per_camera.append(camera_shot_ids)
         self.cameras.append(cameras)
         self.shot_ids += shots_ids_per_camera
