@@ -12,7 +12,7 @@ namespace map {
 class Map;
 class ShotView {
  public:
-  ShotView(Map& map);
+  explicit ShotView(Map& map);
   Shot& GetShot(const map::ShotId& shot_id);
   bool HasShot(const map::ShotId& shot_id) const;
   const std::unordered_map<ShotId, Shot>& GetShots() const;
@@ -24,7 +24,7 @@ class ShotView {
 
 class PanoShotView {
  public:
-  PanoShotView(Map& map);
+  explicit PanoShotView(Map& map);
   Shot& GetShot(const map::ShotId& shot_id);
   bool HasShot(const map::ShotId& shot_id) const;
   const std::unordered_map<ShotId, Shot>& GetShots() const;
@@ -36,7 +36,7 @@ class PanoShotView {
 
 class LandmarkView {
  public:
-  LandmarkView(Map& map);
+  explicit LandmarkView(Map& map);
   Landmark& GetLandmark(const LandmarkId& lm_id);
   bool HasLandmark(const LandmarkId& lm_id) const;
   const std::unordered_map<LandmarkId, Landmark>& GetLandmarks() const;
@@ -48,7 +48,7 @@ class LandmarkView {
 
 class CameraView {
  public:
-  CameraView(Map& map);
+  explicit CameraView(Map& map);
   size_t NumberOfCameras() const;
   geometry::Camera& GetCamera(const CameraId& cam_id);
   const std::unordered_map<CameraId, geometry::Camera>& GetCameras() const;

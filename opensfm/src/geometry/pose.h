@@ -16,10 +16,10 @@ class Pose {
   }
   virtual ~Pose() = default;
 
-  Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero()) {
+  explicit Pose(const Vec3d& R, const Vec3d& t = Vec3d::Zero()) {
     SetFromWorldToCamera(R, t);
   }
-  Pose(const Mat3d& R, const Vec3d& t = Vec3d::Zero()) {
+  explicit Pose(const Mat3d& R, const Vec3d& t = Vec3d::Zero()) {
     Mat4d T_cw = Mat4d::Identity();
     T_cw.block<3, 3>(0, 0) = R;
     T_cw.block<3, 1>(0, 3) = t;
