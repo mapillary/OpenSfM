@@ -1133,6 +1133,7 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem* problem) {
     ceres::Covariance covariance(options);
 
     std::vector<std::pair<const double*, const double*>> covariance_blocks;
+    covariance_blocks.reserve(shots_.size());
     for (auto& i : shots_) {
       covariance_blocks.emplace_back(
           i.second.GetRigInstance()->GetValueData().data(),
