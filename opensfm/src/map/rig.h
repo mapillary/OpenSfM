@@ -41,7 +41,7 @@ class RigInstance {
   map::RigInstanceId id;
 
   RigInstance() = default;
-  explicit RigInstance(const RigInstanceId instance_id) : id(instance_id) {}
+  explicit RigInstance(const RigInstanceId& instance_id) : id(instance_id) {}
 
   // Getters
   const std::unordered_map<map::ShotId, map::Shot*>& GetShots() const {
