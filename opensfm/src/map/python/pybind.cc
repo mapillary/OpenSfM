@@ -305,6 +305,9 @@ PYBIND11_MODULE(pymap, m) {
       .def("get_all_common_observations",
            &map::TracksManager::GetAllCommonObservations,
            py::call_guard<py::gil_scoped_release>())
+      .def("get_all_common_observations_arrays",
+           &map::TracksManager::GetAllCommonObservationsArrays,
+           py::call_guard<py::gil_scoped_release>())     
       .def("get_all_pairs_connectivity",
            &map::TracksManager::GetAllPairsConnectivity,
            py::arg("shots") = std::vector<map::ShotId>(),

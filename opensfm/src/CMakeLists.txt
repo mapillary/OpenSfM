@@ -40,6 +40,9 @@ endif()
 # For compiling VLFeat
 add_definitions(-DVL_DISABLE_AVX)
 
+# We're not using an inplace Glog
+add_definitions(-DGLOG_USE_GLOG_EXPORT)
+
 # Use the version of vlfeat in ./src/third_party/vlfeat
 add_definitions(-DINPLACE_VLFEAT)
 if(NOT USE_SSE2)

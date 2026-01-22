@@ -185,6 +185,15 @@ Vec3d Shot::Bearing(const Vec2d& point) const {
   return GetPose()->RotationCameraToWorld() * shot_camera_->Bearing(point);
 }
 
+Vec3d Shot::LandmarkBearing(const Landmark* landmark) const {
+  auto it = landmark_observations_.find(const_cast<Landmark*>(landmark));
+  if (it == landmark_observations_.end()) {
+    throw std::runtime_error("Landmark not observed in this shot");
+  }
+  const Observation& obs = it->second;
+  return Bearing(obs.point);
+}
+
 MatX3d Shot::BearingMany(const MatX2d& points) const {
   MatX3d bearings(points.rows(), 3);
   for (int i = 0; i < points.rows(); ++i) {

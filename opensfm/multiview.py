@@ -533,6 +533,7 @@ def triangulate_gcp(
     reproj_threshold: float = 0.02,
     min_ray_angle_degrees: float = 1.0,
     min_depth: float = 0.001,
+    iterations: int = 10,
 ) -> Optional[NDArray]:
     """Compute the reconstructed position of a GCP from observations."""
 
@@ -550,13 +551,17 @@ def triangulate_gcp(
 
     if len(os) >= 2:
         thresholds = len(os) * [reproj_threshold]
+        os = np.asarray(os)
+        bs = np.asarray(bs)
         valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-            np.asarray(os),
-            np.asarray(bs),
+            os,
+            bs,
             thresholds,
             np.radians(min_ray_angle_degrees),
             min_depth,
         )
+        
         if valid_triangulation:
+            X = pygeometry.point_refinement(os, bs, X, iterations)
             return X
     return None

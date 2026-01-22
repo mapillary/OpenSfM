@@ -809,8 +809,7 @@ void BundleAdjuster::Run() {
         projection_type, use_analytic_, observation, projection_loss, &problem);
 
     // Add relative depth error blocks
-    geometry::Dispatch<AddRelativeDepthError>(projection_type, observation,
-                                              projection_loss, &problem);
+    geometry::Dispatch<AddRelativeDepthError>(projection_type, observation, projection_loss, &problem);
   }
 
   // Add relative motion errors
@@ -1109,6 +1108,7 @@ void BundleAdjuster::Run() {
   }
   options.num_threads = num_threads_;
   options.max_num_iterations = max_num_iterations_;
+  options.sparse_linear_algebra_library_type = ceres::SUITE_SPARSE;
 
   ceres::Solve(options, &problem, &last_run_summary_);
 
