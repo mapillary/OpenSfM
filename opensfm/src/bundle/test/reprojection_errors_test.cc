@@ -1,8 +1,24 @@
-#include <bundle/error/projection_errors.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <Eigen/Dense>
+#include <unsupported/Eigen/AutoDiff>
+
+using TEigenDiff = Eigen::AutoDiffScalar<Eigen::Matrix<double, -1, 1>>;
+
+namespace std {
+int fpclassify(const TEigenDiff& x) {
+  return std::fpclassify(x.value());
+}
+
+inline TEigenDiff hypot(const TEigenDiff& x, const TEigenDiff& y,
+                        const TEigenDiff& z) {
+  return sqrt(x * x + y * y + z * z);
+}
+}  // namespace std
+
+// Has to be included AFTER std:: maths overloads for Eigen Autodiff above
+#include <bundle/error/projection_errors.h>
 
 class ReprojectionError2DFixtureBase : public ::testing::Test {
  public:
