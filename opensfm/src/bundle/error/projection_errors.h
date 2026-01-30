@@ -253,7 +253,7 @@ class ReprojectionError3DAnalytic
   using ReprojectionError3D::ReprojectionError3D;
 
   bool Evaluate(double const* const* parameters, double* residuals,
-                double** jacobians) const {
+                double** jacobians) const override {
     const double* rig_instance = parameters[1];
     const double* rig_camera = parameters[2];
     const double* point = parameters[3];

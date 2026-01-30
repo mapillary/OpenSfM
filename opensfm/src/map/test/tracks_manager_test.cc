@@ -25,7 +25,7 @@ class TempFile {
 
 class TracksManagerTest : public ::testing::Test {
  protected:
-  void SetUp() {
+  void SetUp() override {
     const auto o1 = map::Observation(1.0, 1.0, 1.0, 1, 1, 1, 1, 1, 1);
     const auto o2 = map::Observation(2.0, 2.0, 2.0, 2, 2, 2, 2, 2, 2);
     const auto o3 = map::Observation(3.0, 3.0, 3.0, 3, 3, 3, 3);
