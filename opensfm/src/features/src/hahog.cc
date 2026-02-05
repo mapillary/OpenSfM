@@ -173,7 +173,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     for (i = 0; i < (signed)numFeatures; ++i) {
       const VlFrameOrientedEllipse& frame = vecFeatures.at(i).frame;
       float det = frame.a11 * frame.a22 - frame.a12 * frame.a21;
-      float size = sqrt(fabs(det));
+      float size = std::sqrt(fabs(det));
       float angle = atan2(frame.a21, frame.a11) * 180.0f / M_PI;
       points[4 * i + 0] = frame.x;
       points[4 * i + 1] = frame.y;
