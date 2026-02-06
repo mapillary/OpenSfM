@@ -62,8 +62,8 @@ class CameraFixture : public ::testing::Test {
   Vec2d distortion_radial;
   Vec2d principal_point;
 
-  double point[3];
-  double projected[2];
+  double point[3]{};
+  double projected[2]{};
 };
 
 TEST_F(CameraFixture, PerspectiveIsConsistent) {

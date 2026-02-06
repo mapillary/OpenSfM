@@ -173,7 +173,7 @@ class Report:
             ["Date", self.stats["processing_statistics"]["date"]],
             [
                 "Area Covered",
-                f"{self.stats['processing_statistics']['area']/1e6:.6f} km²",
+                f"{self.stats['processing_statistics']['area'] / 1e6:.6f} km²",
             ],
             [
                 "Processing Time",
@@ -215,7 +215,7 @@ class Report:
             ],
             [
                 "Reconstructed Points",
-                f"{rec_points} over {init_points} points ({rec_points/init_points*100:.1f}%)",
+                f"{rec_points} over {init_points} points ({rec_points / init_points * 100:.1f}%)",
             ],
             [
                 "Reconstructed Components",
@@ -277,8 +277,8 @@ class Report:
             for comp in ["x", "y", "z"]:
                 row = [comp.upper() + " Error (meters)"]
                 row.append(f"{self.stats[error_type + '_errors']['mean'][comp]:.3f}")
-                row.append(f"{self.stats[error_type +'_errors']['std'][comp]:.3f}")
-                row.append(f"{self.stats[error_type +'_errors']['error'][comp]:.3f}")
+                row.append(f"{self.stats[error_type + '_errors']['std'][comp]:.3f}")
+                row.append(f"{self.stats[error_type + '_errors']['error'][comp]:.3f}")
                 rows.append(row)
 
             rows.append(
@@ -286,7 +286,7 @@ class Report:
                     "Total",
                     "",
                     "",
-                    f"{self.stats[error_type +'_errors']['average_error']:.3f}",
+                    f"{self.stats[error_type + '_errors']['average_error']:.3f}",
                 ]
             )
             self._make_table(columns_names, rows)

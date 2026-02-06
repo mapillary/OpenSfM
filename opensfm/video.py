@@ -12,9 +12,9 @@ from opensfm import context, geotag_from_gpx, io
 def video_orientation(video_file: str) -> int:
     # Rotation
     process = Popen(["exiftool", "-Rotation", "-b", video_file], stdout=PIPE)
-    assert (
-        process.stdout is not None
-    ), "stdout should not be None when stdout=PIPE is specified"
+    assert process.stdout is not None, (
+        "stdout should not be None when stdout=PIPE is specified"
+    )
     rotation = process.stdout.read().decode("utf-8").strip()
     if rotation:
         rotation = float(rotation)
@@ -51,9 +51,9 @@ def import_video_with_gpx(
     else:
         try:
             process = Popen(["exiftool", "-CreateDate", "-b", video_file], stdout=PIPE)
-            assert (
-                process.stdout is not None
-            ), "stdout should not be None when stdout=PIPE is specified"
+            assert process.stdout is not None, (
+                "stdout should not be None when stdout=PIPE is specified"
+            )
             exifdate = process.stdout.read().decode("utf-8").strip()
             video_start_time = datetime.datetime.strptime(exifdate, "%Y:%m:%d %H:%M:%S")
         except Exception:

@@ -68,7 +68,9 @@ def file_sanity_check(root, seq_dict, fname) -> t.Set[str]:
 
     n_missing = len(keys_in_seq_dict - available_images)
     if n_missing > 0:
-        print(f"There are {n_missing} images from {fname} missing in {(root/'images')}")
+        print(
+            f"There are {n_missing} images from {fname} missing in {(root / 'images')}"
+        )
 
     return available_images
 

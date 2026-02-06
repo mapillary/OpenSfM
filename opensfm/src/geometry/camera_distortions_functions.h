@@ -465,7 +465,7 @@ struct Disto62 : Functor<2, 8, 2> {
 
     Mat2<T> derivative(const Vec2<T>& point) const {
       Mat2<T> jacobian;
-      std::array<double, 2> dummy;
+      std::array<double, 2> dummy{};
       std::array<double, 8> ks{k1, k2, k3, k4, k5, k6, p1, p2};
       Disto62::ForwardDerivatives<T, false>(point.data(), ks.data(),
                                             dummy.data(), jacobian.data());
@@ -683,7 +683,7 @@ struct Disto624 : Functor<2, 12, 2> {
 
     Mat2<T> derivative(const Vec2<T>& point) const {
       Mat2<T> jacobian;
-      std::array<double, 2> dummy;
+      std::array<double, 2> dummy{};
       std::array<double, 12> ks{k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3};
       Disto624::ForwardDerivatives<T, false>(point.data(), ks.data(),
                                              dummy.data(), jacobian.data());
@@ -815,7 +815,7 @@ struct DistoBrown : Functor<2, 5, 2> {
 
     Mat2<T> derivative(const Vec2<T>& point) const {
       Mat2<T> jacobian;
-      std::array<double, 2> dummy;
+      std::array<double, 2> dummy{};
       std::array<double, 5> ks{k1, k2, k3, p1, p2};
       DistoBrown::ForwardDerivatives<T, false>(point.data(), ks.data(),
                                                dummy.data(), jacobian.data());

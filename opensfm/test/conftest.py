@@ -128,16 +128,14 @@ def scene_synthetic_triangulation() -> synthetic_scene.SyntheticInputData:
 
 
 @pytest.fixture(scope="module")
-def pairs_and_poses() -> (
-    Tuple[
-        Dict[Tuple[str, str], List[Tuple[List[NDArray]]]],
-        Dict[Tuple[str, str], List[Tuple[List[NDArray]]]],
-        pygeometry.Camera,
-        sd.SyntheticFeatures,
-        pymap.TracksManager,
-        types.Reconstruction,
-    ]
-):
+def pairs_and_poses() -> Tuple[
+    Dict[Tuple[str, str], List[Tuple[List[NDArray]]]],
+    Dict[Tuple[str, str], List[Tuple[List[NDArray]]]],
+    pygeometry.Camera,
+    sd.SyntheticFeatures,
+    pymap.TracksManager,
+    types.Reconstruction,
+]:
     np.random.seed(42)
     data = synthetic_examples.synthetic_cube_scene()
 

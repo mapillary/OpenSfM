@@ -648,7 +648,7 @@ def build_flann_index(descriptors: NDArray, config: Dict[str, Any]) -> cv2.flann
         elif algorithm_type == "KDTREE":
             FLANN_INDEX_METHOD = FLANN_INDEX_KDTREE
         else:
-            raise ValueError("Unknown flann algorithm type " "must be KMEANS, KDTREE")
+            raise ValueError("Unknown flann algorithm type must be KMEANS, KDTREE")
         flann_params = {
             "algorithm": FLANN_INDEX_METHOD,
             "branching": config["flann_branching"],

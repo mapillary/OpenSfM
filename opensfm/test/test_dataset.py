@@ -2,7 +2,6 @@
 from typing import Any
 
 import numpy as np
-
 from opensfm import features
 from opensfm.test import data_generation
 

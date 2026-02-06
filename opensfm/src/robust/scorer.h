@@ -20,7 +20,7 @@ struct ScoreInfo {
 
 class RansacScoring {
  public:
-  RansacScoring(double threshold) : threshold_(threshold) {}
+  explicit RansacScoring(double threshold) : threshold_(threshold) {}
 
   template <class IT, class T>
   ScoreInfo<T> Score(IT begin, IT end,
@@ -40,7 +40,7 @@ class RansacScoring {
 class MedianBasedScoring {
  public:
   MedianBasedScoring() = default;
-  MedianBasedScoring(double nth) : nth_(nth) {}
+  explicit MedianBasedScoring(double nth) : nth_(nth) {}
 
   template <class IT>
   double ComputeMedian(IT begin, IT end) const {
@@ -60,7 +60,7 @@ class MedianBasedScoring {
 
 class MSacScoring {
  public:
-  MSacScoring(double threshold) : threshold_(threshold) {}
+  explicit MSacScoring(double threshold) : threshold_(threshold) {}
 
   template <class IT, class T>
   ScoreInfo<T> Score(IT begin, IT end,
@@ -85,7 +85,7 @@ class MSacScoring {
 
 class LMedSScoring : public MedianBasedScoring {
  public:
-  LMedSScoring(double multiplier)
+  explicit LMedSScoring(double multiplier)
       : MedianBasedScoring(0.5), multiplier_(multiplier) {}
 
   template <class IT, class T>

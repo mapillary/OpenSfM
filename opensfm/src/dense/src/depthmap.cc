@@ -69,7 +69,7 @@ float NCCEstimator::Get() {
   if (varx < 0.1 || vary < 0.1) {
     return -1;
   } else {
-    return (meanxy - meanx * meany) / sqrt(varx * vary);
+    return (meanxy - meanx * meany) / std::sqrt(varx * vary);
   }
 }
 

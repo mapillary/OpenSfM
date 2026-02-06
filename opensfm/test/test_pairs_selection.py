@@ -5,7 +5,6 @@ from typing import Any, Dict, Iterator
 
 import numpy as np
 import pytest
-
 from opensfm import commands, dataset, feature_loader, geo, pairs_selection
 from opensfm.dataset_base import DataSetBase
 from opensfm.test import data_generation

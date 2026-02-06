@@ -128,7 +128,7 @@ class DataSet(DataSetBase):
             mask = self.io_handler.imread(mask_path, grayscale=True)
             if mask is None:
                 raise IOError(
-                    "Unable to load mask for image {} " "from file {}".format(
+                    "Unable to load mask for image {} from file {}".format(
                         image, mask_path
                     )
                 )
@@ -349,7 +349,7 @@ class DataSet(DataSetBase):
         class MatchingUnpickler(pickle.Unpickler):
             # Handle both numpy <2.0 (np.core) and numpy >=2.0 (np._core)
             _multiarray = (
-                np._core.multiarray if hasattr(np, "_core") else np.core.multiarray
+                np.core.multiarray if hasattr(np, "core") else np._core.multiarray
             )
             modules_map = {
                 "numpy.core.multiarray._reconstruct": _multiarray,

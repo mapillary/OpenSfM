@@ -28,7 +28,7 @@ float DistanceL2(const float* pa, const float* pb, int n) {
   for (int i = 0; i < n; ++i) {
     distance += (pa[i] - pb[i]) * (pa[i] - pb[i]);
   }
-  return sqrt(distance);
+  return std::sqrt(distance);
 }
 
 void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,

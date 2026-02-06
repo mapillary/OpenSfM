@@ -5,9 +5,7 @@ import logging
 from typing import List
 
 import matplotlib.pyplot as plt
-
 import numpy as np
-
 import opensfm.reconstruction as orec
 from opensfm import dataset, features, io, pymap, types
 

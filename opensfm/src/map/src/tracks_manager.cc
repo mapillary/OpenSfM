@@ -31,7 +31,7 @@ void WriteToStreamCurrentVersion(S& ostream,
           << std::endl;
   const auto shotsIDs = manager.GetShotIds();
   for (const auto& shotID : shotsIDs) {
-    const auto observations = manager.GetShotObservations(shotID);
+    const auto& observations = manager.GetShotObservations(shotID);
     for (const auto& observation : observations) {
       ostream << shotID << "\t" << observation.first << "\t"
               << observation.second.feature_id << "\t"
@@ -82,7 +82,7 @@ map::TracksManager InstanciateFromStreamV0(S& fstream) {
     SeparateLineByTabs(line, elems);
     if (elems.size() != N_ENTRIES)  // process only valid lines
     {
-      std::runtime_error(
+      throw std::runtime_error(
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }
@@ -112,7 +112,7 @@ map::TracksManager InstanciateFromStreamV1(S& fstream) {
     SeparateLineByTabs(line, elems);
     if (elems.size() != N_ENTRIES)  // process only valid lines
     {
-      std::runtime_error(
+      throw std::runtime_error(
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }
@@ -142,7 +142,7 @@ map::TracksManager InstanciateFromStreamV2(S& fstream) {
     SeparateLineByTabs(line, elems);
     if (elems.size() != N_ENTRIES)  // process only valid lines
     {
-      std::runtime_error(
+      throw std::runtime_error(
           "Encountered invalid line. A line must contain exactly " +
           std::to_string(N_ENTRIES) + " values!");
     }

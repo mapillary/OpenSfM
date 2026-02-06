@@ -246,14 +246,14 @@ class ReprojectionError3D : public ReprojectionError {
 };
 
 class ReprojectionError3DAnalytic
-    : protected ReprojectionError3D,
+    : public ReprojectionError3D,
       public ceres::SizedCostFunction<3, 1, 6, 6, 3> {
  public:
   constexpr static int Size = 3;
   using ReprojectionError3D::ReprojectionError3D;
 
   bool Evaluate(double const* const* parameters, double* residuals,
-                double** jacobians) const {
+                double** jacobians) const override {
     const double* rig_instance = parameters[1];
     const double* rig_camera = parameters[2];
     const double* point = parameters[3];

@@ -30,7 +30,7 @@ class AbsolutePoseKnownRotation
   }
 
   static Error Evaluate(const Type& model, const Data& d) {
-    const auto translation = model;
+    const auto& translation = model;
     const auto bearing = d.first.normalized();
     const auto point = d.second;
     const auto projected = (point + translation).normalized();

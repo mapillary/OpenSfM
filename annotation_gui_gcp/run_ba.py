@@ -248,7 +248,7 @@ def add_gcp_to_bundle(
                 coordinates = np.array(enu)
             else:
                 logger.warning(
-                    "Cannot initialize GCP '{}'." "  Ignoring it".format(point.id)
+                    "Cannot initialize GCP '{}'.  Ignoring it".format(point.id)
                 )
                 continue
 
@@ -751,7 +751,7 @@ def align(
         data.config["triangulation_min_ray_angle"] = backup
         logger.info(
             f"Re-triangulated. Removed {n_points - len(merged.points)}."
-            f" Kept {int(100*len(merged.points)/n_points)}%"
+            f" Kept {int(100 * len(merged.points) / n_points)}%"
         )
         data.save_reconstruction(
             [merged],
@@ -878,7 +878,7 @@ def align(
             for ix, gcp_id in enumerate(gcps_sorted[:5]):
                 n = stats_bad_reprojections[gcp_id]
                 if n > 0:
-                    logger.info(f"#{ix+1} - {gcp_id}: {n} bad annotations")
+                    logger.info(f"#{ix + 1} - {gcp_id}: {n} bad annotations")
         else:
             logger.info("No annotations with large reprojection errors")
 

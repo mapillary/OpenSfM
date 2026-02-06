@@ -5,7 +5,6 @@ from io import StringIO
 from typing import List
 
 import numpy as np
-
 from opensfm import io, pygeometry, pymap, types
 from opensfm.test import data_generation, utils
 

@@ -302,13 +302,13 @@ class CameraDerivativesFixture : public ::testing::Test {
   Vec2d distortion_radial;
   Vec2d principal_point;
 
-  double point[3];
+  double point[3]{};
   using AScalar = Eigen::AutoDiffScalar<VecXd>;
   AScalar point_adiff[3];
   VecX<AScalar> camera_adiff;
 
   AScalar projection_expected[2];
-  double projected[2];
+  double projected[2]{};
 };
 
 TEST_F(CameraDerivativesFixture, ComputePerspectiveAnalyticalDerivatives) {

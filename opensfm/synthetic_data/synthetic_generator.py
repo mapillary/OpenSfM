@@ -452,7 +452,7 @@ def generate_track_data(
 
         if index % 100 == 0:
             logger.info(
-                f"Flushing images # {index} ({(time.time() - start)/(index+1)} sec. per image"
+                f"Flushing images # {index} ({(time.time() - start) / (index + 1)} sec. per image"
             )
             features.sync()
 

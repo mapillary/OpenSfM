@@ -43,8 +43,8 @@ struct Observation {
   int feature_id{0};
 
   // Optional data : semantics
-  int segmentation_id;
-  int instance_id;
+  int segmentation_id{};
+  int instance_id{};
 
   // Optional data : depth prior
   std::optional<Depth> depth_prior;
