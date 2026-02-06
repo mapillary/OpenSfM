@@ -493,7 +493,7 @@ py::dict BAHelpers::BundleShotPoses(
       shot_cameras[shot_id] = shot.GetCamera()->id;
       shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
 
-      const auto is_fixed = shot_ids.find(shot_id) != shot_ids.end();
+      const auto is_fixed = shot_ids.find(shot_id) == shot_ids.end();
       if (!is_fixed) {
         if (config["bundle_use_gps"].cast<bool>()) {
           const auto pos = shot.GetShotMeasurements().gps_position_;
