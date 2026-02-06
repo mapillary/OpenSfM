@@ -291,6 +291,8 @@ PYBIND11_MODULE(pymap, m) {
                   &map::TracksManager::MergeTracksManager)
       .def("add_observation", &map::TracksManager::AddObservation)
       .def("remove_observation", &map::TracksManager::RemoveObservation)
+      .def("remove_track", &map::TracksManager::RemoveTrack)
+      .def("remove_shot", &map::TracksManager::RemoveShot)
       .def("num_shots", &map::TracksManager::NumShots)
       .def("num_tracks", &map::TracksManager::NumTracks)
       .def("get_shot_ids", &map::TracksManager::GetShotIds)
