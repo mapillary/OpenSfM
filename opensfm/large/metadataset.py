@@ -22,7 +22,11 @@ class MetaDataSet:
         self.data_path: str = os.path.abspath(data_path)
 
         config_file = os.path.join(self.data_path, "config.yaml")
-        self.config: Dict[str, Any] = config.load_config(config_file)
+        if os.path.isfile(config_file):
+            with open(config_file) as fin:
+                self.config: Dict[str, Any] = config.load_config_from_fileobject(fin)
+        else:
+            self.config: Dict[str, Any] = config.default_config()
 
         self._image_list_file_name = "image_list_with_gps.tsv"
         self._clusters_file_name = "clusters.npz"
