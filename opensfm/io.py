@@ -27,7 +27,7 @@ from PIL import Image
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-JSONType = Any  # pyre-ignore[33]
+JSONType = Any
 
 
 def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:

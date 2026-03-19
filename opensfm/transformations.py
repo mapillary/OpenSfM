@@ -1208,56 +1208,23 @@ def euler_from_matrix(
 
     M = numpy.asarray(matrix, dtype=numpy.float64)[:3, :3]
     if repetition:
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[Union[int, str],
-        #  int]`.
         sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
         if sy > _EPS:
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], int]`.
             ax = math.atan2(M[i, j], M[i, k])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             ay = math.atan2(sy, M[i, i])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             az = math.atan2(M[j, i], -M[k, i])
         else:
             ax = math.atan2(-M[j, k], M[j, j])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             ay = math.atan2(sy, M[i, i])
             az = 0.0
     else:
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[Union[int, str],
-        #  Union[int, str]]`.
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int, Union[int,
-        #  str]]`.
         cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
         if cy > _EPS:
             ax = math.atan2(M[k, j], M[k, k])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             ay = math.atan2(-M[k, i], cy)
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             az = math.atan2(M[j, i], M[i, i])
         else:
             ax = math.atan2(-M[j, k], M[j, j])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             ay = math.atan2(-M[k, i], cy)
             az = 0.0
 

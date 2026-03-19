@@ -483,7 +483,7 @@ def two_view_reconstruction_5pt(
     return R_5p, t_5p, inliers_5p
 
 
-def two_view_reconstruction_general(  # pyre-ignore[3]: pyre is not happy with the Dict[str, Any]
+def two_view_reconstruction_general(
     p1: NDArray,
     p2: NDArray,
     camera1: pygeometry.Camera,
