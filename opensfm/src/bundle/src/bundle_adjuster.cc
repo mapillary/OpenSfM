@@ -125,7 +125,7 @@ void BundleAdjuster::AddRigInstance(
   for (const auto& shot_camera : shot_cameras) {
     const auto shot_id = shot_camera.first;
     const auto camera_id = shot_camera.second;
-    const auto rig_camera_id = shot_rig_cameras.at(shot_id);
+    const auto& rig_camera_id = shot_rig_cameras.at(shot_id);
 
     const auto camera_exists = cameras_.find(camera_id);
     if (camera_exists == cameras_.end()) {
