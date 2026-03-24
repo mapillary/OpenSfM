@@ -1,4 +1,5 @@
 #include <foundation/union_find.h>
+#include <foundation/types.h>
 #include <map/tracks_manager.h>
 
 #include <optional>
@@ -303,6 +304,23 @@ TracksManager::GetAllCommonObservations(const ShotId& shot1,
     }
   }
   return tuples;
+}
+
+std::tuple<std::vector<map::TrackId>, MatX2f, MatX2f>
+TracksManager::GetAllCommonObservationsArrays(const ShotId& shot1,
+                                              const ShotId& shot2) const {
+  const auto tuples = GetAllCommonObservations(shot1, shot2);
+
+  std::vector<map::TrackId> track_ids(tuples.size());
+  MatX2f points1(tuples.size(), 2);
+  MatX2f points2(tuples.size(), 2);
+  for (int i = 0; i < tuples.size(); ++i) {
+    const auto& [track_id, obs1, obs2] = tuples[i];
+    track_ids[i] = track_id;
+    points1.row(i) = obs1.point.cast<float>();
+    points2.row(i) = obs2.point.cast<float>();
+  }
+  return {track_ids, points1, points2};
 }
 
 std::unordered_map<TracksManager::ShotPair, int, HashPair>

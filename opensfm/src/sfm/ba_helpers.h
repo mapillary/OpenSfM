@@ -18,6 +18,7 @@ class BAHelpers {
       const std::unordered_map<map::RigCameraId, map::RigCamera>&
           rig_camera_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
+      int grid_size,
       const py::dict& config);
 
   static py::tuple BundleLocal(
@@ -26,7 +27,9 @@ class BAHelpers {
       const std::unordered_map<map::RigCameraId, map::RigCamera>&
           rig_camera_priors,
       const AlignedVector<map::GroundControlPoint>& gcp,
-      const map::ShotId& central_shot_id, const py::dict& config);
+      const map::ShotId& central_shot_id, 
+      int grid_size,
+      const py::dict& config);
 
   static py::dict BundleShotPoses(
       map::Map& map, const std::unordered_set<map::ShotId>& shot_ids,
@@ -57,6 +60,11 @@ class BAHelpers {
       const AlignedVector<map::GroundControlPoint>& gcp,
       const py::dict& config);
 
+  static std::unordered_set<map::TrackId> SelectTracksGrid(
+    map::Map& map,
+    const std::unordered_set<map::ShotId>& shot_ids,
+    size_t grid_size);
+
  private:
   static std::unordered_set<map::Shot*> DirectShotNeighbors(
       map::Map& map, const std::unordered_set<map::Shot*>& shot_ids,
@@ -64,6 +72,7 @@ class BAHelpers {
   static bool TriangulateGCP(
       const map::GroundControlPoint& point,
       const std::unordered_map<map::ShotId, map::Shot>& shots,
+      float reproj_threshold,
       Vec3d& coordinates);
 
   static void AlignmentConstraints(
