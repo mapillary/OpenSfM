@@ -1,11 +1,13 @@
-# pyre-unsafe
-from typing import Dict, Tuple
-
-from numpy import ndarray
+# pyre-strict
+from mapillary.opensfm.annotation_gui_gcp.lib.gcp_manager import (
+    GroundControlPointManager,
+)
 from opensfm import dataset
 
 
-def get_all_track_observations(gcp_database, track_id: str) -> Dict[str, ndarray]:
+def get_all_track_observations(
+    gcp_database: GroundControlPointManager, track_id: str
+) -> dict[str, object]:
     print(f"Getting all observations of track {track_id}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()
@@ -14,8 +16,8 @@ def get_all_track_observations(gcp_database, track_id: str) -> Dict[str, ndarray
 
 
 def get_tracks_visible_in_image(
-    gcp_database, image_key, min_len: int = 5
-) -> Dict[str, Tuple[ndarray, int]]:
+    gcp_database: GroundControlPointManager, image_key: str, min_len: int = 5
+) -> dict[str, tuple[object, int]]:
     print(f"Getting track observations visible in {image_key}")
     data = dataset.DataSet(gcp_database.path)
     tracks_manager = data.load_tracks_manager()
