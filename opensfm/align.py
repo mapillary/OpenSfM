@@ -347,6 +347,7 @@ def set_gps_bias(
         logger.warning("Cannot compensate some shots, GPS bias won't be compensated.")
     else:
         for camera_id, transform in per_camera_transform.items():
+            # pyrefly: ignore [not-iterable]
             s, A, b = transform
             A_angle_axis = cv2.Rodrigues(A)[0].flatten()
             s, A_angle_axis, b = 1.0 / s, -A_angle_axis, -A.T.dot(b) / s

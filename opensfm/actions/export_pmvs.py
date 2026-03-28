@@ -106,6 +106,7 @@ def export(
         if image_graph:
             adj_indices = []
             for adj_image in image_graph[image]:
+                # pyrefly: ignore [bad-argument-type]
                 weight = float(image_graph[image][adj_image]["weight"])
                 if weight > 0 and adj_image in shot_index:
                     adj_indices.append(shot_index[adj_image])

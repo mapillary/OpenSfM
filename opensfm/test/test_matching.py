@@ -116,6 +116,7 @@ def test_match_images(scene_synthetic: synthetic_scene.SyntheticInputData) -> No
         pair = images[i], images[i + 1]
         matches = pairs.get(pair)
         if matches is None or len(matches) == 1:
+            # pyrefly: ignore [no-matching-overload]
             matches = pairs.get(pair[::-1])
         assert matches is not None
         assert len(matches) > 25
@@ -146,6 +147,7 @@ def test_triangulation_inliers(
     for f1, f2, _, pose in pairs_and_their_E:
         Rt = pose.get_cam_to_world()[:3]
 
+        # pyrefly: ignore [no-matching-overload]
         count_outliers = np.random.randint(0, len(f1) / 10)
         f1[:count_outliers, :] += np.random.uniform(0, 1e-1, size=(count_outliers, 3))
 

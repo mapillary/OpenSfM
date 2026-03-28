@@ -33,6 +33,7 @@ def _length_histogram(
         if not obs_count:
             obs_count = len(tracks_manager.get_track_observations(point.id))
         hist[obs_count] += 1
+    # pyrefly: ignore [no-matching-overload]
     return list(hist.keys()), list(hist.values())
 
 
@@ -237,13 +238,16 @@ def reconstruction_statistics(
     points_count_over_two = sum(counts[1:])
     stats["observations_count"] = int(sum(lengths * counts))
     stats["average_track_length"] = (
+        # pyrefly: ignore [unsupported-operation]
         (stats["observations_count"] / points_count) if points_count > 0 else -1
     )
     stats["average_track_length_over_two"] = (
+        # pyrefly: ignore [unsupported-operation]
         (int(sum(lengths[1:] * counts[1:])) / points_count_over_two)
         if points_count_over_two > 0
         else -1
     )
+    # pyrefly: ignore [unsupported-operation]
     stats["histogram_track_length"] = {k: v for k, v in hist_agg}
 
     (
@@ -254,17 +258,23 @@ def reconstruction_statistics(
         (hist_pixels, bins_pixels),
         (hist_angular, bins_angular),
     ) = _projection_error(tracks_manager, reconstructions)
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_error_normalized"] = avg_normalized
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_error_pixels"] = avg_pixels
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_error_angular"] = avg_angular
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_histogram_normalized"] = (
         list(map(float, hist_normalized)),
         list(map(float, bins_normalized)),
     )
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_histogram_pixels"] = (
         list(map(float, hist_pixels)),
         list(map(float, bins_pixels)),
     )
+    # pyrefly: ignore [unsupported-operation]
     stats["reprojection_histogram_angular"] = (
         list(map(float, hist_angular)),
         list(map(float, bins_angular)),
@@ -305,10 +315,12 @@ def processing_statistics(
     )
 
     try:
+        # pyrefly: ignore [unsupported-operation]
         stats["date"] = datetime.datetime.fromtimestamp(
             data.io_handler.timestamp(data._reconstruction_file(None))
         ).strftime("%d/%m/%Y at %H:%M:%S")
     except FileNotFoundError:
+        # pyrefly: ignore [unsupported-operation]
         stats["date"] = "unknown"
 
     default_max = 1e30
@@ -320,6 +332,7 @@ def processing_statistics(
             min_y = min(min_y, o[1])
             max_x = max(max_x, o[0])
             max_y = max(max_y, o[1])
+    # pyrefly: ignore [unsupported-operation]
     stats["area"] = (max_x - min_x) * (max_y - min_y) if min_x != default_max else -1
     return stats
 

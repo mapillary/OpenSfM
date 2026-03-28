@@ -134,6 +134,7 @@ class FeatureLoader:
         if segmentation is None:
             return features
 
+        # pyrefly: ignore [no-matching-overload]
         desc_augmented = np.concatenate(
             # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (

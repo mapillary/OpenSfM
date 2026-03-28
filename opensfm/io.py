@@ -534,24 +534,32 @@ def pymap_metadata_to_json(metadata: pymap.ShotMeasurements) -> Dict[str, Any]:
     if metadata.orientation.has_value:
         obj["orientation"] = metadata.orientation.value
     if metadata.capture_time.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["capture_time"] = metadata.capture_time.value
     if metadata.gps_accuracy.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["gps_dop"] = metadata.gps_accuracy.value
     if metadata.gps_position.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["gps_position"] = list(metadata.gps_position.value)
     if metadata.gravity_down.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["gravity_down"] = list(metadata.gravity_down.value)
     if metadata.compass_angle.has_value and metadata.compass_accuracy.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["compass"] = {
             "angle": metadata.compass_angle.value,
             "accuracy": metadata.compass_accuracy.value,
         }
     else:
         if metadata.compass_angle.has_value:
+            # pyrefly: ignore [unsupported-operation]
             obj["compass"] = {"angle": metadata.compass_angle.value}
         elif metadata.compass_accuracy.has_value:
+            # pyrefly: ignore [unsupported-operation]
             obj["compass"] = {"accuracy": metadata.compass_accuracy.value}
     if metadata.sequence_key.has_value:
+        # pyrefly: ignore [unsupported-operation]
         obj["skey"] = metadata.sequence_key.value
     return obj
 
@@ -986,6 +994,7 @@ def write_ground_control_points(
         point_obj = {}
         point_obj["id"] = point.id
         if point.lla:
+            # pyrefly: ignore [unsupported-operation]
             point_obj["position"] = {
                 "latitude": point.lla["latitude"],
                 "longitude": point.lla["longitude"],
@@ -993,6 +1002,7 @@ def write_ground_control_points(
             if point.has_altitude:
                 point_obj["position"]["altitude"] = point.lla["altitude"]
 
+        # pyrefly: ignore [unsupported-operation]
         point_obj["observations"] = []
         for observation in point.observations:
             point_obj["observations"].append(
@@ -1285,6 +1295,7 @@ def image_size_from_fileobject(
     """Height and width of an image."""
     if isinstance(fb, TextIO):
         image = imread(fb.name)
+        # pyrefly: ignore [bad-return]
         return image.shape[:2]
     else:
         with Image.open(fb) as img:

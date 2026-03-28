@@ -233,6 +233,7 @@ class FeaturesData:
 
         if has_segmentation or has_instances:
             semantic_data = SemanticData(
+                # pyrefly: ignore [bad-argument-type]
                 data["segmentations"] if has_segmentation else None,
                 data["instances"] if has_instances else None,
                 labels,
@@ -265,6 +266,7 @@ class FeaturesData:
 
         if has_segmentation or has_instances:
             semantic_data = SemanticData(
+                # pyrefly: ignore [bad-argument-type]
                 data["segmentations"] if has_segmentation else None,
                 data["instances"] if has_instances else None,
                 data["segmentation_labels"],
@@ -667,4 +669,5 @@ def build_flann_index(descriptors: NDArray, config: Dict[str, Any]) -> cv2.flann
             f"FLANN isn't supported for feature type {descriptors.dtype.type}."
         )
 
+    # pyrefly: ignore [not-callable]
     return context.flann_Index(descriptors, flann_params)

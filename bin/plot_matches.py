@@ -55,6 +55,7 @@ def plot_graph(data) -> None:
         o2 = np.array(
             reference.to_topocentric(gps2["latitude"], gps2["longitude"], 0)[:2]
         )
+        # pyrefly: ignore [no-matching-overload]
         c = max(0, min(1.0, 1 - (edge - lowest) / (highest - lowest)))
         pl.plot([o1[0], o2[0]], [o1[1], o2[1]], linestyle="-", color=cmap(c))
 

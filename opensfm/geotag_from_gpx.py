@@ -139,7 +139,9 @@ def interpolate_lat_lon(points, t):
             break
 
     # time diff
+    # pyrefly: ignore [unbound-name]
     dt_before = (t - before[0]).total_seconds()
+    # pyrefly: ignore [unbound-name]
     dt_after = (after[0] - t).total_seconds()
 
     # simple linear interpolation

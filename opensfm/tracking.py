@@ -49,6 +49,7 @@ def load_features(
         if depth_data is not None:
             depths[im] = depth_data
 
+    # pyrefly: ignore [bad-return]
     return features, colors, segmentations, instances, depths
 
 
@@ -64,6 +65,7 @@ def load_matches(
         for im2 in im1_matches:
             if im2 in images:
                 matches[im1, im2] = im1_matches[im2]
+    # pyrefly: ignore [bad-return]
     return matches
 
 
@@ -134,6 +136,7 @@ def create_tracks_manager(
                     )
                     obs.depth_prior = pymap.Depth(
                         value=depth_value,  # pyre-ignore
+                        # pyrefly: ignore [bad-argument-type]
                         std_deviation=std,
                         is_radial=depth_is_radial,
                     )
@@ -226,7 +229,9 @@ def all_common_tracks(
                 np.array([p.point for _, _, p in tuples]),
             )
         else:
+            # pyrefly: ignore [unsupported-operation]
             common_tracks[im1, im2] = [v for v, _, _ in tuples]
+    # pyrefly: ignore [bad-return]
     return common_tracks
 
 

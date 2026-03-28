@@ -426,9 +426,11 @@ def export_cameras(
     images_map = {}
     for image in data.images():
         camera_model = data.load_exif(image)["camera"]
+        # pyrefly: ignore [bad-argument-type]
         image_id = db.add_image(image, camera_map[camera_model])
         images_map[image] = image_id
 
+    # pyrefly: ignore [bad-return]
     return images_map, camera_map
 
 
@@ -465,12 +467,15 @@ def export_matches(
             pair_matches = matches_per_pair.setdefault(pair_key, {})
             for match in image_matches:
                 if image1 < image2:
+                    # pyrefly: ignore [missing-attribute]
                     pair_matches.update({(match[0], match[1]): True})
                 else:
+                    # pyrefly: ignore [missing-attribute]
                     pair_matches.update({(match[1], match[0]): True})
 
     data.config["robust_matching_threshold"] = 8
     for pair, matches in matches_per_pair.items():
+        # pyrefly: ignore [not-iterable]
         matches_numpy = np.array([np.array([m[0], m[1]]) for m in matches])
         if len(matches_numpy) < 10:
             continue
@@ -516,6 +521,7 @@ def export_cameras_reconstruction(
             for _param in params:
                 str_out += " %f"
             str_out += "\n"
+            # pyrefly: ignore [unbound-name]
             fout_txt.write(str_out % (colmap_id, colmap_type, w, h, *params))
 
 
@@ -595,6 +601,7 @@ def export_images_reconstruction(
                     fout_bin.write(pack("<2d", x, y))
                     fout_bin.write(pack("<Q", colmap_point_id))
             else:
+                # pyrefly: ignore [unbound-name]
                 fout_txt.write(format_line % tuple(format_tuple + points_tuple))
 
 
@@ -651,6 +658,7 @@ def export_points_reconstruction(
                 for el in track_tuple:
                     fout_bin.write(pack("<i", el))  # Track
             else:
+                # pyrefly: ignore [unbound-name]
                 fout_txt.write(format_line % tuple(format_tuple + track_tuple))
             points_map[point.id] = i
             i += 1

@@ -34,4 +34,5 @@ def get_tracks_visible_in_image(
         for shot_id, obs in track_obs.items():
             if shot_id == image_key:
                 out[track_id] = obs.point, len(track_obs)
+    # pyrefly: ignore [bad-return]
     return out

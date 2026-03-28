@@ -81,7 +81,9 @@ def connected_reconstructions(
     for r in reconstruction_shots:
         g.add_node(r, bipartite=0)
         for shot_id in reconstruction_shots[r]:
+            # pyrefly: ignore [bad-argument-type]
             g.add_node(shot_id, bipartite=1)
+            # pyrefly: ignore [bad-argument-type]
             g.add_edge(r, shot_id)
 
     p = bipartite.projected_graph(g, reconstruction_shots.keys())
@@ -300,6 +302,7 @@ def align_reconstructions(
         b = np.array([r.tx, r.ty, r.tz])
         transformations[key] = invert_similarity(s, A, b)
 
+    # pyrefly: ignore [bad-return]
     return transformations
 
 

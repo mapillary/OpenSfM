@@ -262,7 +262,9 @@ def gps_distance(
     >>> 19000 < gps_distance(p1, p2) < 20000
     True
     """
+    # pyrefly: ignore [no-matching-overload]
     x1, y1, z1 = ecef_from_lla(latlon_1[0], latlon_1[1], 0.0)
+    # pyrefly: ignore [no-matching-overload]
     x2, y2, z2 = ecef_from_lla(latlon_2[0], latlon_2[1], 0.0)
 
     dis = np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
@@ -309,5 +311,6 @@ class TopocentricConverter:
         # pyre-ignore[6]: pyre gets confused with Scalar vs float vs NDarray
         return lla_from_topocentric(x, y, z, self.lat, self.lon, self.alt)
 
+    # pyrefly: ignore [bad-override]
     def __eq__(self, o: "TopocentricConverter") -> bool:
         return np.allclose([self.lat, self.lon, self.alt], (o.lat, o.lon, o.alt))

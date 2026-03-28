@@ -167,9 +167,12 @@ class Gui:
         self.update_active_gcp(new_gcp)
 
     def toggle_sticky_zoom(self):
+        # pyrefly: ignore [missing-attribute]
         if self.sticky_zoom.get():
+            # pyrefly: ignore [missing-attribute]
             self.sticky_zoom.set(False)
         else:
+            # pyrefly: ignore [missing-attribute]
             self.sticky_zoom.set(True)
 
     def populate_gcp_list(self):
@@ -223,9 +226,12 @@ class Gui:
             return
 
         self.curr_point = worst_gcp
+        # pyrefly: ignore [missing-attribute]
         self.gcp_list_box.selection_clear(0, "end")
+        # pyrefly: ignore [missing-attribute]
         for ix, gcp_id in enumerate(self.gcp_list_box.get(0, "end")):
             if worst_gcp in gcp_id:
+                # pyrefly: ignore [missing-attribute]
                 self.gcp_list_box.selection_set(ix)
                 break
 

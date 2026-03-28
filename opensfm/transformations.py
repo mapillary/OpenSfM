@@ -747,6 +747,7 @@ def shear_from_matrix(
         if w > lenorm:
             lenorm = w
             normal = n
+    # pyrefly: ignore [unbound-name]
     normal /= lenorm
     # direction and angle
     direction = numpy.dot(M33 - numpy.identity(3), normal)

@@ -17,6 +17,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 def has_gps_info(exif: Dict[str, Any]) -> bool:
     return (
+        # pyrefly: ignore [bad-return]
         exif
         and "gps" in exif
         and "latitude" in exif["gps"]
@@ -343,6 +344,7 @@ def compute_bow_affinity(
         data, preempted_candidates, histograms
     )
     logger.info("Computing BoW candidates with %d processes" % processes)
+    # pyrefly: ignore [bad-argument-type]
     return context.parallel_map(match_bow_unwrap_args, args, processes, batch_size)
 
 
@@ -424,6 +426,7 @@ def compute_vlad_affinity(
         data, preempted_candidates, histograms
     )
     logger.info("Computing VLAD candidates with %d processes" % processes)
+    # pyrefly: ignore [bad-argument-type]
     return context.parallel_map(match_vlad_unwrap_args, args, processes, batch_size)
 
 
@@ -788,6 +791,7 @@ def pairs_from_neighbors(
     pairs = {}
     for im2, d in same_camera + other_cameras:
         pairs[tuple(sorted((image, im2)))] = d
+    # pyrefly: ignore [bad-return]
     return pairs
 
 

@@ -50,7 +50,9 @@ def test_run_all(tmpdir: Any) -> None:
 
     for module in run_all_commands:
         command = module.Command()
+        # pyrefly: ignore [no-matching-overload]
         options = command_options.get(module, [])
+        # pyrefly: ignore [bad-argument-type]
         run_command(command, [data.data_path] + options)
 
     check_reconstruction(data)

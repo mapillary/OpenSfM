@@ -178,10 +178,12 @@ class SyntheticStreetScene(SyntheticScene):
 
     def combine(self, other_scene: "SyntheticStreetScene") -> "SyntheticStreetScene":
         combined_scene = SyntheticStreetScene(None)
+        # pyrefly: ignore [no-matching-overload]
         combined_scene.wall_points = np.concatenate(
             # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.wall_points, other_scene.wall_points)
         )
+        # pyrefly: ignore [no-matching-overload]
         combined_scene.floor_points = np.concatenate(
             # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.floor_points, other_scene.floor_points)
