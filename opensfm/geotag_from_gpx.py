@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# pyre-unsafe
+# pyre-strict
 
 import datetime
 import math
@@ -8,7 +8,6 @@ import os
 import shutil
 import sys
 import time
-from typing import List, Union
 
 import numpy as np
 from opensfm import geo
@@ -54,12 +53,14 @@ Requires pyexiv2, see install instructions at http://tilloy.net/dev/pyexiv2/
 """
 
 
-def utc_to_localtime(utc_time):
+def utc_to_localtime(utc_time: datetime.datetime) -> datetime.datetime:
     utc_offset_timedelta = datetime.datetime.utcnow() - datetime.datetime.now()
     return utc_time - utc_offset_timedelta
 
 
-def get_lat_lon_time(gpx_file: str, gpx_time: str = "utc"):
+def get_lat_lon_time(
+    gpx_file: str, gpx_time: str = "utc"
+) -> list[tuple[datetime.datetime, float, float, float]]:
     """
     Read location and time stamps from a track in a GPX file.
 
@@ -118,7 +119,10 @@ def compute_bearing(
     return bearing
 
 
-def interpolate_lat_lon(points, t):
+def interpolate_lat_lon(
+    points: list[tuple[datetime.datetime, float, float, float]],
+    t: datetime.datetime,
+) -> tuple[float, float, float, float | None]:
     """
     Return interpolated lat, lon and compass bearing for time t.
 
@@ -158,7 +162,7 @@ def interpolate_lat_lon(points, t):
     return lat, lon, bearing, ele
 
 
-def to_deg(value, loc):
+def to_deg(value: float, loc: list[str]) -> tuple[int, int, float, str]:
     """
     Convert decimal position to degrees.
     """
@@ -176,7 +180,11 @@ def to_deg(value, loc):
     return (deg, mint, sec, loc_value)
 
 
-def gpx_lerp(alpha: int, a, b):
+def gpx_lerp(
+    alpha: float,
+    a: tuple[datetime.datetime, float, float, float],
+    b: tuple[datetime.datetime, float, float, float],
+) -> tuple[datetime.datetime, float, float, float]:
     """Interpolate gpx point as (1 - alpha) * a + alpha * b"""
     dt = alpha * (b[0] - a[0]).total_seconds()
     t = a[0] + datetime.timedelta(seconds=dt)
@@ -186,7 +194,12 @@ def gpx_lerp(alpha: int, a, b):
     return t, lat, lon, alt
 
 
-def segment_sphere_intersection(A, B, C, r):
+def segment_sphere_intersection(
+    A: tuple[float, float, float],
+    B: tuple[float, float, float],
+    C: tuple[float, float, float],
+    r: float,
+) -> float:
     """Intersect the segment AB and the sphere (C,r).
 
     Assumes A is inside the sphere and B is outside.
@@ -202,7 +215,12 @@ def segment_sphere_intersection(A, B, C, r):
     return (-b + np.sqrt(d)) / (2 * a)
 
 
-def space_next_point(a, b, last, dx):
+def space_next_point(
+    a: tuple[datetime.datetime, float, float, float],
+    b: tuple[datetime.datetime, float, float, float],
+    last: tuple[datetime.datetime, float, float, float],
+    dx: float,
+) -> tuple[datetime.datetime, float, float, float]:
     A = geo.ecef_from_lla(a[1], a[2], 0.0)
     B = geo.ecef_from_lla(b[1], b[2], 0.0)
     C = geo.ecef_from_lla(last[1], last[2], 0.0)
@@ -210,22 +228,37 @@ def space_next_point(a, b, last, dx):
     return gpx_lerp(alpha, a, b)
 
 
-def time_next_point(a, b, last, dt):
+def time_next_point(
+    a: tuple[datetime.datetime, float, float, float],
+    b: tuple[datetime.datetime, float, float, float],
+    last: tuple[datetime.datetime, float, float, float],
+    dt: float,
+) -> tuple[datetime.datetime, float, float, float]:
     da = (a[0] - last[0]).total_seconds()
     db = (b[0] - last[0]).total_seconds()
     alpha = (dt - da) / (db - da)
     return gpx_lerp(alpha, a, b)
 
 
-def time_distance(a, b) -> int:
+def time_distance(
+    a: tuple[datetime.datetime, float, float, float],
+    b: tuple[datetime.datetime, float, float, float],
+) -> float:
     return (b[0] - a[0]).total_seconds()
 
 
-def space_distance(a, b) -> float:
+def space_distance(
+    a: tuple[datetime.datetime, float, float, float],
+    b: tuple[datetime.datetime, float, float, float],
+) -> float:
     return geo.gps_distance(a[1:3], b[1:3])
 
 
-def sample_gpx(points, dx: float, dt=None):
+def sample_gpx(
+    points: list[tuple[datetime.datetime, float, float, float]],
+    dx: float,
+    dt: float | None = None,
+) -> list[tuple[datetime.datetime, float, float, float]]:
     if dt is not None:
         dx = float(dt)
         print("Sampling GPX file every {0} seconds".format(dx))
@@ -251,12 +284,12 @@ def sample_gpx(points, dx: float, dt=None):
 
 
 def add_gps_to_exif(
-    filename: Union["os.PathLike[str]", str],
-    lat,
-    lon,
-    bearing,
-    elevation,
-    updated_filename: Union[None, "os.PathLike[str]", str] = None,
+    filename: os.PathLike[str] | str,
+    lat: float,
+    lon: float,
+    bearing: float,
+    elevation: float | None,
+    updated_filename: os.PathLike[str] | str | None = None,
     remove_image_description: bool = True,
 ) -> None:
     """
@@ -308,12 +341,12 @@ def add_gps_to_exif(
 
 
 def add_exif_using_timestamp(
-    filename,
-    points,
+    filename: os.PathLike[str] | str,
+    points: list[tuple[datetime.datetime, float, float, float]],
     offset_time: int = 0,
-    timestamp=None,
+    timestamp: datetime.datetime | None = None,
     orientation: int = 1,
-    image_description=None,
+    image_description: str | None = None,
 ) -> None:
     """
     Find lat, lon and bearing of filename and write to EXIF.
@@ -403,10 +436,10 @@ if __name__ == "__main__":
 
     if path.lower().endswith(".jpg"):
         # single file
-        file_list: List[str] = [path]
+        file_list: list[str] = [path]
     else:
         # folder(s)
-        file_list: List[str] = []
+        file_list: list[str] = []
         for root, _, files in os.walk(path):
             file_list += [
                 os.path.join(root, filename)
