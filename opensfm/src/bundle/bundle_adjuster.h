@@ -242,15 +242,16 @@ class BundleAdjuster {
                         const std::string& shot_scale);
 
   // Minimization setup
-  void SetPointProjectionLossFunction(std::string name, double threshold);
-  void SetRelativeMotionLossFunction(std::string name, double threshold);
+  void SetPointProjectionLossFunction(const std::string& name,
+                                      double threshold);
+  void SetRelativeMotionLossFunction(const std::string& name, double threshold);
   void SetAdjustAbsolutePositionStd(bool adjust);
 
   void SetMaxNumIterations(int miter);
   void SetNumThreads(int n);
   void SetUseAnalyticDerivatives(bool use);
-  void SetLinearSolverType(std::string t);
-  void SetCovarianceAlgorithmType(std::string t);
+  void SetLinearSolverType(const std::string& t);
+  void SetCovarianceAlgorithmType(const std::string& t);
 
   void SetInternalParametersPriorSD(double focal_sd, double aspect_ratio_sd,
                                     double c_sd, double k1_sd, double k2_sd,

@@ -341,13 +341,13 @@ void BundleAdjuster::SetGaugeFixShots(const std::string& shot_origin,
   gauge_fix_shots_.SetValue(std::make_pair(shot_origin, shot_scale));
 }
 
-void BundleAdjuster::SetPointProjectionLossFunction(std::string name,
+void BundleAdjuster::SetPointProjectionLossFunction(const std::string& name,
                                                     double threshold) {
   point_projection_loss_name_ = name;
   point_projection_loss_threshold_ = threshold;
 }
 
-void BundleAdjuster::SetRelativeMotionLossFunction(std::string name,
+void BundleAdjuster::SetRelativeMotionLossFunction(const std::string& name,
                                                    double threshold) {
   relative_motion_loss_name_ = name;
   relative_motion_loss_threshold_ = threshold;
@@ -367,11 +367,11 @@ void BundleAdjuster::SetUseAnalyticDerivatives(bool use) {
   use_analytic_ = use;
 }
 
-void BundleAdjuster::SetLinearSolverType(std::string t) {
+void BundleAdjuster::SetLinearSolverType(const std::string& t) {
   linear_solver_type_ = t;
 }
 
-void BundleAdjuster::SetCovarianceAlgorithmType(std::string t) {
+void BundleAdjuster::SetCovarianceAlgorithmType(const std::string& t) {
   covariance_algorithm_type_ = t;
 }
 
@@ -411,7 +411,8 @@ void BundleAdjuster::SetComputeReprojectionErrors(bool v) {
   compute_reprojection_errors_ = v;
 }
 
-ceres::LossFunction* CreateLossFunction(std::string name, double threshold) {
+ceres::LossFunction* CreateLossFunction(const std::string& name,
+                                        double threshold) {
   if (name.compare("TrivialLoss") == 0) {
     return new ceres::TrivialLoss();
   } else if (name.compare("HuberLoss") == 0) {

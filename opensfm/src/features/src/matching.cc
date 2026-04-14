@@ -13,7 +13,7 @@ namespace py = pybind11;
 
 namespace features {
 
-float DistanceL2(const float* pa, const float* pb, int n) {
+static float DistanceL2(const float* pa, const float* pb, int n) {
   float distance = 0;
   for (int i = 0; i < n; ++i) {
     distance += (pa[i] - pb[i]) * (pa[i] - pb[i]);
@@ -21,9 +21,10 @@ float DistanceL2(const float* pa, const float* pb, int n) {
   return std::sqrt(distance);
 }
 
-void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
-                     const cv::Mat& w2, float lowes_ratio, int max_checks,
-                     cv::Mat* matches) {
+static void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1,
+                            const cv::Mat& f2, const cv::Mat& w2,
+                            float lowes_ratio, int max_checks,
+                            cv::Mat* matches) {
   // Index features on the second image.
   std::multimap<int, int> index2;
   const int* pw2 = &w2.at<int>(0, 0);
@@ -119,7 +120,7 @@ VecXf compute_vlad_descriptor(const MatXf& features,
 
 std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
     const std::map<std::string, VecXf>& vlad_descriptors,
-    const std::string& image, std::set<std::string>& other_images) {
+    const std::string& image, const std::set<std::string>& other_images) {
   if (vlad_descriptors.find(image) == vlad_descriptors.end()) {
     return std::make_pair(std::vector<double>(), std::vector<std::string>());
   }

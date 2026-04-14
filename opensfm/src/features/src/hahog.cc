@@ -18,8 +18,8 @@ static int vlfeat_compare_scores(const void* a, const void* b) {
 }
 
 // select 'target_num_features' for using feature's scores
-vl_size select_best_features(VlCovDet* covdet, vl_size num_features,
-                             vl_size target_num_features) {
+static vl_size select_best_features(VlCovDet* covdet, vl_size num_features,
+                                    vl_size target_num_features) {
   if (num_features > target_num_features) {
     qsort(vl_covdet_get_features(covdet), num_features, sizeof(VlCovDetFeature),
           vlfeat_compare_scores);
@@ -32,8 +32,9 @@ vl_size select_best_features(VlCovDet* covdet, vl_size num_features,
 // select 'target_num_features' that have a maximum score in their neighbhood.
 // The neighborhood is computing using the feature's scale and
 // 'non_extrema_suppression' as : neighborhood = non_extrema_suppression * scale
-vl_size run_non_maxima_suppression(VlCovDet* covdet, vl_size num_features,
-                                   double non_extrema_suppression) {
+static vl_size run_non_maxima_suppression(VlCovDet* covdet,
+                                          vl_size num_features,
+                                          double non_extrema_suppression) {
   vl_index i, j;
   double tol = non_extrema_suppression;
   VlCovDetFeature* features = (VlCovDetFeature*)vl_covdet_get_features(covdet);
@@ -68,7 +69,8 @@ vl_size run_non_maxima_suppression(VlCovDet* covdet, vl_size num_features,
   return j;
 }
 
-vl_size run_features_selection(VlCovDet* covdet, vl_size target_num_features) {
+static vl_size run_features_selection(VlCovDet* covdet,
+                                      vl_size target_num_features) {
   vl_size numFeaturesKept = vl_covdet_get_num_features(covdet);
 
   // keep only 1.5 x targetNumFeatures for speeding-up duplicate detection
@@ -89,7 +91,7 @@ vl_size run_features_selection(VlCovDet* covdet, vl_size target_num_features) {
   return select_best_features(covdet, numFeaturesKept, target_num_features);
 }
 
-std::vector<VlCovDetFeature> vlfeat_covdet_extract_orientations(
+static std::vector<VlCovDetFeature> vlfeat_covdet_extract_orientations(
     VlCovDet* covdet, vl_size num_features) {
   VlCovDetFeature* features = (VlCovDetFeature*)vl_covdet_get_features(covdet);
   std::vector<VlCovDetFeature> vecFeatures;

@@ -638,7 +638,7 @@ py::dict BAHelpers::Bundle(
 
   // setup rig instances
   const std::string gps_scale_group = "dummy";  // unused for now
-  for (auto [rig_instance_id, instance] : map.GetRigInstances()) {
+  for (const auto& [rig_instance_id, instance] : map.GetRigInstances()) {
     Vec3d average_position = Vec3d::Zero();
     double average_std = 0.;
     int gps_count = 0;

@@ -63,7 +63,7 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
     }
 
     // First simple check based on angle between all pairs of raysmap
-    double rad_angle = min_angle_deg * M_PI / 180.0;
+    const double rad_angle = min_angle_deg * M_PI / 180.0;
     bool to_keep = false;
     for (size_t i = 0; i < poses.size() && !to_keep; ++i) {
       for (size_t j = i + 1; j < poses.size() && !to_keep; ++j) {

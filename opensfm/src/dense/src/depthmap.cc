@@ -5,9 +5,9 @@
 
 namespace dense {
 
-static const double z_epsilon = 1e-8;
+static constexpr double z_epsilon = 1e-8;
 
-bool IsInsideImage(const cv::Mat& image, int i, int j) {
+static bool IsInsideImage(const cv::Mat& image, int i, int j) {
   return i >= 0 && i < image.rows && j >= 0 && j < image.cols;
 }
 
@@ -55,7 +55,7 @@ void NCCEstimator::Push(float x, float y, float w) {
   sumw_ += w;
 }
 
-float NCCEstimator::Get() {
+float NCCEstimator::Get() const {
   if (sumw_ == 0.0) {
     return -1;
   }
@@ -406,7 +406,7 @@ void DepthmapEstimator::AssignPixel(DepthmapEstimatorResult* result, int i,
 }
 
 void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
-                                          float* score, int* nghbr) {
+                                          float* score, int* nghbr) const {
   *score = -1.0f;
   *nghbr = 0;
   for (int other = 1; other < images_.size(); ++other) {
@@ -420,7 +420,7 @@ void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
 
 float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
                                                 const cv::Vec3f& plane,
-                                                int other) {
+                                                int other) const {
   cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
                                               Ks_[other], plane);
   int hpz = (patch_size_ - 1) / 2;
@@ -457,11 +457,12 @@ float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
   return ncc.Get();
 }
 
-float DepthmapEstimator::BilateralWeight(float dcolor, float dx, float dy) {
-  const float dcolor_sigma = 50.0f;
-  const float dx_sigma = 5.0f;
-  const float dcolor_factor = 1.0f / (2 * dcolor_sigma * dcolor_sigma);
-  const float dx_factor = 1.0f / (2 * dx_sigma * dx_sigma);
+float DepthmapEstimator::BilateralWeight(float dcolor, float dx,
+                                         float dy) const {
+  constexpr float dcolor_sigma = 50.0f;
+  constexpr float dx_sigma = 5.0f;
+  constexpr float dcolor_factor = 1.0f / (2 * dcolor_sigma * dcolor_sigma);
+  constexpr float dx_factor = 1.0f / (2 * dx_sigma * dx_sigma);
   return exp(-dcolor * dcolor * dcolor_factor -
              (dx * dx + dy * dy) * dx_factor);
 }
