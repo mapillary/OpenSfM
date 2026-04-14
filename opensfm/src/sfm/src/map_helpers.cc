@@ -28,10 +28,7 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
   landmark_conds.reserve(map.GetLandmarks().size());
 
   // Iterate over a snapshot of landmarks to decide removals.
-  for (const auto& kv : map.GetLandmarks()) {
-    const map::LandmarkId& lm_id = kv.first;
-    const map::Landmark& lm = kv.second;
-
+  for (const auto& [lm_id, lm] : map.GetLandmarks()) {
     const auto& observations = lm.GetObservations();
 
     std::vector<geometry::Camera> cameras;
@@ -42,8 +39,7 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
     obs_vec.reserve(observations.size());
 
     // Build camera/pose/observation vectors from observations.
-    for (const auto& obs_kv : observations) {
-      map::Shot* shot_ptr = obs_kv.first;
+    for (const auto& [shot_ptr, feat_id] : observations) {
       if (!shot_ptr) {
         continue;
       }
@@ -179,9 +175,9 @@ int RemoveIsolatedPoints(map::Map& map, int k) {
   std::vector<float> positions;  // flattened for VLFeat (x0,y0,z0,x1,y1,z1,...)
   lm_ids.reserve(landmarks.size());
   positions.reserve(landmarks.size() * 3);
-  for (const auto& kv : landmarks) {
-    lm_ids.push_back(kv.first);
-    const Vec3d& pos = kv.second.GetGlobalPos();
+  for (const auto& [lm_id, landmark] : landmarks) {
+    lm_ids.push_back(lm_id);
+    const Vec3d& pos = landmark.GetGlobalPos();
     positions.push_back(static_cast<float>(pos.x()));
     positions.push_back(static_cast<float>(pos.y()));
     positions.push_back(static_cast<float>(pos.z()));
