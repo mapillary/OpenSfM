@@ -172,3 +172,33 @@ TEST_F(BARigShotFixture, ReturnsRigCamera) {
 TEST_F(BARigShotFixture, ReturnsRigInstance) {
   ASSERT_EQ(&instance, shot.GetRigInstance());
 }
+
+TEST(Reconstruction, SharedScaleThrowsWhenEmpty) {
+  bundle::Reconstruction r;
+  r.shared = true;
+  r.constant = false;
+  EXPECT_THROW(r.GetScale("any_shot"), std::runtime_error);
+  EXPECT_THROW(r.GetScalePtr("any_shot"), std::runtime_error);
+  EXPECT_THROW(r.SetScale("any_shot", 1.0), std::runtime_error);
+}
+
+TEST(Reconstruction, SharedScaleReturnsFirstEntry) {
+  bundle::Reconstruction r;
+  r.shared = true;
+  r.constant = false;
+  r.scales["shot_a"] = 1.0;
+  r.scales["shot_b"] = 2.0;
+
+  EXPECT_DOUBLE_EQ(r.GetScale("shot_a"), r.GetScale("shot_b"));
+}
+
+TEST(Reconstruction, SetScaleSharedDoesNotInsertPerShotEntry) {
+  bundle::Reconstruction r;
+  r.shared = true;
+  r.constant = false;
+  r.scales["shot_a"] = 1.0;
+
+  r.SetScale("shot_b", 5.0);
+  EXPECT_EQ(r.scales.size(), 1u);
+  EXPECT_DOUBLE_EQ(r.GetScale("shot_a"), 5.0);
+}

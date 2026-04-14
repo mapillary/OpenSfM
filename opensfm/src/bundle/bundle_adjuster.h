@@ -17,6 +17,7 @@
 #include <iostream>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -38,22 +39,41 @@ struct Reconstruction {
 
   double* GetScalePtr(const std::string& shot) {
     if (shared) {
-      return &(scales.begin()->second);
+      return &(sharedScaleEntry()->second);
     }
     return &(scales.at(shot));
   }
 
   double GetScale(const std::string& shot) const {
     if (shared) {
-      return scales.begin()->second;
+      return sharedScaleEntry()->second;
     }
     return scales.at(shot);
   }
+
   void SetScale(const std::string& shot, double v) {
     if (shared) {
-      scales.begin()->second = v;
+      sharedScaleEntry()->second = v;
+      return;
     }
     scales[shot] = v;
+  }
+
+ private:
+  std::map<std::string, double>::iterator sharedScaleEntry() {
+    if (scales.empty()) {
+      throw std::runtime_error(
+          "Shared scale requested but no scale entries exist");
+    }
+    return scales.begin();
+  }
+
+  std::map<std::string, double>::const_iterator sharedScaleEntry() const {
+    if (scales.empty()) {
+      throw std::runtime_error(
+          "Shared scale requested but no scale entries exist");
+    }
+    return scales.begin();
   }
 };
 
