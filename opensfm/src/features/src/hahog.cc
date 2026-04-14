@@ -1,6 +1,5 @@
 #include <features/hahog.h>
 
-#include <iostream>
 #include <vector>
 
 extern "C" {

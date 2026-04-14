@@ -15,8 +15,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <iostream>
-#include <typeinfo>
 namespace py = pybind11;
 
 template <typename T>

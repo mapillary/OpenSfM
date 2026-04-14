@@ -8,7 +8,6 @@
 #include <cmath>
 #include <memory>
 #include <stdexcept>
-#include <unordered_set>
 
 namespace {
 void AssignShot(map::Shot& to, const map::Shot& from) {

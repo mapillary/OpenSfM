@@ -1,7 +1,5 @@
 #include <geometry/camera.h>
 
-#include <iostream>
-
 namespace geometry {
 Camera::Camera(const ProjectionType& type,
                const std::vector<Camera::Parameters>& types,
