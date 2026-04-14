@@ -13,9 +13,8 @@ namespace {
 struct BearingErrorCost : public ceres::CostFunction {
   constexpr static int Size = 3;
 
-  BearingErrorCost(const MatX3d& centers, const MatX3d& bearings,
-                   const Vec3d& point)
-      : centers_(centers), bearings_(bearings), point_(point) {
+  BearingErrorCost(const MatX3d& centers, const MatX3d& bearings)
+      : centers_(centers), bearings_(bearings) {
     mutable_parameter_block_sizes()->push_back(Size);
     set_num_residuals(bearings_.rows() * 3);
   }
@@ -58,7 +57,6 @@ struct BearingErrorCost : public ceres::CostFunction {
 
   const MatX3d& centers_;
   const MatX3d& bearings_;
-  const Vec3d& point_;
 };
 
 }  // namespace
@@ -224,7 +222,7 @@ Vec3d PointRefinement(const MatX3d& centers, const MatX3d& bearings,
                       const Vec3d& point, int iterations) {
   using BearingCostFunction =
       ceres::TinySolverCostFunctionAdapter<Eigen::Dynamic, 3>;
-  BearingErrorCost cost(centers, bearings, point);
+  BearingErrorCost cost(centers, bearings);
   BearingCostFunction f(cost);
 
   Vec3d refined = point;

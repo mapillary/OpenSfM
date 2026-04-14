@@ -418,26 +418,6 @@ void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
   }
 }
 
-float DepthmapEstimator::ComputePlaneImageScoreUnoptimized(
-    int i, int j, const cv::Vec3f& plane, int other) {
-  cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
-                                              Ks_[other], plane);
-  int hpz = (patch_size_ - 1) / 2;
-  float im1_center = images_[0].at<unsigned char>(i, j);
-  NCCEstimator ncc;
-  for (int dy = -hpz; dy <= hpz; ++dy) {
-    for (int dx = -hpz; dx <= hpz; ++dx) {
-      float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
-      float x2, y2;
-      ApplyHomography(H, j + dx, i + dy, &x2, &y2);
-      float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
-      float weight = BilateralWeight(im1 - im1_center, dx, dy);
-      ncc.Push(im1, im2, weight);
-    }
-  }
-  return ncc.Get();
-}
-
 float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
                                                 const cv::Vec3f& plane,
                                                 int other) {

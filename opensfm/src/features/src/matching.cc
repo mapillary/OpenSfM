@@ -13,14 +13,6 @@ namespace py = pybind11;
 
 namespace features {
 
-float DistanceL1(const float* pa, const float* pb, int n) {
-  float distance = 0;
-  for (int i = 0; i < n; ++i) {
-    distance += fabs(pa[i] - pb[i]);
-  }
-  return distance;
-}
-
 float DistanceL2(const float* pa, const float* pb, int n) {
   float distance = 0;
   for (int i = 0; i < n; ++i) {
@@ -39,7 +31,7 @@ void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
     index2.insert(std::pair<int, int>(pw2[i], i));
   }
 
-  std::vector<int> best_match(f1.rows, -1), second_best_match(f1.rows, -1);
+  std::vector<int> best_match(f1.rows, -1);
   std::vector<float> best_distance(f1.rows,
                                    std::numeric_limits<float>::infinity());
   std::vector<float> second_best_distance(
@@ -58,12 +50,10 @@ void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
         float distance = DistanceL2(pa, pb, f1.cols);
         if (distance < best_distance[i]) {
           second_best_distance[i] = best_distance[i];
-          second_best_match[i] = best_match[i];
           best_distance[i] = distance;
           best_match[i] = match;
         } else if (distance < second_best_distance[i]) {
           second_best_distance[i] = distance;
-          second_best_match[i] = match;
         }
         checks++;
       }

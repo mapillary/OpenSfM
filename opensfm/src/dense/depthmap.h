@@ -84,8 +84,6 @@ class DepthmapEstimator {
                    const int nghbr);
   void ComputePlaneScore(int i, int j, const cv::Vec3f& plane, float* score,
                          int* nghbr);
-  float ComputePlaneImageScoreUnoptimized(int i, int j, const cv::Vec3f& plane,
-                                          int other);
   float ComputePlaneImageScore(int i, int j, const cv::Vec3f& plane, int other);
   float BilateralWeight(float dcolor, float dx, float dy);
   void PostProcess(DepthmapEstimatorResult* result);
