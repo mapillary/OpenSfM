@@ -29,7 +29,7 @@ BAHelpers::ShotNeighborhoodIds(map::Map& map,
   for (map::Shot* shot : res.second) {
     boundary.insert(shot->GetId());
   }
-  return std::make_pair(interior, boundary);
+  return std::make_pair(std::move(interior), std::move(boundary));
 }
 
 /**Reconstructed shots near a given shot.
@@ -63,8 +63,8 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
     interior.insert(neighbors.begin(), neighbors.end());
   }
 
-  const auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
-  return std::make_pair(interior, boundary);
+  auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
+  return std::make_pair(std::move(interior), std::move(boundary));
 }
 
 std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(

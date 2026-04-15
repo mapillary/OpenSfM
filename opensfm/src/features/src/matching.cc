@@ -139,6 +139,6 @@ std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
     distances.push_back((reference - find_candidate->second).norm());
     others.push_back(candidate);
   }
-  return std::make_pair(distances, others);
+  return std::make_pair(std::move(distances), std::move(others));
 }
 }  // namespace features

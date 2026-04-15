@@ -264,7 +264,7 @@ void BundleAdjuster::AddCommonPosition(const std::string& shot_i,
   a.shot_j = shot_j;
   a.margin = margin;
   a.std_deviation = std_deviation;
-  common_positions_.push_back(a);
+  common_positions_.push_back(std::move(a));
 }
 
 HeatmapInterpolator::HeatmapInterpolator(const std::vector<double>& in_heatmap,
@@ -294,7 +294,7 @@ void BundleAdjuster::AddAbsolutePositionHeatmap(const std::string& shot_id,
   a.x_offset = x_offset;
   a.y_offset = y_offset;
   a.std_deviation = std_deviation;
-  absolute_positions_heatmaps_.push_back(a);
+  absolute_positions_heatmaps_.push_back(std::move(a));
 }
 
 void BundleAdjuster::AddAbsoluteUpVector(const std::string& shot_id,
@@ -304,7 +304,7 @@ void BundleAdjuster::AddAbsoluteUpVector(const std::string& shot_id,
   a.shot_id = shot_id;
   a.up_vector = up_vector;
   a.std_deviation = std_deviation;
-  absolute_up_vectors_.push_back(a);
+  absolute_up_vectors_.push_back(std::move(a));
 }
 
 void BundleAdjuster::AddAbsolutePan(const std::string& shot_id, double angle,
@@ -313,7 +313,7 @@ void BundleAdjuster::AddAbsolutePan(const std::string& shot_id, double angle,
   a.shot_id = shot_id;
   a.angle = angle;
   a.std_deviation = std_deviation;
-  absolute_pans_.push_back(a);
+  absolute_pans_.push_back(std::move(a));
 }
 
 void BundleAdjuster::AddAbsoluteTilt(const std::string& shot_id, double angle,
@@ -322,7 +322,7 @@ void BundleAdjuster::AddAbsoluteTilt(const std::string& shot_id, double angle,
   a.shot_id = shot_id;
   a.angle = angle;
   a.std_deviation = std_deviation;
-  absolute_tilts_.push_back(a);
+  absolute_tilts_.push_back(std::move(a));
 }
 
 void BundleAdjuster::AddAbsoluteRoll(const std::string& shot_id, double angle,
@@ -331,7 +331,7 @@ void BundleAdjuster::AddAbsoluteRoll(const std::string& shot_id, double angle,
   a.shot_id = shot_id;
   a.angle = angle;
   a.std_deviation = std_deviation;
-  absolute_rolls_.push_back(a);
+  absolute_rolls_.push_back(std::move(a));
 }
 
 void BundleAdjuster::SetGaugeFixShots(const std::string& shot_origin,
@@ -440,7 +440,7 @@ void BundleAdjuster::AddLinearMotion(const std::string& shot0_id,
   a.alpha = alpha;
   a.position_std_deviation = position_std_deviation;
   a.orientation_std_deviation = orientation_std_deviation;
-  linear_motion_prior_.push_back(a);
+  linear_motion_prior_.push_back(std::move(a));
 }
 
 template <class T>

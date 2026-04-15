@@ -63,7 +63,7 @@ void SeparateLineByTabs(const std::string& line,
   std::string elem;
   while (std::getline(stst, elem, '\t'))  // separate by tabs
   {
-    elems.push_back(elem);
+    elems.push_back(std::move(elem));
   }
 }
 
