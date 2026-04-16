@@ -3,8 +3,6 @@
 #include <foundation/types.h>
 #include <geometry/camera_instances.h>
 
-#include <unordered_map>
-
 namespace geometry {
 class Camera {
  public:

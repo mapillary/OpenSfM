@@ -3,8 +3,6 @@
 #include <map/defines.h>
 #include <map/observation.h>
 
-#include <fstream>
-#include <map>
 #include <unordered_map>
 #include <vector>
 

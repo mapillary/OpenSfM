@@ -1,7 +1,7 @@
 #include <foundation/union_find.h>
 #include <map/tracks_manager.h>
 
-#include <optional>
+#include <fstream>
 #include <sstream>
 #include <unordered_set>
 

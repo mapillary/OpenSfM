@@ -3,7 +3,6 @@
 #include <vector>
 
 extern "C" {
-#include <time.h>
 #include <vl/covdet.h>
 #include <vl/sift.h>
 }

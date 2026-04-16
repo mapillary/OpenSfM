@@ -8,7 +8,6 @@
 #include <map/rig.h>
 
 #include <Eigen/Eigen>
-#include <iostream>
 #include <unordered_map>
 
 namespace map {

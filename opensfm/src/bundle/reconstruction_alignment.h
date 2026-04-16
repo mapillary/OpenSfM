@@ -1,13 +1,6 @@
 #include <cmath>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <string>
-
-extern "C" {
-#include <string.h>
-}
 
 #include "ceres/ceres.h"
 #include "ceres/loss_function.h"

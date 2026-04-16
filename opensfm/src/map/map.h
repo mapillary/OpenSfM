@@ -14,7 +14,6 @@
 #include <Eigen/Core>
 #include <map>
 #include <memory>
-#include <set>
 #include <unordered_map>
 namespace map {
 

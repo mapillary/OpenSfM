@@ -12,9 +12,6 @@
 #include <map/observation.h>
 
 #include <cmath>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -24,10 +21,6 @@
 #include "ceres/ceres.h"
 #include "ceres/cubic_interpolation.h"
 #include "ceres/rotation.h"
-
-extern "C" {
-#include <string.h>
-}
 
 namespace bundle {
 

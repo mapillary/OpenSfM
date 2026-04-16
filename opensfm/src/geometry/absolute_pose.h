@@ -5,7 +5,6 @@
 
 #include <Eigen/Eigen>
 #include <complex>
-#include <iostream>
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
                                          const double sin_theta,

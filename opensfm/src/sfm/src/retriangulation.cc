@@ -1,5 +1,4 @@
 #include <map/defines.h>
-#include <map/tracks_manager.h>
 #include <sfm/retriangulation.h>
 
 #include <limits>

@@ -5,7 +5,6 @@
 #include <geometry/pose.h>
 #include <map/defines.h>
 
-#include <exception>
 #include <set>
 #include <unordered_map>
 
