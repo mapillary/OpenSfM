@@ -1,17 +1,20 @@
 #include <bundle/bundle_adjuster.h>
+#include <bundle/error/absolute_motion_errors.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <Eigen/Dense>
+#include <cmath>
 
 #include "bundle/data/shot.h"
 
 namespace geometry {
 bool operator==(const geometry::Pose& p1, const geometry::Pose& p2) {
-  const double eps = 1e-15;
+  constexpr double eps = 1e-15;
+  constexpr double epsSq = eps * eps;
   const auto identity = p1.Compose(p2.Inverse());
-  return identity.GetOrigin().norm() < eps &&
-         identity.RotationCameraToWorldMin().norm() < eps;
+  return identity.GetOrigin().squaredNorm() < epsSq &&
+         identity.RotationCameraToWorldMin().squaredNorm() < epsSq;
 }
 }  // namespace geometry
 
@@ -201,4 +204,26 @@ TEST(Reconstruction, SetScaleSharedDoesNotInsertPerShotEntry) {
   r.SetScale("shot_b", 5.0);
   EXPECT_EQ(r.scales.size(), 1u);
   EXPECT_DOUBLE_EQ(r.GetScale("shot_a"), 5.0);
+}
+
+TEST(TranslationPriorError, FiniteResidualWhenColocated) {
+  // Regression test: when two rig instances have the same position,
+  // the residual must be finite (not -inf or NaN).
+  bundle::TranslationPriorError error(1.0);
+  // rig_instance layout: [RX, RY, RZ, TX, TY, TZ]
+  constexpr std::array<double, 6> instance1{0, 0, 0, 1.0, 2.0, 3.0};
+  constexpr std::array<double, 6> instance2{0, 0, 0, 1.0, 2.0, 3.0};
+  double residual = 0.0;
+  EXPECT_TRUE(error(instance1.data(), instance2.data(), &residual));
+  EXPECT_TRUE(std::isfinite(residual));
+}
+
+TEST(TranslationPriorError, ZeroPriorNormClamped) {
+  // A zero prior_norm should not crash or produce non-finite residuals.
+  bundle::TranslationPriorError error(0.0);
+  constexpr std::array<double, 6> instance1{0, 0, 0, 1.0, 0.0, 0.0};
+  constexpr std::array<double, 6> instance2{0, 0, 0, 0.0, 0.0, 0.0};
+  double residual = 0.0;
+  EXPECT_TRUE(error(instance1.data(), instance2.data(), &residual));
+  EXPECT_TRUE(std::isfinite(residual));
 }

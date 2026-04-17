@@ -5,6 +5,7 @@
 #include <bundle/error/position_functors.h>
 
 #include <Eigen/Eigen>
+#include <algorithm>
 
 namespace bundle {
 struct UpVectorError {
@@ -174,7 +175,7 @@ struct HeatmapdCostFunctor {
 
 struct TranslationPriorError {
   explicit TranslationPriorError(const double prior_norm)
-      : prior_norm_(prior_norm) {}
+      : prior_norm_(std::max(prior_norm, kEpsSq)) {}
 
   template <typename T>
   bool operator()(const T* const rig_instance1, const T* const rig_instance2,
@@ -183,10 +184,14 @@ struct TranslationPriorError {
         Eigen::Map<const Vec3<T>>(rig_instance1 + Pose::Parameter::TX);
     const auto t2 =
         Eigen::Map<const Vec3<T>>(rig_instance2 + Pose::Parameter::TX);
-    residuals[0] = log((t1 - t2).norm() / T(prior_norm_));
+    // Use squaredNorm + eps inside sqrt to keep autodiff derivatives finite
+    // when t1 == t2 (avoids derivative singularity of sqrt at zero)
+    T safe_norm = ceres::sqrt((t1 - t2).squaredNorm() + T(kEpsSq));
+    residuals[0] = ceres::log(safe_norm / T(prior_norm_));
     return true;
   }
 
+  static constexpr double kEpsSq = 1e-20;
   const double prior_norm_;
 };
 }  // namespace bundle
