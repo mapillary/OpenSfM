@@ -401,9 +401,8 @@ TracksManager TracksManager::MergeTracksManager(
     const auto merged_track_id = std::to_string(i);
     // Run over tracks to merged into a new single track
     for (const auto& manager_n_track_id : tracks_agg) {
-      const auto manager_id = manager_n_track_id->data.second;
-      const auto track_id = manager_n_track_id->data.first;
-      const auto track =
+      const auto& [track_id, manager_id] = manager_n_track_id->data;
+      const auto& track =
           tracks_managers[manager_id]->shots_per_track_.at(track_id);
       for (const auto& [shot_id, obs] : track) {
         merged.AddObservation(shot_id, merged_track_id, obs);
