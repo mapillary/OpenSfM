@@ -180,13 +180,13 @@ def generate_exifs(
     per_sequence = defaultdict(list)
     for shot_name in sorted(reconstruction.shots.keys()):
         shot = reconstruction.shots[shot_name]
-        exif = {}
-        exif["width"] = shot.camera.width
-        exif["height"] = shot.camera.height
-        exif["camera"] = str(shot.camera.id)
-        exif["make"] = str(shot.camera.id)
-
-        exif["skey"] = shot.metadata.sequence_key.value
+        exif = {
+            "width": shot.camera.width,
+            "height": shot.camera.height,
+            "camera": str(shot.camera.id),
+            "make": str(shot.camera.id),
+            "skey": shot.metadata.sequence_key.value,
+        }
         per_sequence[exif["skey"]].append(shot_name)
 
         if shot.camera.projection_type in ["perspective", "fisheye"]:
@@ -233,20 +233,22 @@ def generate_exifs(
             _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
             lat, lon, alt = reference.to_lla(*origin)
 
-            exif["gps"] = {}
-            exif["gps"]["latitude"] = lat
-            exif["gps"]["longitude"] = lon
-            exif["gps"]["altitude"] = alt
-            exif["gps"]["dop"] = _gps_dop(shot)
+            exif["gps"] = {
+                "latitude": lat,
+                "longitude": lon,
+                "altitude": alt,
+                "dop": _gps_dop(shot),
+            }
 
             omega, phi, kappa = geometry.opk_from_rotation(
                 shot.pose.get_rotation_matrix()
             )
             opk_noise = np.random.normal(0.0, np.full((3), imu_noise), (3))
-            exif["opk"] = {}
-            exif["opk"]["omega"] = math.degrees(omega) + opk_noise[0]
-            exif["opk"]["phi"] = math.degrees(phi) + opk_noise[1]
-            exif["opk"]["kappa"] = math.degrees(kappa) + opk_noise[2]
+            exif["opk"] = {
+                "omega": math.degrees(omega) + opk_noise[0],
+                "phi": math.degrees(phi) + opk_noise[1],
+                "kappa": math.degrees(kappa) + opk_noise[2],
+            }
 
             exif["compass"] = {"angle": comp}
 
