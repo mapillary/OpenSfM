@@ -732,6 +732,7 @@ void BundleAdjuster::Run() {
               new StdDeviationConstraint());
       problem.AddResidualBlock(std_dev_cost_function, nullptr,
                                &std_deviations[i]);
+      problem.SetParameterLowerBound(&std_deviations[i], 0, 1e-10);
     }
   } else {
     for (int i = 0; i < std_deviations.size(); ++i) {

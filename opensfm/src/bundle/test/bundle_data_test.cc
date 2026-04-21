@@ -1,5 +1,6 @@
 #include <bundle/bundle_adjuster.h>
 #include <bundle/error/absolute_motion_errors.h>
+#include <bundle/error/parameters_errors.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -225,5 +226,23 @@ TEST(TranslationPriorError, ZeroPriorNormClamped) {
   constexpr std::array<double, 6> instance2{0, 0, 0, 0.0, 0.0, 0.0};
   double residual = 0.0;
   EXPECT_TRUE(error(instance1.data(), instance2.data(), &residual));
+  EXPECT_TRUE(std::isfinite(residual));
+}
+
+TEST(StdDeviationConstraint, FiniteResidualAtLowerBound) {
+  // Regression test: at the Ceres lower bound of 1e-10, the residual must
+  // be finite (not -inf or NaN from log(0)).
+  bundle::StdDeviationConstraint constraint;
+  constexpr double std_dev = 1e-10;
+  double residual = 0.0;
+  EXPECT_TRUE(constraint(&std_dev, &residual));
+  EXPECT_TRUE(std::isfinite(residual));
+}
+
+TEST(StdDeviationConstraint, FiniteResidualAtZero) {
+  bundle::StdDeviationConstraint constraint;
+  constexpr double std_dev = 0.0;
+  double residual = 0.0;
+  EXPECT_TRUE(constraint(&std_dev, &residual));
   EXPECT_TRUE(std::isfinite(residual));
 }
