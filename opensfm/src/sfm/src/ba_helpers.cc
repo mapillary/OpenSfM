@@ -19,14 +19,14 @@ BAHelpers::ShotNeighborhoodIds(map::Map& map,
                                const map::ShotId& central_shot_id,
                                size_t radius, size_t min_common_points,
                                size_t max_interior_size) {
-  auto res = ShotNeighborhood(map, central_shot_id, radius, min_common_points,
-                              max_interior_size);
+  auto [interior_shots, boundary_shots] = ShotNeighborhood(
+      map, central_shot_id, radius, min_common_points, max_interior_size);
   std::unordered_set<map::ShotId> interior;
-  for (map::Shot* shot : res.first) {
+  for (map::Shot* shot : interior_shots) {
     interior.insert(shot->GetId());
   }
   std::unordered_set<map::ShotId> boundary;
-  for (map::Shot* shot : res.second) {
+  for (map::Shot* shot : boundary_shots) {
     boundary.insert(shot->GetId());
   }
   return std::make_pair(std::move(interior), std::move(boundary));
@@ -125,8 +125,7 @@ py::tuple BAHelpers::BundleLocal(
       map, central_shot_id, config["local_bundle_radius"].cast<size_t>(),
       config["local_bundle_min_common_points"].cast<size_t>(),
       config["local_bundle_max_shots"].cast<size_t>());
-  auto& interior = neighborhood.first;
-  auto& boundary = neighborhood.second;
+  auto& [interior, boundary] = neighborhood;
 
   // set up BA
   auto ba = bundle::BundleAdjuster();
@@ -335,10 +334,10 @@ bool BAHelpers::TriangulateGCP(
   os.conservativeResize(added, Eigen::NoChange);
   if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
-    const auto& res = geometry::TriangulateBearingsMidpoint(
+    const auto& [success, coords] = geometry::TriangulateBearingsMidpoint(
         os, bs, thresholds, min_ray_angle, min_depth);
-    coordinates = res.second;
-    return res.first;
+    coordinates = coords;
+    return success;
   }
   return false;
 }

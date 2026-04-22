@@ -189,20 +189,20 @@ PYBIND11_MODULE(pymap, m) {
           "rig_camera_ids",
           [](const map::RigInstance& ri) {
             std::map<map::ShotId, map::RigCameraId> rig_camera_ids;
-            for (const auto& rig_camera : ri.GetRigCameras()) {
-              rig_camera_ids[rig_camera.first] = rig_camera.second->id;
+            for (const auto& [shot_id, rig_cam_ptr] : ri.GetRigCameras()) {
+              rig_camera_ids[shot_id] = rig_cam_ptr->id;
             }
             return rig_camera_ids;
           })
-      .def_property_readonly("camera_ids",
-                             [](const map::RigInstance& ri) {
-                               std::map<map::ShotId, map::CameraId> camera_ids;
-                               for (const auto& shot : ri.GetShots()) {
-                                 camera_ids[shot.first] =
-                                     shot.second->GetCamera()->id;
-                               }
-                               return camera_ids;
-                             })
+      .def_property_readonly(
+          "camera_ids",
+          [](const map::RigInstance& ri) {
+            std::map<map::ShotId, map::CameraId> camera_ids;
+            for (const auto& [shot_id, shot_ptr] : ri.GetShots()) {
+              camera_ids[shot_id] = shot_ptr->GetCamera()->id;
+            }
+            return camera_ids;
+          })
       .def("keys", &map::RigInstance::GetShotIDs)
       .def_property("pose", py::overload_cast<>(&map::RigInstance::GetPose),
                     &map::RigInstance::SetPose,

@@ -84,9 +84,8 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
     }
 
     // Compute inverse covariance for the point.
-    auto invcov_and_score = geometry::covariance::ComputePointInverseCovariance(
+    auto [invcov, score] = geometry::covariance::ComputePointInverseCovariance(
         cameras, poses, obs_vec, lm.GetGlobalPos());
-    const auto& invcov = invcov_and_score.first;
 
     // Basic numerical checks.
     if (!invcov.allFinite()) {

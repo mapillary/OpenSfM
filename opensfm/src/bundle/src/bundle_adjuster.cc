@@ -1084,9 +1084,9 @@ void BundleAdjuster::Run() {
 
   // Gauge fix
   if (gauge_fix_shots_.HasValue()) {
-    const auto& gauge_shots = gauge_fix_shots_.Value();
-    auto instance1 = shots_.at(gauge_shots.first).GetRigInstance();
-    auto instance2 = shots_.at(gauge_shots.second).GetRigInstance();
+    const auto& [shot_origin, shot_scale] = gauge_fix_shots_.Value();
+    auto instance1 = shots_.at(shot_origin).GetRigInstance();
+    auto instance2 = shots_.at(shot_scale).GetRigInstance();
     const double norm =
         (instance1->GetValue().GetOrigin() - instance2->GetValue().GetOrigin())
             .norm();
