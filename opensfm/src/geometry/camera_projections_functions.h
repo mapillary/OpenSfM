@@ -9,6 +9,11 @@ struct FisheyeProjection : Functor<3, 0, 2> {
   template <class T>
   static void Forward(const T* point, const T* /* p */, T* projected) {
     const T r = sqrt(SquaredNorm(point));
+    if (r < T(1e-8)) {
+      projected[0] = point[0] / point[2];
+      projected[1] = point[1] / point[2];
+      return;
+    }
     const auto theta = atan2(r, point[2]);
     projected[0] = theta / r * point[0];
     projected[1] = theta / r * point[1];
@@ -21,6 +26,22 @@ struct FisheyeProjection : Functor<3, 0, 2> {
     constexpr int stride = Stride<DERIV_PARAMS>();
     const T r2 = SquaredNorm(point);
     const T r = sqrt(r2);
+
+    if (r < T(1e-8)) {
+      // Limiting Jacobian as r -> 0: perspective projection d/d(x,y,z)[x/z,y/z]
+      const T inv_z = T(1.0) / point[2];
+      const T inv_z2 = inv_z * inv_z;
+      jacobian[0] = inv_z;
+      jacobian[1] = T(0.0);
+      jacobian[2] = -point[0] * inv_z2;
+      jacobian[stride] = T(0.0);
+      jacobian[stride + 1] = inv_z;
+      jacobian[stride + 2] = -point[1] * inv_z2;
+      T* dummy = nullptr;
+      Forward(point, dummy, projected);
+      return;
+    }
+
     const T R2 = r2 + point[2] * point[2];
     const T theta = atan2(r, point[2]);
     const T x2 = point[0] * point[0];
