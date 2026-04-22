@@ -245,7 +245,7 @@ void BundleAdjuster::AddPointProjectionObservation(
   o.coordinates = observation;
   o.std_deviation = std_deviation;
   o.depth_prior = depth_prior;
-  point_projection_observations_.push_back(o);
+  point_projection_observations_.push_back(std::move(o));
 }
 
 void BundleAdjuster::AddRelativeMotion(const RelativeMotion& rm) {
@@ -1181,8 +1181,8 @@ void BundleAdjuster::ComputeCovariances(ceres::Problem* problem) {
     covariance_estimation_valid_ = false;
 
     MatXd default_covariance_matrix = MatXd::Zero(6, 6);
-    double default_rotation_variance = 1e-5;
-    double default_translation_variance = 1e-2;
+    constexpr double default_rotation_variance{1e-5};
+    constexpr double default_translation_variance{1e-2};
     default_covariance_matrix.diagonal().segment<3>(0).setConstant(
         default_rotation_variance);
     default_covariance_matrix.diagonal().segment<3>(3).setConstant(

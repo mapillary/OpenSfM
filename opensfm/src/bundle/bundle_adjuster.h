@@ -18,9 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "ceres/ceres.h"
 #include "ceres/cubic_interpolation.h"
-#include "ceres/rotation.h"
 
 namespace bundle {
 
@@ -82,8 +80,8 @@ struct PointProjectionObservation {
 struct RelativeMotion {
   RelativeMotion(const std::string& rig_instance_i,
                  const std::string& rig_instance_j, const Vec3d& rotation,
-                 const Vec3d& translation, double scale,
-                 double robust_multiplier, bool observed_scale) {
+                 const Vec3d& translation, const double scale,
+                 const double robust_multiplier, const bool observed_scale) {
     rig_instance_id_i = rig_instance_i;
     rig_instance_id_j = rig_instance_j;
 
