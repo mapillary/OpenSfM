@@ -6,12 +6,18 @@
 
 #include <Eigen/Eigen>
 #include <algorithm>
+#include <stdexcept>
 
 namespace bundle {
 struct UpVectorError {
   UpVectorError(const Vec3d& acceleration, double std_deviation)
       : scale_(1.0 / std_deviation) {
-    acceleration_ = acceleration.normalized();
+    const double norm = acceleration.norm();
+    if (norm < 1e-10) {
+      throw std::runtime_error(
+          "UpVectorError: acceleration vector has near-zero magnitude");
+    }
+    acceleration_ = acceleration / norm;
   }
 
   template <typename T>
