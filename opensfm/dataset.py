@@ -48,7 +48,10 @@ class DataSet(DataSetBase):
         self.load_mask_list()
 
     def _config_file(self) -> str:
-        return os.path.join(self.data_path, "config.yaml")
+        yaml_path = os.path.join(self.data_path, "config.yaml")
+        if self.io_handler.isfile(yaml_path):
+            return yaml_path
+        return os.path.join(self.data_path, "config.yml")
 
     def load_config(self) -> None:
         config_file_path = self._config_file()
