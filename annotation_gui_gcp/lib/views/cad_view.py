@@ -1,11 +1,11 @@
-# pyre-unsafe
+# pyre-strict
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import rasterio
-from flask import send_file
+from flask import Response, send_file
 from PIL import ImageColor
 
 from ..views.web_view import distinct_colors, WebView
@@ -13,7 +13,7 @@ from ..views.web_view import distinct_colors, WebView
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def _load_georeference_metadata(path_cad_model) -> Dict[str, Any]:
+def _load_georeference_metadata(path_cad_model: Path) -> dict[str, Any]:
     path_metadata = path_cad_model.with_suffix(".json")
 
     if not path_metadata.is_file():
@@ -27,11 +27,11 @@ def _load_georeference_metadata(path_cad_model) -> Dict[str, Any]:
 class CADView(WebView):
     def __init__(
         self,
-        main_ui,
-        web_app,
-        route_prefix,
-        path_cad_file,
-        is_geo_reference=False,
+        main_ui: object,
+        web_app: object,
+        route_prefix: str,
+        path_cad_file: Path,
+        is_geo_reference: bool = False,
     ) -> None:
         super().__init__(main_ui, web_app, route_prefix)
 
@@ -49,11 +49,11 @@ class CADView(WebView):
             view_func=self.get_model,
         )
 
-    def get_model(self) -> Any:
+    def get_model(self) -> Response:
         # pyrefly: ignore [bad-argument-type]
         return send_file(self.cad_path, mimetype="application/octet-stream")
 
-    def process_client_message(self, data: Dict[str, Any]) -> None:
+    def process_client_message(self, data: dict[str, Any]) -> None:
         event = data["event"]
         if event == "add_or_update_point_observation":
             self.add_remove_update_point_observation(point_coordinates=data["xyz"])
@@ -62,7 +62,9 @@ class CADView(WebView):
         else:
             raise ValueError(f"Unknown event {event}")
 
-    def add_remove_update_point_observation(self, point_coordinates=None) -> None:
+    def add_remove_update_point_observation(
+        self, point_coordinates: tuple[float, float, float] | None = None
+    ) -> None:
         gcp_manager = self.main_ui.gcp_manager
         active_gcp = self.main_ui.curr_point
         if active_gcp is None:
@@ -100,20 +102,20 @@ class CADView(WebView):
     def display_points(self) -> None:
         pass
 
-    def refocus(self, lat, lon) -> None:
+    def refocus(self, lat: float, lon: float) -> None:
         x, y, z = self.latlon_to_xyz(lat, lon)
         self.send_sse_message(
             {"x": x, "y": y, "z": z},
             event_type="move_camera",
         )
 
-    def highlight_gcp_reprojection(self, *args, **kwargs) -> None:
+    def highlight_gcp_reprojection(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def populate_image_list(self, *args, **kwargs) -> None:
+    def populate_image_list(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def latlon_to_xyz(self, lat, lon) -> Tuple[float, float, float]:
+    def latlon_to_xyz(self, lat: float, lon: float) -> tuple[float, float, float]:
         xs, ys, zs = rasterio.warp.transform("EPSG:4326", self.crs, [lon], [lat], [0])
         x = xs[0] * self.scale - self.offset[0]
         y = ys[0] * self.scale - self.offset[1]
@@ -121,7 +123,7 @@ class CADView(WebView):
         y, z = z, -y
         return x, y, z
 
-    def xyz_to_latlon(self, x, y, z) -> Tuple[float, float, float]:
+    def xyz_to_latlon(self, x: float, y: float, z: float) -> tuple[float, float, float]:
         y, z = -z, y
 
         # Add offset (cm) and transform to m
@@ -131,7 +133,7 @@ class CADView(WebView):
         lons, lats, alts = rasterio.warp.transform(self.crs, "EPSG:4326", [x], [y], [z])
         return lats[0], lons[0], alts[0]
 
-    def load_georeference_metadata(self, path_cad_model) -> None:
+    def load_georeference_metadata(self, path_cad_model: Path) -> None:
         metadata = _load_georeference_metadata(path_cad_model)
         self.scale = metadata["scale"]
         self.crs = metadata["crs"]
