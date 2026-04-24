@@ -188,9 +188,13 @@ void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult* result) {
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
     for (int j = hpz; j < result->depth.cols - hpz; ++j) {
       for (int d = 0; d < num_depth_planes_; ++d) {
-        float depth =
-            1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) /
-                                      (num_depth_planes_ - 1));
+        float depth;
+        if (num_depth_planes_ <= 1) {
+          depth = min_depth_;
+        } else {
+          depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) /
+                                            (num_depth_planes_ - 1));
+        }
         cv::Vec3f normal(0, 0, -1);
         cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
         CheckPlaneCandidate(result, i, j, plane);
