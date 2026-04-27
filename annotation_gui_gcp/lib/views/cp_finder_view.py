@@ -1,5 +1,5 @@
-# pyre-unsafe
-import typing as t
+# pyre-strict
+from flask import Flask
 
 from .image_view import ImageView
 
@@ -7,17 +7,17 @@ from .image_view import ImageView
 class ControlPointFinderView(ImageView):
     def __init__(
         self,
-        main_ui,
-        web_app,
-    ):
+        main_ui: object,
+        web_app: Flask,
+    ) -> None:
         super().__init__(main_ui, web_app, "/current_cp_view", [], False)
 
-    def template_name(self):
+    def template_name(self) -> str:
         # pyrefly: ignore [missing-attribute]
         class_name = self.__class__.__base__.__name__
         return class_name
 
-    def get_candidate_images(self) -> t.List[str]:
+    def get_candidate_images(self) -> list[str]:
         images_in_existing_views = []
         for v in self.main_ui.sequence_views:
             images_in_existing_views.extend(v.image_list)
