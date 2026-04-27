@@ -146,7 +146,7 @@ struct RelativePoseCost {
 
   IT begin_;
   IT end_;
-  static const int MAX_ERRORS = 100;
+  static constexpr int MAX_ERRORS = 100;
   std::vector<IT> picked_errors_;
 };
 

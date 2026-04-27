@@ -15,6 +15,7 @@ class BagOfWords:
         self.weights: NDArray = np.log(frequencies.sum() / frequencies)
         FLANN_INDEX_KDTREE = 1
         flann_params = {"algorithm": FLANN_INDEX_KDTREE, "trees": 8, "checks": 300}
+        # pyrefly: ignore [not-callable]
         self.index: cv2.flann_Index = context.flann_Index(words, flann_params)
 
     def map_to_words(

@@ -92,6 +92,7 @@ def move_and_scale_cluster(
     translation = np.random.rand(3)
     for point in cluster.points.values():
         point.coordinates = scale * point.coordinates + translation
+    # pyrefly: ignore [bad-return]
     return cluster, translation, scale
 
 

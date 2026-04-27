@@ -43,12 +43,14 @@ def get_recs() -> Response:
 
 @app.route("/data/<path:subpath>")
 def get_data(subpath) -> Response:
+    # pyrefly: ignore [no-matching-overload]
     path = os.path.join(datapath, subpath)
     return verified_send(path)
 
 
 @app.route("/image/<shot_id>")
 def get_image(shot_id) -> Response:
+    # pyrefly: ignore [no-matching-overload]
     path = os.path.join(datapath, IMAGES, shot_id)
     return verified_send(path)
 
@@ -56,9 +58,12 @@ def get_image(shot_id) -> Response:
 def json_files(path) -> List[str]:
     """List all json files under a dir recursively."""
     paths = []
+    # pyrefly: ignore [bad-specialization]
     for root, _, files in os.walk(datapath):
         for file in files:
+            # pyrefly: ignore [not-iterable]
             if ".json" in file:
+                # pyrefly: ignore [no-matching-overload]
                 absolute = os.path.join(root, file)
                 relative = os.path.relpath(absolute, path)
                 paths.append(relative)

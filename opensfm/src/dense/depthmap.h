@@ -11,7 +11,7 @@ class NCCEstimator {
  public:
   NCCEstimator();
   void Push(float x, float y, float w);
-  float Get();
+  float Get() const;
 
  private:
   float sumx_, sumy_;
@@ -83,11 +83,10 @@ class DepthmapEstimator {
                    const float depth, const cv::Vec3f& plane, const float score,
                    const int nghbr);
   void ComputePlaneScore(int i, int j, const cv::Vec3f& plane, float* score,
-                         int* nghbr);
-  float ComputePlaneImageScoreUnoptimized(int i, int j, const cv::Vec3f& plane,
-                                          int other);
-  float ComputePlaneImageScore(int i, int j, const cv::Vec3f& plane, int other);
-  float BilateralWeight(float dcolor, float dx, float dy);
+                         int* nghbr) const;
+  float ComputePlaneImageScore(int i, int j, const cv::Vec3f& plane,
+                               int other) const;
+  float BilateralWeight(float dcolor, float dx, float dy) const;
   void PostProcess(DepthmapEstimatorResult* result);
 
  private:

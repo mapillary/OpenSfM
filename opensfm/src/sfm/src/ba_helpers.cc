@@ -19,17 +19,17 @@ BAHelpers::ShotNeighborhoodIds(map::Map& map,
                                const map::ShotId& central_shot_id,
                                size_t radius, size_t min_common_points,
                                size_t max_interior_size) {
-  auto res = ShotNeighborhood(map, central_shot_id, radius, min_common_points,
-                              max_interior_size);
+  auto [interior_shots, boundary_shots] = ShotNeighborhood(
+      map, central_shot_id, radius, min_common_points, max_interior_size);
   std::unordered_set<map::ShotId> interior;
-  for (map::Shot* shot : res.first) {
+  for (map::Shot* shot : interior_shots) {
     interior.insert(shot->GetId());
   }
   std::unordered_set<map::ShotId> boundary;
-  for (map::Shot* shot : res.second) {
+  for (map::Shot* shot : boundary_shots) {
     boundary.insert(shot->GetId());
   }
-  return std::make_pair(interior, boundary);
+  return std::make_pair(std::move(interior), std::move(boundary));
 }
 
 /**Reconstructed shots near a given shot.
@@ -63,8 +63,8 @@ BAHelpers::ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
     interior.insert(neighbors.begin(), neighbors.end());
   }
 
-  const auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
-  return std::make_pair(interior, boundary);
+  auto boundary = DirectShotNeighbors(map, interior, 1, MaxBoundarySize);
+  return std::make_pair(std::move(interior), std::move(boundary));
 }
 
 std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
@@ -72,15 +72,14 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
     const size_t min_common_points, const size_t max_neighbors) {
   std::unordered_set<map::Landmark*> points;
   for (auto* shot : shot_ids) {
-    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-      points.insert(lm_obs.first);
+    for (const auto& [landmark, obs] : shot->GetLandmarkObservations()) {
+      points.insert(landmark);
     }
   }
 
   std::unordered_map<map::Shot*, size_t> common_points;
   for (auto* pt : points) {
-    for (const auto& neighbor_p : pt->GetObservations()) {
-      auto* shot = neighbor_p.first;
+    for (const auto& [shot, obs] : pt->GetObservations()) {
       if (shot_ids.find(shot) == shot_ids.end()) {
         ++common_points[shot];
       }
@@ -98,10 +97,10 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   const size_t max_n = std::min(max_neighbors, pairs.size());
   std::unordered_set<map::Shot*> neighbors;
   size_t idx = 0;
-  for (auto& p : pairs) {
-    if (p.second >= min_common_points && idx < max_n) {
+  for (auto& [shot, num_common] : pairs) {
+    if (num_common >= min_common_points && idx < max_n) {
       const auto instance_shots =
-          map.GetRigInstance(p.first->GetRigInstanceId()).GetShotIDs();
+          map.GetRigInstance(shot->GetRigInstanceId()).GetShotIDs();
       for (const auto& s : instance_shots) {
         neighbors.insert(&map.GetShot(s));
       }
@@ -126,16 +125,14 @@ py::tuple BAHelpers::BundleLocal(
       map, central_shot_id, config["local_bundle_radius"].cast<size_t>(),
       config["local_bundle_min_common_points"].cast<size_t>(),
       config["local_bundle_max_shots"].cast<size_t>());
-  auto& interior = neighborhood.first;
-  auto& boundary = neighborhood.second;
+  auto& [interior, boundary] = neighborhood;
 
   // set up BA
   auto ba = bundle::BundleAdjuster();
   ba.SetUseAnalyticDerivatives(
       config["bundle_analytic_derivatives"].cast<bool>());
 
-  for (const auto& cam_pair : map.GetCameras()) {
-    const auto& cam = cam_pair.second;
+  for (const auto& [cam_id, cam] : map.GetCameras()) {
     const auto& cam_prior = camera_priors.at(cam.id);
     constexpr bool fix_cameras{true};
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
@@ -181,11 +178,10 @@ py::tuple BAHelpers::BundleLocal(
     // if any instance's shot is in boundary
     // then the entire instance will be fixed
     bool fix_instance = false;
-    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
-      const auto shot_id = shot_n_rig_camera.first;
+    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
       auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
+      shot_rig_cameras[shot_id] = rig_camera->id;
 
       const auto is_boundary = boundary.find(&shot) != boundary.end();
       const auto is_interior = !is_boundary;
@@ -220,27 +216,23 @@ py::tuple BAHelpers::BundleLocal(
   size_t added_reprojections = 0;
   for (auto* shot : interior) {
     // Add all points of the shots that are in the interior
-    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-      auto* lm = lm_obs.first;
+    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
       if (points.count(lm) == 0) {
         points.insert(lm);
         pt_ids.append(lm->id_);
         ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
         ++added_landmarks;
       }
-      const auto& obs = lm_obs.second;
-      ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_, obs.point,
-                                       obs.scale, obs.depth_prior);
+      ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
       ++added_reprojections;
     }
   }
   for (auto* shot : boundary) {
-    for (const auto& lm_obs : shot->GetLandmarkObservations()) {
-      auto* lm = lm_obs.first;
+    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
       if (points.count(lm) > 0) {
-        const auto& obs = lm_obs.second;
-        ba.AddPointProjectionObservation(shot->id_, lm_obs.first->id_,
-                                         obs.point, obs.scale, obs.depth_prior);
+        ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point,
+                                         obs.scale, obs.depth_prior);
         ++added_reprojections;
       }
     }
@@ -342,10 +334,10 @@ bool BAHelpers::TriangulateGCP(
   os.conservativeResize(added, Eigen::NoChange);
   if (added >= 2) {
     const std::vector<double> thresholds(added, reproj_threshold);
-    const auto& res = geometry::TriangulateBearingsMidpoint(
+    const auto& [success, coords] = geometry::TriangulateBearingsMidpoint(
         os, bs, thresholds, min_ray_angle, min_depth);
-    coordinates = res.second;
-    return res.first;
+    coordinates = coords;
+    return success;
   }
   return false;
 }
@@ -437,11 +429,9 @@ py::dict BAHelpers::BundleShotPoses(
   std::unordered_set<map::CameraId> cameras_ids;
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
-    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
-      const auto rig_camera_id = shot_n_rig_camera.second->id;
-      rig_cameras_ids.insert(rig_camera_id);
+    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
+      rig_cameras_ids.insert(rig_camera->id);
 
-      const auto shot_id = shot_n_rig_camera.first;
       const auto camera_id = map.GetShot(shot_id).GetCamera()->id;
       cameras_ids.insert(camera_id);
     }
@@ -463,8 +453,8 @@ py::dict BAHelpers::BundleShotPoses(
   std::unordered_set<map::Landmark*> landmarks;
   for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
-    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
-      landmarks.insert(lm_obs.first);
+    for (const auto& [landmark, obs] : shot.GetLandmarkObservations()) {
+      landmarks.insert(landmark);
     }
   }
   for (const auto& landmark : landmarks) {
@@ -487,13 +477,13 @@ py::dict BAHelpers::BundleShotPoses(
     // then the entire instance will be fixed
     bool fix_instance = false;
 
-    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
-      const auto shot_id = shot_n_rig_camera.first;
+    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
       auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
-
-      const auto is_fixed = shot_ids.find(shot_id) != shot_ids.end();
+      shot_rig_cameras[shot_id] = rig_camera->id;
+      // If the shot_id is in the shot_ids we aim to optimize this shot, so
+      // don't fix it
+      const auto is_fixed = shot_ids.find(shot_id) == shot_ids.end();
       if (!is_fixed) {
         if (config["bundle_use_gps"].cast<bool>()) {
           const auto pos = shot.GetShotMeasurements().gps_position_;
@@ -525,10 +515,9 @@ py::dict BAHelpers::BundleShotPoses(
   // add observations
   for (const auto& shot_id : shot_ids) {
     const auto& shot = map.GetShot(shot_id);
-    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
-      const auto& obs = lm_obs.second;
-      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
-                                       obs.scale, obs.depth_prior);
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
     }
   }
 
@@ -601,14 +590,12 @@ py::dict BAHelpers::Bundle(
   const auto start = std::chrono::high_resolution_clock::now();
 
   const auto& all_cameras = map.GetCameras();
-  for (const auto& cam_pair : all_cameras) {
-    const auto& cam = cam_pair.second;
+  for (const auto& [cam_id, cam] : all_cameras) {
     const auto& cam_prior = camera_priors.at(cam.id);
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
 
-  for (const auto& pt_pair : map.GetLandmarks()) {
-    const auto& pt = pt_pair.second;
+  for (const auto& [pt_id, pt] : map.GetLandmarks()) {
     ba.AddPoint(pt.id_, pt.GetGlobalPos(), false);
   }
 
@@ -639,31 +626,28 @@ py::dict BAHelpers::Bundle(
           : 1;
   const auto lock_rig_camera =
       shots_per_rig_cameras <= kMinRigInstanceForAdjust;
-  for (const auto& camera_pair : map.GetRigCameras()) {
+  for (const auto& [rig_camera_id, rig_camera] : map.GetRigCameras()) {
     // could be set to false (not locked) the day we expose leverarm adjustment
     const bool is_leverarm =
-        all_cameras.find(camera_pair.first) != all_cameras.end();
-    ba.AddRigCamera(camera_pair.first, camera_pair.second.pose,
-                    rig_camera_priors.at(camera_pair.first).pose,
+        all_cameras.find(rig_camera_id) != all_cameras.end();
+    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
+                    rig_camera_priors.at(rig_camera_id).pose,
                     is_leverarm | lock_rig_camera);
   }
 
   // setup rig instances
   const std::string gps_scale_group = "dummy";  // unused for now
-  for (auto instance_pair : map.GetRigInstances()) {
-    auto& instance = instance_pair.second;
-
+  for (const auto& [rig_instance_id, instance] : map.GetRigInstances()) {
     Vec3d average_position = Vec3d::Zero();
     double average_std = 0.;
     int gps_count = 0;
 
     // average GPS and assign GPS constraint to the instance
     std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
-    for (const auto& shot_n_rig_camera : instance.GetRigCameras()) {
-      const auto shot_id = shot_n_rig_camera.first;
+    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
       const auto& shot = map.GetShot(shot_id);
       shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = shot_n_rig_camera.second->id;
+      shot_rig_cameras[shot_id] = rig_camera->id;
 
       if (config["bundle_use_gps"].cast<bool>()) {
         const auto pos = shot.GetShotMeasurements().gps_position_;
@@ -683,22 +667,20 @@ py::dict BAHelpers::Bundle(
       }
     }
 
-    ba.AddRigInstance(instance_pair.first, instance.GetPose(), shot_cameras,
+    ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
                       shot_rig_cameras, false);
 
     if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
       average_position /= gps_count;
       average_std /= gps_count;
-      ba.AddRigInstancePositionPrior(instance_pair.first, average_position,
+      ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
                                      Vec3d::Constant(average_std),
                                      gps_scale_group);
     }
   }
 
   size_t added_reprojections = 0;
-  for (const auto& shot_pair : map.GetShots()) {
-    const auto& shot = shot_pair.second;
-
+  for (const auto& [shot_id, shot] : map.GetShots()) {
     // that one doesn't have it's rig counterpart
     if (do_add_align_vector) {
       constexpr double std_dev = 1e-3;
@@ -706,10 +688,9 @@ py::dict BAHelpers::Bundle(
     }
 
     // setup observations for any shot type
-    for (const auto& lm_obs : shot.GetLandmarkObservations()) {
-      const auto& obs = lm_obs.second;
-      ba.AddPointProjectionObservation(shot.id_, lm_obs.first->id_, obs.point,
-                                       obs.scale, obs.depth_prior);
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
       ++added_reprojections;
     }
   }
@@ -720,8 +701,8 @@ py::dict BAHelpers::Bundle(
 
   if (config["bundle_compensate_gps_bias"].cast<bool>()) {
     const auto& biases = map.GetBiases();
-    for (const auto& camera : map.GetCameras()) {
-      ba.SetCameraBias(camera.first, biases.at(camera.first));
+    for (const auto& [camera_id, camera] : map.GetCameras()) {
+      ba.SetCameraBias(camera_id, biases.at(camera_id));
     }
   }
 
@@ -782,55 +763,55 @@ void BAHelpers::BundleToMap(const bundle::BundleAdjuster& bundle_adjuster,
                             map::Map& output_map, bool update_cameras) {
   // update cameras
   if (update_cameras) {
-    for (auto& cam : output_map.GetCameras()) {
-      const auto& ba_cam = bundle_adjuster.GetCamera(cam.first);
-      for (const auto& p : ba_cam.GetParametersMap()) {
-        cam.second.SetParameterValue(p.first, p.second);
+    for (auto& [cam_id, cam] : output_map.GetCameras()) {
+      const auto& ba_cam = bundle_adjuster.GetCamera(cam_id);
+      for (const auto& [param_name, param_value] : ba_cam.GetParametersMap()) {
+        cam.SetParameterValue(param_name, param_value);
       }
     }
   }
 
   // Update bias
-  for (auto& bias : output_map.GetBiases()) {
-    const auto& new_bias = bundle_adjuster.GetBias(bias.first);
+  for (auto& [bias_id, bias] : output_map.GetBiases()) {
+    const auto& new_bias = bundle_adjuster.GetBias(bias_id);
     if (!new_bias.IsValid()) {
-      throw std::runtime_error("Bias " + bias.first +
+      throw std::runtime_error("Bias " + bias_id +
                                " has either NaN or INF values.");
     }
-    bias.second = new_bias;
+    bias = new_bias;
   }
 
   // Update rig instances
-  for (auto& instance : output_map.GetRigInstances()) {
+  for (auto& [instance_id, instance] : output_map.GetRigInstances()) {
     const auto new_instance =
-        bundle_adjuster.GetRigInstance(instance.first).GetValue();
+        bundle_adjuster.GetRigInstance(instance_id).GetValue();
     if (!new_instance.IsValid()) {
-      throw std::runtime_error("Rig Instance " + instance.first +
+      throw std::runtime_error("Rig Instance " + instance_id +
                                " has either NaN or INF values.");
     }
-    instance.second.SetPose(new_instance);
+    instance.SetPose(new_instance);
   }
 
   // Update rig cameras
-  for (auto& rig_camera : output_map.GetRigCameras()) {
+  for (auto& [rig_camera_id, rig_camera] : output_map.GetRigCameras()) {
     const auto new_rig_camera =
-        bundle_adjuster.GetRigCamera(rig_camera.first).GetValue();
+        bundle_adjuster.GetRigCamera(rig_camera_id).GetValue();
     if (!new_rig_camera.IsValid()) {
-      throw std::runtime_error("Rig Camera " + rig_camera.first +
+      throw std::runtime_error("Rig Camera " + rig_camera_id +
                                " has either NaN or INF values.");
     }
-    rig_camera.second.pose = new_rig_camera;
+    rig_camera.pose = new_rig_camera;
   }
 
   // Update points
-  for (auto& point : output_map.GetLandmarks()) {
-    const auto& pt = bundle_adjuster.GetPoint(point.first);
+  for (auto& [point_id, point] : output_map.GetLandmarks()) {
+    const auto& pt = bundle_adjuster.GetPoint(point_id);
     if (!pt.GetValue().allFinite()) {
-      throw std::runtime_error("Point " + point.first +
+      throw std::runtime_error("Point " + point_id +
                                " has either NaN or INF values.");
     }
-    point.second.SetGlobalPos(pt.GetValue());
-    point.second.SetReprojectionErrors(pt.reprojection_errors);
+    point.SetGlobalPos(pt.GetValue());
+    point.SetReprojectionErrors(pt.reprojection_errors);
   }
 }
 
@@ -843,8 +824,7 @@ void BAHelpers::AlignmentConstraints(
     reserve_size += gcp.size();
   }
   if (config["bundle_use_gps"].cast<bool>()) {
-    for (const auto& shot_p : shots) {
-      const auto& shot = shot_p.second;
+    for (const auto& [shot_id, shot] : shots) {
       if (shot.GetShotMeasurements().gps_position_.HasValue()) {
         reserve_size += 1;
       }
@@ -869,8 +849,7 @@ void BAHelpers::AlignmentConstraints(
     }
   }
   if (config["bundle_use_gps"].cast<bool>()) {
-    for (const auto& shot_p : shots) {
-      const auto& shot = shot_p.second;
+    for (const auto& [shot_id, shot] : shots) {
       const auto pos = shot.GetShotMeasurements().gps_position_;
       if (pos.HasValue()) {
         Xp.row(idx) = pos.Value();

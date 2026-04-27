@@ -349,12 +349,15 @@ def test_shot_measurement_setter_and_getter() -> None:
     m1 = pymap.ShotMeasurements()
     # Test basic functionality
     _help_measurement_test(m1, "capture_time", np.random.rand(1).item())
+    # pyrefly: ignore [bad-argument-type]
     _help_measurement_test(m1, "gps_position", np.random.rand(3))
     _help_measurement_test(m1, "gps_accuracy", np.random.rand(1).item())
     _help_measurement_test(m1, "compass_accuracy", np.random.rand(1).item())
     _help_measurement_test(m1, "compass_angle", np.random.rand(1).item())
     _help_measurement_test(m1, "opk_accuracy", np.random.rand(1).item())
+    # pyrefly: ignore [bad-argument-type]
     _help_measurement_test(m1, "opk_angles", np.random.rand(3))
+    # pyrefly: ignore [bad-argument-type]
     _help_measurement_test(m1, "gravity_down", np.random.rand(3))
     _help_measurement_test(m1, "orientation", random.randint(0, 100))
     _help_measurement_test(m1, "sequence_key", "key_test")

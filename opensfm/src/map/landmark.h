@@ -2,10 +2,7 @@
 #include <map/defines.h>
 
 #include <Eigen/Eigen>
-#include <iostream>
 #include <map>
-#include <memory>
-#include <unordered_map>
 namespace map {
 class Shot;
 

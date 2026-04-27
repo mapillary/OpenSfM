@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, IO, Union
 
@@ -396,15 +395,6 @@ class OpenSfMConfig:
 def default_config() -> Dict[str, Any]:
     """Return default configuration"""
     return asdict(OpenSfMConfig())
-
-
-def load_config(filepath: str) -> Dict[str, Any]:
-    """DEPRECATED: = Load config from a config.yaml filepath"""
-    if not os.path.isfile(filepath):
-        return default_config()
-
-    with open(filepath) as fin:
-        return load_config_from_fileobject(fin)
 
 
 def load_config_from_fileobject(

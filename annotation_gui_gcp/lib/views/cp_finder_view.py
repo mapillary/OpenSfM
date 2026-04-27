@@ -13,6 +13,7 @@ class ControlPointFinderView(ImageView):
         super().__init__(main_ui, web_app, "/current_cp_view", [], False)
 
     def template_name(self):
+        # pyrefly: ignore [missing-attribute]
         class_name = self.__class__.__base__.__name__
         return class_name
 

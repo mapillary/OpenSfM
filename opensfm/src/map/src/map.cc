@@ -8,7 +8,6 @@
 #include <cmath>
 #include <memory>
 #include <stdexcept>
-#include <unordered_set>
 
 namespace {
 void AssignShot(map::Shot& to, const map::Shot& from) {
@@ -24,41 +23,40 @@ std::unique_ptr<Map> Map::DeepCopy(const Map& map, bool copy_observations) {
   auto map_copy = std::make_unique<Map>();
   map_copy->topo_conv_ = map.topo_conv_;
 
-  for (const auto& camera : map.GetCameras()) {
-    map_copy->CreateCamera(camera.second);
+  for (const auto& [cam_id, camera] : map.GetCameras()) {
+    map_copy->CreateCamera(camera);
   }
 
   const auto& shots = map.GetShots();
-  for (const auto& shot : shots) {
-    if (map_copy->HasShot(shot.first)) {
+  for (const auto& [shot_id, shot] : shots) {
+    if (map_copy->HasShot(shot_id)) {
       continue;
     }
-    map_copy->UpdateShotWithRig(shot.second, false);
+    map_copy->UpdateShotWithRig(shot, false);
   }
 
   const auto& pano_shots = map.GetPanoShots();
-  for (const auto& pano_shot : pano_shots) {
-    if (map_copy->HasPanoShot(pano_shot.first)) {
+  for (const auto& [pano_shot_id, pano_shot] : pano_shots) {
+    if (map_copy->HasPanoShot(pano_shot_id)) {
       continue;
     }
-    map_copy->UpdateShotWithRig(pano_shot.second, true);
+    map_copy->UpdateShotWithRig(pano_shot, true);
   }
 
-  for (const auto& landmark : map.GetLandmarks()) {
-    map_copy->CreateLandmark(landmark.first, landmark.second.GetGlobalPos());
+  for (const auto& [lm_id, landmark] : map.GetLandmarks()) {
+    map_copy->CreateLandmark(lm_id, landmark.GetGlobalPos());
   }
 
   if (copy_observations) {
-    for (const auto& shot : shots) {
-      for (const auto& landmark_n_obs : shot.second.GetLandmarkObservations()) {
-        map_copy->AddObservation(shot.first, landmark_n_obs.first->id_,
-                                 landmark_n_obs.second);
+    for (const auto& [shot_id, shot] : shots) {
+      for (const auto& [landmark, obs] : shot.GetLandmarkObservations()) {
+        map_copy->AddObservation(shot_id, landmark->id_, obs);
       }
     }
   }
 
-  for (const auto& bias : map.GetBiases()) {
-    map_copy->SetBias(bias.first, bias.second);
+  for (const auto& [cam_id, bias] : map.GetBiases()) {
+    map_copy->SetBias(cam_id, bias);
   }
 
   return map_copy;
@@ -132,12 +130,12 @@ Landmark& Map::GetLandmark(const LandmarkId& lm_id) {
 
 void Map::ClearObservationsAndLandmarks() {
   // first JUST delete the observations of the landmark
-  for (auto& id_lm : landmarks_) {
-    auto& observations = id_lm.second.GetObservations();
-    for (const auto& obs : observations) {
-      obs.first->RemoveLandmarkObservation(obs.second);
+  for (auto& [lm_id, lm] : landmarks_) {
+    auto& observations = lm.GetObservations();
+    for (const auto& [shot, feat_id] : observations) {
+      shot->RemoveLandmarkObservation(feat_id);
     }
-    id_lm.second.ClearObservations();
+    lm.ClearObservations();
   }
   // then clear the landmarks_
   landmarks_.clear();
@@ -149,9 +147,7 @@ void Map::CleanLandmarksBelowMinObservations(const size_t min_observations) {
     if (landmark.NumberOfObservations() < min_observations) {
       // 2) Remove all its observation
       const auto& observations = landmark.GetObservations();
-      for (const auto& obs : observations) {
-        Shot* shot = obs.first;
-        const auto feat_id = obs.second;
+      for (const auto& [shot, feat_id] : observations) {
         shot->RemoveLandmarkObservation(feat_id);
       }
       // 3) Remove from landmarks
@@ -218,8 +214,8 @@ void Map::RemoveShot(const ShotId& shot_id) {
     shot.GetRigInstance()->RemoveShot(shot_id);
     // 2) Remove it from all the points
     auto& lms_map = shot.GetLandmarkObservations();
-    for (auto& lm_obs : lms_map) {
-      lm_obs.first->RemoveObservation(&shot);
+    for (auto& [lm, obs] : lms_map) {
+      lm->RemoveObservation(&shot);
     }
     // 3) Remove from shots
     shots_.erase(shot_it);
@@ -306,9 +302,7 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 
     // 2) Remove all its observation
     const auto& observations = landmark.GetObservations();
-    for (const auto& obs : observations) {
-      Shot* shot = obs.first;
-      const auto feat_id = obs.second;
+    for (const auto& [shot, feat_id] : observations) {
       shot->RemoveLandmarkObservation(feat_id);
     }
 
@@ -348,10 +342,7 @@ void Map::UpdateShotWithRig(const Shot& other_shot, bool is_panoshot) {
   if (!has_instance) {
     CreateRigInstance(instance_id);
   }
-  for (const auto& instance_shot : rig_instance->GetShots()) {
-    const auto& shot_id = instance_shot.first;
-    const auto& shot = instance_shot.second;
-
+  for (const auto& [shot_id, shot] : rig_instance->GetShots()) {
     const auto camera = shot->GetCamera();
     const auto& camera_id = camera->id;
     if (!HasCamera(camera_id)) {
@@ -514,33 +505,30 @@ Map::ComputeReprojectionErrors(const TracksManager& tracks_manager,
     }
     const auto& shot = find_shot->second;
     auto& per_shot = errors[shot_id];
-    for (const auto& track_n_obs :
+    for (const auto& [track_id, obs] :
          tracks_manager.GetShotObservations(shot_id)) {
-      const auto find_landmark = landmarks_.find(track_n_obs.first);
+      const auto find_landmark = landmarks_.find(track_id);
       if (find_landmark == landmarks_.end()) {
         continue;
       }
 
       if (error_type == Map::ErrorType::Pixel) {
         const Vec2d error_2d =
-            (track_n_obs.second.point -
-             shot.Project(find_landmark->second.GetGlobalPos()));
-        per_shot[track_n_obs.first] = error_2d;
+            (obs.point - shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_id] = error_2d;
       }
       if (error_type == Map::ErrorType::Normalized) {
         const Vec2d error_2d =
-            (track_n_obs.second.point -
-             shot.Project(find_landmark->second.GetGlobalPos()));
-        per_shot[track_n_obs.first] = error_2d / track_n_obs.second.scale;
+            (obs.point - shot.Project(find_landmark->second.GetGlobalPos()));
+        per_shot[track_id] = error_2d / obs.scale;
       }
       if (error_type == Map::ErrorType::Angular) {
         const Vec3d point =
             (find_landmark->second.GetGlobalPos() - shot.GetPose()->GetOrigin())
                 .normalized();
-        const Vec3d bearing =
-            shot.Bearing(track_n_obs.second.point).normalized();
+        const Vec3d bearing = shot.Bearing(obs.point).normalized();
         const double angle = std::acos(point.dot(bearing));
-        per_shot[track_n_obs.first] = Vec2d::Constant(angle);
+        per_shot[track_id] = Vec2d::Constant(angle);
       }
     }
   }
@@ -557,13 +545,13 @@ Map::GetValidObservations(const TracksManager& tracks_manager) const {
       continue;
     }
     auto& per_shot = observations[shot_id];
-    for (const auto& track_n_obs :
+    for (const auto& [track_id, obs] :
          tracks_manager.GetShotObservations(shot_id)) {
-      const auto find_landmark = landmarks_.find(track_n_obs.first);
+      const auto find_landmark = landmarks_.find(track_id);
       if (find_landmark == landmarks_.end()) {
         continue;
       }
-      per_shot[track_n_obs.first] = track_n_obs.second;
+      per_shot[track_id] = obs;
     }
   }
   return observations;
@@ -571,14 +559,14 @@ Map::GetValidObservations(const TracksManager& tracks_manager) const {
 
 TracksManager Map::ToTracksManager() const {
   TracksManager manager;
-  for (const auto& shot_pair : shots_) {
-    for (const auto& lm_obs : shot_pair.second.GetLandmarkObservations()) {
-      manager.AddObservation(shot_pair.first, lm_obs.first->id_, lm_obs.second);
+  for (const auto& [shot_id, shot] : shots_) {
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      manager.AddObservation(shot_id, lm->id_, obs);
     }
   }
-  for (const auto& shot_pair : pano_shots_) {
-    for (const auto& lm_obs : shot_pair.second.GetLandmarkObservations()) {
-      manager.AddObservation(shot_pair.first, lm_obs.first->id_, lm_obs.second);
+  for (const auto& [shot_id, shot] : pano_shots_) {
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      manager.AddObservation(shot_id, lm->id_, obs);
     }
   }
   return manager;

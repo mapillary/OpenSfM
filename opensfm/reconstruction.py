@@ -483,7 +483,7 @@ def two_view_reconstruction_5pt(
     return R_5p, t_5p, inliers_5p
 
 
-def two_view_reconstruction_general(  # pyre-ignore[3]: pyre is not happy with the Dict[str, Any]
+def two_view_reconstruction_general(
     p1: NDArray,
     p2: NDArray,
     camera1: pygeometry.Camera,
@@ -591,6 +591,7 @@ def reconstruction_from_relative_pose(
     logger.info("Triangulated: {}".format(len(reconstruction.points)))
     report["triangulated_points"] = len(reconstruction.points)
     if len(reconstruction.points) < min_inliers:
+        # pyrefly: ignore [unsupported-operation]
         report["decision"] = "Initial motion did not generate enough points"
         logger.info(report["decision"])
         return None, report
@@ -603,6 +604,7 @@ def reconstruction_from_relative_pose(
     retriangulate(tracks_manager, reconstruction, data.config)
     if len(reconstruction.points) < min_inliers:
         report["decision"] = (
+            # pyrefly: ignore [unsupported-operation]
             "Re-triangulation after initial motion did not generate enough points"
         )
         logger.info(report["decision"])
@@ -612,6 +614,7 @@ def reconstruction_from_relative_pose(
         reconstruction, to_adjust, camera_priors, rig_camera_priors, data.config
     )
 
+    # pyrefly: ignore [unsupported-operation]
     report["decision"] = "Success"
     report["memory_usage"] = current_memory_usage()
     return reconstruction, report
@@ -1001,6 +1004,7 @@ class TrackTriangulator:
                         break
 
         if len(best_inliers) > 1:
+            # pyrefly: ignore [bad-argument-type]
             self.tracks_handler.store_track_coordinates(track, best_point)
             for i in best_inliers:
                 self.tracks_handler.store_inliers_observation(track, ids[i])
@@ -1183,6 +1187,7 @@ def retriangulate(
 
     report["num_points_after"] = len(reconstruction.points)
     chrono.lap("retriangulate")
+    # pyrefly: ignore [unsupported-operation]
     report["wall_time"] = chrono.total_time()
     return report
 
@@ -1474,6 +1479,7 @@ def grow_reconstruction(
 
             logger.info(f"Adding {' and '.join(new_shots)} to the reconstruction")
             step: Dict[str, Union[List[int], List[str], int, List[int], Any]] = {
+                # pyrefly: ignore [no-matching-overload]
                 "images": list(new_shots),
                 "resection": resrep,
                 "memory_usage": current_memory_usage(),
@@ -1604,6 +1610,7 @@ def triangulation_reconstruction(
     logger.info("Triangulation SfM done.")
     logger.info("-------------------------------------------------------")
     chrono.lap("compute_reconstructions")
+    # pyrefly: ignore [unsupported-operation]
     report["wall_times"] = dict(chrono.lap_times())
 
     align_result = align_reconstruction(reconstruction, gcp, config, bias_override=True)
@@ -1695,6 +1702,7 @@ def incremental_reconstruction(
     reconstructions = []
     chrono.lap("compute_image_pairs")
     report["num_candidate_image_pairs"] = len(pairs)
+    # pyrefly: ignore [unsupported-operation]
     report["reconstructions"] = []
     for im1, im2 in pairs:
         if im1 in remaining_images and im2 in remaining_images:
@@ -1731,7 +1739,9 @@ def incremental_reconstruction(
         )
     logger.info("{} partial reconstructions in total.".format(len(reconstructions)))
     chrono.lap("compute_reconstructions")
+    # pyrefly: ignore [unsupported-operation]
     report["wall_times"] = dict(chrono.lap_times())
+    # pyrefly: ignore [unsupported-operation]
     report["not_reconstructed_images"] = list(remaining_images)
     return report, reconstructions
 
@@ -1762,6 +1772,7 @@ def reconstruct_from_prior(
     # Start with the known poses
     triangulate_shot_features(tracks_manager, reconstruction, prior_images, data.config)
     paint_reconstruction(data, tracks_manager, reconstruction)
+    # pyrefly: ignore [no-matching-overload]
     report["not_reconstructed_images"] = list(remaining_images)
     return report, reconstruction
 
@@ -1780,7 +1791,9 @@ class Chronometer:
         t = timer()
         dt = t - self.laps[-1][2]
         lap = (key, dt, t)
+        # pyrefly: ignore [bad-argument-type]
         self.laps.append(lap)
+        # pyrefly: ignore [bad-typed-dict-key]
         self.laps_dict[key] = lap
 
     def lap_time(self, key: str) -> float:

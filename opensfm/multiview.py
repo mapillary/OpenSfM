@@ -242,6 +242,7 @@ def fit_similarity_transform(
         best_T = tf.affine_matrix_from_points(
             p1[best_inliers, :].T, p2[best_inliers, :].T, shear=False
         )
+        # pyrefly: ignore [unbound-name]
         errors = np.sqrt(np.sum((p2h.T - np.dot(best_T, p1h.T)) ** 2, axis=0))
         best_inliers = np.argwhere(errors < threshold)[:, 0]
 

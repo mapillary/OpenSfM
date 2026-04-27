@@ -12,21 +12,13 @@
 #include <map/observation.h>
 
 #include <cmath>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
-#include "ceres/ceres.h"
 #include "ceres/cubic_interpolation.h"
-#include "ceres/rotation.h"
-
-extern "C" {
-#include <string.h>
-}
 
 namespace bundle {
 
@@ -38,22 +30,41 @@ struct Reconstruction {
 
   double* GetScalePtr(const std::string& shot) {
     if (shared) {
-      return &(scales.begin()->second);
+      return &(sharedScaleEntry()->second);
     }
     return &(scales.at(shot));
   }
 
   double GetScale(const std::string& shot) const {
     if (shared) {
-      return scales.begin()->second;
+      return sharedScaleEntry()->second;
     }
     return scales.at(shot);
   }
+
   void SetScale(const std::string& shot, double v) {
     if (shared) {
-      scales.begin()->second = v;
+      sharedScaleEntry()->second = v;
+      return;
     }
     scales[shot] = v;
+  }
+
+ private:
+  std::map<std::string, double>::iterator sharedScaleEntry() {
+    if (scales.empty()) {
+      throw std::runtime_error(
+          "Shared scale requested but no scale entries exist");
+    }
+    return scales.begin();
+  }
+
+  std::map<std::string, double>::const_iterator sharedScaleEntry() const {
+    if (scales.empty()) {
+      throw std::runtime_error(
+          "Shared scale requested but no scale entries exist");
+    }
+    return scales.begin();
   }
 };
 
@@ -69,8 +80,8 @@ struct PointProjectionObservation {
 struct RelativeMotion {
   RelativeMotion(const std::string& rig_instance_i,
                  const std::string& rig_instance_j, const Vec3d& rotation,
-                 const Vec3d& translation, double scale,
-                 double robust_multiplier, bool observed_scale) {
+                 const Vec3d& translation, const double scale,
+                 const double robust_multiplier, const bool observed_scale) {
     rig_instance_id_i = rig_instance_i;
     rig_instance_id_j = rig_instance_j;
 
@@ -242,15 +253,16 @@ class BundleAdjuster {
                         const std::string& shot_scale);
 
   // Minimization setup
-  void SetPointProjectionLossFunction(std::string name, double threshold);
-  void SetRelativeMotionLossFunction(std::string name, double threshold);
+  void SetPointProjectionLossFunction(const std::string& name,
+                                      double threshold);
+  void SetRelativeMotionLossFunction(const std::string& name, double threshold);
   void SetAdjustAbsolutePositionStd(bool adjust);
 
   void SetMaxNumIterations(int miter);
   void SetNumThreads(int n);
   void SetUseAnalyticDerivatives(bool use);
-  void SetLinearSolverType(std::string t);
-  void SetCovarianceAlgorithmType(std::string t);
+  void SetLinearSolverType(const std::string& t);
+  void SetCovarianceAlgorithmType(const std::string& t);
 
   void SetInternalParametersPriorSD(double focal_sd, double aspect_ratio_sd,
                                     double c_sd, double k1_sd, double k2_sd,

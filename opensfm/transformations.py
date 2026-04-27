@@ -747,6 +747,7 @@ def shear_from_matrix(
         if w > lenorm:
             lenorm = w
             normal = n
+    # pyrefly: ignore [unbound-name]
     normal /= lenorm
     # direction and angle
     direction = numpy.dot(M33 - numpy.identity(3), normal)
@@ -1134,16 +1135,14 @@ def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> NDArray
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
-    i = firstaxis
-    # pyre-fixme[6]: For 1st argument expected `int` but got `Union[int, str]`.
-    j = _NEXT_AXIS[i + parity]
-    # pyre-fixme[58]: `-` is not supported for operand types `Union[int, str]` and
-    #  `Union[int, str]`.
-    k = _NEXT_AXIS[i - parity + 1]
+    i = int(firstaxis)
+    parity_int = int(parity)
+    j = _NEXT_AXIS[i + parity_int]
+    k = _NEXT_AXIS[i - parity_int + 1]
 
     if frame:
         ai, ak = ak, ai
-    if parity:
+    if parity_int:
         ai, aj, ak = -ai, -aj, -ak
 
     si, sj, sk = math.sin(ai), math.sin(aj), math.sin(ak)
@@ -1203,69 +1202,34 @@ def euler_from_matrix(
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
-    i = firstaxis
-    # pyre-fixme[6]: For 1st argument expected `int` but got `Union[int, str]`.
-    j = _NEXT_AXIS[i + parity]
-    # pyre-fixme[58]: `-` is not supported for operand types `Union[int, str]` and
-    #  `Union[int, str]`.
-    k = _NEXT_AXIS[i - parity + 1]
+    i = int(firstaxis)
+    parity_int = int(parity)
+    j = _NEXT_AXIS[i + parity_int]
+    k = _NEXT_AXIS[i - parity_int + 1]
 
     M = numpy.asarray(matrix, dtype=numpy.float64)[:3, :3]
     if repetition:
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[Union[int, str],
-        #  int]`.
         sy = math.sqrt(M[i, j] * M[i, j] + M[i, k] * M[i, k])
         if sy > _EPS:
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], int]`.
             ax = math.atan2(M[i, j], M[i, k])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             ay = math.atan2(sy, M[i, i])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             az = math.atan2(M[j, i], -M[k, i])
         else:
             ax = math.atan2(-M[j, k], M[j, j])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             ay = math.atan2(sy, M[i, i])
             az = 0.0
     else:
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[Union[int, str],
-        #  Union[int, str]]`.
-        # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any, dtype[Any]],
-        #  tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int, Union[int,
-        #  str]]`.
         cy = math.sqrt(M[i, i] * M[i, i] + M[j, i] * M[j, i])
         if cy > _EPS:
             ax = math.atan2(M[k, j], M[k, k])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             ay = math.atan2(-M[k, i], cy)
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got
-            #  `Tuple[Union[int, str], Union[int, str]]`.
             az = math.atan2(M[j, i], M[i, i])
         else:
             ax = math.atan2(-M[j, k], M[j, j])
-            # pyre-fixme[6]: For 1st argument expected `Union[ndarray[Any,
-            #  dtype[Any]], tuple[ndarray[Any, dtype[Any]], ...]]` but got `Tuple[int,
-            #  Union[int, str]]`.
             ay = math.atan2(-M[k, i], cy)
             az = 0.0
 
-    if parity:
+    if parity_int:
         ax, ay, az = -ax, -ay, -az
     if frame:
         ax, az = az, ax
@@ -1305,19 +1269,15 @@ def quaternion_from_euler(
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
-    # pyre-fixme[58]: `+` is not supported for operand types `Union[int, str]` and
-    #  `int`.
-    i = firstaxis + 1
-    # pyre-fixme[58]: `+` is not supported for operand types `int` and `Union[int,
-    #  str]`.
-    j = _NEXT_AXIS[i + parity - 1] + 1
-    # pyre-fixme[58]: `-` is not supported for operand types `int` and `Union[int,
-    #  str]`.
-    k = _NEXT_AXIS[i - parity] + 1
+    firstaxis_int = int(firstaxis)
+    parity_int = int(parity)
+    i = firstaxis_int + 1
+    j = _NEXT_AXIS[i + parity_int - 1] + 1
+    k = _NEXT_AXIS[i - parity_int] + 1
 
     if frame:
         ai, ak = ak, ai
-    if parity:
+    if parity_int:
         aj = -aj
 
     ai /= 2.0

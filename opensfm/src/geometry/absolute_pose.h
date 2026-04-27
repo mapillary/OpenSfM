@@ -5,7 +5,6 @@
 
 #include <Eigen/Eigen>
 #include <complex>
-#include <iostream>
 
 Eigen::Matrix3d RotationMatrixAroundAxis(const double cos_theta,
                                          const double sin_theta,
@@ -158,8 +157,8 @@ Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(IT begin, IT end) {
   Eigen::Vector3d translation =
       scale * averages.first - rotation * averages.second;
 
-  const double tolerance = 1e-7;
-  const int max_iterations = 100;
+  constexpr double tolerance = 1e-7;
+  constexpr int max_iterations = 100;
   for (int i = 0; i < max_iterations; ++i) {
     std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> current_points;
     for (IT it = begin; it != end; ++it) {

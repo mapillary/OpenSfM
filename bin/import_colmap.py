@@ -62,27 +62,35 @@ def compute_and_save_undistorted_reconstruction(
     reconstruction, tracks_manager, data, udata
 ):
     image_format = data.config["undistorted_image_format"]
+    # pyrefly: ignore [missing-attribute]
     urec = types.Reconstruction()
+    # pyrefly: ignore [missing-attribute]
     utracks_manager = pymap.TracksManager()
     undistorted_shots = []
     for shot in reconstruction.shots.values():
         if shot.camera.projection_type == "perspective":
+            # pyrefly: ignore [missing-attribute]
             ucamera = osfm_u.perspective_camera_from_perspective(shot.camera)
         elif shot.camera.projection_type == "brown":
+            # pyrefly: ignore [missing-attribute]
             ucamera = osfm_u.perspective_camera_from_brown(shot.camera)
         elif shot.camera.projection_type == "fisheye":
+            # pyrefly: ignore [missing-attribute]
             ucamera = osfm_u.perspective_camera_from_fisheye(shot.camera)
         else:
             raise ValueError
         urec.add_camera(ucamera)
+        # pyrefly: ignore [missing-attribute]
         ushot = osfm_u.get_shot_with_different_camera(urec, shot, image_format)
         if tracks_manager:
+            # pyrefly: ignore [missing-attribute]
             osfm_u.add_subshot_tracks(tracks_manager, utracks_manager, shot, ushot)
         undistorted_shots.append(ushot)
 
         image = data.load_image(shot.id, unchanged=True, anydepth=True)
         if image is not None:
             max_size = data.config["undistorted_image_max_size"]
+            # pyrefly: ignore [missing-attribute]
             undistorted = osfm_u.undistort_image(
                 shot, undistorted_shots, image, cv2.INTER_AREA, max_size
             )
@@ -122,6 +130,7 @@ def import_cameras_images(db, data):
     cameras = {}
     for row in cursor:
         camera_id, camera_model_id, width, height, prior_focal, params = row
+        # pyrefly: ignore [no-matching-overload]
         params = np.fromstring(params, dtype=np.double)
         cam = cam_from_colmap_params(
             camera_model_id, width, height, params, prior_focal
@@ -188,6 +197,7 @@ def import_features(db, data, image_map, camera_map):
         filename, camera_id = image_map[image_id]
         cam = camera_map[camera_id]
 
+        # pyrefly: ignore [no-matching-overload]
         arr = np.fromstring(arr, dtype=np.float32).reshape((n_rows, n_cols))
 
         rgb = data.load_image(filename).astype(np.float32)
@@ -195,6 +205,7 @@ def import_features(db, data, image_map, camera_map):
         yc = np.clip(arr[:, 0].astype(int), 0, rgb.shape[1] - 1)
         colors[image_id] = rgb[xc, yc, :]
 
+        # pyrefly: ignore [missing-attribute]
         arr[:, :2] = features.normalized_image_coordinates(
             arr[:, :2], cam.width, cam.height
         )
@@ -216,8 +227,10 @@ def import_features(db, data, image_map, camera_map):
     for row in cursor:
         image_id, n_rows, n_cols, arr = row
         filename, _ = image_map[image_id]
+        # pyrefly: ignore [no-matching-overload]
         descriptors = np.fromstring(arr, dtype=np.uint8).reshape((n_rows, n_cols))
         kp = keypoints[image_id]
+        # pyrefly: ignore [missing-attribute]
         features_data = features.FeaturesData(kp, descriptors, colors[image_id], None)
         data.save_features(filename, features_data)
 
@@ -236,6 +249,7 @@ def import_matches(db, data, image_map):
 
     for row in cursor:
         pair_id = row[0]
+        # pyrefly: ignore [no-matching-overload]
         inlier_matches = np.fromstring(row[1], dtype=np.uint32).reshape(-1, 2)
         image_id1, image_id2 = pair_id_to_image_ids(pair_id)
         image_name1 = image_map[image_id1][0]
@@ -280,10 +294,13 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     normalizer = max(width, height)
     focal = params[0] / normalizer if prior_focal else 0.85
     if projection_type == "perspective":
+        # pyrefly: ignore [missing-attribute]
         cam = pygeometry.Camera.create_perspective(focal, params[3], params[4])
     elif projection_type == "pinhole":
+        # pyrefly: ignore [missing-attribute]
         cam = pygeometry.Camera.create_perspective(focal, 0, 0)
     else:  # projection_type == 'fisheye'
+        # pyrefly: ignore [missing-attribute]
         cam = pygeometry.Camera.create_fisheye(focal, params[3], 0)
     cam.width = width
     cam.height = height
@@ -371,6 +388,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
     Read images.bin, building shots and tracks graph
     """
     logger.info("Importing images from {}".format(path_images))
+    # pyrefly: ignore [missing-attribute]
     tracks_manager = pymap.TracksManager()
     image_ix_to_shot_id = {}
     with open(path_images, "rb") as f:
@@ -395,6 +413,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
             q /= np.linalg.norm(q)
             t = np.array([t0, t1, t2])
 
+            # pyrefly: ignore [missing-attribute]
             pose = pygeometry.Pose(rotation=quaternion_to_angle_axis(q), translation=t)
             shot = rec.create_shot(filename, str(camera_id), pose)
             image_ix_to_shot_id[image_ix] = shot.id
@@ -407,6 +426,7 @@ def import_images_reconstruction(path_images, keypoints, rec):
                 if point3d_id != np.iinfo(np.uint64).max:
                     kp = keypoints[image_id][point2d_ix]
                     r, g, b = rec.points[str(point3d_id)].color
+                    # pyrefly: ignore [missing-attribute]
                     obs = pymap.Observation(
                         x,
                         y,
@@ -472,6 +492,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
 
     points_2d = shot.project_many(points)
 
+    # pyrefly: ignore [missing-attribute]
     pixel_coords = features.denormalized_image_coordinates(points_2d, w, h).astype(int)
     # Filter out points that fall out of the image
     # <<< aren't we supposed to have points that are visible from this image only??!?!
@@ -549,6 +570,7 @@ def main():
     ):
         os.symlink(p_db.parent.parent / "config.yaml", export_folder / "config.yaml")
 
+    # pyrefly: ignore [missing-attribute]
     data = dataset.DataSet(export_folder)
     db = sqlite3.connect(p_db.as_posix())
     camera_map, image_map = import_cameras_images(db, data)
@@ -566,6 +588,7 @@ def main():
     rec_points = p_db.parent / "points3D.bin"
     rec_images = p_db.parent / "images.bin"
     if rec_cameras.exists() and rec_images.exists() and rec_points.exists():
+        # pyrefly: ignore [missing-attribute]
         reconstruction = types.Reconstruction()
         import_cameras_reconstruction(rec_cameras, reconstruction)
         import_points_reconstruction(rec_points, reconstruction)
@@ -577,6 +600,7 @@ def main():
         data.save_tracks_manager(tracks_manager)
 
         # Save undistorted reconstruction as well
+        # pyrefly: ignore [missing-attribute]
         udata = dataset.UndistortedDataSet(data, io_handler=data.io_handler)
         urec = compute_and_save_undistorted_reconstruction(
             reconstruction, tracks_manager, data, udata
@@ -588,6 +612,7 @@ def main():
             rec_cameras = p_db.parent / "dense/sparse/cameras.bin"
             rec_images = p_db.parent / "dense/sparse/images.bin"
             rec_points = p_db.parent / "points3D.bin"
+            # pyrefly: ignore [missing-attribute]
             reconstruction = types.Reconstruction()
             import_cameras_reconstruction(rec_cameras, reconstruction)
             import_points_reconstruction(rec_points, reconstruction)

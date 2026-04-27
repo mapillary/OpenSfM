@@ -17,5 +17,5 @@ VecXf compute_vlad_descriptor(const MatXf& features, const MatXf& vlad_centers);
 
 std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
     const std::map<std::string, VecXf>& vlad_descriptors,
-    const std::string& image, std::set<std::string>& other_images);
+    const std::string& image, const std::set<std::string>& other_images);
 }  // namespace features

@@ -9,8 +9,9 @@ struct StdDeviationConstraint {
 
   template <typename T>
   bool operator()(const T* const std_deviation, T* residuals) const {
-    T std = std_deviation[0];
-    residuals[0] = ceres::log(T(1.0) / ceres::sqrt(T(2.0 * M_PI) * std * std));
+    constexpr double kEps = 1e-20;
+    T std_sq = std_deviation[0] * std_deviation[0] + T(kEps);
+    residuals[0] = ceres::log(T(1.0) / ceres::sqrt(T(2.0 * M_PI) * std_sq));
     return true;
   }
 };

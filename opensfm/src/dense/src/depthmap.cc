@@ -5,9 +5,9 @@
 
 namespace dense {
 
-static const double z_epsilon = 1e-8;
+static constexpr double z_epsilon = 1e-8;
 
-bool IsInsideImage(const cv::Mat& image, int i, int j) {
+static bool IsInsideImage(const cv::Mat& image, int i, int j) {
   return i >= 0 && i < image.rows && j >= 0 && j < image.cols;
 }
 
@@ -55,7 +55,7 @@ void NCCEstimator::Push(float x, float y, float w) {
   sumw_ += w;
 }
 
-float NCCEstimator::Get() {
+float NCCEstimator::Get() const {
   if (sumw_ == 0.0) {
     return -1;
   }
@@ -188,9 +188,13 @@ void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult* result) {
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
     for (int j = hpz; j < result->depth.cols - hpz; ++j) {
       for (int d = 0; d < num_depth_planes_; ++d) {
-        float depth =
-            1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) /
-                                      (num_depth_planes_ - 1));
+        float depth;
+        if (num_depth_planes_ <= 1) {
+          depth = min_depth_;
+        } else {
+          depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) /
+                                            (num_depth_planes_ - 1));
+        }
         cv::Vec3f normal(0, 0, -1);
         cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
         CheckPlaneCandidate(result, i, j, plane);
@@ -406,7 +410,7 @@ void DepthmapEstimator::AssignPixel(DepthmapEstimatorResult* result, int i,
 }
 
 void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
-                                          float* score, int* nghbr) {
+                                          float* score, int* nghbr) const {
   *score = -1.0f;
   *nghbr = 0;
   for (int other = 1; other < images_.size(); ++other) {
@@ -418,29 +422,9 @@ void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
   }
 }
 
-float DepthmapEstimator::ComputePlaneImageScoreUnoptimized(
-    int i, int j, const cv::Vec3f& plane, int other) {
-  cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
-                                              Ks_[other], plane);
-  int hpz = (patch_size_ - 1) / 2;
-  float im1_center = images_[0].at<unsigned char>(i, j);
-  NCCEstimator ncc;
-  for (int dy = -hpz; dy <= hpz; ++dy) {
-    for (int dx = -hpz; dx <= hpz; ++dx) {
-      float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
-      float x2, y2;
-      ApplyHomography(H, j + dx, i + dy, &x2, &y2);
-      float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
-      float weight = BilateralWeight(im1 - im1_center, dx, dy);
-      ncc.Push(im1, im2, weight);
-    }
-  }
-  return ncc.Get();
-}
-
 float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
                                                 const cv::Vec3f& plane,
-                                                int other) {
+                                                int other) const {
   cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
                                               Ks_[other], plane);
   int hpz = (patch_size_ - 1) / 2;
@@ -477,11 +461,12 @@ float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
   return ncc.Get();
 }
 
-float DepthmapEstimator::BilateralWeight(float dcolor, float dx, float dy) {
-  const float dcolor_sigma = 50.0f;
-  const float dx_sigma = 5.0f;
-  const float dcolor_factor = 1.0f / (2 * dcolor_sigma * dcolor_sigma);
-  const float dx_factor = 1.0f / (2 * dx_sigma * dx_sigma);
+float DepthmapEstimator::BilateralWeight(float dcolor, float dx,
+                                         float dy) const {
+  constexpr float dcolor_sigma = 50.0f;
+  constexpr float dx_sigma = 5.0f;
+  constexpr float dcolor_factor = 1.0f / (2 * dcolor_sigma * dcolor_sigma);
+  constexpr float dx_factor = 1.0f / (2 * dx_sigma * dx_sigma);
   return exp(-dcolor * dcolor * dcolor_factor -
              (dx * dx + dy * dy) * dx_factor);
 }

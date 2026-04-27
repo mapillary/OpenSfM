@@ -2,8 +2,6 @@
 #include <map/rig.h>
 #include <map/shot.h>
 
-#include <algorithm>
-#include <numeric>
 #include <stdexcept>
 #include <string>
 namespace {

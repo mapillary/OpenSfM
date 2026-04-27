@@ -1,7 +1,7 @@
 #include <foundation/union_find.h>
 #include <map/tracks_manager.h>
 
-#include <optional>
+#include <fstream>
 #include <sstream>
 #include <unordered_set>
 
@@ -32,16 +32,12 @@ void WriteToStreamCurrentVersion(S& ostream,
   const auto shotsIDs = manager.GetShotIds();
   for (const auto& shotID : shotsIDs) {
     const auto& observations = manager.GetShotObservations(shotID);
-    for (const auto& observation : observations) {
-      ostream << shotID << "\t" << observation.first << "\t"
-              << observation.second.feature_id << "\t"
-              << observation.second.point(0) << "\t"
-              << observation.second.point(1) << "\t" << observation.second.scale
-              << "\t" << observation.second.color(0) << "\t"
-              << observation.second.color(1) << "\t"
-              << observation.second.color(2) << "\t"
-              << observation.second.segmentation_id << "\t"
-              << observation.second.instance_id << std::endl;
+    for (const auto& [track_id, obs] : observations) {
+      ostream << shotID << "\t" << track_id << "\t" << obs.feature_id << "\t"
+              << obs.point(0) << "\t" << obs.point(1) << "\t" << obs.scale
+              << "\t" << obs.color(0) << "\t" << obs.color(1) << "\t"
+              << obs.color(2) << "\t" << obs.segmentation_id << "\t"
+              << obs.instance_id << std::endl;
     }
   }
 }
@@ -67,7 +63,7 @@ void SeparateLineByTabs(const std::string& line,
   std::string elem;
   while (std::getline(stst, elem, '\t'))  // separate by tabs
   {
-    elems.push_back(elem);
+    elems.push_back(std::move(elem));
   }
 }
 
@@ -254,8 +250,8 @@ bool TracksManager::HasShotObservations(const ShotId& shot) const {
 std::vector<ShotId> TracksManager::GetShotIds() const {
   std::vector<ShotId> shots;
   shots.reserve(tracks_per_shot_.size());
-  for (const auto& it : tracks_per_shot_) {
-    shots.push_back(it.first);
+  for (const auto& [shot_id, observations] : tracks_per_shot_) {
+    shots.push_back(shot_id);
   }
   return shots;
 }
@@ -263,8 +259,8 @@ std::vector<ShotId> TracksManager::GetShotIds() const {
 std::vector<TrackId> TracksManager::GetTrackIds() const {
   std::vector<TrackId> tracks;
   tracks.reserve(shots_per_track_.size());
-  for (const auto& it : shots_per_track_) {
-    tracks.push_back(it.first);
+  for (const auto& [track_id, observations] : shots_per_track_) {
+    tracks.push_back(track_id);
   }
   return tracks;
 }
@@ -314,12 +310,11 @@ TracksManager TracksManager::ConstructSubTracksManager(
     if (find_track == shots_per_track_.end()) {
       continue;
     }
-    for (const auto& obs : find_track->second) {
-      const auto& shot_id = obs.first;
+    for (const auto& [shot_id, observation] : find_track->second) {
       if (shotsTmp.find(shot_id) == shotsTmp.end()) {
         continue;
       }
-      subset.AddObservation(shot_id, track_id, obs.second);
+      subset.AddObservation(shot_id, track_id, observation);
     }
   }
   return subset;
@@ -336,10 +331,10 @@ TracksManager::GetAllCommonObservations(const ShotId& shot1,
   }
 
   std::vector<KeyPointTuple> tuples;
-  for (const auto& p : find_shot1->second) {
-    const auto find = find_shot2->second.find(p.first);
+  for (const auto& [track_id, obs1] : find_shot1->second) {
+    const auto find = find_shot2->second.find(track_id);
     if (find != find_shot2->second.end()) {
-      tuples.emplace_back(p.first, p.second, find->second);
+      tuples.emplace_back(track_id, obs1, find->second);
     }
   }
   return tuples;
@@ -353,8 +348,8 @@ TracksManager::GetAllPairsConnectivity(
 
   std::vector<TrackId> tracks_to_use;
   if (tracks.empty()) {
-    for (const auto& track : shots_per_track_) {
-      tracks_to_use.push_back(track.first);
+    for (const auto& [track_id, observations] : shots_per_track_) {
+      tracks_to_use.push_back(track_id);
     }
   } else {
     tracks_to_use = tracks;
@@ -362,8 +357,8 @@ TracksManager::GetAllPairsConnectivity(
 
   std::unordered_set<ShotId> shots_to_use;
   if (shots.empty()) {
-    for (const auto& shot : tracks_per_shot_) {
-      shots_to_use.insert(shot.first);
+    for (const auto& [shot_id, observations] : tracks_per_shot_) {
+      shots_to_use.insert(shot_id);
     }
   } else {
     for (const auto& shot : shots) {
@@ -377,11 +372,9 @@ TracksManager::GetAllPairsConnectivity(
       continue;
     }
     const auto& track = find_track->second;
-    for (const auto& it1 : track) {
-      const auto& shot_id1 = it1.first;
+    for (const auto& [shot_id1, obs1] : track) {
       if (shots_to_use.find(shot_id1) != shots_to_use.end()) {
-        for (const auto& it2 : track) {
-          const auto& shot_id2 = it2.first;
+        for (const auto& [shot_id2, obs2] : track) {
           if (shot_id1 < shot_id2 &&
               shots_to_use.find(shot_id2) != shots_to_use.end()) {
             ++common_per_pair[std::make_pair(shot_id1, shot_id2)];
@@ -408,17 +401,17 @@ TracksManager TracksManager::MergeTracksManager(
       observations_per_feature_id;
   for (int i = 0; i < tracks_managers.size(); ++i) {
     const auto& manager = tracks_managers[i];
-    for (const auto& track_obses : manager->shots_per_track_) {
+    for (const auto& [track_id, track_observations] :
+         manager->shots_per_track_) {
       const auto element_id = union_find_elements.size();
-      for (const auto& shot_obs : track_obses.second) {
-        observations_per_feature_id[std::make_pair(shot_obs.first,
-                                                   shot_obs.second.feature_id)]
+      for (const auto& [shot_id, obs] : track_observations) {
+        observations_per_feature_id[std::make_pair(shot_id, obs.feature_id)]
             .push_back(element_id);
       }
       union_find_elements.emplace_back(
           std::unique_ptr<UnionFindElement<SingleTrackId>>(
               new UnionFindElement<SingleTrackId>(
-                  std::make_pair(track_obses.first, i))));
+                  std::make_pair(track_id, i))));
     }
   }
 
@@ -429,13 +422,14 @@ TracksManager TracksManager::MergeTracksManager(
 
   // Union-find any two tracks sharing a common FeatureId_2
   // For N tracks, make 0 the parent of [1, ... N-1[
-  for (const auto& tracks_agg : observations_per_feature_id) {
-    if (tracks_agg.second.empty()) {
+  for (const auto& [feature_id, element_indices] :
+       observations_per_feature_id) {
+    if (element_indices.empty()) {
       continue;
     }
-    const auto e1 = union_find_elements[tracks_agg.second[0]].get();
-    for (int i = 1; i < tracks_agg.second.size(); ++i) {
-      const auto e2 = union_find_elements[tracks_agg.second[i]].get();
+    const auto e1 = union_find_elements[element_indices[0]].get();
+    for (int i = 1; i < element_indices.size(); ++i) {
+      const auto e2 = union_find_elements[element_indices[i]].get();
       Union(e1, e2);
     }
   }
@@ -447,12 +441,11 @@ TracksManager TracksManager::MergeTracksManager(
     const auto merged_track_id = std::to_string(i);
     // Run over tracks to merged into a new single track
     for (const auto& manager_n_track_id : tracks_agg) {
-      const auto manager_id = manager_n_track_id->data.second;
-      const auto track_id = manager_n_track_id->data.first;
-      const auto track =
+      const auto& [track_id, manager_id] = manager_n_track_id->data;
+      const auto& track =
           tracks_managers[manager_id]->shots_per_track_.at(track_id);
-      for (const auto& shot_obs : track) {
-        merged.AddObservation(shot_obs.first, merged_track_id, shot_obs.second);
+      for (const auto& [shot_id, obs] : track) {
+        merged.AddObservation(shot_id, merged_track_id, obs);
       }
     }
   }

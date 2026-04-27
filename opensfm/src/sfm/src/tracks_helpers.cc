@@ -16,8 +16,7 @@ std::unordered_map<map::ShotId, int> CountTracksPerShot(
     const auto& observations = manager.GetShotObservations(shot);
 
     int sum = 0;
-    for (const auto& obs : observations) {
-      const auto& trackID = obs.first;
+    for (const auto& [trackID, observation] : observations) {
       if (tracks_set.find(trackID) == tracks_set.end()) {
         continue;
       }

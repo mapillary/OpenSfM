@@ -29,7 +29,7 @@ bool SolveAX0(const MAT& A, VEC* solution) {
   *solution = svd.matrixV().col(data_size - 1);
 
   // Check ratio of smallest eigenvalues for single nullspace
-  const double minimum_ratio = 4;
+  constexpr double minimum_ratio = 4;
   const auto values = svd.singularValues();
   const double ratio = values(data_size - 2) / values(data_size - 1);
 

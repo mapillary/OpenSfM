@@ -78,7 +78,7 @@ ScoreInfo<typename MODEL::Type> Estimate(
           }
 
           // Same as Matas papers : min(inliers/2, 12)
-          const int lo_sample_size_clamp = 12;
+          constexpr int lo_sample_size_clamp = 12;
           const int lo_sample_size =
               std::max(std::min(lo_sample_size_clamp,
                                 int(best_score.inliers_indices.size() * 0.5)),

@@ -4,8 +4,6 @@
 #include <bundle/data/data.h>
 #include <bundle/data/pose.h>
 
-#include <unordered_set>
-
 namespace bundle {
 
 using RigCamera = Pose;

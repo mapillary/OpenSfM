@@ -1,8 +1,6 @@
 #include <foundation/newton_raphson.h>
 #include <foundation/numeric.h>
 
-#include <iostream>
-
 namespace foundation {
 Eigen::Matrix3d SkewMatrix(const Eigen::Vector3d& v) {
   Eigen::Matrix3d m;

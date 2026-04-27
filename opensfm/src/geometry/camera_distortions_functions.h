@@ -54,6 +54,7 @@ struct Disto2 : Functor<2, 1, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
 
     // Compute undistorted radius
@@ -152,6 +153,7 @@ struct Disto24 : Functor<2, 2, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
 
     // Compute undistorted radius
@@ -268,6 +270,7 @@ struct Disto2468 : Functor<2, 4, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
 
     // Compute undistorted radius
@@ -421,6 +424,7 @@ struct Disto62 : Functor<2, 8, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
     Eigen::Map<const Vec2<T>> mapped_point(point);
     // Compute undistorted radius
@@ -627,6 +631,7 @@ struct Disto624 : Functor<2, 12, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
     Eigen::Map<const Vec2<T>> mapped_point(point);
     // Compute undistorted radius
@@ -774,6 +779,7 @@ struct DistoBrown : Functor<2, 5, 2> {
     if (rd < T(std::numeric_limits<double>::epsilon())) {
       undistorted[0] = point[0];
       undistorted[1] = point[1];
+      return;
     }
 
     Eigen::Map<const Vec2<T>> mapped_point(point);

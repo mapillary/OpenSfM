@@ -252,6 +252,7 @@ def bake_segmentation(
         # pyre-fixme[6]: For 2nd argument expected `None` but got
         #  `ndarray[typing.Any, typing.Any]`.
         panoptic_data[i] = p_data[ps[:, 1], ps[:, 0]]
+    # pyrefly: ignore [bad-return]
     return tuple(panoptic_data)
 
 

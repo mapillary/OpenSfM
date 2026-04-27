@@ -1,6 +1,7 @@
 # pyre-strict
 from collections import defaultdict
 from typing import Dict, List, Tuple
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -13,7 +14,7 @@ from opensfm.synthetic_data import (
 )
 
 
-def pytest_configure(config) -> None:
+def pytest_configure(config: MagicMock) -> None:
     use_legacy_numpy_printoptions()
 
 
@@ -163,7 +164,7 @@ def pairs_and_poses() -> Tuple[
 
 @pytest.fixture(scope="module")
 def pairs_and_their_E(
-    pairs_and_poses,
+    pairs_and_poses: MagicMock,
 ) -> List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]]:
     pairs, poses, camera, _, _, _ = pairs_and_poses
 
@@ -195,7 +196,7 @@ def pairs_and_their_E(
 
 @pytest.fixture(scope="module")
 def shots_and_their_points(
-    pairs_and_poses,
+    pairs_and_poses: MagicMock,
 ) -> List[Tuple[pygeometry.Pose, NDArray, NDArray]]:
     _, _, _, _, tracks_manager, reconstruction = pairs_and_poses
 

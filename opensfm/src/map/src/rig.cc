@@ -7,7 +7,7 @@ std::set<map::ShotId> RigInstance::GetShotIDs() const {
   std::set<map::ShotId> shot_keys;
   std::transform(shots_.begin(), shots_.end(),
                  std::inserter(shot_keys, shot_keys.end()),
-                 [](auto pair) { return pair.first; });
+                 [](const auto& p) { return p.first; });
   return shot_keys;
 }
 

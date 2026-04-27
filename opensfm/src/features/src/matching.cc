@@ -1,10 +1,8 @@
 #include <features/matching.h>
-#include <foundation/optional.h>
 #include <foundation/python_types.h>
 #include <foundation/types.h>
 #include <pybind11/pybind11.h>
 
-#include <cassert>
 #include <limits>
 #include <map>
 #include <opencv2/core/core.hpp>
@@ -15,15 +13,7 @@ namespace py = pybind11;
 
 namespace features {
 
-float DistanceL1(const float* pa, const float* pb, int n) {
-  float distance = 0;
-  for (int i = 0; i < n; ++i) {
-    distance += fabs(pa[i] - pb[i]);
-  }
-  return distance;
-}
-
-float DistanceL2(const float* pa, const float* pb, int n) {
+static float DistanceL2(const float* pa, const float* pb, int n) {
   float distance = 0;
   for (int i = 0; i < n; ++i) {
     distance += (pa[i] - pb[i]) * (pa[i] - pb[i]);
@@ -31,9 +21,10 @@ float DistanceL2(const float* pa, const float* pb, int n) {
   return std::sqrt(distance);
 }
 
-void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
-                     const cv::Mat& w2, float lowes_ratio, int max_checks,
-                     cv::Mat* matches) {
+static void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1,
+                            const cv::Mat& f2, const cv::Mat& w2,
+                            float lowes_ratio, int max_checks,
+                            cv::Mat* matches) {
   // Index features on the second image.
   std::multimap<int, int> index2;
   const int* pw2 = &w2.at<int>(0, 0);
@@ -41,7 +32,7 @@ void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
     index2.insert(std::pair<int, int>(pw2[i], i));
   }
 
-  std::vector<int> best_match(f1.rows, -1), second_best_match(f1.rows, -1);
+  std::vector<int> best_match(f1.rows, -1);
   std::vector<float> best_distance(f1.rows,
                                    std::numeric_limits<float>::infinity());
   std::vector<float> second_best_distance(
@@ -60,12 +51,10 @@ void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1, const cv::Mat& f2,
         float distance = DistanceL2(pa, pb, f1.cols);
         if (distance < best_distance[i]) {
           second_best_distance[i] = best_distance[i];
-          second_best_match[i] = best_match[i];
           best_distance[i] = distance;
           best_match[i] = match;
         } else if (distance < second_best_distance[i]) {
           second_best_distance[i] = distance;
-          second_best_match[i] = match;
         }
         checks++;
       }
@@ -131,7 +120,7 @@ VecXf compute_vlad_descriptor(const MatXf& features,
 
 std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
     const std::map<std::string, VecXf>& vlad_descriptors,
-    const std::string& image, std::set<std::string>& other_images) {
+    const std::string& image, const std::set<std::string>& other_images) {
   if (vlad_descriptors.find(image) == vlad_descriptors.end()) {
     return std::make_pair(std::vector<double>(), std::vector<std::string>());
   }
@@ -150,6 +139,6 @@ std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
     distances.push_back((reference - find_candidate->second).norm());
     others.push_back(candidate);
   }
-  return std::make_pair(distances, others);
+  return std::make_pair(std::move(distances), std::move(others));
 }
 }  // namespace features

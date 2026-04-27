@@ -1,7 +1,5 @@
 #include <geometry/camera.h>
 
-#include <iostream>
-
 namespace geometry {
 Camera::Camera(const ProjectionType& type,
                const std::vector<Camera::Parameters>& types,
@@ -340,7 +338,7 @@ std::pair<MatXf, MatXf> ComputeCameraMapping(const Camera& from,
       v_from(v, u) = point_uv_from(1) + half_height;
     }
   }
-  return std::make_pair(u_from, v_from);
+  return std::make_pair(std::move(u_from), std::move(v_from));
 }
 
 Vec2d Camera::PixelToNormalizedCoordinates(const Vec2d& px_coord) const {

@@ -11,6 +11,7 @@ def command_runner(
     all_commands_types: List[ModuleType],
     dataset_factory: Callable[[str, str], ContextManager[DataSet]],
     dataset_choices: List[str],
+    default_dataset_type: str = "opensfm",
 ) -> None:
     """Main entry point for running the passed SfM commands types."""
     log.setup()
@@ -30,7 +31,7 @@ def command_runner(
             "--dataset-type",
             type=str,
             required=False,
-            default="opensfm",
+            default=default_dataset_type,
             choices=dataset_choices,
         )
 

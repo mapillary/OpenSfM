@@ -1,8 +1,6 @@
 #include <map/landmark.h>
 #include <map/shot.h>
 
-#include <algorithm>
-
 namespace map {
 
 Landmark::Landmark(const LandmarkId& lm_id, const Vec3d& global_pos)

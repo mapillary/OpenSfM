@@ -124,7 +124,7 @@ bool FivePointsGaussJordan(Eigen::MatrixXd* Mp) {
     for (int j = i + 1; j < 10; ++j) {
       const auto elem = M(j, i);
       if (elem == 0.0) {
-        return false;
+        continue;
       }
       M.row(j) = M.row(j) / elem - M.row(i);
     }

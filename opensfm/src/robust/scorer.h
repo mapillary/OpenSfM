@@ -76,7 +76,7 @@ class MSacScoring {
         score.score += threshold_ * threshold_;
       }
     }
-    const double eps = 1e-8;
+    constexpr double eps = 1e-8;
     score.score = 1.0 / (score.score + eps);
     return score;
   }
@@ -101,7 +101,7 @@ class LMedSScoring : public MedianBasedScoring {
         score.inliers_indices.push_back(int(it - begin));
       }
     }
-    const double eps = 1e-8;
+    constexpr double eps = 1e-8;
     score.score = 1.0 / (median + eps);
     return score;
   }

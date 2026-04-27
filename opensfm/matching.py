@@ -77,6 +77,7 @@ def match_images_with_pairs(
     processes = config_override.get("processes", data.config["processes"])
     mem_per_process = 512
     jobs_per_process = 2
+    # pyrefly: ignore [bad-argument-type]
     processes = context.processes_that_fit_in_memory(processes, mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)
@@ -93,6 +94,7 @@ def match_images_with_pairs(
     resulting_pairs = {}
     for im1, im2, m in matches:
         resulting_pairs[im1, im2] = m
+    # pyrefly: ignore [bad-return]
     return resulting_pairs
 
 
@@ -150,6 +152,7 @@ def save_matches(
             )
 
     for im1, im1_matches in matches_per_im1.items():
+        # pyrefly: ignore [bad-argument-type]
         data.save_matches(im1, im1_matches)
 
 
@@ -792,6 +795,7 @@ def robust_match_fundamental(
     inliers = mask.ravel().nonzero()
 
     if F is None or F[2, 2] == 0.0:
+        # pyrefly: ignore [bad-return]
         return F, np.array([])
 
     return F, matches[inliers]
