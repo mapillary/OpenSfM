@@ -10,79 +10,101 @@
 # Ignore errors for [24] untyped generics.
 # pyre-ignore-all-errors[24]
 
-import numpy
-from typing import *
+from __future__ import annotations
 
-__all__ = [
+import typing
+
+import numpy
+
+__all__: list[str] = [
     "DepthmapCleaner",
     "DepthmapEstimator",
     "DepthmapPruner",
     "OpenMVSExporter",
-    "StaticExtensionLoader",
 ]
 
 class DepthmapCleaner:
     def __init__(self) -> None: ...
     def add_view(
         self,
-        arg0: numpy.typing.NDArray,
-        arg1: numpy.typing.NDArray,
-        arg2: numpy.typing.NDArray,
-        arg3: numpy.typing.NDArray,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float32],
     ) -> None: ...
-    def clean(self) -> numpy.typing.NDArray: ...
-    def set_min_consistent_views(self, arg0: int) -> None: ...
-    def set_same_depth_threshold(self, arg0: float) -> None: ...
+    def clean(self) -> numpy.typing.NDArray[numpy.float32]: ...
+    def set_min_consistent_views(
+        self, arg0: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
+    def set_same_depth_threshold(
+        self, arg0: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
 
 class DepthmapEstimator:
     def __init__(self) -> None: ...
     def add_view(
         self,
-        arg0: numpy.typing.NDArray,
-        arg1: numpy.typing.NDArray,
-        arg2: numpy.typing.NDArray,
-        arg3: numpy.typing.NDArray,
-        arg4: numpy.typing.NDArray,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8],
+        arg4: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8],
     ) -> None: ...
     def compute_brute_force(self) -> list: ...
     def compute_patch_match(self) -> list: ...
     def compute_patch_match_sample(self) -> list: ...
-    def set_depth_range(self, arg0: float, arg1: float, arg2: int) -> None: ...
-    def set_min_patch_sd(self, arg0: float) -> None: ...
-    def set_patch_size(self, arg0: int) -> None: ...
-    def set_patchmatch_iterations(self, arg0: int) -> None: ...
+    def set_depth_range(
+        self,
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+    ) -> None: ...
+    def set_min_patch_sd(
+        self, arg0: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
+    def set_patch_size(
+        self, arg0: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
+    def set_patchmatch_iterations(
+        self, arg0: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
 
 class DepthmapPruner:
     def __init__(self) -> None: ...
     def add_view(
         self,
-        arg0: numpy.typing.NDArray,
-        arg1: numpy.typing.NDArray,
-        arg2: numpy.typing.NDArray,
-        arg3: numpy.typing.NDArray,
-        arg4: numpy.typing.NDArray,
-        arg5: numpy.typing.NDArray,
-        arg6: numpy.typing.NDArray,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float32],
+        arg4: typing.Annotated[numpy.typing.ArrayLike, numpy.float32],
+        arg5: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8],
+        arg6: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8],
     ) -> None: ...
     def prune(self) -> list: ...
-    def set_same_depth_threshold(self, arg0: float) -> None: ...
+    def set_same_depth_threshold(
+        self, arg0: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
 
 class OpenMVSExporter:
     def __init__(self) -> None: ...
     def add_camera(
-        self, arg0: str, arg1: numpy.typing.NDArray, arg2: int, arg3: int
+        self,
+        arg0: str,
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+        arg3: typing.SupportsInt | typing.SupportsIndex,
     ) -> None: ...
-    def add_point(self, arg0: numpy.typing.NDArray, arg1: list) -> None: ...
+    def add_point(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64], arg1: list
+    ) -> None: ...
     def add_shot(
         self,
         arg0: str,
         arg1: str,
         arg2: str,
         arg3: str,
-        arg4: numpy.typing.NDArray,
-        arg5: numpy.typing.NDArray,
+        arg4: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
+        arg5: typing.Annotated[numpy.typing.ArrayLike, numpy.float64],
     ) -> None: ...
     def export(self, arg0: str) -> None: ...
-
-class StaticExtensionLoader:
-    pass

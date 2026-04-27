@@ -10,14 +10,17 @@
 # Ignore errors for [24] untyped generics.
 # pyre-ignore-all-errors[24]
 
+from __future__ import annotations
+
+import collections.abc
+import typing
+
 import opensfm.pybundle
 import opensfm.pygeometry
 import opensfm.pymap
-from typing import *
 
-__all__ = [
+__all__: list[str] = [
     "BAHelpers",
-    "StaticExtensionLoader",
     "add_connections",
     "count_tracks_per_shot",
     "filter_badly_conditioned_points",
@@ -31,32 +34,32 @@ class BAHelpers:
     def add_gcp_to_bundle(
         arg0: opensfm.pybundle.BundleAdjuster,
         arg1: opensfm.pymap.Map,
-        arg2: list[opensfm.pymap.GroundControlPoint],
+        arg2: collections.abc.Sequence[opensfm.pymap.GroundControlPoint],
         arg3: dict,
     ) -> int: ...
     @staticmethod
     def bundle(
         arg0: opensfm.pymap.Map,
-        arg1: dict[str, opensfm.pygeometry.Camera],
-        arg2: dict[str, opensfm.pymap.RigCamera],
-        arg3: list[opensfm.pymap.GroundControlPoint],
+        arg1: collections.abc.Mapping[str, opensfm.pygeometry.Camera],
+        arg2: collections.abc.Mapping[str, opensfm.pymap.RigCamera],
+        arg3: collections.abc.Sequence[opensfm.pymap.GroundControlPoint],
         arg4: dict,
     ) -> dict: ...
     @staticmethod
     def bundle_local(
         arg0: opensfm.pymap.Map,
-        arg1: dict[str, opensfm.pygeometry.Camera],
-        arg2: dict[str, opensfm.pymap.RigCamera],
-        arg3: list[opensfm.pymap.GroundControlPoint],
+        arg1: collections.abc.Mapping[str, opensfm.pygeometry.Camera],
+        arg2: collections.abc.Mapping[str, opensfm.pymap.RigCamera],
+        arg3: collections.abc.Sequence[opensfm.pymap.GroundControlPoint],
         arg4: str,
         arg5: dict,
     ) -> tuple: ...
     @staticmethod
     def bundle_shot_poses(
         arg0: opensfm.pymap.Map,
-        arg1: set[str],
-        arg2: dict[str, opensfm.pygeometry.Camera],
-        arg3: dict[str, opensfm.pymap.RigCamera],
+        arg1: collections.abc.Set[str],
+        arg2: collections.abc.Mapping[str, opensfm.pygeometry.Camera],
+        arg3: collections.abc.Mapping[str, opensfm.pymap.RigCamera],
         arg4: dict,
     ) -> dict: ...
     @staticmethod
@@ -67,29 +70,36 @@ class BAHelpers:
     def detect_alignment_constraints(
         arg0: opensfm.pymap.Map,
         arg1: dict,
-        arg2: list[opensfm.pymap.GroundControlPoint],
+        arg2: collections.abc.Sequence[opensfm.pymap.GroundControlPoint],
     ) -> str: ...
     @staticmethod
     def shot_neighborhood_ids(
-        arg0: opensfm.pymap.Map, arg1: str, arg2: int, arg3: int, arg4: int
+        arg0: opensfm.pymap.Map,
+        arg1: str,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+        arg3: typing.SupportsInt | typing.SupportsIndex,
+        arg4: typing.SupportsInt | typing.SupportsIndex,
     ) -> tuple[set[str], set[str]]: ...
 
-class StaticExtensionLoader:
-    pass
-
 def add_connections(
-    arg0: opensfm.pymap.TracksManager, arg1: str, arg2: list[str]
+    arg0: opensfm.pymap.TracksManager, arg1: str, arg2: collections.abc.Sequence[str]
 ) -> None: ...
 def count_tracks_per_shot(
-    arg0: opensfm.pymap.TracksManager, arg1: list[str], arg2: list[str]
+    arg0: opensfm.pymap.TracksManager,
+    arg1: collections.abc.Sequence[str],
+    arg2: collections.abc.Sequence[str],
 ) -> dict[str, int]: ...
 def filter_badly_conditioned_points(
-    map: opensfm.pymap.Map, min_angle_deg: float = 1.0, min_abs_det: float = 1e-15
+    map: opensfm.pymap.Map,
+    min_angle_deg: typing.SupportsFloat | typing.SupportsIndex = 1.0,
+    min_abs_det: typing.SupportsFloat | typing.SupportsIndex = 1e-15,
 ) -> int: ...
 def realign_maps(
     arg0: opensfm.pymap.Map, arg1: opensfm.pymap.Map, arg2: bool
 ) -> None: ...
 def remove_connections(
-    arg0: opensfm.pymap.TracksManager, arg1: str, arg2: list[str]
+    arg0: opensfm.pymap.TracksManager, arg1: str, arg2: collections.abc.Sequence[str]
 ) -> None: ...
-def remove_isolated_points(map: opensfm.pymap.Map, k: int = 7) -> int: ...
+def remove_isolated_points(
+    map: opensfm.pymap.Map, k: typing.SupportsInt | typing.SupportsIndex = 7
+) -> int: ...

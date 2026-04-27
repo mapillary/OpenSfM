@@ -7,54 +7,112 @@
 # Tip: Be sure to run this with the build mode you use for your project, e.g.,
 # @//arvr/mode/linux/opt (or dev) in arvr.
 #
-# Ignore errors for [5] global variable types and [24] untyped generics.
-# pyre-ignore-all-errors[5,24]
+# Ignore errors for [24] untyped generics.
+# pyre-ignore-all-errors[24]
+
+from __future__ import annotations
+
+import typing
 
 import numpy
-from typing import *
-__all__  = [
-"TopocentricConverter",
-"ecef_from_lla",
-"ecef_from_topocentric_transform",
-"ecef_from_topocentric_transform_finite_diff",
-"gps_distance",
-"lla_from_ecef",
-"lla_from_topocentric",
-"topocentric_from_lla"
+
+__all__: list[str] = [
+    "TopocentricConverter",
+    "ecef_from_lla",
+    "ecef_from_topocentric_transform",
+    "ecef_from_topocentric_transform_finite_diff",
+    "gps_distance",
+    "lla_from_ecef",
+    "lla_from_topocentric",
+    "topocentric_from_lla",
 ]
+
 class TopocentricConverter:
-    @overload
+    @typing.overload
     def __init__(self) -> None: ...
-    @overload
-    def __init__(self, arg0: float, arg1: float, arg2: float) -> None: ...
+    @typing.overload
+    def __init__(
+        self,
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> None: ...
     @property
-    def alt(self) -> float:...
+    def alt(self) -> float: ...
     @property
-    def lat(self) -> float:...
+    def lat(self) -> float: ...
     @property
-    def lon(self) -> float:...
-@overload
-def ecef_from_lla(arg0: float, arg1: float, arg2: float) -> numpy.ndarray:...
-@overload
-def ecef_from_lla(arg0: numpy.ndarray) -> numpy.ndarray:...
-@overload
-def ecef_from_topocentric_transform(arg0: float, arg1: float, arg2: float) -> numpy.ndarray:...
-@overload
-def ecef_from_topocentric_transform(arg0: numpy.ndarray) -> numpy.ndarray:...
-@overload
-def ecef_from_topocentric_transform_finite_diff(arg0: float, arg1: float, arg2: float) -> numpy.ndarray:...
-@overload
-def ecef_from_topocentric_transform_finite_diff(arg0: numpy.ndarray) -> numpy.ndarray:...
-def gps_distance(arg0: numpy.ndarray, arg1: numpy.ndarray) -> float:...
-@overload
-def lla_from_ecef(arg0: numpy.ndarray) -> numpy.ndarray:...
-@overload
-def lla_from_ecef(arg0: float, arg1: float, arg2: float) -> numpy.ndarray:...
-@overload
-def lla_from_topocentric(arg0: float, arg1: float, arg2: float, arg3: float, arg4: float, arg5: float) -> numpy.ndarray:...
-@overload
-def lla_from_topocentric(arg0: numpy.ndarray, arg1: numpy.ndarray) -> numpy.ndarray:...
-@overload
-def topocentric_from_lla(arg0: float, arg1: float, arg2: float, arg3: float, arg4: float, arg5: float) -> numpy.ndarray:...
-@overload
-def topocentric_from_lla(arg0: numpy.ndarray, arg1: numpy.ndarray) -> numpy.ndarray:...
+    def lon(self) -> float: ...
+
+@typing.overload
+def ecef_from_lla(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def ecef_from_lla(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def ecef_from_topocentric_transform(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
+@typing.overload
+def ecef_from_topocentric_transform(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
+@typing.overload
+def ecef_from_topocentric_transform_finite_diff(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
+@typing.overload
+def ecef_from_topocentric_transform_finite_diff(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
+def gps_distance(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+) -> float: ...
+@typing.overload
+def lla_from_ecef(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def lla_from_ecef(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def lla_from_topocentric(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def lla_from_topocentric(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+    arg3: typing.SupportsFloat | typing.SupportsIndex,
+    arg4: typing.SupportsFloat | typing.SupportsIndex,
+    arg5: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def topocentric_from_lla(
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+@typing.overload
+def topocentric_from_lla(
+    arg0: typing.SupportsFloat | typing.SupportsIndex,
+    arg1: typing.SupportsFloat | typing.SupportsIndex,
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+    arg3: typing.SupportsFloat | typing.SupportsIndex,
+    arg4: typing.SupportsFloat | typing.SupportsIndex,
+    arg5: typing.SupportsFloat | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
