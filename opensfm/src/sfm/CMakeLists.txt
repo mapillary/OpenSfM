@@ -12,10 +12,10 @@ add_library(sfm ${SFM_FILES})
 target_link_libraries(sfm
   PUBLIC
     Eigen3::Eigen
+    bundle
   PRIVATE
     foundation
     map
-    bundle
     vl
 )
 target_include_directories(sfm PUBLIC ${CMAKE_SOURCE_DIR})
