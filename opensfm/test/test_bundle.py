@@ -48,14 +48,22 @@ def test_sigleton(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0.5, 0, 0]), np.array([0, 0, 0])),
         {"1": "cam1"},
         {"1": "rig_cam1"},
         False,
     )
     sa.add_rig_instance_position_prior(
-        "1", np.array([1, 0, 0]), np.array([1, 1, 1]), ""
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([1, 0, 0]),
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([1, 1, 1]),
+        "",
     )
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_absolute_up_vector("1", np.array([0, -1, 0]), 1)
     sa.add_absolute_pan("1", np.radians(180), 1)
 
@@ -70,13 +78,20 @@ def test_singleton_pan_tilt_roll(bundle_adjuster: pybundle.BundleAdjuster) -> No
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0.5, 0, 0]), np.array([0, 0, 0])),
         {"1": "cam1"},
         {"1": "rig_cam1"},
         False,
     )
     sa.add_rig_instance_position_prior(
-        "1", np.array([1, 0, 0]), np.array([1, 1, 1]), ""
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([1, 0, 0]),
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([1, 1, 1]),
+        "",
     )
     sa.add_absolute_pan("1", pan, 1)
     sa.add_absolute_tilt("1", tilt, 1)
@@ -155,6 +170,7 @@ def create_shots(bundle_adjuster: pybundle.BundleAdjuster, num_shots: int) -> No
         instance_id = str(i + 1)
         bundle_adjuster.add_rig_instance(
             instance_id,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
             {instance_id: "cam1"},
             {instance_id: "rig_cam1"},
@@ -173,12 +189,23 @@ def test_pair(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.set_scale_sharing("12", True)
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1, False
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            "1",
+            "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([-1, 0, 0]),
+            1,
+            1,
+            False,
         )
     )
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
 
     sa.run()
@@ -199,13 +226,16 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
         instance_id = str(i + 1)
         sa.add_rig_instance(
             instance_id,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             pygeometry.Pose(np.array([1e-3, 1e-3, 1e-3]), np.array([1e-3, 1e-3, 1e-3])),
             {instance_id: "cam1"},
             {instance_id: "rig_cam1"},
             False,
         )
 
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_point("p1", np.array([0, 0, 0]), False)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_point("p2", np.array([0, 0, 0]), False)
 
     sa.add_reconstruction("12", False)
@@ -222,7 +252,9 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
         pybundle.RelativeMotion(
             "1",
             "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-1, 0, 0]),
             1,
             1,
@@ -232,19 +264,41 @@ def test_pair_with_points_priors(bundle_adjuster: pybundle.BundleAdjuster) -> No
 
     std_dev = np.array([1, 1, 1])
     sa.add_point_projection_observation(
-        shot="1", point="p1", observation=np.array([0, 0]), std_deviation=1
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        shot="1",
+        point="p1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        observation=np.array([0, 0]),
+        std_deviation=1,
     )
     sa.add_point_projection_observation(
-        shot="2", point="p1", observation=np.array([-0.5, 0]), std_deviation=1
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        shot="2",
+        point="p1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        observation=np.array([-0.5, 0]),
+        std_deviation=1,
     )
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_point_prior("p1", np.array([-0.5, 2, 2]), std_dev, True)
 
     sa.add_point_projection_observation(
-        shot="2", point="p2", observation=np.array([0, 0]), std_deviation=1
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        shot="2",
+        point="p2",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        observation=np.array([0, 0]),
+        std_deviation=1,
     )
     sa.add_point_projection_observation(
-        shot="1", point="p2", observation=np.array([0.5, 0]), std_deviation=1
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        shot="1",
+        point="p2",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        observation=np.array([0.5, 0]),
+        std_deviation=1,
     )
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_point_prior("p2", np.array([1.5, 2, 2]), std_dev, True)
 
     sa.run()
@@ -273,12 +327,23 @@ def test_pair_non_rigid(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     sa.set_scale_sharing("12", False)
     sa.add_relative_motion(
         pybundle.RelativeMotion(
-            "1", "2", np.array([0, 0, 0]), np.array([-1, 0, 0]), 1, 1, False
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            "1",
+            "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([-1, 0, 0]),
+            1,
+            1,
+            False,
         )
     )
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
 
     sa.run()
@@ -312,7 +377,9 @@ def test_four_cams_single_reconstruction(
         pybundle.RelativeMotion(
             "1",
             "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-1, 0, 0]),
             relative_scale,
             robust,
@@ -323,7 +390,9 @@ def test_four_cams_single_reconstruction(
         pybundle.RelativeMotion(
             "1",
             "3",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, -1, 0]),
             relative_scale,
             robust,
@@ -334,7 +403,9 @@ def test_four_cams_single_reconstruction(
         pybundle.RelativeMotion(
             "1",
             "4",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, -1]),
             relative_scale,
             robust,
@@ -343,8 +414,11 @@ def test_four_cams_single_reconstruction(
     )
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), std_dev, "")
 
     sa.run()
@@ -382,7 +456,9 @@ def test_four_cams_double_reconstruction(
         pybundle.RelativeMotion(
             "1",
             "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-0.5, -0.5, -0.5]),
             relative_scale,
             robust,
@@ -393,7 +469,9 @@ def test_four_cams_double_reconstruction(
         pybundle.RelativeMotion(
             "3",
             "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0.5, 0.5, 0.5]),
             relative_scale,
             robust,
@@ -405,7 +483,9 @@ def test_four_cams_double_reconstruction(
         pybundle.RelativeMotion(
             "3",
             "4",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-2, -2, -2]),
             relative_scale,
             robust,
@@ -416,7 +496,9 @@ def test_four_cams_double_reconstruction(
         pybundle.RelativeMotion(
             "2",
             "3",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-2, -2, -2]),
             relative_scale,
             robust,
@@ -425,7 +507,9 @@ def test_four_cams_double_reconstruction(
     )
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("4", np.array([3, 3, 3]), std_dev, "")
 
     sa.run()
@@ -457,6 +541,7 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         instance_id = str(i + 1)
         sa.add_rig_instance(
             instance_id,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
             {instance_id: "cam1"},
             {instance_id: "rig_cam1"},
@@ -476,7 +561,9 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         pybundle.RelativeMotion(
             "1",
             "2",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([-1, 0, 0]),
             relative_scale,
             robust,
@@ -487,7 +574,9 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         pybundle.RelativeMotion(
             "1",
             "3",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, -1, 0]),
             relative_scale,
             robust,
@@ -498,7 +587,9 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         pybundle.RelativeMotion(
             "1",
             "4",
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, 0]),
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([0, 0, -1]),
             relative_scale,
             robust,
@@ -507,8 +598,11 @@ def test_four_cams_one_fixed(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     )
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([100, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("2", np.array([2, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("3", np.array([0, 2, 0]), std_dev, "")
 
     sa.run()
@@ -535,7 +629,9 @@ def test_linear_motion_prior_position(bundle_adjuster: pybundle.BundleAdjuster) 
     sa.set_scale_sharing("123", True)
 
     std_dev = np.array([1, 1, 1])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("1", np.array([0, 0, 0]), std_dev, "")
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     sa.add_rig_instance_position_prior("3", np.array([2, 0, 0]), std_dev, "")
     sa.add_linear_motion("1", "2", "3", 0.5, 0.1, 0.1)
 
@@ -554,6 +650,7 @@ def test_linear_motion_prior_rotation(bundle_adjuster: pybundle.BundleAdjuster) 
     sa = bundle_adjuster
     sa.add_rig_instance(
         "1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
         {"1": "cam1"},
         {"1": "rig_cam1"},
@@ -561,6 +658,7 @@ def test_linear_motion_prior_rotation(bundle_adjuster: pybundle.BundleAdjuster) 
     )
     sa.add_rig_instance(
         "2",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
         {"2": "cam1"},
         {"2": "rig_cam1"},
@@ -568,6 +666,7 @@ def test_linear_motion_prior_rotation(bundle_adjuster: pybundle.BundleAdjuster) 
     )
     sa.add_rig_instance(
         "3",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 1, 0]), np.array([0, 0, 0])),
         {"3": "cam1"},
         {"3": "rig_cam1"},
@@ -594,7 +693,11 @@ def test_bundle_void_gps_ignored() -> None:
     r = types.Reconstruction()
     r.add_camera(camera)
     shot = r.create_shot(
-        "1", camera.id, pygeometry.Pose(np.random.rand(3), np.random.rand(3))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "1",
+        camera.id,
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.random.rand(3), np.random.rand(3)),
     )
 
     camera_priors = {camera.id: camera}
@@ -634,8 +737,13 @@ def test_bundle_alignment_prior() -> None:
     r = types.Reconstruction()
     r.add_camera(camera)
     shot = r.create_shot(
-        "1", camera.id, pygeometry.Pose(np.random.rand(3), np.random.rand(3))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "1",
+        camera.id,
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.random.rand(3), np.random.rand(3)),
     )
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     shot.metadata.gps_position.value = np.array([0, 0, 0])
     shot.metadata.gps_accuracy.value = 1
 
@@ -659,6 +767,7 @@ def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
         instance_id = str(i + 1)
         sa.add_rig_instance(
             instance_id,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             pygeometry.Pose(np.array([0, 0, 0]), np.array([0, 0, 0])),
             {instance_id: "cam1"},
             {instance_id: "rig_cam1"},

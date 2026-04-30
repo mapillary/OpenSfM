@@ -61,6 +61,7 @@ def test_absolute_pose_three_points(
 ) -> None:
     exact_found = 0
     for pose, bearings, points in shots_and_their_points:
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.absolute_pose_three_points(bearings, points)
 
         expected = pose.get_world_to_cam()[:3]
@@ -75,6 +76,7 @@ def test_absolute_pose_n_points(
     shots_and_their_points: List[Tuple[pygeometry.Pose, NDArray, NDArray]],
 ) -> None:
     for pose, bearings, points in shots_and_their_points:
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.absolute_pose_n_points(bearings, points)
 
         expected = pose.get_world_to_cam()[:3]
@@ -87,6 +89,7 @@ def test_absolute_pose_n_points_known_rotation(
     for pose, bearings, points in shots_and_their_points:
         R = pose.get_rotation_matrix()
         p_rotated = np.array([R.dot(p) for p in points])
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.absolute_pose_n_points_known_rotation(bearings, p_rotated)
 
         assert np.linalg.norm(pose.translation - result) < 1e-6
@@ -113,6 +116,7 @@ def test_relative_pose_from_essential(
     pairs_and_their_E: List[Tuple[NDArray, NDArray, NDArray, pygeometry.Pose]],
 ) -> None:
     for f1, f2, E, pose in pairs_and_their_E:
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.relative_pose_from_essential(E, f1, f2)
 
         pose = copy.deepcopy(pose)
@@ -137,6 +141,7 @@ def test_relative_rotation(
         f1 /= np.linalg.norm(f1, axis=1)[:, None]
         f2 = np.array([rotation.dot(x) for x in f1])
 
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.relative_rotation_n_points(f1, f2)
 
         assert np.allclose(rotation, result, rtol=1e-10)
@@ -154,6 +159,7 @@ def test_relative_pose_refinement(
         noisy_pose.translation += np.random.rand(3) * 1e-1
         noisy_pose.rotation += np.random.rand(3) * 1e-2
         Rt = noisy_pose.get_world_to_cam()[:3]
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         result = pygeometry.relative_pose_refinement(Rt, f1, f2, 1000)
 
         expected = pose.get_world_to_cam()[:3]

@@ -254,6 +254,7 @@ def add_gcp_to_bundle(
                 )
                 continue
 
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         ba.add_point(point_id, coordinates, False)
 
         for observation in point.observations:
@@ -261,6 +262,7 @@ def add_gcp_to_bundle(
                 ba.add_point_projection_observation(
                     observation.shot_id,
                     point_id,
+                    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
                     observation.projection,
                     gcp_std,
                 )
@@ -288,7 +290,12 @@ def bundle_with_fixed_images(
     for point in reconstruction.points.values():
         ba.add_point(point.id, point.coordinates, False)
         ba.add_point_prior(
-            point.id, point.coordinates, np.array([100.0, 100.0, 100.0]), False
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            point.id,
+            point.coordinates,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([100.0, 100.0, 100.0]),
+            False,
         )
 
     for shot_id in reconstruction.shots:

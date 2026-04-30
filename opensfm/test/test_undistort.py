@@ -12,6 +12,7 @@ def test_perspective_views_of_a_panorama() -> None:
     camera.width = 8000
     camera.height = 4000
     reconstruction.add_camera(camera)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose = pygeometry.Pose(np.array([1, 2, 3]), np.array([4, 5, 6]))
     spherical_shot = reconstruction.create_shot("shot1", camera.id, pose=pose)
 

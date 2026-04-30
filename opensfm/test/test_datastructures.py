@@ -166,7 +166,13 @@ def test_brown_camera() -> None:
     p2 = 0.002
     k3 = 0.01
     cam_cpp = pygeometry.Camera.create_brown(
-        focal_x, focal_y / focal_x, np.array([c_x, c_y]), np.array([k1, k2, k3, p1, p2])
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        focal_x,
+        focal_y / focal_x,
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([c_x, c_y]),
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        np.array([k1, k2, k3, p1, p2]),
     )
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -209,6 +215,7 @@ def test_fisheye_opencv_camera() -> None:
     aspect_ratio = 0.7
     ppoint = np.array([0.51, 0.52])
     dist = np.array([-0.1, 0.09, 0.08, 0.01])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     cam_cpp = pygeometry.Camera.create_fisheye_opencv(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -231,6 +238,7 @@ def test_fisheye62_camera() -> None:
     aspect_ratio = 0.7
     ppoint = np.array([0.51, 0.52])
     dist = np.array([-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2])  # [k1-k6, p1, p2]
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     cam_cpp = pygeometry.Camera.create_fisheye62(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -257,6 +265,7 @@ def test_fisheye624_camera() -> None:
     dist = np.array(
         [-0.1, 0.09, 0.08, 0.01, 0.02, 0.05, 0.1, 0.2, 0.01, -0.003, 0.005, -0.007]
     )  # [k1-k6, p1, p2, s0-s3]
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     cam_cpp = pygeometry.Camera.create_fisheye624(focal, aspect_ratio, ppoint, dist)
     cam_cpp.width = 800
     cam_cpp.height = 600
@@ -365,12 +374,15 @@ def test_shot_measurement_setter_and_getter() -> None:
 
 def _helper_populate_metadata(m: pymap.ShotMeasurements) -> None:
     m.capture_time.value = np.random.rand(1).item()
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     m.gps_position.value = np.random.rand(3)
     m.gps_accuracy.value = np.random.rand(1).item()
     m.compass_accuracy.value = np.random.rand(1).item()
     m.compass_angle.value = np.random.rand(1).item()
     m.opk_accuracy.value = np.random.rand(1).item()
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     m.opk_angles.value = np.random.rand(3)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     m.gravity_down.value = np.random.rand(3)
     m.orientation.value = random.randint(0, 100)
     m.sequence_key.value = "sequence_key"
@@ -469,6 +481,7 @@ def test_shot_pose_set() -> None:
     shot = rec.create_shot(shot_id, "0")
 
     origin = np.array([1, 2, 3])
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     shot.pose.set_origin(origin)
     assert np.allclose(origin, shot.pose.get_origin())
 
@@ -653,6 +666,7 @@ def test_pano_shot_create_remove_create() -> None:
 def _create_rig_camera() -> RigCamera:
     rig_camera = pymap.RigCamera()
     rig_camera.id = "rig_camera"
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     rig_camera.pose = pygeometry.Pose(
         np.array([0.1, 0.2, 0.3]), np.array([0.1, 0.2, 0.3])
     )
@@ -712,12 +726,14 @@ def test_rig_instance_remove_shot() -> None:
 def test_rig_shot_modify_pose_raise() -> None:
     _, rig_instance, shot = _create_rig_instance()
     with pytest.raises(RuntimeError):
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         shot.pose.set_origin(np.array([1, 2, 3]))
 
 
 def test_rig_shot_modify_pose_succeed() -> None:
     _, rig_instance, shot = _create_rig_instance()
     next(iter(rig_instance.rig_cameras.values())).pose = pygeometry.Pose()
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     shot.pose.set_origin(np.array([1, 2, 3]))
 
 
@@ -833,6 +849,7 @@ def test_single_point_coordinates() -> None:
 
     # When assigning coordinates
     coord = np.random.rand(3)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pt.coordinates = coord
 
     # They should be set
@@ -846,6 +863,7 @@ def test_single_point_color() -> None:
 
     # When assigning color
     color = np.random.randint(low=0, high=255, size=(3,))
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pt.color = color
 
     # It should be set
@@ -981,6 +999,7 @@ def test_many_observations_delete() -> None:
         m.create_shot(shot_id, cam_id, cam_id, shot_id, pygeometry.Pose())
 
     for point_id in range(n_landmarks):
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         m.create_landmark(str(point_id), np.random.rand(3))
 
     # ... and random connections (observations) between shots and points
@@ -1020,6 +1039,7 @@ def test_clean_landmarks_with_min_observations() -> None:
         m.create_shot(str(shot_id), cam_id, cam_id, str(shot_id), pygeometry.Pose())
 
     for point_id in range(n_landmarks):
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         m.create_landmark(str(point_id), np.random.rand(3))
 
     for point_id in range(int(n_landmarks / 2)):

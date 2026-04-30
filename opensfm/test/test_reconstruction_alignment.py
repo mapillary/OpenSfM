@@ -6,6 +6,7 @@ from opensfm import pybundle, pygeometry
 
 def get_shot_origin(shot: pybundle.RAShot) -> NDArray:
     """Compute the origin of a shot."""
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose = pygeometry.Pose(
         np.array([shot.rx, shot.ry, shot.rz]), np.array([shot.tx, shot.ty, shot.tz])
     )
@@ -15,6 +16,7 @@ def get_shot_origin(shot: pybundle.RAShot) -> NDArray:
 def get_reconstruction_origin(r: pybundle.RAReconstruction) -> NDArray:
     """Compute the origin of a reconstruction."""
     s = r.scale
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose = pygeometry.Pose(
         np.array([r.rx, r.ry, r.rz]), np.array([r.tx / s, r.ty / s, r.tz / s])
     )

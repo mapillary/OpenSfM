@@ -53,8 +53,11 @@ def test_match_using_words() -> None:
 
     features, words = example_features(nfeatures, configuration)
     matches = pyfeatures.match_using_words(
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         features[0],
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         words[0],
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         features[1],
         words[1][:, 0],
         configuration["lowes_ratio"],

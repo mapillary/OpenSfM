@@ -33,6 +33,7 @@ def test_depthmap_to_ply() -> None:
     shot = r.create_shot(
         "shot1",
         camera.id,
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0])),
     )
 
