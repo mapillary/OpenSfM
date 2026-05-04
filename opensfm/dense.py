@@ -309,6 +309,7 @@ def add_views_to_depth_estimator(
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         de.add_view(K, R, t, image, mask)
 
 
@@ -323,6 +324,7 @@ def add_views_to_depth_cleaner(
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         dc.add_view(K, R, t, depth)
 
 
@@ -367,6 +369,7 @@ def add_views_to_depth_pruner(
         K = shot.camera.get_K_in_pixel_coordinates(width, height)
         R = shot.pose.get_rotation_matrix()
         t = shot.pose.translation
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         dp.add_view(K, R, t, depth, plane, image, labels)
 
 

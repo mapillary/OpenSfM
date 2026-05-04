@@ -98,6 +98,7 @@ class FeatureLoader:
         if not features_data:
             return None
         keypoints_2d = np.array(features_data.points[:, :2], dtype=float)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bearings_3d = camera.pixel_bearing_many(keypoints_2d)
         return bearings_3d
 

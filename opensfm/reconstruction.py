@@ -401,7 +401,9 @@ def two_view_reconstruction_rotation_only(
     Returns:
         rotation and inlier list
     """
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     R = multiview.relative_pose_ransac_rotation_only(b1, b2, threshold, 1000, 0.999)
@@ -511,7 +513,9 @@ def two_view_reconstruction_general(
         rotation, translation and inlier list
     """
 
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     # Get 5-point relative motion
@@ -582,7 +586,13 @@ def reconstruction_from_relative_pose(
 
     if im2 not in new_shots:
         new_shots |= add_shot(
-            data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+            data,
+            reconstruction,
+            rig_assignments,
+            im2,
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+            pygeometry.Pose(R, t),
         )
 
     align_reconstruction(reconstruction, [], data.config)
@@ -952,12 +962,15 @@ class TrackTriangulator:
             bs_t = np.array([bs[i], bs[j]])
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 os_t,
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 bs_t,
                 thresholds,
                 min_ray_angle_radians,
                 min_depth,
             )
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
             if valid_triangulation:
@@ -976,7 +989,12 @@ class TrackTriangulator:
                         min_depth,
                     )
                     new_X = pygeometry.point_refinement(
-                        os[inliers], bs[inliers], X, iterations
+                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                        os[inliers],
+                        bs[inliers],
+                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                        X,
+                        iterations,
                     )
 
                     reprojected_bs = new_X - os
@@ -1039,7 +1057,13 @@ class TrackTriangulator:
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
-                    np.array(os), np.array(bs), X, iterations
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(os),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(bs),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    X,
+                    iterations,
                 )
                 self.tracks_handler.store_track_coordinates(track, X.tolist())
                 for shot_id in ids:
@@ -1075,7 +1099,13 @@ class TrackTriangulator:
             )
             if e:
                 X = pygeometry.point_refinement(
-                    np.array(os), np.array(bs), X, iterations
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(os),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(bs),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    X,
+                    iterations,
                 )
                 self.tracks_handler.store_track_coordinates(track, X.tolist())
                 for shot_id in ids:

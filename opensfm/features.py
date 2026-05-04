@@ -499,6 +499,7 @@ def extract_features_akaze(
 
     logger.debug("Computing AKAZE with threshold {0}".format(options.dthreshold))
     t = time.time()
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     points, desc = pyfeatures.akaze(image, options)
     logger.debug("Found {0} points in {1}s".format(len(points), time.time() - t))
 

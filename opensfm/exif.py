@@ -765,7 +765,9 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_brown(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["k1"], calib["k2"], calib["k3"], calib["p1"], calib["p2"]]),
         )
     elif calib_pt == "fisheye":
@@ -776,14 +778,18 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_fisheye_opencv(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["k1"], calib["k2"], calib["k3"], calib["k4"]]),
         )
     elif calib_pt == "fisheye62":
         camera = pygeometry.Camera.create_fisheye62(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     calib["k1"],
@@ -801,7 +807,9 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_fisheye624(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     calib["k1"],
@@ -823,13 +831,16 @@ def camera_from_exif_metadata(
         camera = pygeometry.Camera.create_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["k1"], calib["k2"]]),
         )
     elif calib_pt == "simple_radial":
         camera = pygeometry.Camera.create_simple_radial(
             calib["focal_x"],
             calib["focal_y"] / calib["focal_x"],
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([calib["c_x"], calib["c_y"]]),
             calib["k1"],
         )

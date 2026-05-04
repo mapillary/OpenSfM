@@ -375,6 +375,7 @@ def render_perspective_view_of_a_panorama(
     )
 
     # Convert to bearing
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     dst_bearings = perspectiveshot.camera.pixel_bearing_many(dst_pixels)
 
     # Rotate to panorama reference frame
@@ -425,6 +426,7 @@ def add_pano_subshot_tracks(
 ) -> None:
     """Add edges between subshots and visible tracks."""
     for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bearing = panoshot.camera.pixel_bearing(obs.point)
         rotation = np.dot(
             perspectiveshot.pose.get_rotation_matrix(),
@@ -444,5 +446,6 @@ def add_pano_subshot_tracks(
         ):
             continue
 
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         obs.point = perspective_feature
         utracks_manager.add_observation(perspectiveshot.id, track_id, obs)

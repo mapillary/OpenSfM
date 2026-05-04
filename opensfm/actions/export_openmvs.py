@@ -42,6 +42,7 @@ def export(
                     [0, 0, 1],
                 ]
             )
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             exporter.add_camera(str(camera.id), K, w, h)
 
     for shot in reconstruction.shots.values():
@@ -73,6 +74,7 @@ def export(
 
         if shots:
             coordinates = np.array(point.coordinates, dtype=np.float64)
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             exporter.add_point(coordinates, shots)
 
     io.mkdir_p(udata.data_path + "/openmvs")
