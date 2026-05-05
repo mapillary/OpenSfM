@@ -26,6 +26,7 @@ class FeatureLoader:
         self._load_all_data_masked.cache_clear()
         self.load_features_index.cache_clear()
         self.load_words.cache_clear()
+        self.load_bearings.cache_clear()
 
     @lru_cache(1000)
     def load_mask(self, data: DataSetBase, image: str) -> Optional[NDArray]:
