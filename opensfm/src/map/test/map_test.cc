@@ -318,6 +318,23 @@ TEST_F(OneRigMapFixture, ReturnsAllRigInstances) {
   ASSERT_EQ(1, map.GetRigInstances().size());
 }
 
+TEST_F(OneCameraMapFixture, RemovePanoShotErasesLandmarkObservations) {
+  // RemovePanoShot must drop the shot from observing landmarks, otherwise
+  // their observations_ retain a dangling Shot* after the shot is destroyed.
+  auto& pano_shot =
+      map.CreatePanoShot("pano0", "0", "0", "0", geometry::Pose());
+  auto& lm = map.CreateLandmark("lm0", Vec3d::Random());
+  const map::Observation obs(100, 200, 0.5, 255, 255, 255, 0);
+  map.AddObservation(&pano_shot, &lm, obs);
+  ASSERT_EQ(lm.NumberOfObservations(), 1);
+
+  map.RemovePanoShot("pano0");
+
+  ASSERT_EQ(map.NumberOfPanoShots(), 0);
+  ASSERT_EQ(lm.NumberOfObservations(), 0);
+  ASSERT_TRUE(lm.GetObservations().empty());
+}
+
 TEST_F(EmptyMapFixture, TopoCentricConverterAccess) {
   const auto& topo_default = map.GetTopocentricConverter();
   ASSERT_EQ(topo_default.alt_, 0.0);
