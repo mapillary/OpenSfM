@@ -59,7 +59,7 @@ def json_files(path) -> List[str]:
     """List all json files under a dir recursively."""
     paths = []
     # pyrefly: ignore [bad-specialization]
-    for root, _, files in os.walk(datapath):
+    for root, _, files in os.walk(path):
         for file in files:
             # pyrefly: ignore [not-iterable]
             if ".json" in file:
