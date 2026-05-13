@@ -119,8 +119,7 @@ def test_match_images(scene_synthetic: synthetic_scene.SyntheticInputData) -> No
         pair = images[i], images[i + 1]
         matches = pairs.get(pair)
         if matches is None or len(matches) == 1:
-            # pyrefly: ignore [no-matching-overload]
-            matches = pairs.get(pair[::-1])
+            matches = pairs.get((pair[1], pair[0]))
         assert matches is not None
         assert len(matches) > 25
 

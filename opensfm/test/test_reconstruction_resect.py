@@ -72,8 +72,8 @@ def split_synthetic_reconstruction(
 ) -> Tuple[types.Reconstruction, types.Reconstruction]:
     cluster1 = types.Reconstruction()
     cluster2 = types.Reconstruction()
-    cluster1.cameras = scene.cameras
-    cluster2.cameras = scene.cameras
+    cluster1.cameras = dict(scene.cameras)
+    cluster2.cameras = dict(scene.cameras)
     for i, shot in zip(range(len(scene.shots)), scene.shots.values()):
         if i >= cluster_size:
             cluster2.add_shot(shot)

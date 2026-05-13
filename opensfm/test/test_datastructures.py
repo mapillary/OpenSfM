@@ -79,7 +79,7 @@ def _create_reconstruction(
                         # create a new observation
                         obs = pymap.Observation(100, 200, 0.5, 255, 0, 0, int(pt.id))
                         shot = rec.shots[str(ch)]
-                        rec.add_observation(shot, pt, obs)
+                        rec.add_observation(shot.id, pt.id, obs)
         # TODO: If required, we have to do the same for pano shots
     return rec
 
@@ -900,7 +900,8 @@ def test_point_reproj_errors_assign() -> None:
     pt = rec.points["0"]
 
     # When assigning reprojections errors
-    reproj_errors = dict({"shot1": np.random.rand(2), "shot2": np.random.rand(2)})
+    reproj_errors = {"shot1": np.random.rand(2), "shot2": np.random.rand(2)}
+    # pyrefly: ignore [bad-argument-type]
     pt.reprojection_errors = reproj_errors
 
     # They should be correct
