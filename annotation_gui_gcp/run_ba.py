@@ -132,6 +132,7 @@ def triangulate_gcps(
     for gcp in gcps:
         res = multiview.triangulate_gcp(
             gcp,
+            # pyrefly: ignore [bad-argument-type]
             reconstruction.shots,
             reproj_threshold=1,
             min_ray_angle_degrees=0.1,
@@ -149,6 +150,7 @@ def reproject_gcps(
     for gcp in gcps:
         point = multiview.triangulate_gcp(
             gcp,
+            # pyrefly: ignore [bad-argument-type]
             reconstruction.shots,
             reproj_threshold=reproj_threshold,
             min_ray_angle_degrees=0.1,
@@ -164,6 +166,7 @@ def reproject_gcps(
             if observation.shot_id not in reconstruction.shots:
                 continue
             shot = reconstruction.shots[observation.shot_id]
+            # pyrefly: ignore [bad-argument-type]
             reproj = shot.project(point)
             error = np.linalg.norm(reproj - observation.projection)
             output[gcp.id][observation.shot_id].update(

@@ -51,6 +51,7 @@ def gcp_errors(
         if not gcp.lla:
             continue
 
+        # pyrefly: ignore [bad-argument-type]
         triangulated = multiview.triangulate_gcp(gcp, candidate.shots, 1.0, 0.1)
         if triangulated is None:
             continue

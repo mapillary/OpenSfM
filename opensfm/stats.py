@@ -33,7 +33,7 @@ def _length_histogram(
         if not obs_count:
             obs_count = len(tracks_manager.get_track_observations(point.id))
         hist[obs_count] += 1
-    # pyrefly: ignore [no-matching-overload]
+    # pyrefly: ignore [bad-return, no-matching-overload]
     return list(hist.keys()), list(hist.values())
 
 
@@ -95,6 +95,7 @@ def gcp_errors(
 
         triangulated = None
         for rec in reconstructions:
+            # pyrefly: ignore [bad-argument-type]
             triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
                 continue
@@ -221,6 +222,7 @@ def reconstruction_statistics(
         stats["reconstructed_shots_count"] += len(rec.shots)
 
         # get tracks length distrbution for current reconstruction
+        # pyrefly: ignore [bad-argument-type]
         hist, values = _length_histogram(tracks_manager, rec.points)
 
         # update aggregrated histogram

@@ -31,6 +31,7 @@ def undistort_reconstruction(
     all_images = set(data.images())
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
+    # pyrefly: ignore [bad-argument-type]
     urec.points = reconstruction.points
     urec.reference = reconstruction.reference
     rig_instance_count = itertools.count()
@@ -99,6 +100,7 @@ def undistort_reconstruction_with_images(
     if not skip_images:
         arguments = []
         for shot_id, subshots in undistorted_shots.items():
+            # pyrefly: ignore [bad-index]
             arguments.append((reconstruction.shots[shot_id], subshots, data, udata))
 
         processes = data.config["processes"]

@@ -191,6 +191,7 @@ def generate_exifs(
         per_sequence[exif["skey"]].append(shot_name)
 
         if shot.camera.projection_type in ["perspective", "fisheye"]:
+            # pyrefly: ignore [bad-typed-dict-key]
             exif["focal_ratio"] = shot.camera.focal
 
         exifs[shot_name] = exif
@@ -206,6 +207,7 @@ def generate_exifs(
             previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         for shot_id in rig_instance.shots:
+            # pyrefly: ignore [bad-typed-dict-key]
             exifs[shot_id]["capture_time"] = previous_time
 
     for sequence_images in per_sequence.values():
@@ -234,6 +236,7 @@ def generate_exifs(
             _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
             lat, lon, alt = reference.to_lla(*origin)
 
+            # pyrefly: ignore [bad-typed-dict-key]
             exif["gps"] = {
                 "latitude": lat,
                 "longitude": lon,
@@ -255,6 +258,7 @@ def generate_exifs(
                 "kappa": math.degrees(kappa) + opk_noise[2],
             }
 
+            # pyrefly: ignore [bad-typed-dict-key]
             exif["compass"] = {"angle": comp}
 
     return exifs

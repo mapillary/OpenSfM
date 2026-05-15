@@ -384,6 +384,7 @@ def compute_depth_range(
     for track in tracks_manager.get_shot_observations(shot.id):
         if track in reconstruction.points:
             p = reconstruction.points[track].coordinates
+            # pyrefly: ignore [bad-argument-type]
             z = shot.pose.transform(p)[2]
             depths.append(z)
     min_depth = np.percentile(depths, 10) * 0.9

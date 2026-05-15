@@ -271,6 +271,7 @@ def load_reconstruction_shots(
             key = PartialReconstruction(submodel_path, index)
             reconstruction_shots[key] = partial_reconstruction.shots
 
+    # pyrefly: ignore [bad-return]
     return reconstruction_shots
 
 
