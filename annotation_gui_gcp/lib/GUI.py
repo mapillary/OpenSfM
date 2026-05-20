@@ -5,10 +5,15 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Sequence
+from pathlib import Path
 
 import flask
+from flask import Flask
 from opensfm import dataset
 
+from .gcp_manager import GroundControlPointManager
+from .image_manager import ImageManager
 from .views.cad_view import CADView
 from .views.cp_finder_view import ControlPointFinderView
 from .views.image_view import ImageView
@@ -18,12 +23,12 @@ from .views.tools_view import ToolsView
 class Gui:
     def __init__(
         self,
-        app,
-        gcp_manager,
-        image_manager,
-        rig_groups=None,
-        cad_paths=(),
-    ):
+        app: Flask,
+        gcp_manager: GroundControlPointManager,
+        image_manager: ImageManager,
+        rig_groups: dict[str, list[str]] | None = None,
+        cad_paths: Sequence[Path] = (),
+    ) -> None:
         self.gcp_manager = gcp_manager
         self.image_manager = image_manager
         self.curr_point = None
@@ -41,7 +46,7 @@ class Gui:
 
         self.load_analysis_results(self.ix_a, self.ix_b)
 
-    def get_reconstruction_options(self):
+    def get_reconstruction_options(self) -> list[str]:
         p_recs = self.path + "/reconstruction.json" if self.path else None
         if p_recs is None or not os.path.exists(p_recs):
             return ["NONE", "NONE"]
@@ -63,7 +68,7 @@ class Gui:
         for view in self.sequence_views + self.cad_views + [self.tools_view]:
             view.sync_to_client()
 
-    def create_ui(self, cad_paths):
+    def create_ui(self, cad_paths: Sequence[Path]) -> None:
         subpane_routes = []
         has_views_that_need_tracking = len(cad_paths) > 0
         self.tools_view = ToolsView(self, self.app)
@@ -95,13 +100,13 @@ class Gui:
         def send_main_page():
             return flask.render_template("mosaic.html", subpane_routes=subpane_routes)
 
-    def analyze_rigid(self):
+    def analyze_rigid(self) -> None:
         self.analyze(rigid=True, covariance=False)
 
-    def analyze_flex(self):
+    def analyze_flex(self) -> None:
         self.analyze(rigid=False, covariance=False)
 
-    def analyze(self, rigid=False, covariance=True):
+    def analyze(self, rigid: bool = False, covariance: bool = True) -> None:
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         # ix_a = self.reconstruction_options.index(self.rec_a.get())
         # ix_b = self.reconstruction_options.index(self.rec_b.get())
@@ -141,12 +146,12 @@ class Gui:
 
         print("Done analyzing")
 
-    def load_analysis_results(self, ix_a, ix_b):
+    def load_analysis_results(self, ix_a: int, ix_b: int | None) -> None:
         self.load_shot_std(f"{self.path}/shots_std_{ix_a}x{ix_b}.csv")
         p_gcp_errors = f"{self.path}/gcp_reprojections_{ix_a}x{ix_b}.json"
         self.gcp_manager.load_gcp_reprojections(p_gcp_errors)
 
-    def load_shot_std(self, path):
+    def load_shot_std(self, path: str) -> None:
         self.shot_std = {}
         if os.path.isfile(path):
             with open(path, "r") as f:
@@ -154,19 +159,19 @@ class Gui:
                     shot, std = line[:-1].split(",")
                     self.shot_std[shot] = float(std)
 
-    def load_gcps(self, filename=None):
+    def load_gcps(self, filename: str | None = None) -> None:
         self.gcp_manager.load_from_file(filename)
         for view in self.sequence_views + self.cad_views:
             view.display_points()
             view.populate_image_list()
         self.populate_gcp_list()
 
-    def add_gcp(self):
+    def add_gcp(self) -> None:
         new_gcp = self.gcp_manager.add_point()
         self.populate_gcp_list()
         self.update_active_gcp(new_gcp)
 
-    def toggle_sticky_zoom(self):
+    def toggle_sticky_zoom(self) -> None:
         # pyrefly: ignore [missing-attribute]
         if self.sticky_zoom.get():
             # pyrefly: ignore [missing-attribute]
@@ -175,10 +180,10 @@ class Gui:
             # pyrefly: ignore [missing-attribute]
             self.sticky_zoom.set(True)
 
-    def populate_gcp_list(self):
+    def populate_gcp_list(self) -> None:
         pass
 
-    def remove_gcp(self):
+    def remove_gcp(self) -> None:
         to_be_removed_point = self.curr_point
         if not to_be_removed_point:
             return
@@ -186,7 +191,7 @@ class Gui:
         self.populate_gcp_list()
         self.update_active_gcp(None)
 
-    def update_active_gcp(self, new_active_gcp):
+    def update_active_gcp(self, new_active_gcp: str | None) -> None:
         print("Active GCP is now", new_active_gcp)
         self.curr_point = new_active_gcp
         for view in self.sequence_views + self.cad_views:
@@ -194,17 +199,19 @@ class Gui:
             if self.curr_point:
                 view.highlight_gcp_reprojection(self.curr_point, zoom=False)
 
-    def save_gcps(self, filename=None):
+    def save_gcps(self, filename: str | None = None) -> None:
         self.gcp_manager.write_to_file(filename)
 
-    def go_to_current_gcp(self):
+    def go_to_current_gcp(self) -> None:
         """
         Jumps to the currently selected GCP in all views where it was not visible
         """
         if not self.curr_point:
             return
         shots_gcp_seen = {
-            p["shot_id"] for p in self.gcp_manager.points[self.curr_point]
+            p["shot_id"]
+            # pyrefly: ignore [not-iterable]
+            for p in self.gcp_manager.points[self.curr_point]
         }
         for view in self.sequence_views:
             shots_gcp_seen_this_view = list(
@@ -217,7 +224,7 @@ class Gui:
                 target_shot = random.choice(shots_gcp_seen_this_view)
                 view.bring_new_image(target_shot)
 
-    def go_to_worst_gcp(self):
+    def go_to_worst_gcp(self) -> None:
         if len(self.gcp_manager.gcp_reprojections) == 0:
             print("No GCP reprojections available. Can't jump to worst GCP")
             return
@@ -243,12 +250,12 @@ class Gui:
             if shot_worst_gcp:
                 view.bring_new_image(shot_worst_gcp)
 
-    def clear_latlon_sources(self, view):
+    def clear_latlon_sources(self, view: object) -> None:
         # The user has activated the 'Track this' checkbox in some view
         for v in self.sequence_views:
             if v is not view:
                 v.is_latlon_source.set(False)
 
-    def refocus_overhead_views(self, lat, lon):
+    def refocus_overhead_views(self, lat: float, lon: float) -> None:
         for view in self.cad_views:
             view.refocus(lat, lon)
