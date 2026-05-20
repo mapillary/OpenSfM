@@ -8,11 +8,11 @@ inline T SquaredNorm(T* point) {
   return point[0] * point[0] + point[1] * point[1];
 }
 
-template <int IN, int P, int OUT>
+template <int FUNC_IN, int FUNC_P, int FUNC_OUT>
 struct Functor {
-  constexpr static int InSize = IN;
-  constexpr static int ParamSize = P;
-  constexpr static int OutSize = OUT;
+  constexpr static int InSize = FUNC_IN;
+  constexpr static int ParamSize = FUNC_P;
+  constexpr static int OutSize = FUNC_OUT;
   template <bool C>
   static constexpr int Stride() {
     return C * ParamSize + InSize;
