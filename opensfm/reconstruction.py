@@ -1834,7 +1834,7 @@ class Chronometer:
         lap = (key, dt, t)
         # pyrefly: ignore [bad-argument-type]
         self.laps.append(lap)
-        # pyrefly: ignore [bad-typed-dict-key]
+        # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
         self.laps_dict[key] = lap
 
     def lap_time(self, key: str) -> float:
