@@ -53,6 +53,7 @@ def _reconstruction_from_rigs_and_assignments(
                 pymap.RigInstance(rig_instance_id)
             )
             instance_obj.pose.set_origin(
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 helpers.get_image_metadata(data, image).gps_position.value
             )
 

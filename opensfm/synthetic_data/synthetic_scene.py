@@ -73,7 +73,9 @@ def camera_pose(position: NDArray, lookat: NDArray, up: NDArray) -> pygeometry.P
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
     pose = pygeometry.Pose()
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     pose.set_rotation_matrix(np.array([ex, ey, ez]))
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     pose.set_origin(position)
     return pose
 
@@ -121,6 +123,7 @@ class SyntheticCubeScene(SyntheticScene):
         for i, p in enumerate(points):
             point_id = "point" + str(i)
             pt = self.reconstruction.create_point(point_id, p)
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             pt.color = np.array([100, 100, 20])
 
     def get_reconstruction(self) -> types.Reconstruction:

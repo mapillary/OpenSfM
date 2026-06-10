@@ -1013,6 +1013,7 @@ def affine_matrix_from_points(
         C = vh[ndims : 2 * ndims]
         t = numpy.dot(C, numpy.linalg.pinv(B))
         t = numpy.concatenate((t, numpy.zeros((ndims, 1))), axis=1)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         M = numpy.vstack((t, ((0.0,) * ndims) + (1.0,)))
     elif usesvd or ndims != 3:
         # Rigid transformation via SVD of covariance matrix

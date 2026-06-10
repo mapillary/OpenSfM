@@ -33,7 +33,7 @@ def _length_histogram(
         if not obs_count:
             obs_count = len(tracks_manager.get_track_observations(point.id))
         hist[obs_count] += 1
-    # pyrefly: ignore [no-matching-overload]
+    # pyrefly: ignore [bad-return, no-matching-overload]
     return list(hist.keys()), list(hist.values())
 
 
@@ -95,6 +95,7 @@ def gcp_errors(
 
         triangulated = None
         for rec in reconstructions:
+            # pyrefly: ignore [bad-argument-type]
             triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
                 continue
@@ -221,6 +222,7 @@ def reconstruction_statistics(
         stats["reconstructed_shots_count"] += len(rec.shots)
 
         # get tracks length distrbution for current reconstruction
+        # pyrefly: ignore [bad-argument-type]
         hist, values = _length_histogram(tracks_manager, rec.points)
 
         # update aggregrated histogram
@@ -518,6 +520,7 @@ def save_matchgraph(
     highest = np.percentile(list(all_values), 95)
 
     plt.clf()
+    # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
     cmap = cm.viridis
     for (node1, node2), edge in sorted(connectivity.items(), key=lambda x: x[1]):
         if edge < 2 * data.config["resection_min_inliers"]:
@@ -576,6 +579,7 @@ def save_residual_histogram(
     n, _, p_norm = axs[0].hist(b_norm[:-1], b_norm, weights=h_norm)
     n = n.astype("int")
     for i in range(len(p_norm)):
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         p_norm[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
 
     h_pixel, b_pixel = stats["reconstruction_statistics"][
@@ -584,6 +588,7 @@ def save_residual_histogram(
     n, _, p_pixel = axs[1].hist(b_pixel[:-1], b_pixel, weights=h_pixel)
     n = n.astype("int")
     for i in range(len(p_pixel)):
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         p_pixel[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
 
     h_angular, b_angular = stats["reconstruction_statistics"][
@@ -596,6 +601,7 @@ def save_residual_histogram(
     ) = axs[2].hist(b_angular[:-1], b_angular, weights=h_angular)
     n = n.astype("int")
     for i in range(len(p_angular)):
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         p_angular[i].set_facecolor(plt.cm.viridis(n[i] / max(n)))
 
     axs[0].set_title("Normalized Residual")
@@ -604,10 +610,12 @@ def save_residual_histogram(
 
     with io_handler.open_wb(os.path.join(output_path, "residual_histogram.png")) as fwb:
         plt.savefig(
+            # pyre-fixme[8]: dict literal vs matplotlib RcParams stub mismatch — runtime ok.
             fwb,
             dpi=300,
             bbox_inches="tight",
         )
+    # pyre-fixme[8]: dict literal vs matplotlib RcParams stub mismatch — runtime ok.
     mpl.rcParams = backup
 
 
@@ -714,7 +722,9 @@ def save_topview(
         sorted_shots = sorted(
             rec.shots.values(), key=lambda x: x.metadata.capture_time.value
         )
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         c_camera = cm.cool(0 / len(reconstructions))
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         c_gps = cm.autumn(0 / len(reconstructions))
         for j, shot in enumerate(sorted_shots):
             o = shot.pose.get_origin()
@@ -978,6 +988,7 @@ def save_residual_grids(
         )
 
         norm = colors.Normalize(vmin=lowest, vmax=highest)
+        # pyre-fixme[16]: opensfm pybind / numpy stubs gap — runtime ok.
         cmap = cm.viridis_r
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
         sm.set_array([])

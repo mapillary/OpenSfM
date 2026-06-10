@@ -652,6 +652,7 @@ def match_words(
     """
     ratio = config["lowes_ratio"]
     num_checks = config["bow_num_checks"]
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     return pyfeatures.match_using_words(f1, words1, f2, words2[:, 0], ratio, num_checks)
 
 
@@ -819,6 +820,7 @@ def compute_inliers_bearings(
     Returns:
         array: Array of boolean indicating inliers/outliers
     """
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     p = pygeometry.triangulate_two_bearings_midpoint_many(b1, b2, R, t)
 
     good_idx = [i for i in range(len(p)) if p[i][0]]
@@ -857,7 +859,9 @@ def compute_inliers_bearing_epipolar(
     symmetric_angle_error = pygeometry.epipolar_angle_two_bearings_many(
         b1.astype(np.float32),
         b2.astype(np.float32),
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         pose.get_R_cam_to_world(),
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         pose.get_origin(),
     )
     mask = symmetric_angle_error < threshold

@@ -10,43 +10,39 @@
 # Ignore errors for [24] untyped generics.
 # pyre-ignore-all-errors[24]
 
-import numpy
-from typing import *
+from __future__ import annotations
 
-__all__ = [
+import collections.abc
+import typing
+
+import numpy
+
+__all__: list[str] = [
+    "BROWN",
     "Camera",
     "CameraParameters",
-    "Pose",
-    "ProjectionType",
-    "Similarity",
-    "absolute_pose_n_points",
-    "absolute_pose_n_points_known_rotation",
-    "absolute_pose_three_points",
-    "compute_camera_mapping",
-    "epipolar_angle_two_bearings_many",
-    "essential_five_points",
-    "essential_n_points",
-    "point_refinement",
-    "relative_pose_from_essential",
-    "relative_pose_refinement",
-    "relative_rotation_n_points",
-    "triangulate_bearings_dlt",
-    "triangulate_bearings_midpoint",
-    "triangulate_two_bearings_midpoint",
-    "triangulate_two_bearings_midpoint_many",
-    "BROWN",
     "DUAL",
     "FISHEYE",
     "FISHEYE62",
     "FISHEYE624",
     "FISHEYE_OPENCV",
     "PERSPECTIVE",
+    "Pose",
+    "ProjectionType",
     "RADIAL",
     "SIMPLE_RADIAL",
     "SPHERICAL",
+    "Similarity",
+    "absolute_pose_n_points",
+    "absolute_pose_n_points_known_rotation",
+    "absolute_pose_three_points",
     "aspect_ratio",
+    "compute_camera_mapping",
     "cx",
     "cy",
+    "epipolar_angle_two_bearings_many",
+    "essential_five_points",
+    "essential_n_points",
     "focal",
     "k1",
     "k2",
@@ -57,115 +53,190 @@ __all__ = [
     "none",
     "p1",
     "p2",
+    "point_refinement",
+    "relative_pose_from_essential",
+    "relative_pose_refinement",
+    "relative_rotation_n_points",
     "s0",
     "s1",
     "s2",
     "s3",
     "transition",
+    "triangulate_bearings_dlt",
+    "triangulate_bearings_midpoint",
+    "triangulate_two_bearings_midpoint",
+    "triangulate_two_bearings_midpoint_many",
 ]
 
 class Camera:
-    def __copy__(self) -> Camera: ...
-    def __deepcopy__(self, arg0: dict) -> Camera: ...
-    def __getstate__(self) -> tuple: ...
-    def __setstate__(self, arg0: tuple) -> None: ...
+    id: str
     @staticmethod
     def create_brown(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: numpy.typing.NDArray
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"],
     ) -> Camera: ...
     @staticmethod
-    def create_dual(arg0: float, arg1: float, arg2: float, arg3: float) -> Camera: ...
+    def create_dual(
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> Camera: ...
     @staticmethod
-    def create_fisheye(arg0: float, arg1: float, arg2: float) -> Camera: ...
+    def create_fisheye(
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> Camera: ...
     @staticmethod
     def create_fisheye62(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: numpy.typing.NDArray
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"],
     ) -> Camera: ...
     @staticmethod
     def create_fisheye624(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: numpy.typing.NDArray
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"],
     ) -> Camera: ...
     @staticmethod
     def create_fisheye_opencv(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: numpy.typing.NDArray
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"],
     ) -> Camera: ...
     @staticmethod
-    def create_perspective(arg0: float, arg1: float, arg2: float) -> Camera: ...
+    def create_perspective(
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> Camera: ...
     @staticmethod
     def create_radial(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: numpy.typing.NDArray
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
     ) -> Camera: ...
     @staticmethod
     def create_simple_radial(
-        arg0: float, arg1: float, arg2: numpy.typing.NDArray, arg3: float
+        arg0: typing.SupportsFloat | typing.SupportsIndex,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
     ) -> Camera: ...
     @staticmethod
     def create_spherical() -> Camera: ...
-    def get_K(self) -> numpy.typing.NDArray: ...
-    def get_K_in_pixel_coordinates(
-        self, arg0: int, arg1: int
-    ) -> numpy.typing.NDArray: ...
-    def get_parameters_map(self) -> dict[CameraParameters, float]: ...
-    def get_parameters_types(self) -> list[CameraParameters]: ...
-    def get_parameters_values(self) -> numpy.typing.NDArray: ...
     @staticmethod
     def is_panorama(arg0: str) -> bool: ...
-    def normalized_to_pixel_coordinates(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
     @staticmethod
     def normalized_to_pixel_coordinates_common(
-        arg0: numpy.typing.NDArray, arg1: int, arg2: int
-    ) -> numpy.typing.NDArray: ...
-    def normalized_to_pixel_coordinates_many(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
     @staticmethod
     def normalized_to_pixel_coordinates_many_common(
-        arg0: numpy.typing.NDArray, arg1: int, arg2: int
-    ) -> numpy.typing.NDArray: ...
-    def pixel_bearing(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
-    def pixel_bearing_many(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
-    def pixel_to_normalized_coordinates(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"],
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]: ...
     @staticmethod
     def pixel_to_normalized_coordinates_common(
-        arg0: numpy.typing.NDArray, arg1: int, arg2: int
-    ) -> numpy.typing.NDArray: ...
-    def pixel_to_normalized_coordinates_many(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
     @staticmethod
     def pixel_to_normalized_coordinates_many_common(
-        arg0: numpy.typing.NDArray, arg1: int, arg2: int
-    ) -> numpy.typing.NDArray: ...
-    def project(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
-    def project_many(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
-    def set_parameter_value(self, arg0: CameraParameters, arg1: float) -> None: ...
-    def set_parameters_values(self, arg0: numpy.typing.NDArray) -> None: ...
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"],
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]: ...
+    def __copy__(self) -> Camera: ...
+    def __deepcopy__(self, arg0: dict) -> Camera: ...
+    def __getstate__(
+        self,
+    ) -> tuple[
+        list[CameraParameters],
+        typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"],
+        ProjectionType,
+        int,
+        int,
+        str,
+    ]: ...
+    def __setstate__(self, arg0: tuple) -> None: ...
+    def get_K(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
+    def get_K_in_pixel_coordinates(
+        self,
+        arg0: typing.SupportsInt | typing.SupportsIndex,
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
+    def get_parameters_map(self) -> dict[CameraParameters, float]: ...
+    def get_parameters_types(self) -> list[CameraParameters]: ...
+    def get_parameters_values(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]: ...
+    def normalized_to_pixel_coordinates(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
+    def normalized_to_pixel_coordinates_many(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]: ...
+    def pixel_bearing(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def pixel_bearing_many(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]: ...
+    def pixel_to_normalized_coordinates(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
+    def pixel_to_normalized_coordinates_many(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]: ...
+    def project(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
+    def project_many(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]: ...
+    def set_parameter_value(
+        self, arg0: CameraParameters, arg1: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
+    def set_parameters_values(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]
+    ) -> None: ...
     @property
     def aspect_ratio(self) -> float: ...
     @aspect_ratio.setter
-    def aspect_ratio(self, arg1: float) -> None: ...
+    def aspect_ratio(
+        self, arg1: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
     @property
-    def distortion(self) -> numpy.typing.NDArray: ...
+    def distortion(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]: ...
     @distortion.setter
-    def distortion(self, arg1: numpy.typing.NDArray) -> None: ...
+    def distortion(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]
+    ) -> None: ...
     @property
     def focal(self) -> float: ...
     @focal.setter
-    def focal(self, arg1: float) -> None: ...
+    def focal(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def height(self) -> int: ...
     @height.setter
-    def height(self, arg0: int) -> None: ...
-    @property
-    def id(self) -> str: ...
-    @id.setter
-    def id(self, arg0: str) -> None: ...
+    def height(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None: ...
     @property
     def k1(self) -> float: ...
     @property
@@ -183,9 +254,13 @@ class Camera:
     @property
     def p2(self) -> float: ...
     @property
-    def principal_point(self) -> numpy.typing.NDArray: ...
+    def principal_point(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]: ...
     @principal_point.setter
-    def principal_point(self, arg1: numpy.typing.NDArray) -> None: ...
+    def principal_point(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]
+    ) -> None: ...
     @property
     def projection_type(self) -> str: ...
     @property
@@ -199,242 +274,375 @@ class Camera:
     @property
     def transition(self) -> float: ...
     @transition.setter
-    def transition(self, arg1: float) -> None: ...
+    def transition(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def width(self) -> int: ...
     @width.setter
-    def width(self, arg0: int) -> None: ...
+    def width(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None: ...
 
 class CameraParameters:
+    __members__: typing.ClassVar[
+        dict[str, CameraParameters]
+    ]  # value = {'focal': <CameraParameters.focal: 9>, 'aspect_ratio': <CameraParameters.aspect_ratio: 10>, 'k1': <CameraParameters.k1: 1>, 'k2': <CameraParameters.k2: 2>, 'k3': <CameraParameters.k3: 3>, 'k4': <CameraParameters.k4: 4>, 'k5': <CameraParameters.k5: 5>, 'k6': <CameraParameters.k6: 6>, 'p1': <CameraParameters.p1: 7>, 'p2': <CameraParameters.p2: 8>, 's0': <CameraParameters.s0: 13>, 's1': <CameraParameters.s1: 14>, 's2': <CameraParameters.s2: 15>, 's3': <CameraParameters.s3: 16>, 'cx': <CameraParameters.cx: 11>, 'cy': <CameraParameters.cy: 12>, 'transition': <CameraParameters.transition: 0>, 'none': <CameraParameters.none: 17>}
+    aspect_ratio: typing.ClassVar[
+        CameraParameters
+    ]  # value = <CameraParameters.aspect_ratio: 10>
+    cx: typing.ClassVar[CameraParameters]  # value = <CameraParameters.cx: 11>
+    cy: typing.ClassVar[CameraParameters]  # value = <CameraParameters.cy: 12>
+    focal: typing.ClassVar[CameraParameters]  # value = <CameraParameters.focal: 9>
+    k1: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k1: 1>
+    k2: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k2: 2>
+    k3: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k3: 3>
+    k4: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k4: 4>
+    k5: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k5: 5>
+    k6: typing.ClassVar[CameraParameters]  # value = <CameraParameters.k6: 6>
+    none: typing.ClassVar[CameraParameters]  # value = <CameraParameters.none: 17>
+    p1: typing.ClassVar[CameraParameters]  # value = <CameraParameters.p1: 7>
+    p2: typing.ClassVar[CameraParameters]  # value = <CameraParameters.p2: 8>
+    s0: typing.ClassVar[CameraParameters]  # value = <CameraParameters.s0: 13>
+    s1: typing.ClassVar[CameraParameters]  # value = <CameraParameters.s1: 14>
+    s2: typing.ClassVar[CameraParameters]  # value = <CameraParameters.s2: 15>
+    s3: typing.ClassVar[CameraParameters]  # value = <CameraParameters.s3: 16>
+    transition: typing.ClassVar[
+        CameraParameters
+    ]  # value = <CameraParameters.transition: 0>
+    def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
     def __index__(self) -> int: ...
-    def __init__(self, value: int) -> None: ...
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None: ...
     def __int__(self) -> int: ...
+    def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
-    def __setstate__(self, state: int) -> None: ...
+    def __setstate__(
+        self, state: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
     def __str__(self) -> str: ...
     @property
     def name(self) -> str: ...
     @property
     def value(self) -> int: ...
-    focal: "CameraParameters"
-    aspect_ratio: "CameraParameters"
-    k1: "CameraParameters"
-    k2: "CameraParameters"
-    k3: "CameraParameters"
-    k4: "CameraParameters"
-    k5: "CameraParameters"
-    k6: "CameraParameters"
-    p1: "CameraParameters"
-    p2: "CameraParameters"
-    s0: "CameraParameters"
-    s1: "CameraParameters"
-    s2: "CameraParameters"
-    s3: "CameraParameters"
-    cx: "CameraParameters"
-    cy: "CameraParameters"
-    transition: "CameraParameters"
-    none: "CameraParameters"
-    __members__: Dict[str, "CameraParameters"]
-    __entries: "dict"
 
 class Pose:
     def __copy__(self) -> Pose: ...
     def __deepcopy__(self, arg0: dict) -> Pose: ...
-    def __getstate__(self) -> tuple: ...
-    @overload
-    def __init__(self) -> None: ...
-    @overload
-    def __init__(self, arg0: numpy.typing.NDArray) -> None: ...
-    @overload
-    def __init__(self, rotation: numpy.typing.NDArray) -> None: ...
-    @overload
+    def __getstate__(
+        self,
+    ) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]]: ...
+    @typing.overload
     def __init__(
-        self, rotation: numpy.typing.NDArray, translation: numpy.typing.NDArray
-    ) -> Union[None, None]: ...
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]
+    ) -> None: ...
+    @typing.overload
+    def __init__(
+        self,
+        rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+        translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
+    def __init__(
+        self,
+        rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
+    def __init__(
+        self,
+        rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
+    def __init__(self) -> None: ...
     def __setstate__(self, arg0: tuple) -> None: ...
     def compose(self, arg0: Pose) -> Pose: ...
-    def get_R_cam_to_world(self) -> numpy.typing.NDArray: ...
-    def get_R_cam_to_world_min(self) -> numpy.typing.NDArray: ...
-    def get_R_world_to_cam(self) -> numpy.typing.NDArray: ...
-    def get_R_world_to_cam_min(self) -> numpy.typing.NDArray: ...
-    def get_Rt(self) -> numpy.typing.NDArray: ...
-    def get_cam_to_world(self) -> numpy.typing.NDArray: ...
-    def get_origin(self) -> numpy.typing.NDArray: ...
-    def get_rotation_matrix(self) -> numpy.typing.NDArray: ...
-    def get_t_cam_to_world(self) -> numpy.typing.NDArray: ...
-    def get_t_world_to_cam(self) -> numpy.typing.NDArray: ...
-    def get_world_to_cam(self) -> numpy.typing.NDArray: ...
+    def get_R_cam_to_world(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
+    def get_R_cam_to_world_min(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def get_R_world_to_cam(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
+    def get_R_world_to_cam_min(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def get_Rt(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 4]"]: ...
+    def get_cam_to_world(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
+    def get_origin(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def get_rotation_matrix(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
+    def get_t_cam_to_world(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def get_t_world_to_cam(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def get_world_to_cam(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]: ...
     def inverse(self) -> Pose: ...
-    def is_identity(self, arg0: float) -> bool: ...
+    def is_identity(
+        self, arg0: typing.SupportsFloat | typing.SupportsIndex
+    ) -> bool: ...
     def relative_to(self, arg0: Pose) -> Pose: ...
-    @overload
-    def set_from_cam_to_world(self, arg0: numpy.typing.NDArray) -> None: ...
-    @overload
+    @typing.overload
     def set_from_cam_to_world(
-        self, arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-    ) -> Union[None, None]: ...
-    @overload
-    def set_from_world_to_cam(self, arg0: numpy.typing.NDArray) -> None: ...
-    @overload
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[4, 4]"]
+    ) -> None: ...
+    @typing.overload
+    def set_from_cam_to_world(
+        self,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
+    def set_from_cam_to_world(
+        self,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
     def set_from_world_to_cam(
-        self, arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-    ) -> Union[None, None]: ...
-    def set_origin(self, arg0: numpy.typing.NDArray) -> None: ...
-    def set_rotation_matrix(self, arg0: numpy.typing.NDArray) -> None: ...
-    def transform(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
-    def transform_inverse(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[4, 4]"]
+    ) -> None: ...
+    @typing.overload
+    def set_from_world_to_cam(
+        self,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    @typing.overload
+    def set_from_world_to_cam(
+        self,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    def set_origin(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...
+    def set_rotation_matrix(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]
+    ) -> None: ...
+    def transform(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
+    def transform_inverse(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     def transform_inverse_many(
-        self, arg0: numpy.typing.NDArray
-    ) -> numpy.typing.NDArray: ...
-    def transform_many(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]: ...
+    def transform_many(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]: ...
     @property
-    def rotation(self) -> numpy.typing.NDArray: ...
+    def rotation(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @rotation.setter
-    def rotation(self, arg1: numpy.typing.NDArray) -> None: ...
+    def rotation(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...
     @property
-    def translation(self) -> numpy.typing.NDArray: ...
+    def translation(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @translation.setter
-    def translation(self, arg1: numpy.typing.NDArray) -> None: ...
+    def translation(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...
 
 class ProjectionType:
+    BROWN: typing.ClassVar[ProjectionType]  # value = <ProjectionType.BROWN: 1>
+    DUAL: typing.ClassVar[ProjectionType]  # value = <ProjectionType.DUAL: 7>
+    FISHEYE: typing.ClassVar[ProjectionType]  # value = <ProjectionType.FISHEYE: 2>
+    FISHEYE62: typing.ClassVar[ProjectionType]  # value = <ProjectionType.FISHEYE62: 4>
+    FISHEYE624: typing.ClassVar[
+        ProjectionType
+    ]  # value = <ProjectionType.FISHEYE624: 5>
+    FISHEYE_OPENCV: typing.ClassVar[
+        ProjectionType
+    ]  # value = <ProjectionType.FISHEYE_OPENCV: 3>
+    PERSPECTIVE: typing.ClassVar[
+        ProjectionType
+    ]  # value = <ProjectionType.PERSPECTIVE: 0>
+    RADIAL: typing.ClassVar[ProjectionType]  # value = <ProjectionType.RADIAL: 8>
+    SIMPLE_RADIAL: typing.ClassVar[
+        ProjectionType
+    ]  # value = <ProjectionType.SIMPLE_RADIAL: 9>
+    SPHERICAL: typing.ClassVar[ProjectionType]  # value = <ProjectionType.SPHERICAL: 6>
+    __members__: typing.ClassVar[
+        dict[str, ProjectionType]
+    ]  # value = {'PERSPECTIVE': <ProjectionType.PERSPECTIVE: 0>, 'BROWN': <ProjectionType.BROWN: 1>, 'FISHEYE': <ProjectionType.FISHEYE: 2>, 'FISHEYE_OPENCV': <ProjectionType.FISHEYE_OPENCV: 3>, 'FISHEYE62': <ProjectionType.FISHEYE62: 4>, 'FISHEYE624': <ProjectionType.FISHEYE624: 5>, 'DUAL': <ProjectionType.DUAL: 7>, 'SPHERICAL': <ProjectionType.SPHERICAL: 6>, 'RADIAL': <ProjectionType.RADIAL: 8>, 'SIMPLE_RADIAL': <ProjectionType.SIMPLE_RADIAL: 9>}
+    def __eq__(self, other: object) -> bool: ...
     def __getstate__(self) -> int: ...
     def __hash__(self) -> int: ...
     def __index__(self) -> int: ...
-    def __init__(self, value: int) -> None: ...
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None: ...
     def __int__(self) -> int: ...
+    def __ne__(self, other: object) -> bool: ...
     def __repr__(self) -> str: ...
-    def __setstate__(self, state: int) -> None: ...
+    def __setstate__(
+        self, state: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
     def __str__(self) -> str: ...
     @property
     def name(self) -> str: ...
     @property
     def value(self) -> int: ...
-    PERSPECTIVE: "ProjectionType"
-    BROWN: "ProjectionType"
-    FISHEYE: "ProjectionType"
-    FISHEYE_OPENCV: "ProjectionType"
-    FISHEYE62: "ProjectionType"
-    FISHEYE624: "ProjectionType"
-    DUAL: "ProjectionType"
-    SPHERICAL: "ProjectionType"
-    RADIAL: "ProjectionType"
-    SIMPLE_RADIAL: "ProjectionType"
-    __members__: Dict[str, "ProjectionType"]
-    __entries: "dict"
 
 class Similarity:
     def __init__(
-        self, arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray, arg2: float
+        self,
+        arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
-    def get_rotation_matrix(self) -> numpy.typing.NDArray: ...
+    def get_rotation_matrix(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
     def inverse(self) -> Similarity: ...
-    def transform(self, arg0: numpy.typing.NDArray) -> numpy.typing.NDArray: ...
+    def transform(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @property
-    def rotation(self) -> numpy.typing.NDArray: ...
+    def rotation(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @rotation.setter
-    def rotation(self, arg1: numpy.typing.NDArray) -> None: ...
+    def rotation(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...
     @property
     def scale(self) -> float: ...
     @scale.setter
-    def scale(self, arg1: float) -> None: ...
+    def scale(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
-    def translation(self) -> numpy.typing.NDArray: ...
+    def translation(
+        self,
+    ) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @translation.setter
-    def translation(self, arg1: numpy.typing.NDArray) -> None: ...
+    def translation(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...
 
 def absolute_pose_n_points(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 4]"]: ...
 def absolute_pose_n_points_known_rotation(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
 def absolute_pose_three_points(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> list[numpy.typing.NDArray]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 4]"]]: ...
 def compute_camera_mapping(
-    arg0: Camera, arg1: Camera, arg2: int, arg3: int
-) -> tuple[numpy.typing.NDArray, numpy.typing.NDArray]: ...
+    arg0: Camera,
+    arg1: Camera,
+    arg2: typing.SupportsInt | typing.SupportsIndex,
+    arg3: typing.SupportsInt | typing.SupportsIndex,
+) -> tuple[
+    typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"],
+    typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"],
+]: ...
 def epipolar_angle_two_bearings_many(
-    arg0: numpy.typing.NDArray,
-    arg1: numpy.typing.NDArray,
-    arg2: numpy.typing.NDArray,
-    arg3: numpy.typing.NDArray,
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+    arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]: ...
 def essential_five_points(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> list[numpy.typing.NDArray]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]]: ...
 def essential_n_points(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> list[numpy.typing.NDArray]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]]: ...
 def point_refinement(
-    arg0: numpy.typing.NDArray,
-    arg1: numpy.typing.NDArray,
-    arg2: numpy.typing.NDArray,
-    arg3: int,
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    arg3: typing.SupportsInt | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
 def relative_pose_from_essential(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray, arg2: numpy.typing.NDArray
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 4]"]: ...
 def relative_pose_refinement(
-    arg0: numpy.typing.NDArray,
-    arg1: numpy.typing.NDArray,
-    arg2: numpy.typing.NDArray,
-    arg3: int,
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 4]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg3: typing.SupportsInt | typing.SupportsIndex,
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 4]"]: ...
 def relative_rotation_n_points(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> numpy.typing.NDArray: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]: ...
 def triangulate_bearings_dlt(
-    arg0: list[numpy.typing.NDArray],
-    arg1: numpy.typing.NDArray,
-    arg2: float,
-    arg3: float,
-    arg4: float,
-) -> tuple[bool, numpy.typing.NDArray]: ...
+    arg0: collections.abc.Sequence[
+        typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 4]"]
+    ],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.SupportsFloat | typing.SupportsIndex,
+    arg3: typing.SupportsFloat | typing.SupportsIndex,
+    arg4: typing.SupportsFloat | typing.SupportsIndex,
+) -> tuple[bool, typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]: ...
 def triangulate_bearings_midpoint(
-    arg0: numpy.typing.NDArray,
-    arg1: numpy.typing.NDArray,
-    arg2: list[float],
-    arg3: float,
-    arg4: float,
-) -> tuple[bool, numpy.typing.NDArray]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex],
+    arg3: typing.SupportsFloat | typing.SupportsIndex,
+    arg4: typing.SupportsFloat | typing.SupportsIndex,
+) -> tuple[bool, typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]: ...
 def triangulate_two_bearings_midpoint(
-    arg0: numpy.typing.NDArray, arg1: numpy.typing.NDArray
-) -> tuple[bool, numpy.typing.NDArray]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 3]"],
+) -> tuple[bool, typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]: ...
 def triangulate_two_bearings_midpoint_many(
-    arg0: numpy.typing.NDArray,
-    arg1: numpy.typing.NDArray,
-    arg2: numpy.typing.NDArray,
-    arg3: numpy.typing.NDArray,
-) -> list[tuple[bool, numpy.typing.NDArray]]: ...
+    arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"],
+    arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"],
+    arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+) -> list[
+    tuple[bool, typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]
+]: ...
 
-BROWN: "ProjectionType"
-DUAL: "ProjectionType"
-FISHEYE: "ProjectionType"
-FISHEYE62: "ProjectionType"
-FISHEYE624: "ProjectionType"
-FISHEYE_OPENCV: "ProjectionType"
-PERSPECTIVE: "ProjectionType"
-RADIAL: "ProjectionType"
-SIMPLE_RADIAL: "ProjectionType"
-SPHERICAL: "ProjectionType"
-aspect_ratio: "CameraParameters"
-cx: "CameraParameters"
-cy: "CameraParameters"
-focal: "CameraParameters"
-k1: "CameraParameters"
-k2: "CameraParameters"
-k3: "CameraParameters"
-k4: "CameraParameters"
-k5: "CameraParameters"
-k6: "CameraParameters"
-none: "CameraParameters"
-p1: "CameraParameters"
-p2: "CameraParameters"
-s0: "CameraParameters"
-s1: "CameraParameters"
-s2: "CameraParameters"
-s3: "CameraParameters"
-transition: "CameraParameters"
+BROWN: ProjectionType  # value = <ProjectionType.BROWN: 1>
+DUAL: ProjectionType  # value = <ProjectionType.DUAL: 7>
+FISHEYE: ProjectionType  # value = <ProjectionType.FISHEYE: 2>
+FISHEYE62: ProjectionType  # value = <ProjectionType.FISHEYE62: 4>
+FISHEYE624: ProjectionType  # value = <ProjectionType.FISHEYE624: 5>
+FISHEYE_OPENCV: ProjectionType  # value = <ProjectionType.FISHEYE_OPENCV: 3>
+PERSPECTIVE: ProjectionType  # value = <ProjectionType.PERSPECTIVE: 0>
+RADIAL: ProjectionType  # value = <ProjectionType.RADIAL: 8>
+SIMPLE_RADIAL: ProjectionType  # value = <ProjectionType.SIMPLE_RADIAL: 9>
+SPHERICAL: ProjectionType  # value = <ProjectionType.SPHERICAL: 6>
+aspect_ratio: CameraParameters  # value = <CameraParameters.aspect_ratio: 10>
+cx: CameraParameters  # value = <CameraParameters.cx: 11>
+cy: CameraParameters  # value = <CameraParameters.cy: 12>
+focal: CameraParameters  # value = <CameraParameters.focal: 9>
+k1: CameraParameters  # value = <CameraParameters.k1: 1>
+k2: CameraParameters  # value = <CameraParameters.k2: 2>
+k3: CameraParameters  # value = <CameraParameters.k3: 3>
+k4: CameraParameters  # value = <CameraParameters.k4: 4>
+k5: CameraParameters  # value = <CameraParameters.k5: 5>
+k6: CameraParameters  # value = <CameraParameters.k6: 6>
+none: CameraParameters  # value = <CameraParameters.none: 17>
+p1: CameraParameters  # value = <CameraParameters.p1: 7>
+p2: CameraParameters  # value = <CameraParameters.p2: 8>
+s0: CameraParameters  # value = <CameraParameters.s0: 13>
+s1: CameraParameters  # value = <CameraParameters.s1: 14>
+s2: CameraParameters  # value = <CameraParameters.s2: 15>
+s3: CameraParameters  # value = <CameraParameters.s3: 16>
+transition: CameraParameters  # value = <CameraParameters.transition: 0>

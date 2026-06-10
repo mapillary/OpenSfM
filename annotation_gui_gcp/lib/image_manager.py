@@ -1,19 +1,18 @@
-# pyre-unsafe
-import typing as t
+# pyre-strict
 from io import BytesIO
 
-from flask import send_file
+from flask import Response, send_file
 from magic import Magic
 from opensfm import dataset
 from PIL import Image
 
 
 class ImageManager:
-    def __init__(self, seqs: t.Dict[str, t.List[str]], path: str):
+    def __init__(self, seqs: dict[str, list[str]], path: str) -> None:
         self.seqs = seqs
         self.path = path
 
-    def get_image(self, image_name: str, max_sz: int = 0):
+    def get_image(self, image_name: str, max_sz: int = 0) -> Response:
         path_image = f"{self.path}/images/{image_name}"
 
         # Downsample before sending if max_sz
@@ -32,7 +31,7 @@ class ImageManager:
             mimetype = magic.from_file(path_image)
             return send_file(path_image, mimetype=mimetype)
 
-    def load_latlons(self):
+    def load_latlons(self) -> dict[str, object]:
         data = dataset.DataSet(self.path)
         latlons = {}
         for keys in self.seqs.values():

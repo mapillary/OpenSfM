@@ -441,6 +441,7 @@ def triangulate_all_gcp(
     for point in gcp:
         x = multiview.triangulate_gcp(
             point,
+            # pyrefly: ignore [bad-argument-type]
             reconstruction.shots,
         )
         if x is not None and len(point.lla):

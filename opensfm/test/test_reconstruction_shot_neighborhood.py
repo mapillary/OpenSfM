@@ -1,5 +1,5 @@
 # pyre-strict
-from typing import List
+from collections.abc import Iterable
 
 from opensfm import pygeometry, pymap, pysfm, reconstruction, types
 
@@ -9,7 +9,7 @@ def _add_shot(rec: types.Reconstruction, shot_id: str, cam: pygeometry.Camera) -
 
 
 def _add_point(
-    rec: types.Reconstruction, point_id: str, observations: List[str]
+    rec: types.Reconstruction, point_id: str, observations: Iterable[str]
 ) -> None:
     rec.create_point(point_id)
     for shot_id in observations:

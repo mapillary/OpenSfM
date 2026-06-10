@@ -256,8 +256,14 @@ Shot& Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
 void Map::RemovePanoShot(const ShotId& shot_id) {
   const auto& shot_it = pano_shots_.find(shot_id);
   if (shot_it != pano_shots_.end()) {
-    const auto& shot = shot_it->second;
+    auto& shot = shot_it->second;
     shot.GetRigInstance()->RemoveShot(shot_id);
+    // Remove observations of this shot from all referenced landmarks so
+    // they don't keep dangling Shot* keys after the shot is destroyed.
+    auto& lms_map = shot.GetLandmarkObservations();
+    for (auto& [lm, obs] : lms_map) {
+      lm->RemoveObservation(&shot);
+    }
     pano_shots_.erase(shot_it);
   } else {
     throw std::runtime_error("Accessing invalid ShotID " + shot_id);

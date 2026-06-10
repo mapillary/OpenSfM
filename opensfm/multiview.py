@@ -451,7 +451,13 @@ def absolute_pose_known_rotation_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_absolute_pose_known_rotation(
-        bs, Xs, threshold, params, pyrobust.RansacType.RANSAC
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        bs,
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        Xs,
+        threshold,
+        params,
+        pyrobust.RansacType.RANSAC,
     )
 
     t = -result.lo_model.copy()
@@ -469,7 +475,13 @@ def absolute_pose_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_absolute_pose(
-        bs, Xs, threshold, params, pyrobust.RansacType.RANSAC
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        bs,
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        Xs,
+        threshold,
+        params,
+        pyrobust.RansacType.RANSAC,
     )
 
     Rt = result.lo_model.copy()
@@ -489,7 +501,13 @@ def relative_pose_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_relative_pose(
-        b1, b2, threshold, params, pyrobust.RansacType.RANSAC
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        b1,
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        b2,
+        threshold,
+        params,
+        pyrobust.RansacType.RANSAC,
     )
 
     Rt = result.lo_model.copy()
@@ -509,7 +527,13 @@ def relative_pose_ransac_rotation_only(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_relative_rotation(
-        b1, b2, threshold, params, pyrobust.RansacType.RANSAC
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        b1,
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        b2,
+        threshold,
+        params,
+        pyrobust.RansacType.RANSAC,
     )
     return result.lo_model.T
 
@@ -520,6 +544,7 @@ def relative_pose_optimize_nonlinear(
     Rt = np.zeros((3, 4))
     Rt[:3, :3] = R.T
     Rt[:, 3] = -R.T.dot(t)
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     Rt_refined = pygeometry.relative_pose_refinement(Rt, b1, b2, iterations)
 
     R, t = Rt_refined[:3, :3].copy(), Rt_refined[:, 3].copy()
@@ -544,6 +569,7 @@ def triangulate_gcp(
             shot = shots[shot_id]
             os.append(shot.pose.get_origin())
             x = observation.projection
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             b = shot.camera.pixel_bearing(np.array(x))
             r = shot.pose.get_rotation_matrix().T
             bs.append(r.dot(b))

@@ -18,6 +18,7 @@ def unnormalized_vlad(features: NDArray, centers: NDArray) -> Optional[NDArray]:
     correct_type = centers.dtype == features.dtype
     if not correct_dims or not correct_type:
         return None
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     return pyfeatures.compute_vlad_descriptor(features, centers)
 
 
@@ -42,7 +43,10 @@ def vlad_distances(
     and the other images.
     """
     distances, others = pyfeatures.compute_vlad_distances(
-        histograms, image, set(other_images)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+        histograms,
+        image,
+        set(other_images),
     )
     return image, distances, others
 

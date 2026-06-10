@@ -88,6 +88,7 @@ class SyntheticDataSet(DataSet):
             raise RuntimeError("Image isn't present in the synthetic dataset")
 
     def load_camera_models(self) -> Dict[str, pygeometry.Camera]:
+        # pyrefly: ignore [bad-return]
         return self.reconstruction.cameras
 
     def save_camera_models(self, camera_models: Dict[str, pygeometry.Camera]) -> None:
@@ -95,6 +96,7 @@ class SyntheticDataSet(DataSet):
             self.reconstruction.add_camera(camera)
 
     def load_rig_cameras(self) -> Dict[str, pymap.RigCamera]:
+        # pyrefly: ignore [bad-return]
         return self.reconstruction.rig_cameras
 
     def load_rig_assignments(self) -> Dict[str, List[Tuple[str, str]]]:

@@ -118,7 +118,9 @@ def reconstruction_from_metadata(
 
         rotation = rotation_from_shot_metadata(shot)
         if rotation is not None:
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             shot.pose.set_rotation_matrix(rotation)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         shot.pose.set_origin(gps_pos)
         shot.scale = 1.0
     return reconstruction
@@ -138,6 +140,7 @@ def exif_to_metadata(
         else:
             alt = 2.0  # Arbitrary value used to align the reconstruction
         x, y, z = reference.to_topocentric(lat, lon, alt)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         metadata.gps_position.value = np.array([x, y, z])
         metadata.gps_accuracy.value = gps.get("dop", 15.0)
         if metadata.gps_accuracy.value == 0.0:
@@ -146,6 +149,7 @@ def exif_to_metadata(
     opk = exif.get("opk")
     if opk and "omega" in opk and "phi" in opk and "kappa" in opk:
         omega, phi, kappa = opk["omega"], opk["phi"], opk["kappa"]
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         metadata.opk_angles.value = np.array([omega, phi, kappa])
         metadata.opk_accuracy.value = opk.get("accuracy", 1.0)
 

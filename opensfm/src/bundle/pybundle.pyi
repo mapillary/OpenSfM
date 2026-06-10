@@ -10,12 +10,16 @@
 # Ignore errors for [24] untyped generics.
 # pyre-ignore-all-errors[24]
 
+from __future__ import annotations
+
+import collections.abc
+import typing
+
 import numpy
 import opensfm.pygeometry
 import opensfm.pymap
-from typing import *
 
-__all__ = [
+__all__: list[str] = [
     "BundleAdjuster",
     "Point",
     "RAReconstruction",
@@ -25,19 +29,41 @@ __all__ = [
     "ReconstructionAlignment",
     "RelativeMotion",
     "RelativeRotation",
-    "StaticExtensionLoader",
 ]
 
 class BundleAdjuster:
     def __init__(self) -> None: ...
-    def add_absolute_pan(self, arg0: str, arg1: float, arg2: float) -> None: ...
-    def add_absolute_position_heatmap(
-        self, arg0: str, arg1: str, arg2: float, arg3: float, arg4: float
+    def add_absolute_pan(
+        self,
+        arg0: str,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
-    def add_absolute_roll(self, arg0: str, arg1: float, arg2: float) -> None: ...
-    def add_absolute_tilt(self, arg0: str, arg1: float, arg2: float) -> None: ...
+    def add_absolute_position_heatmap(
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> None: ...
+    def add_absolute_roll(
+        self,
+        arg0: str,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> None: ...
+    def add_absolute_tilt(
+        self,
+        arg0: str,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> None: ...
     def add_absolute_up_vector(
-        self, arg0: str, arg1: numpy.typing.NDArray, arg2: float
+        self,
+        arg0: str,
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_camera(
         self,
@@ -47,33 +73,52 @@ class BundleAdjuster:
         arg3: bool,
     ) -> None: ...
     def add_common_position(
-        self, arg0: str, arg1: str, arg2: float, arg3: float
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_heatmap(
-        self, arg0: str, arg1: list[float], arg2: int, arg3: float
+        self,
+        arg0: str,
+        arg1: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex],
+        arg2: typing.SupportsInt | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_linear_motion(
-        self, arg0: str, arg1: str, arg2: str, arg3: float, arg4: float, arg5: float
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: str,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
-    def add_point(self, arg0: str, arg1: numpy.typing.NDArray, arg2: bool) -> None: ...
+    def add_point(
+        self,
+        arg0: str,
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg2: bool,
+    ) -> None: ...
     def add_point_prior(
         self,
         arg0: str,
-        arg1: numpy.typing.NDArray,
-        arg2: numpy.typing.NDArray,
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
         arg3: bool,
     ) -> None: ...
     def add_point_projection_observation(
         self,
         shot: str,
         point: str,
-        observation: numpy.typing.NDArray,
-        std_deviation: float,
-        depth_prior: Optional[opensfm.pymap.Depth] = None,
+        observation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"],
+        std_deviation: typing.SupportsFloat | typing.SupportsIndex,
+        depth_prior: opensfm.pymap.Depth | None = None,
     ) -> None: ...
     def add_reconstruction(self, arg0: str, arg1: bool) -> None: ...
     def add_reconstruction_instance(
-        self, arg0: str, arg1: float, arg2: str
+        self, arg0: str, arg1: typing.SupportsFloat | typing.SupportsIndex, arg2: str
     ) -> None: ...
     def add_relative_motion(self, arg0: RelativeMotion) -> None: ...
     def add_relative_rotation(self, arg0: RelativeRotation) -> None: ...
@@ -88,15 +133,15 @@ class BundleAdjuster:
         self,
         arg0: str,
         arg1: opensfm.pygeometry.Pose,
-        arg2: dict[str, str],
-        arg3: dict[str, str],
+        arg2: collections.abc.Mapping[str, str],
+        arg3: collections.abc.Mapping[str, str],
         arg4: bool,
     ) -> None: ...
     def add_rig_instance_position_prior(
         self,
         arg0: str,
-        arg1: numpy.typing.NDArray,
-        arg2: numpy.typing.NDArray,
+        arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
         arg3: str,
     ) -> None: ...
     def brief_report(self) -> str: ...
@@ -115,21 +160,29 @@ class BundleAdjuster:
     def set_gauge_fix_shots(self, arg0: str, arg1: str) -> None: ...
     def set_internal_parameters_prior_sd(
         self,
-        focal_sd: float,
-        aspect_ratio_sd: float,
-        c_sd: float,
-        k1_sd: float,
-        k2_sd: float,
-        p1_sd: float,
-        p2_sd: float,
-        k3_sd: float,
-        k4_sd: float,
+        focal_sd: typing.SupportsFloat | typing.SupportsIndex,
+        aspect_ratio_sd: typing.SupportsFloat | typing.SupportsIndex,
+        c_sd: typing.SupportsFloat | typing.SupportsIndex,
+        k1_sd: typing.SupportsFloat | typing.SupportsIndex,
+        k2_sd: typing.SupportsFloat | typing.SupportsIndex,
+        p1_sd: typing.SupportsFloat | typing.SupportsIndex,
+        p2_sd: typing.SupportsFloat | typing.SupportsIndex,
+        k3_sd: typing.SupportsFloat | typing.SupportsIndex,
+        k4_sd: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def set_linear_solver_type(self, arg0: str) -> None: ...
-    def set_max_num_iterations(self, arg0: int) -> None: ...
-    def set_num_threads(self, arg0: int) -> None: ...
-    def set_point_projection_loss_function(self, arg0: str, arg1: float) -> None: ...
-    def set_relative_motion_loss_function(self, arg0: str, arg1: float) -> None: ...
+    def set_max_num_iterations(
+        self, arg0: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
+    def set_num_threads(
+        self, arg0: typing.SupportsInt | typing.SupportsIndex
+    ) -> None: ...
+    def set_point_projection_loss_function(
+        self, arg0: str, arg1: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
+    def set_relative_motion_loss_function(
+        self, arg0: str, arg1: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
     def set_scale_sharing(self, arg0: str, arg1: bool) -> None: ...
     def set_use_analytic_derivatives(self, arg0: bool) -> None: ...
 
@@ -137,167 +190,183 @@ class Point:
     @property
     def id(self) -> str: ...
     @property
-    def p(self) -> numpy.typing.NDArray: ...
+    def p(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @property
-    def reprojection_errors(self) -> dict[str, numpy.typing.NDArray]: ...
+    def reprojection_errors(
+        self,
+    ) -> dict[str, typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]: ...
     @reprojection_errors.setter
-    def reprojection_errors(self, arg0: dict[str, numpy.typing.NDArray]) -> None: ...
+    def reprojection_errors(
+        self,
+        arg0: collections.abc.Mapping[
+            str, typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]
+        ],
+    ) -> None: ...
 
 class RAReconstruction:
+    id: str
     def __init__(self) -> None: ...
-    @property
-    def id(self) -> str: ...
-    @id.setter
-    def id(self, arg0: str) -> None: ...
     @property
     def rx(self) -> float: ...
     @rx.setter
-    def rx(self, arg1: float) -> None: ...
+    def rx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ry(self) -> float: ...
     @ry.setter
-    def ry(self, arg1: float) -> None: ...
+    def ry(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def rz(self) -> float: ...
     @rz.setter
-    def rz(self, arg1: float) -> None: ...
+    def rz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def scale(self) -> float: ...
     @scale.setter
-    def scale(self, arg1: float) -> None: ...
+    def scale(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tx(self) -> float: ...
     @tx.setter
-    def tx(self, arg1: float) -> None: ...
+    def tx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ty(self) -> float: ...
     @ty.setter
-    def ty(self, arg1: float) -> None: ...
+    def ty(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tz(self) -> float: ...
     @tz.setter
-    def tz(self, arg1: float) -> None: ...
+    def tz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
 
 class RARelativeMotionConstraint:
+    reconstruction: str
+    shot: str
     def __init__(
         self,
         arg0: str,
         arg1: str,
-        arg2: float,
-        arg3: float,
-        arg4: float,
-        arg5: float,
-        arg6: float,
-        arg7: float,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
+        arg6: typing.SupportsFloat | typing.SupportsIndex,
+        arg7: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
-    def set_scale_matrix(self, arg0: int, arg1: int, arg2: float) -> None: ...
-    @property
-    def reconstruction(self) -> str: ...
-    @reconstruction.setter
-    def reconstruction(self, arg0: str) -> None: ...
+    def set_scale_matrix(
+        self,
+        arg0: typing.SupportsInt | typing.SupportsIndex,
+        arg1: typing.SupportsInt | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+    ) -> None: ...
     @property
     def rx(self) -> float: ...
     @rx.setter
-    def rx(self, arg1: float) -> None: ...
+    def rx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ry(self) -> float: ...
     @ry.setter
-    def ry(self, arg1: float) -> None: ...
+    def ry(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def rz(self) -> float: ...
     @rz.setter
-    def rz(self, arg1: float) -> None: ...
-    @property
-    def shot(self) -> str: ...
-    @shot.setter
-    def shot(self, arg0: str) -> None: ...
+    def rz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tx(self) -> float: ...
     @tx.setter
-    def tx(self, arg1: float) -> None: ...
+    def tx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ty(self) -> float: ...
     @ty.setter
-    def ty(self, arg1: float) -> None: ...
+    def ty(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tz(self) -> float: ...
     @tz.setter
-    def tz(self, arg1: float) -> None: ...
+    def tz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
 
 class RAShot:
+    id: str
     def __init__(self) -> None: ...
-    @property
-    def id(self) -> str: ...
-    @id.setter
-    def id(self, arg0: str) -> None: ...
     @property
     def rx(self) -> float: ...
     @rx.setter
-    def rx(self, arg1: float) -> None: ...
+    def rx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ry(self) -> float: ...
     @ry.setter
-    def ry(self, arg1: float) -> None: ...
+    def ry(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def rz(self) -> float: ...
     @rz.setter
-    def rz(self, arg1: float) -> None: ...
+    def rz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tx(self) -> float: ...
     @tx.setter
-    def tx(self, arg1: float) -> None: ...
+    def tx(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def ty(self) -> float: ...
     @ty.setter
-    def ty(self, arg1: float) -> None: ...
+    def ty(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
     @property
     def tz(self) -> float: ...
     @tz.setter
-    def tz(self, arg1: float) -> None: ...
+    def tz(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None: ...
 
 class Reconstruction:
+    id: str
     def __init__(self) -> None: ...
     def get_scale(self, arg0: str) -> float: ...
-    def set_scale(self, arg0: str, arg1: float) -> None: ...
-    @property
-    def id(self) -> str: ...
-    @id.setter
-    def id(self, arg0: str) -> None: ...
+    def set_scale(
+        self, arg0: str, arg1: typing.SupportsFloat | typing.SupportsIndex
+    ) -> None: ...
 
 class ReconstructionAlignment:
     def __init__(self) -> None: ...
     def add_absolute_position_constraint(
-        self, arg0: str, arg1: float, arg2: float, arg3: float, arg4: float
+        self,
+        arg0: str,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_common_camera_constraint(
-        self, arg0: str, arg1: str, arg2: str, arg3: str, arg4: float, arg5: float
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: str,
+        arg3: str,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_common_point_constraint(
         self,
         arg0: str,
-        arg1: float,
-        arg2: float,
-        arg3: float,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
         arg4: str,
-        arg5: float,
-        arg6: float,
-        arg7: float,
-        arg8: float,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
+        arg6: typing.SupportsFloat | typing.SupportsIndex,
+        arg7: typing.SupportsFloat | typing.SupportsIndex,
+        arg8: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_reconstruction(
         self,
         arg0: str,
-        arg1: float,
-        arg2: float,
-        arg3: float,
-        arg4: float,
-        arg5: float,
-        arg6: float,
-        arg7: float,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
+        arg6: typing.SupportsFloat | typing.SupportsIndex,
+        arg7: typing.SupportsFloat | typing.SupportsIndex,
         arg8: bool,
     ) -> None: ...
     def add_relative_absolute_position_constraint(
-        self, arg0: str, arg1: str, arg2: float, arg3: float, arg4: float, arg5: float
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
     ) -> None: ...
     def add_relative_motion_constraint(
         self, arg0: RARelativeMotionConstraint
@@ -305,12 +374,12 @@ class ReconstructionAlignment:
     def add_shot(
         self,
         arg0: str,
-        arg1: float,
-        arg2: float,
-        arg3: float,
-        arg4: float,
-        arg5: float,
-        arg6: float,
+        arg1: typing.SupportsFloat | typing.SupportsIndex,
+        arg2: typing.SupportsFloat | typing.SupportsIndex,
+        arg3: typing.SupportsFloat | typing.SupportsIndex,
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
+        arg6: typing.SupportsFloat | typing.SupportsIndex,
         arg7: bool,
     ) -> None: ...
     def brief_report(self) -> str: ...
@@ -320,41 +389,37 @@ class ReconstructionAlignment:
     def run(self) -> None: ...
 
 class RelativeMotion:
+    rig_instance_i: str
+    rig_instance_j: str
     def __init__(
         self,
         arg0: str,
         arg1: str,
-        arg2: numpy.typing.NDArray,
-        arg3: numpy.typing.NDArray,
-        arg4: float,
-        arg5: float,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+        arg4: typing.SupportsFloat | typing.SupportsIndex,
+        arg5: typing.SupportsFloat | typing.SupportsIndex,
         arg6: bool,
     ) -> None: ...
-    def set_scale_matrix(self, arg0: numpy.typing.NDArray) -> None: ...
-    @property
-    def rig_instance_i(self) -> str: ...
-    @rig_instance_i.setter
-    def rig_instance_i(self, arg0: str) -> None: ...
-    @property
-    def rig_instance_j(self) -> str: ...
-    @rig_instance_j.setter
-    def rig_instance_j(self, arg0: str) -> None: ...
+    def set_scale_matrix(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]
+    ) -> None: ...
 
 class RelativeRotation:
-    def __init__(self, arg0: str, arg1: str, arg2: numpy.typing.NDArray) -> None: ...
-    def set_scale_matrix(self, arg0: numpy.typing.NDArray) -> None: ...
+    shot_i: str
+    shot_j: str
+    def __init__(
+        self,
+        arg0: str,
+        arg1: str,
+        arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"],
+    ) -> None: ...
+    def set_scale_matrix(
+        self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]
+    ) -> None: ...
     @property
-    def r(self) -> numpy.typing.NDArray: ...
+    def r(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]: ...
     @r.setter
-    def r(self, arg1: numpy.typing.NDArray) -> None: ...
-    @property
-    def shot_i(self) -> str: ...
-    @shot_i.setter
-    def shot_i(self, arg0: str) -> None: ...
-    @property
-    def shot_j(self) -> str: ...
-    @shot_j.setter
-    def shot_j(self, arg0: str) -> None: ...
-
-class StaticExtensionLoader:
-    pass
+    def r(
+        self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]
+    ) -> None: ...

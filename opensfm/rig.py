@@ -186,6 +186,7 @@ def propose_subset_dataset_from_instances(
             all_instances = per_rig_camera_group[key]
 
             instances_sorted = sorted(
+                # pyrefly: ignore [not-iterable]
                 [all_instances[i] for i in instances],
                 key=lambda x: data.load_exif(x[0][0])["capture_time"],
             )

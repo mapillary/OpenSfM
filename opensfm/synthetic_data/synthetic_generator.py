@@ -144,6 +144,7 @@ def perturb_points(points: NDArray, sigmas: List[float]) -> None:
     eps = 1e-10
     gaussian = np.array([max(s, eps) for s in sigmas])
     for point in points:
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         point += np.random.normal(0.0, gaussian, point.shape)
 
 
@@ -190,6 +191,7 @@ def generate_exifs(
         per_sequence[exif["skey"]].append(shot_name)
 
         if shot.camera.projection_type in ["perspective", "fisheye"]:
+            # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
             exif["focal_ratio"] = shot.camera.focal
 
         exifs[shot_name] = exif
@@ -205,6 +207,7 @@ def generate_exifs(
             previous_time += np.linalg.norm(pose - previous_pose) / speed_ms
         previous_pose = pose
         for shot_id in rig_instance.shots:
+            # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
             exifs[shot_id]["capture_time"] = previous_time
 
     for sequence_images in per_sequence.values():
@@ -233,6 +236,7 @@ def generate_exifs(
             _, _, _, comp = rc.shot_lla_and_compass(shot, reference)
             lat, lon, alt = reference.to_lla(*origin)
 
+            # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
             exif["gps"] = {
                 "latitude": lat,
                 "longitude": lon,
@@ -244,12 +248,17 @@ def generate_exifs(
                 shot.pose.get_rotation_matrix()
             )
             opk_noise = np.random.normal(0.0, np.full((3), imu_noise), (3))
+            # pyre-fixme[6, 16]: numpy stubs widening to float — runtime ndarray indexable.
             exif["opk"] = {
+                # pyre-fixme[6, 16]: numpy stubs widening to float — runtime ndarray indexable.
                 "omega": math.degrees(omega) + opk_noise[0],
+                # pyre-fixme[6, 16]: numpy stubs widening to float — runtime ndarray indexable.
                 "phi": math.degrees(phi) + opk_noise[1],
+                # pyre-fixme[16]: numpy stubs widening to float — runtime ndarray indexable.
                 "kappa": math.degrees(kappa) + opk_noise[2],
             }
 
+            # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
             exif["compass"] = {"angle": comp}
 
     return exifs
@@ -271,6 +280,7 @@ def add_points_to_reconstruction(
     shift = len(reconstruction.points)
     for i in range(points.shape[0]):
         point = reconstruction.create_point(str(shift + i), points[i, :])
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         point.color = color
 
 
@@ -293,6 +303,7 @@ def add_shots_to_reconstruction(
     for i_shots, position, rotation in zip(shots, positions, rotations):
         instance_id = "_".join([s[0] for s in i_shots])
         rig_instance = reconstruction.add_rig_instance(pymap.RigInstance(instance_id))
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         rig_instance.pose = pygeometry.Pose(rotation, -rotation.dot(position))
 
         for shot, camera in zip(i_shots, cameras):
@@ -412,6 +423,7 @@ def generate_track_data(
         sigmas = np.array([perturbation, perturbation])
 
         # pre-generate random perturbations
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         perturbations = np.random.normal(0.0, sigmas, (len(projections), 2))
 
         # run and check valid projections
@@ -466,6 +478,7 @@ def generate_track_data(
             for i in np.random.randint(len(all_track_ids) - 1, size=gcps_count)
         ]
 
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         sigmas_gcp = np.random.normal(
             0.0,
             np.array([gcp_noise[0], gcp_noise[0], gcp_noise[1]]),
@@ -483,6 +496,7 @@ def generate_track_data(
             for shot_id, obs in tracks_manager.get_track_observations(gcp_id).items():
                 o = pymap.GroundControlPointObservation()
                 o.shot_id = shot_id
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 o.projection = obs.point
                 o.uid = obs.id
                 gcp.add_observation(o)

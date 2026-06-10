@@ -287,7 +287,9 @@ class Reconstruction:
         self, point_id: str, coord: Optional[NDArray] = None
     ) -> pymap.Landmark:
         if coord is None:
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             return self.map.create_landmark(point_id, np.array([0, 0, 0]))
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         return self.map.create_landmark(point_id, coord)
 
     def add_point(self, point: pymap.Landmark) -> pymap.Landmark:
@@ -296,10 +298,13 @@ class Reconstruction:
         :param point: The point.
         """
         if point.coordinates is None:
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             new_pt = self.map.create_landmark(point.id, np.array([0, 0, 0]))
         else:
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             new_pt = self.map.create_landmark(point.id, point.coordinates)
         if point.color is not None:
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             new_pt.color = point.color
         return new_pt
 

@@ -1,11 +1,11 @@
-# pyre-unsafe
+# pyre-strict
+from __future__ import annotations
+
 import argparse
 import json
-import typing as t
 from collections import defaultdict, OrderedDict
 from os import PathLike
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 from flask import Flask
@@ -57,7 +57,9 @@ def get_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def file_sanity_check(root, seq_dict, fname) -> t.Set[str]:
+def file_sanity_check(
+    root: Path, seq_dict: dict[str, list[str]], fname: str | PathLike[str]
+) -> set[str]:
     # Images available under ./images for a sanity check
     available_images = {p.name for p in (root / "images").iterdir()}
     keys_in_seq_dict = {im_key for seq_keys in seq_dict.values() for im_key in seq_keys}
@@ -75,7 +77,7 @@ def file_sanity_check(root, seq_dict, fname) -> t.Set[str]:
     return available_images
 
 
-def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
+def load_rig_assignments(root: Path) -> dict[str, list[str]]:
     """
     Returns a dict mapping every shot to all the other corresponding shots in the rig
     """
@@ -85,7 +87,7 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
     output = {}
     with open(p_json) as f:
-        assignments: t.Dict[str, t.List[t.Tuple[str, str]]] = json.load(f)
+        assignments: dict[str, list[tuple[str, str]]] = json.load(f)
     for shot_group in assignments.values():
         group_shot_ids = [s[0] for s in shot_group]
         for shot_id, _ in shot_group:
@@ -96,9 +98,9 @@ def load_rig_assignments(root: Path) -> t.Dict[str, t.List[str]]:
 
 def load_sequence_database_from_file(
     root: Path,
-    fname: Union["PathLike[str]", str] = "sequence_database.json",
+    fname: PathLike[str] | str = "sequence_database.json",
     skip_missing: bool = False,
-):
+) -> OrderedDict[str, list[str]] | None:
     """
     Simply loads a sequence file and returns it.
     This doesn't require an existing SfM reconstruction
@@ -128,7 +130,7 @@ def load_sequence_database_from_file(
     return seq_dict
 
 
-def load_shots_from_reconstructions(path, min_ims) -> t.List[t.List[str]]:
+def load_shots_from_reconstructions(path: str, min_ims: int) -> list[list[str]]:
     data = dataset.DataSet(path)
     reconstructions = data.load_reconstruction()
 
@@ -160,8 +162,8 @@ def load_shots_from_reconstructions(path, min_ims) -> t.List[t.List[str]]:
 
 
 def group_by_reconstruction(
-    args, groups_from_sequence_database
-) -> t.Dict[str, t.List[str]]:
+    args: argparse.Namespace, groups_from_sequence_database: dict[str, list[str]] | None
+) -> dict[str, list[str]]:
     all_recs_shots = load_shots_from_reconstructions(
         args.dataset, min_ims=args.min_images_in_reconstruction
     )
@@ -184,7 +186,7 @@ def group_by_reconstruction(
     return groups
 
 
-def group_images(args) -> t.Dict[str, t.List[str]]:
+def group_images(args: argparse.Namespace) -> dict[str, list[str]]:
     """
     Groups the images to be shown in different windows/views
 
@@ -214,11 +216,13 @@ def group_images(args) -> t.Dict[str, t.List[str]]:
         return groups_from_sequence_database
 
 
-def find_suitable_cad_paths(path_cad_files: Path, path_dataset, n_paths: int = 6):
+def find_suitable_cad_paths(
+    path_cad_files: Path | None, path_dataset: str, n_paths: int = 6
+) -> list[Path]:
     if path_cad_files is None:
         return []
 
-    def latlon_from_meta(path_cad) -> t.Tuple[float, float]:
+    def latlon_from_meta(path_cad: Path) -> tuple[float, float]:
         path_meta = path_cad.with_suffix(".json")
         with open(path_meta) as f:
             meta = json.load(f)
@@ -242,7 +246,7 @@ def find_suitable_cad_paths(path_cad_files: Path, path_dataset, n_paths: int = 6
     return [cad_files[i] for i in ixs_sort]
 
 
-def init_ui() -> t.Tuple[Flask, argparse.Namespace]:
+def init_ui() -> tuple[Flask, argparse.Namespace]:
     app = Flask(__name__)
     parser = get_parser()
     args = parser.parse_args()

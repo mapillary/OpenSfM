@@ -26,6 +26,7 @@ class FeatureLoader:
         self._load_all_data_masked.cache_clear()
         self.load_features_index.cache_clear()
         self.load_words.cache_clear()
+        self.load_bearings.cache_clear()
 
     @lru_cache(1000)
     def load_mask(self, data: DataSetBase, image: str) -> Optional[NDArray]:
@@ -98,6 +99,7 @@ class FeatureLoader:
         if not features_data:
             return None
         keypoints_2d = np.array(features_data.points[:, :2], dtype=float)
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bearings_3d = camera.pixel_bearing_many(keypoints_2d)
         return bearings_3d
 

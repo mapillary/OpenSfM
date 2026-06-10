@@ -401,7 +401,9 @@ def two_view_reconstruction_rotation_only(
     Returns:
         rotation and inlier list
     """
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     R = multiview.relative_pose_ransac_rotation_only(b1, b2, threshold, 1000, 0.999)
@@ -511,7 +513,9 @@ def two_view_reconstruction_general(
         rotation, translation and inlier list
     """
 
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     # Get 5-point relative motion
@@ -582,7 +586,13 @@ def reconstruction_from_relative_pose(
 
     if im2 not in new_shots:
         new_shots |= add_shot(
-            data, reconstruction, rig_assignments, im2, pygeometry.Pose(R, t)
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+            data,
+            reconstruction,
+            rig_assignments,
+            im2,
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+            pygeometry.Pose(R, t),
         )
 
     align_reconstruction(reconstruction, [], data.config)
@@ -702,6 +712,7 @@ def resect(
     bs, Xs, ids = [], [], []
     for track, obs in tracks_manager.get_shot_observations(shot_id).items():
         if track in reconstruction.points:
+            # pyrefly: ignore [bad-argument-type]
             b = camera.pixel_bearing(obs.point)
             bs.append(b)
             Xs.append(reconstruction.points[track].coordinates)
@@ -921,6 +932,7 @@ class TrackTriangulator:
         for shot_id, obs in self.tracks_handler.get_observations(track).items():
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
+            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             r = self._shot_rotation_inverse(shot)
             bs.append(r.dot(b))
@@ -952,12 +964,15 @@ class TrackTriangulator:
             bs_t = np.array([bs[i], bs[j]])
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 os_t,
+                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 bs_t,
                 thresholds,
                 min_ray_angle_radians,
                 min_depth,
             )
+            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
             if valid_triangulation:
@@ -976,7 +991,12 @@ class TrackTriangulator:
                         min_depth,
                     )
                     new_X = pygeometry.point_refinement(
-                        os[inliers], bs[inliers], X, iterations
+                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                        os[inliers],
+                        bs[inliers],
+                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                        X,
+                        iterations,
                     )
 
                     reprojected_bs = new_X - os
@@ -1022,6 +1042,7 @@ class TrackTriangulator:
         for shot_id, obs in self.tracks_handler.get_observations(track).items():
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
+            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             r = self._shot_rotation_inverse(shot)
             bs.append(r.dot(b))
@@ -1039,7 +1060,13 @@ class TrackTriangulator:
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
-                    np.array(os), np.array(bs), X, iterations
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(os),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(bs),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    X,
+                    iterations,
                 )
                 self.tracks_handler.store_track_coordinates(track, X.tolist())
                 for shot_id in ids:
@@ -1059,6 +1086,7 @@ class TrackTriangulator:
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
             Rts.append(self._shot_Rt(shot))
+            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             bs.append(b)
             ids.append(shot_id)
@@ -1075,7 +1103,13 @@ class TrackTriangulator:
             )
             if e:
                 X = pygeometry.point_refinement(
-                    np.array(os), np.array(bs), X, iterations
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(os),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    np.array(bs),
+                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
+                    X,
+                    iterations,
                 )
                 self.tracks_handler.store_track_coordinates(track, X.tolist())
                 for shot_id in ids:
@@ -1226,9 +1260,12 @@ def remove_outliers(
     A list of point ids to be processed can be given in ``points``.
     """
     if points is None:
+        # pyrefly: ignore [bad-assignment]
         points = reconstruction.points
+    # pyrefly: ignore [bad-argument-type]
     threshold_sqr = get_actual_threshold(config, reconstruction.points) ** 2
     outliers = []
+    # pyrefly: ignore [not-iterable]
     for point_id in points:
         for shot_id, error in reconstruction.points[
             point_id
@@ -1298,6 +1335,7 @@ def merge_two_reconstructions(
 ) -> List[types.Reconstruction]:
     """Merge two reconstructions with common tracks IDs."""
     common_tracks = list(set(r1.points) & set(r2.points))
+    # pyrefly: ignore [bad-argument-type]
     worked, T, inliers = align_two_reconstruction(r1, r2, common_tracks, threshold)
 
     if T and worked and len(inliers) >= 10:
@@ -1305,7 +1343,9 @@ def merge_two_reconstructions(
         r1p = r1
         apply_similarity(r1p, s, A, b)
         r = r2
+        # pyrefly: ignore [missing-attribute]
         r.shots.update(r1p.shots)
+        # pyrefly: ignore [missing-attribute]
         r.points.update(r1p.points)
         align_reconstruction(r, [], config)
         return [r]
@@ -1760,6 +1800,7 @@ def reconstruct_from_prior(
     images = tracks_manager.get_shot_ids()
 
     # copy prior poses, cameras
+    # pyrefly: ignore [bad-argument-type]
     reconstruction.cameras = rec_prior.cameras
     for shot in rec_prior.shots.values():
         reconstruction.add_shot(shot)
@@ -1772,7 +1813,7 @@ def reconstruct_from_prior(
     # Start with the known poses
     triangulate_shot_features(tracks_manager, reconstruction, prior_images, data.config)
     paint_reconstruction(data, tracks_manager, reconstruction)
-    # pyrefly: ignore [no-matching-overload]
+    # pyrefly: ignore [no-matching-overload, unsupported-operation]
     report["not_reconstructed_images"] = list(remaining_images)
     return report, reconstruction
 
@@ -1793,7 +1834,7 @@ class Chronometer:
         lap = (key, dt, t)
         # pyrefly: ignore [bad-argument-type]
         self.laps.append(lap)
-        # pyrefly: ignore [bad-typed-dict-key]
+        # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
         self.laps_dict[key] = lap
 
     def lap_time(self, key: str) -> float:

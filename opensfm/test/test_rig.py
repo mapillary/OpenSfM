@@ -90,26 +90,47 @@ def test_compute_relative_pose() -> None:
 
     # First rig instance
     rec.create_shot(
-        "shot1", "camera1", pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -2, 0]))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "shot1",
+        "camera1",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -2, 0])),
     )
     rec.create_shot(
-        "shot2", "camera2", pygeometry.Pose(np.array([0, 0, 0]), np.array([-3, -3, 0]))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "shot2",
+        "camera2",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.array([0, 0, 0]), np.array([-3, -3, 0])),
     )
     rec.create_shot(
-        "shot3", "camera3", pygeometry.Pose(np.array([0, 0, 0]), np.array([-1, -3, 0]))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "shot3",
+        "camera3",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.array([0, 0, 0]), np.array([-1, -3, 0])),
     )
     rec.create_shot(
-        "shot4", "camera4", pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -4, 0]))
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        "shot4",
+        "camera4",
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+        pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -4, 0])),
     )
 
     # Second rig instance (rotated by pi/2 around Z)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose_instance = pygeometry.Pose(np.array([0, 0, -1.5707963]))
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose_instance.set_origin(np.array([-6, 0, 0]))
     rec.create_shot("shot5", "camera1", pose_instance)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose_instance.set_origin(np.array([-7, 1, 0]))
     rec.create_shot("shot6", "camera2", pose_instance)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose_instance.set_origin(np.array([-7, -1, 0]))
     rec.create_shot("shot7", "camera3", pose_instance)
+    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose_instance.set_origin(np.array([-8, 0, 0]))
     rec.create_shot("shot8", "camera4", pose_instance)
 

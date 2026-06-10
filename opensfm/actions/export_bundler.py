@@ -35,7 +35,12 @@ def run_dataset(
         images = data.images()
 
     export_bundler(
-        images, reconstructions, track_manager, bundle_file_path, list_file_path
+        # pyrefly: ignore [bad-argument-type]
+        images,
+        reconstructions,
+        track_manager,
+        bundle_file_path,
+        list_file_path,
     )
 
 
@@ -70,6 +75,7 @@ def export_bundler(
                 camera = shot.camera
                 if shot.camera.projection_type == "brown":
                     # Will approximate Brown model, not optimal
+                    # pyrefly: ignore [missing-attribute]
                     focal_normalized = camera.focal_x
                 else:
                     focal_normalized = camera.focal

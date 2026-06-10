@@ -59,9 +59,11 @@ def triangle_mesh_perspective(
     for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id]
+            # pyrefly: ignore [bad-argument-type]
             pixel = shot.project(point.coordinates)
             nonans = not np.isnan(pixel).any()
             if nonans and -dx <= pixel[0] <= dx and -dy <= pixel[1] <= dy:
+                # pyrefly: ignore [bad-argument-type]
                 vertices.append(point.coordinates)
                 pixels.append(pixel.tolist())
 
@@ -133,6 +135,7 @@ def triangle_mesh_fisheye(
     for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id].coordinates
+            # pyrefly: ignore [bad-argument-type]
             direction = shot.pose.transform(point)
             pixel = direction / np.linalg.norm(direction)
             if not np.isnan(pixel).any():
@@ -175,6 +178,7 @@ def triangle_mesh_spherical(
     for track_id in tracks_manager.get_shot_observations(shot_id):
         if track_id in r.points:
             point = r.points[track_id].coordinates
+            # pyrefly: ignore [bad-argument-type]
             direction = shot.pose.transform(point)
             pixel = direction / np.linalg.norm(direction)
             if not np.isnan(pixel).any():

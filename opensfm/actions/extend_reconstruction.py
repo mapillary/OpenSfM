@@ -28,7 +28,7 @@ def run_dataset(data: DataSetBase, input: Optional[str], output: Optional[str]) 
         gcp,
     )
     rec_report["num_remaining_images"] = len(remaining_images)
-    # pyrefly: ignore [no-matching-overload]
+    # pyrefly: ignore [no-matching-overload, unsupported-operation]
     report["not_reconstructed_images"] = list(remaining_images)
     data.save_reconstruction([rec], output)
     data.save_report(io.json_dumps(report), "reconstruction.json")

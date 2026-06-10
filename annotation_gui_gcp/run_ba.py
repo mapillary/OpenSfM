@@ -132,6 +132,7 @@ def triangulate_gcps(
     for gcp in gcps:
         res = multiview.triangulate_gcp(
             gcp,
+            # pyrefly: ignore [bad-argument-type]
             reconstruction.shots,
             reproj_threshold=1,
             min_ray_angle_degrees=0.1,
@@ -149,6 +150,7 @@ def reproject_gcps(
     for gcp in gcps:
         point = multiview.triangulate_gcp(
             gcp,
+            # pyrefly: ignore [bad-argument-type]
             reconstruction.shots,
             reproj_threshold=reproj_threshold,
             min_ray_angle_degrees=0.1,
@@ -164,6 +166,7 @@ def reproject_gcps(
             if observation.shot_id not in reconstruction.shots:
                 continue
             shot = reconstruction.shots[observation.shot_id]
+            # pyrefly: ignore [bad-argument-type]
             reproj = shot.project(point)
             error = np.linalg.norm(reproj - observation.projection)
             output[gcp.id][observation.shot_id].update(
@@ -254,6 +257,7 @@ def add_gcp_to_bundle(
                 )
                 continue
 
+        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         ba.add_point(point_id, coordinates, False)
 
         for observation in point.observations:
@@ -261,6 +265,7 @@ def add_gcp_to_bundle(
                 ba.add_point_projection_observation(
                     observation.shot_id,
                     point_id,
+                    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
                     observation.projection,
                     gcp_std,
                 )
@@ -288,7 +293,12 @@ def bundle_with_fixed_images(
     for point in reconstruction.points.values():
         ba.add_point(point.id, point.coordinates, False)
         ba.add_point_prior(
-            point.id, point.coordinates, np.array([100.0, 100.0, 100.0]), False
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            point.id,
+            point.coordinates,
+            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
+            np.array([100.0, 100.0, 100.0]),
+            False,
         )
 
     for shot_id in reconstruction.shots:

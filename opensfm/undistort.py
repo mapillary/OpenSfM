@@ -31,6 +31,7 @@ def undistort_reconstruction(
     all_images = set(data.images())
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
+    # pyrefly: ignore [bad-argument-type]
     urec.points = reconstruction.points
     urec.reference = reconstruction.reference
     rig_instance_count = itertools.count()
@@ -99,6 +100,7 @@ def undistort_reconstruction_with_images(
     if not skip_images:
         arguments = []
         for shot_id, subshots in undistorted_shots.items():
+            # pyrefly: ignore [bad-index]
             arguments.append((reconstruction.shots[shot_id], subshots, data, udata))
 
         processes = data.config["processes"]
@@ -375,6 +377,7 @@ def render_perspective_view_of_a_panorama(
     )
 
     # Convert to bearing
+    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     dst_bearings = perspectiveshot.camera.pixel_bearing_many(dst_pixels)
 
     # Rotate to panorama reference frame
@@ -425,6 +428,7 @@ def add_pano_subshot_tracks(
 ) -> None:
     """Add edges between subshots and visible tracks."""
     for track_id, obs in tracks_manager.get_shot_observations(panoshot.id).items():
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bearing = panoshot.camera.pixel_bearing(obs.point)
         rotation = np.dot(
             perspectiveshot.pose.get_rotation_matrix(),
@@ -444,5 +448,6 @@ def add_pano_subshot_tracks(
         ):
             continue
 
+        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         obs.point = perspective_feature
         utracks_manager.add_observation(perspectiveshot.id, track_id, obs)
