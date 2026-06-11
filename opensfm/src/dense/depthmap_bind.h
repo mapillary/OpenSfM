@@ -138,7 +138,7 @@ class DepthmapPrunerWrapper {
     }
 
     py::list retn;
-    int n = int(points.size()) / 3;
+    const int n = int(points.size()) / 3;
     retn.append(foundation::py_array_from_data(points.data(), n, 3));
     retn.append(foundation::py_array_from_data(normals.data(), n, 3));
     retn.append(foundation::py_array_from_data(colors.data(), n, 3));
