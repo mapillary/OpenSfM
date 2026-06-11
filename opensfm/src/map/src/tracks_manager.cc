@@ -260,6 +260,7 @@ TracksManager TracksManager::ConstructSubTracksManager(
     const std::vector<TrackId>& tracks,
     const std::vector<ShotId>& shots) const {
   std::unordered_set<TrackId> shotsTmp;
+  shotsTmp.reserve(shots.size());
   for (const auto& id : shots) {
     shotsTmp.insert(id);
   }
@@ -308,6 +309,7 @@ TracksManager::GetAllPairsConnectivity(
 
   std::vector<TrackId> tracks_to_use;
   if (tracks.empty()) {
+    tracks_to_use.reserve(shots_per_track_.size());
     for (const auto& [track_id, observations] : shots_per_track_) {
       tracks_to_use.push_back(track_id);
     }
@@ -317,10 +319,12 @@ TracksManager::GetAllPairsConnectivity(
 
   std::unordered_set<ShotId> shots_to_use;
   if (shots.empty()) {
+    shots_to_use.reserve(tracks_per_shot_.size());
     for (const auto& [shot_id, observations] : tracks_per_shot_) {
       shots_to_use.insert(shot_id);
     }
   } else {
+    shots_to_use.reserve(shots.size());
     for (const auto& shot : shots) {
       shots_to_use.insert(shot);
     }
