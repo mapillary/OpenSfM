@@ -86,7 +86,7 @@ std::array<double, 4> RefineQuarticRoots(
              2.0 * coefficients_[2] * x + coefficients_[1];
     }
   };
-  QuarticEval eval_function{coefficients};
+  const QuarticEval eval_function{coefficients};
 
   std::array<double, 4> refined_roots = roots;
   for (auto& root : refined_roots) {
