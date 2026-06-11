@@ -59,7 +59,7 @@ template <class T>
 Eigen::Matrix<T, 3, 1> TriangulateBearingsMidpointSolve(
     const Eigen::Matrix<T, Eigen::Dynamic, 3>& centers,
     const Eigen::Matrix<T, Eigen::Dynamic, 3>& bearings) {
-  int nviews = bearings.rows();
+  const int nviews = bearings.rows();
   assert(nviews == centers.rows());
   assert(nviews >= 2);
 
