@@ -22,10 +22,12 @@ BAHelpers::ShotNeighborhoodIds(map::Map& map,
   auto [interior_shots, boundary_shots] = ShotNeighborhood(
       map, central_shot_id, radius, min_common_points, max_interior_size);
   std::unordered_set<map::ShotId> interior;
+  interior.reserve(interior_shots.size());
   for (map::Shot* shot : interior_shots) {
     interior.insert(shot->GetId());
   }
   std::unordered_set<map::ShotId> boundary;
+  boundary.reserve(boundary_shots.size());
   for (map::Shot* shot : boundary_shots) {
     boundary.insert(shot->GetId());
   }
@@ -138,8 +140,9 @@ py::tuple BAHelpers::BundleLocal(
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
   // combine the sets
-  std::unordered_set<map::Shot*> int_and_bound(interior.cbegin(),
-                                               interior.cend());
+  std::unordered_set<map::Shot*> int_and_bound;
+  int_and_bound.reserve(interior.size() + boundary.size());
+  int_and_bound.insert(interior.cbegin(), interior.cend());
   int_and_bound.insert(boundary.cbegin(), boundary.cend());
   std::unordered_set<map::Landmark*> points;
   py::list pt_ids;
