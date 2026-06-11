@@ -83,7 +83,7 @@ class Pose {
   }
 
   virtual void SetWorldToCamRotation(const Vec3d& r_cw) {
-    Mat3d R_cw = geometry::VectorToRotationMatrix(r_cw);
+    const Mat3d R_cw = geometry::VectorToRotationMatrix(r_cw);
     world_to_cam_.block<3, 3>(0, 0) = R_cw;
     cam_to_world_.block<3, 3>(0, 0) = R_cw.transpose();
     UpdateMinRotations();
