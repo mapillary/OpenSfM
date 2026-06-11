@@ -88,6 +88,7 @@ struct RelativePoseCost {
   RelativePoseCost(IT begin, IT end) : begin_(begin), end_(end) {
     std::srand(42);
     const int count = end_ - begin_;
+    picked_errors_.reserve(MAX_ERRORS);
     for (int i = 0; i < MAX_ERRORS; ++i) {
       // Note that float(RAND_MAX) cannot be exactly represented as a float. We
       // ignore the small inaccuracy here; this is already a bad way to get
