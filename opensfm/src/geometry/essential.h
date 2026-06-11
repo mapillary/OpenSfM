@@ -64,7 +64,7 @@ enum {
 template <class IT, class MAT>
 inline void EncodeEpipolarEquation(IT begin, IT end, MAT* A) {
   for (IT it = begin; it != end; ++it) {
-    int i = (it - begin);
+    const int i = (it - begin);
     const auto x1 = it->first;
     const auto x2 = it->second;
     A->row(i) << x2(0) * x1.transpose(), x2(1) * x1.transpose(),
@@ -99,7 +99,7 @@ bool FivePointsGaussJordan(Eigen::MatrixXd* Mp);
 template <class IT>
 std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   // Step 1: Nullspace exrtraction.
-  Eigen::MatrixXd E_basis = FivePointsNullspaceBasis(begin, end);
+  const Eigen::MatrixXd E_basis = FivePointsNullspaceBasis(begin, end);
 
   // Step 2: Constraint expansion.
   Eigen::MatrixXd M = FivePointsPolynomialConstraints(E_basis);
@@ -112,7 +112,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   // For the next steps, follow the matlab code given in Stewenius et al [1].
 
   // Build the action matrix.
-  Eigen::MatrixXd B = M.topRightCorner<10, 10>();
+  const Eigen::MatrixXd B = M.topRightCorner<10, 10>();
   Eigen::MatrixXd At = Eigen::MatrixXd::Zero(10, 10);
   At.row(0) = -B.row(0);
   At.row(1) = -B.row(1);
@@ -128,7 +128,7 @@ std::vector<Eigen::Matrix<double, 3, 3>> EssentialFivePoints(IT begin, IT end) {
   // Compute the solutions from action matrix's eigenvectors.
   Eigen::EigenSolver<Eigen::MatrixXd> es(At);
   using Matc = Eigen::EigenSolver<Eigen::MatrixXd>::EigenvectorsType;
-  Matc V = es.eigenvectors();
+  const Matc V = es.eigenvectors();
   Matc solutions(4, 10);
   solutions.row(0) = V.row(6).array() / V.row(9).array();
   solutions.row(1) = V.row(7).array() / V.row(9).array();

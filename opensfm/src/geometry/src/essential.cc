@@ -92,7 +92,7 @@ Eigen::MatrixXd FivePointsPolynomialConstraints(
 
   // Equation (21).
   Eigen::Matrix<double, -1, 1>(&L)[3][3] = EET;
-  Eigen::Matrix<double, -1, 1> trace =
+  const Eigen::Matrix<double, -1, 1> trace =
       0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
   for (int i = 0; i < 3; ++i) {
     L[i][i] -= trace;
@@ -101,7 +101,7 @@ Eigen::MatrixXd FivePointsPolynomialConstraints(
   // Equation (23).
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      Eigen::Matrix<double, -1, 1> LEij =
+      const Eigen::Matrix<double, -1, 1> LEij =
           o2(L[i][0], E[0][j]) + o2(L[i][1], E[1][j]) + o2(L[i][2], E[2][j]);
       M.row(mrow++) = LEij;
     }
