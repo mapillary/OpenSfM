@@ -27,6 +27,8 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
   std::vector<std::pair<map::LandmarkId, double>> landmark_conds;
   landmark_conds.reserve(map.GetLandmarks().size());
 
+  const double rad_angle = min_angle_deg * M_PI / 180.0;
+
   // Iterate over a snapshot of landmarks to decide removals.
   for (const auto& [lm_id, lm] : map.GetLandmarks()) {
     const auto& observations = lm.GetObservations();
@@ -63,14 +65,12 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
     }
 
     // First simple check based on angle between all pairs of raysmap
-    const double rad_angle = min_angle_deg * M_PI / 180.0;
+    const auto global_pos = lm.GetGlobalPos();
     bool to_keep = false;
     for (size_t i = 0; i < poses.size() && !to_keep; ++i) {
       for (size_t j = i + 1; j < poses.size() && !to_keep; ++j) {
-        const auto ray1 =
-            (lm.GetGlobalPos() - poses[i].GetOrigin()).normalized();
-        const auto ray2 =
-            (lm.GetGlobalPos() - poses[j].GetOrigin()).normalized();
+        const auto ray1 = (global_pos - poses[i].GetOrigin()).normalized();
+        const auto ray2 = (global_pos - poses[j].GetOrigin()).normalized();
         const double angle = geometry::AngleBetweenVectors(ray1, ray2);
         if (angle > rad_angle) {
           to_keep = true;
@@ -85,7 +85,7 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
 
     // Compute inverse covariance for the point.
     auto [invcov, score] = geometry::covariance::ComputePointInverseCovariance(
-        cameras, poses, obs_vec, lm.GetGlobalPos());
+        cameras, poses, obs_vec, global_pos);
 
     // Basic numerical checks.
     if (!invcov.allFinite()) {
