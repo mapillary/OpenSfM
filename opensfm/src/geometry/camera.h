@@ -28,7 +28,8 @@ class Camera {
   };
 
   struct CompParameters {
-    size_t operator()(const Parameters& p1, const Parameters& p2) const {
+    constexpr size_t operator()(const Parameters& p1,
+                                const Parameters& p2) const {
       return static_cast<size_t>(p1) < static_cast<size_t>(p2);
     }
   };
