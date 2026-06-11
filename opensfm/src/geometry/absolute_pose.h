@@ -91,6 +91,7 @@ std::vector<Eigen::Matrix<double, 3, 4>> AbsolutePoseThreePoints(IT begin,
   e1 << 1, 0, 0;
   e2 << 0, 1, 0;
 
+  RTs.reserve(roots.size());
   for (const auto& root : roots) {
     const auto cos_theta_1 = root;
     const auto sin_theta_1 =
@@ -159,14 +160,16 @@ Eigen::Matrix<double, 3, 4> AbsolutePoseNPoints(IT begin, IT end) {
 
   constexpr double tolerance = 1e-7;
   constexpr int max_iterations = 100;
+  std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> current_points;
+  current_points.reserve(end - begin);
   for (int i = 0; i < max_iterations; ++i) {
-    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> current_points;
+    current_points.clear();
     for (IT it = begin; it != end; ++it) {
       const auto v = it->first;
       const Eigen::Matrix3d F = (v * v.transpose()) / (v.dot(v));
       const auto p = it->second;
       const auto q = F * (rotation * p + translation);
-      current_points.push_back(std::make_pair(q, p));
+      current_points.emplace_back(q, p);
     }
     rotation =
         RotationBetweenPoints(current_points.begin(), current_points.end());
