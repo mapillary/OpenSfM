@@ -18,18 +18,18 @@ struct LinearMotionError {
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Vec3<T> R0 = ShotRotationFunctor(shot0_rig_instance_index,
-                                     shot0_rig_camera_index)(p);
-    Vec3<T> t0 = ShotPositionFunctor(shot0_rig_instance_index,
-                                     shot0_rig_camera_index)(p);
-    Vec3<T> R1 = ShotRotationFunctor(shot1_rig_instance_index,
-                                     shot1_rig_camera_index)(p);
-    Vec3<T> t1 = ShotPositionFunctor(shot1_rig_instance_index,
-                                     shot1_rig_camera_index)(p);
-    Vec3<T> R2 = ShotRotationFunctor(shot2_rig_instance_index,
-                                     shot2_rig_camera_index)(p);
-    Vec3<T> t2 = ShotPositionFunctor(shot2_rig_instance_index,
-                                     shot2_rig_camera_index)(p);
+    const Vec3<T> R0 = ShotRotationFunctor(shot0_rig_instance_index,
+                                           shot0_rig_camera_index)(p);
+    const Vec3<T> t0 = ShotPositionFunctor(shot0_rig_instance_index,
+                                           shot0_rig_camera_index)(p);
+    const Vec3<T> R1 = ShotRotationFunctor(shot1_rig_instance_index,
+                                           shot1_rig_camera_index)(p);
+    const Vec3<T> t1 = ShotPositionFunctor(shot1_rig_instance_index,
+                                           shot1_rig_camera_index)(p);
+    const Vec3<T> R2 = ShotRotationFunctor(shot2_rig_instance_index,
+                                           shot2_rig_camera_index)(p);
+    const Vec3<T> t2 = ShotPositionFunctor(shot2_rig_instance_index,
+                                           shot2_rig_camera_index)(p);
 
     // Residual have the general form :
     //  op( alpha . op(2, -0), op(0, -1))
