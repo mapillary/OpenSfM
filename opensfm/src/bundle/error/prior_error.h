@@ -57,7 +57,7 @@ struct DataPriorError {
     const auto parameter_size = data_->GetSigmaData().rows();
 
     Eigen::Map<VecX<T>> residuals_mapped(r, residual_size);
-    VecX<T> parameters_values =
+    const VecX<T> parameters_values =
         Eigen::Map<const VecX<T>>(p[parameter_index], parameter_size);
 
     VecX<T> prior_values = data_->GetPriorData().template cast<T>();
