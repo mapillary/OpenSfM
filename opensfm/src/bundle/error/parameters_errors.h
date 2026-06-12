@@ -10,7 +10,7 @@ struct StdDeviationConstraint {
   template <typename T>
   bool operator()(const T* const std_deviation, T* residuals) const {
     constexpr double kEps = 1e-20;
-    T std_sq = std_deviation[0] * std_deviation[0] + T(kEps);
+    const T std_sq = std_deviation[0] * std_deviation[0] + T(kEps);
     residuals[0] = ceres::log(T(1.0) / ceres::sqrt(T(2.0 * M_PI) * std_sq));
     return true;
   }
@@ -22,11 +22,11 @@ struct ParameterBarrier {
 
   template <typename T>
   bool operator()(const T* const parameters, T* residuals) const {
-    T eps = T(1e-10);
-    T value = parameters[index_];
-    T zero = 2.0 * ceres::log((T(upper_bound_) - T(lower_bound_)) * 0.5);
-    T penalty = ceres::log(value - T(lower_bound_) + eps) +
-                ceres::log(T(upper_bound_) - value + eps);
+    const T eps = T(1e-10);
+    const T value = parameters[index_];
+    const T zero = 2.0 * ceres::log((T(upper_bound_) - T(lower_bound_)) * 0.5);
+    const T penalty = ceres::log(value - T(lower_bound_) + eps) +
+                      ceres::log(T(upper_bound_) - value + eps);
     residuals[0] = penalty + zero;
     return true;
   }
