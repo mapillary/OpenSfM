@@ -194,7 +194,7 @@ void BundleAdjuster::AddReconstruction(const std::string& id, bool constant) {
   r.id = id;
   r.constant = constant;
   r.shared = true;
-  reconstructions_[id] = r;
+  reconstructions_[id] = std::move(r);
 }
 
 void BundleAdjuster::AddReconstructionInstance(
@@ -815,7 +815,7 @@ void BundleAdjuster::Run() {
 
   // Add relative motion errors
   for (auto& rp : relative_motions_) {
-    double robust_threshold =
+    const double robust_threshold =
         relative_motion_loss_threshold_ * rp.robust_multiplier;
     ceres::LossFunction* relative_motion_loss =
         CreateLossFunction(relative_motion_loss_name_, robust_threshold);
