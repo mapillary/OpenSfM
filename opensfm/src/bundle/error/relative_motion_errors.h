@@ -20,13 +20,13 @@ struct RelativeMotionError {
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
     // Get rotation and translation values.
-    Vec3<T> Ri =
+    const Vec3<T> Ri =
         ShotRotationFunctor(shot_i_rig_instance_index_, FUNCTOR_NOT_SET)(p);
-    Vec3<T> ti =
+    const Vec3<T> ti =
         ShotPositionFunctor(shot_i_rig_instance_index_, FUNCTOR_NOT_SET)(p);
-    Vec3<T> Rj =
+    const Vec3<T> Rj =
         ShotRotationFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
-    Vec3<T> tj =
+    const Vec3<T> tj =
         ShotPositionFunctor(shot_j_rig_instance_index_, FUNCTOR_NOT_SET)(p);
     Eigen::Map<VecX<T> > residual(r, Similarity::Parameter::NUM_PARAMS);
 
@@ -72,10 +72,10 @@ struct RelativeRotationError {
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
     // Get rotation and translation values.
-    Vec3<T> Ri = ShotRotationFunctor(shot_i_rig_instance_index_,
-                                     shot_i_rig_camera_index_)(p);
-    Vec3<T> Rj = ShotRotationFunctor(shot_j_rig_instance_index_,
-                                     shot_j_rig_camera_index_)(p);
+    const Vec3<T> Ri = ShotRotationFunctor(shot_i_rig_instance_index_,
+                                           shot_i_rig_camera_index_)(p);
+    const Vec3<T> Rj = ShotRotationFunctor(shot_j_rig_instance_index_,
+                                           shot_j_rig_camera_index_)(p);
     Eigen::Map<Eigen::Matrix<T, 3, 1> > residual(r);
 
     // Compute rotation residual: log( Rij Ri Rj^t ) -> log( Rij Ri^t Rj)
@@ -100,10 +100,10 @@ struct CommonPositionError {
 
   template <typename T>
   bool operator()(T const* const* p, T* r) const {
-    Vec3<T> t1 = ShotPositionFunctor(shot_i_rig_instance_index_,
-                                     shot_i_rig_camera_index_)(p);
-    Vec3<T> t2 = ShotPositionFunctor(shot_j_rig_instance_index_,
-                                     shot_j_rig_camera_index_)(p);
+    const Vec3<T> t1 = ShotPositionFunctor(shot_i_rig_instance_index_,
+                                           shot_i_rig_camera_index_)(p);
+    const Vec3<T> t2 = ShotPositionFunctor(shot_j_rig_instance_index_,
+                                           shot_j_rig_camera_index_)(p);
     Eigen::Map<Eigen::Matrix<T, 3, 1> > residual(r);
 
     // error is : shot_origin_1 - shot_origin_2
