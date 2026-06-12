@@ -35,19 +35,19 @@ static vl_size run_non_maxima_suppression(VlCovDet* covdet,
                                           vl_size num_features,
                                           double non_extrema_suppression) {
   vl_index i, j;
-  double tol = non_extrema_suppression;
+  const double tol = non_extrema_suppression;
   VlCovDetFeature* features = (VlCovDetFeature*)vl_covdet_get_features(covdet);
   for (i = 0; i < (signed)num_features; ++i) {
-    double x = features[i].frame.x;
-    double y = features[i].frame.y;
-    double sigma = features[i].frame.a11;
-    double score = features[i].peakScore;
+    const double x = features[i].frame.x;
+    const double y = features[i].frame.y;
+    const double sigma = features[i].frame.a11;
+    const double score = features[i].peakScore;
 
     for (j = 0; j < (signed)num_features; ++j) {
-      double dx_ = features[j].frame.x - x;
-      double dy_ = features[j].frame.y - y;
-      double sigma_ = features[j].frame.a11;
-      double score_ = features[j].peakScore;
+      const double dx_ = features[j].frame.x - x;
+      const double dy_ = features[j].frame.y - y;
+      const double sigma_ = features[j].frame.a11;
+      const double score_ = features[j].peakScore;
       if (score_ == 0) {
         continue;
       }
@@ -103,11 +103,11 @@ static std::vector<VlCovDetFeature> vlfeat_covdet_extract_orientations(
         vl_covdet_extract_orientations_for_frame(covdet, &numOrientations,
                                                  feature.frame);
 
+    const double A[2 * 2] = {feature.frame.a11, feature.frame.a21,
+                             feature.frame.a12, feature.frame.a22};
     for (j = 0; j < (signed)numOrientations; ++j) {
-      double A[2 * 2] = {feature.frame.a11, feature.frame.a21,
-                         feature.frame.a12, feature.frame.a22};
-      double r1 = cos(orientations[j].angle);
-      double r2 = sin(orientations[j].angle);
+      const double r1 = cos(orientations[j].angle);
+      const double r2 = sin(orientations[j].angle);
 
       vecFeatures.emplace_back(features[i]);
       VlCovDetFeature& oriented = vecFeatures.back();
@@ -131,7 +131,7 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
   std::vector<float> points;
   std::vector<float> desc;
   vl_size numFeatures;
-  vl_size dimension = 128;
+  constexpr vl_size dimension = 128;
 
   {
     py::gil_scoped_release release;
@@ -159,11 +159,11 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     // get feature descriptors
     VlSiftFilt* sift = vl_sift_new(16, 16, 1, 3, 0);
     vl_index i;
-    vl_index patchResolution = 15;
-    double patchRelativeExtent = 7.5;
-    double patchRelativeSmoothing = 1;
-    vl_size patchSide = 2 * patchResolution + 1;
-    double patchStep = (double)patchRelativeExtent / patchResolution;
+    constexpr vl_index patchResolution = 15;
+    constexpr double patchRelativeExtent = 7.5;
+    constexpr double patchRelativeSmoothing = 1;
+    constexpr vl_size patchSide = 2 * patchResolution + 1;
+    constexpr double patchStep = (double)patchRelativeExtent / patchResolution;
     points.resize(4 * numFeatures);
     desc.resize(dimension * numFeatures);
     std::vector<float> patch(patchSide * patchSide);
@@ -172,9 +172,9 @@ py::tuple hahog(foundation::pyarray_f image, float peak_threshold,
     vl_sift_set_magnif(sift, 3.0);
     for (i = 0; i < (signed)numFeatures; ++i) {
       const VlFrameOrientedEllipse& frame = vecFeatures.at(i).frame;
-      float det = frame.a11 * frame.a22 - frame.a12 * frame.a21;
-      float size = std::sqrt(fabs(det));
-      float angle = atan2(frame.a21, frame.a11) * 180.0f / M_PI;
+      const float det = frame.a11 * frame.a22 - frame.a12 * frame.a21;
+      const float size = std::sqrt(fabs(det));
+      const float angle = atan2(frame.a21, frame.a11) * 180.0f / M_PI;
       points[4 * i + 0] = frame.x;
       points[4 * i + 1] = frame.y;
       points[4 * i + 2] = size;
