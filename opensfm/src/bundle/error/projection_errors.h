@@ -37,7 +37,7 @@ class ReprojectionError2D : public ReprojectionError {
   bool operator()(const T* const camera, const T* const rig_instance,
                   const T* const rig_camera, const T* const point,
                   T* residuals) const {
-    T scale_one = T(1.0);
+    const T scale_one = T(1.0);
     T camera_point[3];
     const T* const actual_rig_camera = use_rig_camera_ ? rig_camera : nullptr;
     WorldToCameraCoordinatesRig(&scale_one, rig_instance, actual_rig_camera,
@@ -226,7 +226,7 @@ class ReprojectionError3D : public ReprojectionError {
   bool operator()(const T* const, const T* const rig_instance,
                   const T* const rig_camera, const T* const point,
                   T* residuals) const {
-    T scale_one = T(1.0);
+    const T scale_one = T(1.0);
     Vec3<T> predicted;
     const T* const actual_rig_camera = use_rig_camera_ ? rig_camera : nullptr;
     WorldToCameraCoordinatesRig(&scale_one, rig_instance, actual_rig_camera,
