@@ -184,7 +184,8 @@ void DepthmapEstimator::SetMinPatchSD(float sd) {
 void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult* result) {
   AssignMatrices(result);
 
-  int hpz = (patch_size_ - 1) / 2;
+  const int hpz = (patch_size_ - 1) / 2;
+  const cv::Vec3f normal(0, 0, -1);
   for (int i = hpz; i < result->depth.rows - hpz; ++i) {
     for (int j = hpz; j < result->depth.cols - hpz; ++j) {
       for (int d = 0; d < num_depth_planes_; ++d) {
@@ -195,7 +196,6 @@ void DepthmapEstimator::ComputeBruteForce(DepthmapEstimatorResult* result) {
           depth = 1 / (1 / min_depth_ + d * (1 / max_depth_ - 1 / min_depth_) /
                                             (num_depth_planes_ - 1));
         }
-        cv::Vec3f normal(0, 0, -1);
         cv::Vec3f plane = PlaneFromDepthAndNormal(j, i, Ks_[0], depth, normal);
         CheckPlaneCandidate(result, i, j, plane);
       }
@@ -274,11 +274,12 @@ void DepthmapEstimator::ComputeIgnoreMask(DepthmapEstimatorResult* result) {
 
 float DepthmapEstimator::PatchVariance(int i, int j) {
   float* patch = patch_variance_buffer_.data();
-  int hpz = (patch_size_ - 1) / 2;
+  const int hpz = (patch_size_ - 1) / 2;
+  const cv::Mat& image0 = images_[0];
   int counter = 0;
   for (int u = -hpz; u <= hpz; ++u) {
     for (int v = -hpz; v <= hpz; ++v) {
-      patch[counter++] = images_[0].at<unsigned char>(i + u, j + v);
+      patch[counter++] = image0.at<unsigned char>(i + u, j + v);
     }
   }
   return Variance(patch, patch_size_ * patch_size_);
@@ -425,35 +426,37 @@ void DepthmapEstimator::ComputePlaneScore(int i, int j, const cv::Vec3f& plane,
 float DepthmapEstimator::ComputePlaneImageScore(int i, int j,
                                                 const cv::Vec3f& plane,
                                                 int other) const {
-  cv::Matx33f H = PlaneInducedHomographyBaked(Kinvs_[0], Qs_[other], as_[other],
-                                              Ks_[other], plane);
-  int hpz = (patch_size_ - 1) / 2;
+  const cv::Matx33f H = PlaneInducedHomographyBaked(
+      Kinvs_[0], Qs_[other], as_[other], Ks_[other], plane);
+  const int hpz = (patch_size_ - 1) / 2;
 
-  float u = H(0, 0) * j + H(0, 1) * i + H(0, 2);
-  float v = H(1, 0) * j + H(1, 1) * i + H(1, 2);
-  float w = H(2, 0) * j + H(2, 1) * i + H(2, 2);
+  const float u = H(0, 0) * j + H(0, 1) * i + H(0, 2);
+  const float v = H(1, 0) * j + H(1, 1) * i + H(1, 2);
+  const float w = H(2, 0) * j + H(2, 1) * i + H(2, 2);
 
   if (w == 0.0) {
     return -1.0f;
   }
 
-  float dfdx_x = (H(0, 0) * w - H(2, 0) * u) / (w * w);
-  float dfdx_y = (H(1, 0) * w - H(2, 0) * v) / (w * w);
-  float dfdy_x = (H(0, 1) * w - H(2, 1) * u) / (w * w);
-  float dfdy_y = (H(1, 1) * w - H(2, 1) * v) / (w * w);
+  const float dfdx_x = (H(0, 0) * w - H(2, 0) * u) / (w * w);
+  const float dfdx_y = (H(1, 0) * w - H(2, 0) * v) / (w * w);
+  const float dfdy_x = (H(0, 1) * w - H(2, 1) * u) / (w * w);
+  const float dfdy_y = (H(1, 1) * w - H(2, 1) * v) / (w * w);
 
-  float Hx0 = u / w;
-  float Hy0 = v / w;
+  const float Hx0 = u / w;
+  const float Hy0 = v / w;
 
-  float im1_center = images_[0].at<unsigned char>(i, j);
+  const cv::Mat& image0 = images_[0];
+  const cv::Mat& image_other = images_[other];
+  const float im1_center = image0.at<unsigned char>(i, j);
 
   NCCEstimator ncc;
   for (int dy = -hpz; dy <= hpz; ++dy) {
     for (int dx = -hpz; dx <= hpz; ++dx) {
-      float im1 = images_[0].at<unsigned char>(i + dy, j + dx);
+      float im1 = image0.at<unsigned char>(i + dy, j + dx);
       float x2 = Hx0 + dfdx_x * dx + dfdy_x * dy;
       float y2 = Hy0 + dfdx_y * dx + dfdy_y * dy;
-      float im2 = LinearInterpolation<unsigned char>(images_[other], y2, x2);
+      float im2 = LinearInterpolation<unsigned char>(image_other, y2, x2);
       float weight = BilateralWeight(im1 - im1_center, dx, dy);
       ncc.Push(im1, im2, weight);
     }
@@ -563,7 +566,7 @@ void DepthmapPruner::Prune(std::vector<float>* merged_points,
                            std::vector<float>* merged_normals,
                            std::vector<unsigned char>* merged_colors,
                            std::vector<unsigned char>* merged_labels) {
-  cv::Matx33f Rinv = Rs_[0].t();
+  const cv::Matx33f Rinv = Rs_[0].t();
   for (int i = 0; i < depths_[0].rows; ++i) {
     for (int j = 0; j < depths_[0].cols; ++j) {
       float depth = depths_[0].at<float>(i, j);
