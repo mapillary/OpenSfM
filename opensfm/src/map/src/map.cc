@@ -173,13 +173,13 @@ Shot& Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const RigCameraId& rig_camera_id,
                       const RigInstanceId& instance_id,
                       const geometry::Pose& pose) {
-  auto it_exist = shots_.find(shot_id);
+  const auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {
     const auto& camera = GetCamera(camera_id);
     auto& rig_instance = GetRigInstance(instance_id);
     auto& rig_camera = GetRigCamera(rig_camera_id);
-    auto it =
+    const auto it =
         shots_.emplace(std::piecewise_construct, std::forward_as_tuple(shot_id),
                        std::forward_as_tuple(shot_id, &camera, &rig_instance,
                                              &rig_camera, pose));
@@ -191,13 +191,13 @@ Shot& Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
 Shot& Map::CreateShot(const ShotId& shot_id, const CameraId& camera_id,
                       const RigCameraId& rig_camera_id,
                       const RigInstanceId& instance_id) {
-  auto it_exist = shots_.find(shot_id);
+  const auto it_exist = shots_.find(shot_id);
   if (it_exist == shots_.end())  // create
   {
     const auto& camera = GetCamera(camera_id);
     auto& rig_instance = GetRigInstance(instance_id);
     auto& rig_camera = GetRigCamera(rig_camera_id);
-    auto it = shots_.emplace(
+    const auto it = shots_.emplace(
         std::piecewise_construct, std::forward_as_tuple(shot_id),
         std::forward_as_tuple(shot_id, &camera, &rig_instance, &rig_camera));
     return it.first->second;
@@ -238,12 +238,12 @@ Shot& Map::CreatePanoShot(const ShotId& shot_id, const CameraId& camera_id,
                           const RigCameraId& rig_camera_id,
                           const RigInstanceId& instance_id,
                           const geometry::Pose& pose) {
-  auto it_exist = pano_shots_.find(shot_id);
+  const auto it_exist = pano_shots_.find(shot_id);
   if (it_exist == pano_shots_.end()) {
     const auto& camera = GetCamera(camera_id);
     auto& rig_instance = GetRigInstance(instance_id);
     auto& rig_camera = GetRigCamera(rig_camera_id);
-    auto it = pano_shots_.emplace(
+    const auto it = pano_shots_.emplace(
         std::piecewise_construct, std::forward_as_tuple(shot_id),
         std::forward_as_tuple(shot_id, &camera, &rig_instance, &rig_camera,
                               pose));
@@ -281,11 +281,11 @@ void Map::RemovePanoShot(const ShotId& shot_id) {
  */
 Landmark& Map::CreateLandmark(const LandmarkId& lm_id,
                               const Vec3d& global_pos) {
-  auto it_exist = landmarks_.find(lm_id);
+  const auto it_exist = landmarks_.find(lm_id);
   if (it_exist == landmarks_.end()) {
-    auto it = landmarks_.emplace(std::piecewise_construct,
-                                 std::forward_as_tuple(lm_id),
-                                 std::forward_as_tuple(lm_id, global_pos));
+    const auto it = landmarks_.emplace(
+        std::piecewise_construct, std::forward_as_tuple(lm_id),
+        std::forward_as_tuple(lm_id, global_pos));
     return it.first->second;
   } else {
     throw std::runtime_error("Landmark " + lm_id + " already exists.");
@@ -320,13 +320,13 @@ void Map::RemoveLandmark(const LandmarkId& lm_id) {
 }
 
 geometry::Camera& Map::CreateCamera(const geometry::Camera& cam) {
-  auto it = cameras_.emplace(cam.id, cam);
+  const auto it = cameras_.emplace(cam.id, cam);
   bias_.emplace(cam.id, geometry::Similarity());
   return it.first->second;
 }
 
 geometry::Camera& Map::GetCamera(const CameraId& cam_id) {
-  auto it = cameras_.find(cam_id);
+  const auto it = cameras_.find(cam_id);
   if (it == cameras_.end()) {
     throw std::runtime_error("Accessing invalid CameraId " + cam_id);
   }
@@ -334,7 +334,7 @@ geometry::Camera& Map::GetCamera(const CameraId& cam_id) {
 }
 
 const geometry::Camera& Map::GetCamera(const CameraId& cam_id) const {
-  auto it = cameras_.find(cam_id);
+  const auto it = cameras_.find(cam_id);
   if (it == cameras_.end()) {
     throw std::runtime_error("Accessing invalid CameraId " + cam_id);
   }
@@ -379,7 +379,7 @@ void Map::UpdateShotWithRig(const Shot& other_shot, bool is_panoshot) {
 }
 
 Shot& Map::UpdateShot(const Shot& other_shot) {
-  auto it_exist = shots_.find(other_shot.id_);
+  const auto it_exist = shots_.find(other_shot.id_);
   if (it_exist == shots_.end()) {
     throw std::runtime_error("Shot " + other_shot.id_ + " does not exists.");
   } else {
@@ -391,7 +391,7 @@ Shot& Map::UpdateShot(const Shot& other_shot) {
 }
 
 Shot& Map::UpdatePanoShot(const Shot& other_shot) {
-  auto it_exist = pano_shots_.find(other_shot.id_);
+  const auto it_exist = pano_shots_.find(other_shot.id_);
   if (it_exist == pano_shots_.end()) {
     throw std::runtime_error("Pano shot " + other_shot.id_ +
                              " does not exists.");
@@ -405,30 +405,30 @@ Shot& Map::UpdatePanoShot(const Shot& other_shot) {
 }
 
 RigCamera& Map::CreateRigCamera(const map::RigCamera& rig_camera) {
-  auto it_exist = rig_cameras_.find(rig_camera.id);
+  const auto it_exist = rig_cameras_.find(rig_camera.id);
   if (it_exist != rig_cameras_.end()) {
     throw std::runtime_error("RigCamera " + rig_camera.id + " already exists.");
   }
 
-  auto it = rig_cameras_.emplace(rig_camera.id, rig_camera);
+  const auto it = rig_cameras_.emplace(rig_camera.id, rig_camera);
   return it.first->second;
 }
 
 RigInstance& Map::CreateRigInstance(const map::RigInstanceId& instance_id) {
-  auto it_exist = rig_instances_.find(instance_id);
+  const auto it_exist = rig_instances_.find(instance_id);
   if (it_exist != rig_instances_.end()) {
     throw std::runtime_error("RigInstance " + instance_id + " already exists.");
   }
 
   // Create instance and add its shots
-  auto it = rig_instances_.emplace(std::piecewise_construct,
-                                   std::forward_as_tuple(instance_id),
-                                   std::forward_as_tuple(instance_id));
+  const auto it = rig_instances_.emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(instance_id),
+                                         std::forward_as_tuple(instance_id));
   return it.first->second;
 }
 
 void Map::RemoveRigInstance(const map::RigInstanceId& instance_id) {
-  auto it_exist = rig_instances_.find(instance_id);
+  const auto it_exist = rig_instances_.find(instance_id);
   if (it_exist == rig_instances_.end()) {
     throw std::runtime_error("Rig instance does not exists.");
   } else {
@@ -437,7 +437,7 @@ void Map::RemoveRigInstance(const map::RigInstanceId& instance_id) {
 }
 
 RigInstance& Map::UpdateRigInstance(const RigInstance& other_rig_instance) {
-  auto it_exist = rig_instances_.find(other_rig_instance.id);
+  const auto it_exist = rig_instances_.find(other_rig_instance.id);
   if (it_exist == rig_instances_.end()) {
     throw std::runtime_error("Rig instance does not exists.");
   } else {
@@ -493,7 +493,7 @@ geometry::Similarity& Map::GetBias(const CameraId& camera_id) {
 
 void Map::SetBias(const CameraId& camera_id,
                   const geometry::Similarity& transform) {
-  auto it = bias_.find(camera_id);
+  const auto it = bias_.find(camera_id);
   if (it == bias_.end()) {
     throw std::runtime_error("Accessing invalid CameraID " + camera_id);
   }
