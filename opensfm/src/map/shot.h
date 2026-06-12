@@ -108,7 +108,7 @@ class Shot {
     return &landmark_observations_.at(lm);
   }
   Landmark* GetObservationLandmark(const FeatureId id) {
-    auto find_landmark = landmark_id_.find(id);
+    const auto find_landmark = landmark_id_.find(id);
     if (find_landmark == landmark_id_.end()) {
       return nullptr;
     } else {
