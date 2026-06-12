@@ -27,7 +27,7 @@ static void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1,
                             cv::Mat* matches) {
   // Index features on the second image.
   std::multimap<int, int> index2;
-  const int* pw2 = &w2.at<int>(0, 0);
+  const int* const pw2 = &w2.at<int>(0, 0);
   for (unsigned int i = 0; i < w2.rows * w2.cols; ++i) {
     index2.insert(std::pair<int, int>(pw2[i], i));
   }
@@ -42,13 +42,13 @@ static void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1,
   for (unsigned int i = 0; i < w1.rows; ++i) {
     int checks = 0;
     for (unsigned int j = 0; j < w1.cols; ++j) {
-      int word = w1.at<int>(i, j);
+      const int word = w1.at<int>(i, j);
       auto range = index2.equal_range(word);
       for (auto it = range.first; it != range.second; ++it) {
-        int match = it->second;
-        const float* pa = f1.ptr<float>(i);
-        const float* pb = f2.ptr<float>(match);
-        float distance = DistanceL2(pa, pb, f1.cols);
+        const int match = it->second;
+        const float* const pa = f1.ptr<float>(i);
+        const float* const pb = f2.ptr<float>(match);
+        const float distance = DistanceL2(pa, pb, f1.cols);
         if (distance < best_distance[i]) {
           second_best_distance[i] = best_distance[i];
           best_distance[i] = distance;
@@ -127,6 +127,8 @@ std::pair<std::vector<double>, std::vector<std::string>> compute_vlad_distances(
 
   std::vector<double> distances;
   std::vector<std::string> others;
+  distances.reserve(other_images.size());
+  others.reserve(other_images.size());
   const auto& reference = vlad_descriptors.at(image);
   for (const auto& candidate : other_images) {
     if (candidate == image) {
