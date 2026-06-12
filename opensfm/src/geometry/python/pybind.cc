@@ -142,7 +142,6 @@ PYBIND11_MODULE(pygeometry, m) {
           [](const geometry::Camera& p) {
             const auto values_map = p.GetParametersMap();
 
-            std::vector<double> disto_values;
             const auto disto_types = {geometry::Camera::Parameters::K1,
                                       geometry::Camera::Parameters::K2,
                                       geometry::Camera::Parameters::K3,
@@ -155,8 +154,10 @@ PYBIND11_MODULE(pygeometry, m) {
                                       geometry::Camera::Parameters::S1,
                                       geometry::Camera::Parameters::S2,
                                       geometry::Camera::Parameters::S3};
+            std::vector<double> disto_values;
+            disto_values.reserve(disto_types.size());
             for (const auto type : disto_types) {
-              auto find_param = values_map.find(type);
+              const auto find_param = values_map.find(type);
               if (find_param != values_map.end()) {
                 disto_values.push_back(find_param->second);
               }
