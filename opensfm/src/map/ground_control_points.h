@@ -67,6 +67,7 @@ struct GroundControlPoint {
   void SetObservations(
       const AlignedVector<GroundControlPointObservation>& obs) {
     observations_.clear();
+    observations_.reserve(obs.size());
     std::copy(obs.cbegin(), obs.cend(), std::back_inserter(observations_));
   }
 
