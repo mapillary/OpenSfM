@@ -86,7 +86,7 @@ void WorldToCameraCoordinatesRig(const T* scale, const T* const rig_instance,
 
 template <typename T>
 T DiffBetweenAngles(const T& a, const T& b) {
-  T d = a - b;
+  const T d = a - b;
   if (d > T(M_PI)) {
     return d - T(2 * M_PI);
   } else if (d < -T(M_PI)) {
