@@ -16,6 +16,7 @@ class Model {
   static std::vector<Error> EvaluateModel(const MODEL& model, IT begin,
                                           IT end) {
     std::vector<Error> errors;
+    errors.reserve(std::distance(begin, end));
     std::for_each(begin, end, [&errors, &model](const typename T::Data& d) {
       errors.push_back(T::Evaluate(model, d));
     });
