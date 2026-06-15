@@ -35,7 +35,7 @@ class AbsolutePose : public Model<AbsolutePose, 1, 4> {
     const auto rotation = model.block<3, 3>(0, 0);
     const auto translation = model.block<3, 1>(0, 3);
     const auto bearing = d.first.normalized();
-    const auto point = d.second;
+    const auto& point = d.second;
     const auto projected = (rotation * point + translation).normalized();
 
     Error e;
