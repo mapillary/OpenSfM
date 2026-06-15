@@ -15,6 +15,7 @@ class RandomSamplesGenerator {
     const auto random_sample_indices =
         GenerateOneSample(size, samples.size() - 1);
     std::vector<typename MODEL::Data> random_samples;
+    random_samples.reserve(random_sample_indices.size());
     std::for_each(random_sample_indices.begin(), random_sample_indices.end(),
                   [&random_samples, &samples](const int idx) {
                     random_samples.push_back(samples[idx]);
