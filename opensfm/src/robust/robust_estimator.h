@@ -43,6 +43,7 @@ ScoreInfo<typename MODEL::Type> Estimate(
 
   ScoreInfo<typename MODEL::Type> best_score;
   bool should_stop = false;
+  std::vector<typename MODEL::Data> inliers_samples;  // Used to gather inliers
   for (int i = 0; i < params.iterations && !should_stop; ++i) {
     // Generate and compute some models
     const auto random_samples = random_generator.GetRandomSamples<MODEL>(
@@ -72,7 +73,7 @@ ScoreInfo<typename MODEL::Type> Estimate(
       if (best_found && params.use_local_optimization) {
         for (int k = 0; k < params.local_optimization_iterations; ++k) {
           // Gather inliers and use them for getting random sample
-          std::vector<typename MODEL::Data> inliers_samples;
+          inliers_samples.clear();
           inliers_samples.reserve(best_score.inliers_indices.size());
           for (const auto idx : best_score.inliers_indices) {
             inliers_samples.push_back(samples[idx]);
