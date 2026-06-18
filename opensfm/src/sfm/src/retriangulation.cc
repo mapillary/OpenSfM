@@ -15,6 +15,7 @@ void RealignMaps(const map::Map& map_from, map::Map& map_to,
 
   // first, record transforms that remap points of 'to'
   std::unordered_map<map::ShotId, geometry::Similarity> from_to_transforms;
+  from_to_transforms.reserve(map_to.GetShots().size());
   for (const auto& [shot_to_id, shot_to_data] : map_to.GetShots()) {
     if (!map_from.HasShot(shot_to_id)) {
       continue;
@@ -66,7 +67,7 @@ void RealignMaps(const map::Map& map_from, map::Map& map_to,
       if (from_to_transforms.find(reference_shot) == from_to_transforms.end()) {
         continue;
       }
-      const auto transform = from_to_transforms.at(reference_shot);
+      const auto& transform = from_to_transforms.at(reference_shot);
       lm.SetGlobalPos(transform.Transform(lm.GetGlobalPos()));
     }
   }
