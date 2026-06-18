@@ -8,10 +8,12 @@ std::unordered_map<map::ShotId, int> CountTracksPerShot(
     const map::TracksManager& manager, const std::vector<map::ShotId>& shots,
     const std::vector<map::TrackId>& tracks) {
   std::unordered_set<map::TrackId> tracks_set;
+  tracks_set.reserve(tracks.size());
   for (const auto& track : tracks) {
     tracks_set.insert(track);
   }
   std::unordered_map<map::ShotId, int> counts;
+  counts.reserve(shots.size());
   for (const auto& shot : shots) {
     const auto& observations = manager.GetShotObservations(shot);
 
@@ -29,7 +31,7 @@ std::unordered_map<map::ShotId, int> CountTracksPerShot(
 
 void AddConnections(map::TracksManager& manager, const map::ShotId& shot_id,
                     const std::vector<map::TrackId>& connections) {
-  map::Observation observation;
+  const map::Observation observation;
   for (const auto& connection : connections) {
     manager.AddObservation(shot_id, connection, observation);
   }
