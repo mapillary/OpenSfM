@@ -7,7 +7,7 @@ class Similarity : public Model<Similarity, 1, 1> {
  public:
   using Type = Eigen::Matrix4d;
   using Data = std::pair<Eigen::Vector3d, Eigen::Vector3d>;
-  static const int MINIMAL_SAMPLES = 3;
+  static constexpr int MINIMAL_SAMPLES = 3;
 
   template <class IT>
   static int Estimate(IT begin, IT end, Type* models) {
