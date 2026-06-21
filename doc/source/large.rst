@@ -117,4 +117,6 @@ Once every submodel has a reconstruction, they can be aligned by using the comma
 
     bin/opensfm align_submodels path/to/dataset
 
-This command will load all the reconstructions, look for cameras and points shared between the reconstructions, and move each reconstruction rigidly in order best align the corresponding cameras and points.
+This command will load all the reconstructions, look for cameras and points shared between the reconstructions, and move each reconstruction rigidly in order best align the corresponding cameras and points. The results of this realignment get stored in a new file named ``reconstruction.aligned.json``. The final steps of the pipeline then need to be told to look at this new file::
+
+    bin/opensfm undistort path/to/dataset/submodels/submodel_XXXX --reconstruction reconstruction.aligned.json
