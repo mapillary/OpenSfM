@@ -43,8 +43,8 @@ static void MatchUsingWords(const cv::Mat& f1, const cv::Mat& w1,
     int checks = 0;
     for (unsigned int j = 0; j < w1.cols; ++j) {
       const int word = w1.at<int>(i, j);
-      auto range = index2.equal_range(word);
-      for (auto it = range.first; it != range.second; ++it) {
+      const auto [start, end] = index2.equal_range(word);
+      for (auto it = start; it != end; ++it) {
         const int match = it->second;
         const float* const pa = f1.ptr<float>(i);
         const float* const pb = f2.ptr<float>(match);
