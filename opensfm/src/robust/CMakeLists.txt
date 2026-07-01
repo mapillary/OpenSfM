@@ -17,9 +17,10 @@ set(ROBUST_FILES
 )
 add_library(robust ${ROBUST_FILES})
 target_link_libraries(robust
+  PUBLIC
+    geometry
   PRIVATE
     foundation
-    geometry
 )
 target_include_directories(robust PUBLIC ${CMAKE_SOURCE_DIR})
 
