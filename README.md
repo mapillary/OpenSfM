@@ -1,4 +1,4 @@
-# NOTE: This repository is no longer under active development
+# NOTE: This repository is no longer under active development. Please use the new [OpenSfM](https://github.com/OpenSfM/OpenSfM) repository instead.
 
 OpenSfM
 =======
