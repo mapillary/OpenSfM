@@ -1,7 +1,6 @@
 #include <features/akaze_bind.h>
 #include <features/hahog.h>
 #include <features/matching.h>
-#include <foundation/python_types.h>
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
