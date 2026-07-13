@@ -1,8 +1,10 @@
 # pyre-strict
 import logging
 from collections import defaultdict
+from typing import cast, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 from opensfm.dataset import DataSet
 from opensfm.large import tools
 from opensfm.large.metadataset import MetaDataSet
@@ -96,8 +98,9 @@ def _cluster_images(meta_data: MetaDataSet, cluster_size: float) -> None:
     K = float(images.shape[0]) / cluster_size
     K = int(np.ceil(K))
 
-    # pyre-fixme[23]: Unable to unpack single value, 2 were expected.
-    labels, centers = tools.kmeans(positions, K)[1:]
+    _, labels, centers = cast(
+        Tuple[NDArray, NDArray, NDArray], tools.kmeans(positions, K)
+    )
 
     images = images.ravel()
     labels = labels.ravel()
