@@ -1,17 +1,23 @@
 # pyre-strict
+from __future__ import annotations
+
 import gzip
 import json
 import logging
 import os
 import pickle
 from io import BytesIO
-from typing import Any, BinaryIO, Dict, List, Optional, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
 from opensfm import config, features, geo, io, masking, pygeometry, pymap, rig, types
 from opensfm.dataset_base import DataSetBase
 from PIL.PngImagePlugin import PngImageFile
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import ModuleType
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -348,11 +354,11 @@ class DataSet(DataSetBase):
         # than the numpy ones we allow.
         class MatchingUnpickler(pickle.Unpickler):
             # Handle both numpy <2.0 (np.core) and numpy >=2.0 (np._core)
-            _multiarray = (
+            _multiarray: ModuleType = (
                 # pyrefly: ignore [missing-attribute]
                 np.core.multiarray if hasattr(np, "core") else np._core.multiarray
             )
-            modules_map = {
+            modules_map: dict[str, ModuleType] = {
                 "numpy.core.multiarray._reconstruct": _multiarray,
                 "numpy.core.multiarray.scalar": _multiarray,
                 "numpy._core.multiarray._reconstruct": _multiarray,
@@ -361,7 +367,9 @@ class DataSet(DataSetBase):
                 "numpy.dtype": np,
             }
 
-            def find_class(self, module, name):
+            def find_class(
+                self, module: str, name: str
+            ) -> type[object] | Callable[..., object]:
                 classname = f"{module}.{name}"
                 allowed_module = classname in self.modules_map
                 if not allowed_module:
