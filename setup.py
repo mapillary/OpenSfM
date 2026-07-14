@@ -6,8 +6,12 @@ import subprocess
 import sys
 
 import setuptools
-from sphinx.setup_command import BuildDoc
 from wheel.bdist_wheel import bdist_wheel
+
+try:
+    from sphinx.setup_command import BuildDoc
+except ImportError:
+    BuildDoc = None
 
 VERSION = (0, 5, 2)
 
@@ -39,6 +43,15 @@ def configure_c_extension():
         cmake_command += [
             "-DVCPKG_TARGET_TRIPLET=x64-windows",
             "-DCMAKE_TOOLCHAIN_FILE=../vcpkg/scripts/buildsystems/vcpkg.cmake",
+        ]
+    # When building inside a conda/micromamba environment, pass paths explicitly
+    conda_prefix = os.environ.get("CONDA_PREFIX")
+    if conda_prefix:
+        cmake_command += [
+            f"-DEigen3_DIR={conda_prefix}/share/eigen3/cmake",
+            f"-DOpenCV_DIR={conda_prefix}/lib/cmake/opencv4",
+            f"-DCeres_DIR={conda_prefix}/lib/cmake/Ceres",
+            f"-DCMAKE_PREFIX_PATH={conda_prefix}",
         ]
     subprocess.check_call(cmake_command, cwd="cmake_build")
 
@@ -95,7 +108,7 @@ setuptools.setup(
     },
     cmdclass={
         "bdist_wheel": platform_bdist_wheel,
-        "build_doc": BuildDoc,
+        **( {"build_doc": BuildDoc} if BuildDoc is not None else {} ),
     },
     command_options={
         "build_doc": {
