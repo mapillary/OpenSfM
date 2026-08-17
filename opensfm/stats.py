@@ -33,7 +33,7 @@ def _length_histogram(
         if not obs_count:
             obs_count = len(tracks_manager.get_track_observations(point.id))
         hist[obs_count] += 1
-    # pyrefly: ignore [bad-return, no-matching-overload]
+    # pyrefly: ignore [bad-return]
     return list(hist.keys()), list(hist.values())
 
 
@@ -610,7 +610,6 @@ def save_residual_histogram(
 
     with io_handler.open_wb(os.path.join(output_path, "residual_histogram.png")) as fwb:
         plt.savefig(
-            # pyre-fixme[8]: dict literal vs matplotlib RcParams stub mismatch — runtime ok.
             fwb,
             dpi=300,
             bbox_inches="tight",

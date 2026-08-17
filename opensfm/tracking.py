@@ -135,8 +135,7 @@ def create_tracks_manager(
                         depth_std_deviation,
                     )
                     obs.depth_prior = pymap.Depth(
-                        value=depth_value,  # pyre-ignore
-                        # pyrefly: ignore [bad-argument-type]
+                        value=depth_value,
                         std_deviation=std,
                         is_radial=depth_is_radial,
                     )

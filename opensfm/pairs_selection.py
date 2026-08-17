@@ -344,7 +344,6 @@ def compute_bow_affinity(
         data, preempted_candidates, histograms
     )
     logger.info("Computing BoW candidates with %d processes" % processes)
-    # pyrefly: ignore [bad-argument-type]
     return context.parallel_map(match_bow_unwrap_args, args, processes, batch_size)
 
 
@@ -426,7 +425,6 @@ def compute_vlad_affinity(
         data, preempted_candidates, histograms
     )
     logger.info("Computing VLAD candidates with %d processes" % processes)
-    # pyrefly: ignore [bad-argument-type]
     return context.parallel_map(match_vlad_unwrap_args, args, processes, batch_size)
 
 

@@ -178,9 +178,7 @@ class SyntheticDataSet(DataSet):
                         pair_matches.append(
                             np.array([observations[im1].id, observations[im2].id])
                         )
-                    # pyrefly: ignore [unsupported-operation]
                     image_matches[im2] = np.array(pair_matches)
-        # pyrefly: ignore [bad-return]
         return matches
 
     def load_tracks_manager(

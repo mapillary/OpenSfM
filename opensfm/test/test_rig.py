@@ -90,28 +90,24 @@ def test_compute_relative_pose() -> None:
 
     # First rig instance
     rec.create_shot(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         "shot1",
         "camera1",
         # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 0, 0]), np.array([-2, -2, 0])),
     )
     rec.create_shot(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         "shot2",
         "camera2",
         # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 0, 0]), np.array([-3, -3, 0])),
     )
     rec.create_shot(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         "shot3",
         "camera3",
         # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         pygeometry.Pose(np.array([0, 0, 0]), np.array([-1, -3, 0])),
     )
     rec.create_shot(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         "shot4",
         "camera4",
         # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike

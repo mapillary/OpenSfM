@@ -467,15 +467,12 @@ def export_matches(
             pair_matches = matches_per_pair.setdefault(pair_key, {})
             for match in image_matches:
                 if image1 < image2:
-                    # pyrefly: ignore [missing-attribute]
                     pair_matches.update({(match[0], match[1]): True})
                 else:
-                    # pyrefly: ignore [missing-attribute]
                     pair_matches.update({(match[1], match[0]): True})
 
     data.config["robust_matching_threshold"] = 8
     for pair, matches in matches_per_pair.items():
-        # pyrefly: ignore [not-iterable]
         matches_numpy = np.array([np.array([m[0], m[1]]) for m in matches])
         if len(matches_numpy) < 10:
             continue

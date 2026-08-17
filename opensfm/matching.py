@@ -691,7 +691,7 @@ def match_flann(
         config: config parameters
     """
     search_params = dict(checks=config["flann_checks"])
-    results, dists = index.knnSearch(f2, 2, params=search_params)  # pyre-ignore[16]
+    results, dists = index.knnSearch(f2, 2, params=search_params)
     squared_ratio = config["lowes_ratio"] ** 2  # Flann returns squared L2 distances
     good = dists[:, 0] < squared_ratio * dists[:, 1]
     return list(zip(results[good, 0], good.nonzero()[0]))

@@ -181,14 +181,10 @@ class SyntheticStreetScene(SyntheticScene):
 
     def combine(self, other_scene: "SyntheticStreetScene") -> "SyntheticStreetScene":
         combined_scene = SyntheticStreetScene(None)
-        # pyrefly: ignore [no-matching-overload]
         combined_scene.wall_points = np.concatenate(
-            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.wall_points, other_scene.wall_points)
         )
-        # pyrefly: ignore [no-matching-overload]
         combined_scene.floor_points = np.concatenate(
-            # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[ty...
             (self.floor_points, other_scene.floor_points)
         )
         combined_scene.cameras = self.cameras + other_scene.cameras
@@ -352,9 +348,7 @@ class SyntheticStreetScene(SyntheticScene):
         for j, (rig_camera_p, rig_camera_r) in enumerate(
             zip(relative_positions, relative_rotations)
         ):
-            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
-            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera.set_origin(rig_camera_p)
 
             rotations = []
@@ -380,9 +374,7 @@ class SyntheticStreetScene(SyntheticScene):
         for i, (rig_camera_p, rig_camera_r) in enumerate(
             zip(relative_positions, relative_rotations)
         ):
-            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera = pygeometry.Pose(rig_camera_r)
-            # pyre-fixme[6]: For 1st argument expected `ndarray` but got `List[float]`.
             pose_rig_camera.set_origin(rig_camera_p)
             rig_camera_id = f"RigCamera {rig_camera_id_shift + i}"
             rig_camera = pymap.RigCamera(pose_rig_camera, rig_camera_id)

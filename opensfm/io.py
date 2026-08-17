@@ -713,7 +713,6 @@ def camera_from_vector(
     elif projection_type == "brown":
         fx, fy, cx, cy, k1, k2, p1, p2, k3 = parameters
         camera = pygeometry.Camera.create_brown(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             fx,
             fy / fx,
             # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
@@ -727,7 +726,6 @@ def camera_from_vector(
     elif projection_type == "fisheye_opencv":
         fx, fy, cx, cy, k1, k2, k3, k4 = parameters
         camera = pygeometry.Camera.create_fisheye_opencv(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             fx,
             fy / fx,
             # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
@@ -738,7 +736,6 @@ def camera_from_vector(
     elif projection_type == "fisheye62":
         fx, fy, cx, cy, k1, k2, k3, k4, k5, k6, p1, p2 = parameters
         camera = pygeometry.Camera.create_fisheye62(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             fx,
             fy / fx,
             # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
@@ -759,7 +756,6 @@ def camera_from_vector(
     elif projection_type == "radial":
         fx, fy, cx, cy, k1, k2 = parameters
         camera = pygeometry.Camera.create_radial(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             fx,
             fy / fx,
             # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
@@ -770,7 +766,6 @@ def camera_from_vector(
     elif projection_type == "simple_radial":
         fx, fy, cx, cy, k1 = parameters
         camera = pygeometry.Camera.create_simple_radial(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             fx,
             fy / fx,
             # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.

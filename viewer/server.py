@@ -58,12 +58,9 @@ def get_image(shot_id) -> Response:
 def json_files(path) -> List[str]:
     """List all json files under a dir recursively."""
     paths = []
-    # pyrefly: ignore [bad-specialization]
     for root, _, files in os.walk(path):
         for file in files:
-            # pyrefly: ignore [not-iterable]
             if ".json" in file:
-                # pyrefly: ignore [no-matching-overload]
                 absolute = os.path.join(root, file)
                 relative = os.path.relpath(absolute, path)
                 paths.append(relative)

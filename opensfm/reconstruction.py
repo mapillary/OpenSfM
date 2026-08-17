@@ -586,7 +586,6 @@ def reconstruction_from_relative_pose(
 
     if im2 not in new_shots:
         new_shots |= add_shot(
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             data,
             reconstruction,
             rig_assignments,
@@ -1519,7 +1518,6 @@ def grow_reconstruction(
 
             logger.info(f"Adding {' and '.join(new_shots)} to the reconstruction")
             step: Dict[str, Union[List[int], List[str], int, List[int], Any]] = {
-                # pyrefly: ignore [no-matching-overload]
                 "images": list(new_shots),
                 "resection": resrep,
                 "memory_usage": current_memory_usage(),
@@ -1813,7 +1811,7 @@ def reconstruct_from_prior(
     # Start with the known poses
     triangulate_shot_features(tracks_manager, reconstruction, prior_images, data.config)
     paint_reconstruction(data, tracks_manager, reconstruction)
-    # pyrefly: ignore [no-matching-overload, unsupported-operation]
+    # pyrefly: ignore [unsupported-operation]
     report["not_reconstructed_images"] = list(remaining_images)
     return report, reconstruction
 
@@ -1834,7 +1832,7 @@ class Chronometer:
         lap = (key, dt, t)
         # pyrefly: ignore [bad-argument-type]
         self.laps.append(lap)
-        # pyrefly: ignore [bad-assignment, bad-typed-dict-key]
+        # pyrefly: ignore [bad-assignment]
         self.laps_dict[key] = lap
 
     def lap_time(self, key: str) -> float:

@@ -355,7 +355,6 @@ class DataSet(DataSetBase):
         class MatchingUnpickler(pickle.Unpickler):
             # Handle both numpy <2.0 (np.core) and numpy >=2.0 (np._core)
             _multiarray: ModuleType = (
-                # pyrefly: ignore [missing-attribute]
                 np.core.multiarray if hasattr(np, "core") else np._core.multiarray
             )
             modules_map: dict[str, ModuleType] = {

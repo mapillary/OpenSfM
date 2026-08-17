@@ -287,16 +287,13 @@ def bundle_with_fixed_images(
     for shot in reconstruction.shots.values():
         r = shot.pose.rotation
         t = shot.pose.translation
-        # pyrefly: ignore [missing-attribute]
         ba.add_shot(shot.id, shot.camera.id, r, t, shot.id in fixed_images)
 
     for point in reconstruction.points.values():
         ba.add_point(point.id, point.coordinates, False)
         ba.add_point_prior(
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             point.id,
             point.coordinates,
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             np.array([100.0, 100.0, 100.0]),
             False,
         )
@@ -340,7 +337,6 @@ def bundle_with_fixed_images(
         orec._get_camera_from_bundle(ba, camera)
 
     for shot in reconstruction.shots.values():
-        # pyrefly: ignore [missing-attribute]
         s = ba.get_shot(shot.id)
         shot.pose.rotation = [s.r[0], s.r[1], s.r[2]]
         shot.pose.translation = [s.t[0], s.t[1], s.t[2]]
@@ -544,7 +540,6 @@ def align_3d_annotations_to_reconstruction(
     except ValueError:
         logger.warning(f"Could not align reconstruction with {model_id}")
 
-    # pyrefly: ignore [unbound-name]
     return gcp_reprojections, {"s": s.tolist(), "A": A.tolist(), "b": b.tolist()}
 
 
