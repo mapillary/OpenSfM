@@ -27,7 +27,6 @@ def test_reconstruction_class_initialization() -> None:
     metadata.orientation.value = 1
     metadata.capture_time.value = 0.0
     metadata.gps_accuracy.value = 5.0
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     metadata.gps_position.value = np.array(
         [
             1.0815875281451939,
@@ -35,19 +34,16 @@ def test_reconstruction_class_initialization() -> None:
             1.2042133903991235,
         ]
     )
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     metadata.gravity_down.value = np.array([0.1, 0.9, 0.0])
     metadata.compass_angle.value = 270.0
     metadata.compass_accuracy.value = 15.0
     metadata.sequence_key.value = "a_sequence_key"
 
     # Instantiate shots
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose0 = pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 0.0]))
     shot0 = reconstruction.create_shot("0", camera.id, pose0)
     shot0.metadata = metadata
 
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose1 = pygeometry.Pose(np.array([0.0, 0.0, 0.0]), np.array([-1.0, 0.0, 0.0]))
     shot1 = reconstruction.create_shot("1", camera.id, pose1)
     shot1.metadata = metadata
@@ -137,17 +133,14 @@ def test_pose_setter() -> None:
 
     # set world to cam
     p1 = pygeometry.Pose()
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p1.set_from_world_to_cam(T_cw)
     _helper_pose_equal_to_T(p1, T_cw)
 
     p2 = pygeometry.Pose()
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p2.set_from_world_to_cam(R_cw, t_cw)
     _helper_pose_equal_to_T(p2, T_cw)
 
     p3 = pygeometry.Pose()
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p3.set_from_world_to_cam(r_cw, t_cw)
     _helper_pose_equal_to_T(p3, T_cw)
 
@@ -167,13 +160,11 @@ def test_pose_setter() -> None:
     # set rotation, translation
     p7 = pygeometry.Pose()
     p7.rotation = r_cw
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p7.translation = t_cw
     _helper_pose_equal_to_T(p7, T_cw)
 
     p8 = pygeometry.Pose()
     p8.set_rotation_matrix(R_cw)
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p8.translation = t_cw
     _helper_pose_equal_to_T(p7, T_cw)
 
@@ -185,17 +176,12 @@ def test_pose_transform() -> None:
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
     T_wc = np.linalg.inv(T_cw)
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     p = pygeometry.Pose(R_cw, t_cw)
     p_inv = pygeometry.Pose(T_wc[0:3, 0:3], T_wc[0:3, 3])
     # Test via transform and inverse transform
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     assert np.allclose(p_inv.transform_many(p.transform_many(pts)), pts)
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     assert np.allclose(p_inv.transform(p.transform(pt)), pt)
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     assert np.allclose(p.transform(p.transform_inverse(pt)), pt)
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     assert np.allclose(p.transform_many(p.transform_inverse_many(pts)), pts)
 
 
@@ -203,12 +189,10 @@ def test_pose_init() -> None:
     R_cw = special_ortho_group.rvs(3)
     t_cw = np.random.rand(3)
     T_cw = np.vstack((np.column_stack((R_cw, t_cw)), np.array([0, 0, 0, 1])))
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose = pygeometry.Pose(R_cw, t_cw)
     _helper_pose_equal_to_T(pose, T_cw)
 
     r_cw = cv2.Rodrigues(T_cw[0:3, 0:3])[0].flatten()
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     pose2 = pygeometry.Pose(r_cw, t_cw)
     _helper_pose_equal_to_T(pose2, T_cw)
     _heper_poses_equal(pose, pose2)
@@ -254,10 +238,8 @@ def test_pixel_to_normalized_conversion() -> None:
     width, height = 400, 150
     cam.width, cam.height = width, height
     px_coord = np.array([50, 300])
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     norm_coord_comp = cam.pixel_to_normalized_coordinates(px_coord)
     norm_coord_static = pygeometry.Camera.pixel_to_normalized_coordinates_common(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         px_coord,
         width,
         height,
@@ -267,10 +249,8 @@ def test_pixel_to_normalized_conversion() -> None:
     assert np.allclose(norm_coord_comp, norm_coord_gt)
     assert np.allclose(norm_coord_static, norm_coord_gt)
 
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     px_coord_comp1 = cam.normalized_to_pixel_coordinates(norm_coord_comp)
     px_coord_comp2 = pygeometry.Camera.normalized_to_pixel_coordinates_common(
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         norm_coord_comp,
         width,
         height,

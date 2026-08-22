@@ -257,7 +257,6 @@ def add_gcp_to_bundle(
                 )
                 continue
 
-        # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
         ba.add_point(point_id, coordinates, False)
 
         for observation in point.observations:
@@ -265,7 +264,6 @@ def add_gcp_to_bundle(
                 ba.add_point_projection_observation(
                     observation.shot_id,
                     point_id,
-                    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
                     observation.projection,
                     gcp_std,
                 )

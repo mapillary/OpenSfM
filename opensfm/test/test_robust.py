@@ -167,7 +167,6 @@ def test_outliers_line_LMedS() -> None:
 def test_outliers_similarity_ransac() -> None:
     rotation, translation, scale, x, samples = similarity_data()
 
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     similarity = pygeometry.Similarity(rotation, translation, scale)
     y = np.array([similarity.transform(p) for p in x])
 
@@ -179,7 +178,6 @@ def test_outliers_similarity_ransac() -> None:
     add_outliers(ratio_outliers, x, scale, outliers_max)
 
     params = pyrobust.RobustEstimatorParams()
-    # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
     result = pyrobust.ransac_similarity(x, y, 0.1, params, pyrobust.RansacType.RANSAC)
 
     inliers_count = (1 - ratio_outliers) * samples
@@ -330,9 +328,7 @@ def test_outliers_absolute_pose_ransac(
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
         result = pyrobust.ransac_absolute_pose(
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             bearings,
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             points,
             scale,
             params,
@@ -366,9 +362,7 @@ def test_outliers_absolute_pose_known_rotation_ransac(
         params = pyrobust.RobustEstimatorParams()
         params.iterations = 1000
         result = pyrobust.ransac_absolute_pose_known_rotation(
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             bearings,
-            # pyre-ignore[6]: Pyre doesn't recognize numpy.ndarray as numpy.typing.ArrayLike
             p_rotated,
             scale,
             params,
