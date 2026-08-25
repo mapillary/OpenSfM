@@ -1,4 +1,3 @@
-# pyre-strict
 import datetime
 import math
 import os

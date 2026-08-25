@@ -1,5 +1,3 @@
-# pyre-strict
-
 import datetime
 import logging
 from codecs import decode, encode

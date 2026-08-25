@@ -1,4 +1,3 @@
-# pyre-strict
 from collections import defaultdict
 from typing import Dict, List, Tuple
 from unittest.mock import MagicMock

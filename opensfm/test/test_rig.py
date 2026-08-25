@@ -1,4 +1,3 @@
-# pyre-strict
 """Test the rig module."""
 
 import numpy as np

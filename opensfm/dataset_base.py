@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 from abc import ABC, abstractmethod
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple

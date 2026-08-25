@@ -1,4 +1,3 @@
-# pyre-strict
 import numpy as np
 from opensfm import geo, pygeo
 

@@ -1,6 +1,5 @@
 # transformations.py
 
-# pyre-strict
 
 # Copyright (c) 2006-2013, Christoph Gohlke
 # Copyright (c) 2006-2013, The Regents of the University of California

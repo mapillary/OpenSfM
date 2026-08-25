@@ -1,6 +1,5 @@
 # Test utils for python
 
-# pyre-strict
 import numpy as np
 from opensfm import pygeo, pygeometry, pymap
 

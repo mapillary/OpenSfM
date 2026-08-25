@@ -1,4 +1,3 @@
-# pyre-strict
 import copy
 
 import numpy as np

@@ -1,4 +1,3 @@
-# pyre-strict
 from opensfm.dataset import DataSet
 from opensfm.large import metadataset, tools
 

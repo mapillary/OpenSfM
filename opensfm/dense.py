@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 

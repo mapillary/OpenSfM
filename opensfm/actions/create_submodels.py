@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 from collections import defaultdict
 from typing import cast, Tuple

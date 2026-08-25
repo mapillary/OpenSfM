@@ -1,4 +1,3 @@
-# pyre-strict
 import glob
 import os
 import os.path

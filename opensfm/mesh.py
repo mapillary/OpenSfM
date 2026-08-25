@@ -1,4 +1,3 @@
-# pyre-strict
 import itertools
 import logging
 from typing import List, Tuple

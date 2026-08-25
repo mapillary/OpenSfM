@@ -1,4 +1,3 @@
-# pyre-strict
 from collections.abc import Iterable
 
 from opensfm import pygeometry, pymap, pysfm, reconstruction, types

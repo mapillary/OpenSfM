@@ -1,4 +1,3 @@
-# pyre-strict
 """Basic types for building a reconstruction."""
 
 from typing import Any, Dict, Optional

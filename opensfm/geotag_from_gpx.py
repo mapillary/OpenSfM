@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-# pyre-strict
 
 import datetime
 import math

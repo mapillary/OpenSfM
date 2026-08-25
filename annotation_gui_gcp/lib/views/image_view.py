@@ -1,4 +1,3 @@
-# pyre-unsafe
 from typing import Any, Dict
 
 from .web_view import distinct_colors, WebView

@@ -1,4 +1,3 @@
-# pyre-strict
 import numpy as np
 from opensfm.synthetic_data import synthetic_metrics, synthetic_scene
 

@@ -1,4 +1,3 @@
-# pyre-strict
 import os.path
 from typing import Any, Dict, Optional, Tuple
 

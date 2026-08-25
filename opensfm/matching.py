@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 from timeit import default_timer as timer
 from typing import Any, Dict, Generator, List, Optional, Sized, Tuple

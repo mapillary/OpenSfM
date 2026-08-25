@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 import typing as t
 from typing import cast, Dict, List, Tuple

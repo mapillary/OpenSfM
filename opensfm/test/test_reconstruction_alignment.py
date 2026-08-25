@@ -1,4 +1,3 @@
-# pyre-strict
 import numpy as np
 from numpy.typing import NDArray
 from opensfm import pybundle, pygeometry

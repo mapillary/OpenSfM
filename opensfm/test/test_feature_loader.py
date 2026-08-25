@@ -1,4 +1,3 @@
-# pyre-strict
 """Regression tests for opensfm.feature_loading.FeatureLoader."""
 
 import inspect

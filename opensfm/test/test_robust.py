@@ -1,4 +1,3 @@
-# pyre-strict
 import copy
 from typing import List, Tuple
 

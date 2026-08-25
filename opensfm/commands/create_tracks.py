@@ -1,4 +1,3 @@
-# pyre-strict
 import argparse
 
 from opensfm.actions import create_tracks

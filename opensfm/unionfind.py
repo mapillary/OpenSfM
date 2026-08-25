@@ -1,7 +1,6 @@
 # Source: https://www.ics.uci.edu/~eppstein/PADS/UnionFind.py
 # Licence: MIT
 
-# pyre-strict
 from typing import Dict, Generic, Hashable, Iterator, TypeVar
 
 T = TypeVar("T", bound=Hashable)

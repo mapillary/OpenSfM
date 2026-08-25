@@ -1,4 +1,3 @@
-# pyre-strict
 import collections
 import logging
 import os

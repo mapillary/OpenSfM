@@ -1,5 +1,3 @@
-# pyre-strict
-
 from types import ModuleType
 from typing import List
 

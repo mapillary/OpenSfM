@@ -1,4 +1,3 @@
-# pyre-strict
 import logging
 import math
 from typing import Any, Dict, Iterable, Optional

@@ -1,4 +1,3 @@
-# pyre-strict
 """Tools to extract features."""
 
 import logging

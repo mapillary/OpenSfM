@@ -1,4 +1,3 @@
-# pyre-strict
 import argparse
 from types import ModuleType
 from typing import Callable, ContextManager, List

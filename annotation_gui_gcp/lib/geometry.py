@@ -1,4 +1,3 @@
-# pyre-strict
 from mapillary.opensfm.annotation_gui_gcp.lib.gcp_manager import (
     GroundControlPointManager,
 )

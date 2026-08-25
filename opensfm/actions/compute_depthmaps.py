@@ -1,4 +1,3 @@
-# pyre-strict
 import os
 
 from opensfm import dataset, dense

@@ -1,4 +1,3 @@
-# pyre-strict
 from typing import overload, Sequence, Tuple, Union
 
 import numpy as np

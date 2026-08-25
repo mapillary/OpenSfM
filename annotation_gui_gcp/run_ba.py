@@ -1,4 +1,3 @@
-# pyre-unsafe
 import argparse
 import json
 import logging

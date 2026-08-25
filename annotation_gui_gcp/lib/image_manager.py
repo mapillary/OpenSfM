@@ -1,4 +1,3 @@
-# pyre-strict
 from io import BytesIO
 
 from flask import Response, send_file

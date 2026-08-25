@@ -1,4 +1,3 @@
-# pyre-strict
 from flask import Flask
 
 from .image_view import ImageView

@@ -1,4 +1,3 @@
-# pyre-strict
 """Incremental reconstruction pipeline"""
 
 import datetime

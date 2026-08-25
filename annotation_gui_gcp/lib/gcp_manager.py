@@ -1,4 +1,3 @@
-# pyre-strict
 import json
 import os
 import typing as t

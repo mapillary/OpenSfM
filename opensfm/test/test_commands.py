@@ -1,4 +1,3 @@
-# pyre-strict
 import argparse
 from os.path import join
 from types import ModuleType

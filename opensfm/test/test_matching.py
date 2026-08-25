@@ -1,4 +1,3 @@
-# pyre-strict
 from typing import Any, Dict, List, Set, Tuple
 
 import numpy as np

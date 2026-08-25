@@ -29,7 +29,6 @@
 #
 # Author: Johannes L. Schoenberger (jsch at inf.ethz.ch)
 
-# pyre-strict
 
 # This script is based on an original implementation by True Price.
 
