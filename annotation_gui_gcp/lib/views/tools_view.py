@@ -1,10 +1,17 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any, Dict, TYPE_CHECKING
 
 from .web_view import WebView
 
+if TYPE_CHECKING:
+    from flask import Flask
+
+    from ..GUI import Gui
+
 
 class ToolsView(WebView):
-    def __init__(self, main_ui, web_app):
+    def __init__(self, main_ui: Gui, web_app: Flask) -> None:
         super().__init__(main_ui, web_app, "/tools")
         self.main_ui = main_ui
 
@@ -29,7 +36,7 @@ class ToolsView(WebView):
         else:
             raise ValueError(f"Unknown event {data['event']}")
 
-    def sync_to_client(self):
+    def sync_to_client(self) -> None:
         # Sync state to frontend
         """
         Sends all the data required to initialize or sync the tools view
