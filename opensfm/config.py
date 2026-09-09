@@ -111,6 +111,9 @@ class OpenSfMConfig:
     flann_tree: int = 8
     # Smaller -> Faster (but might lose good matches)
     flann_checks: int = 20
+    # Seed for the RNG that FLANN's index construction draws from.
+    # Fixed by default so matching is reproducible; see build_flann_index.
+    flann_random_seed: int = 42
 
     ##################################
     # Params for BoW matching
