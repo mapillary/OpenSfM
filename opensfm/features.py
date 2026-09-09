@@ -670,4 +670,11 @@ def build_flann_index(descriptors: NDArray, config: Dict[str, Any]) -> cv2.flann
         )
 
     # pyrefly: ignore [not-callable]
+    # Pin OpenCV's RNG so the index is a pure function of (descriptors,
+    # seed). FLANN's index construction draws from cv::theRNG(), which is
+    # thread-local and advances between builds, so without this two workers
+    # build different indexes from identical descriptors and matching is
+    # not reproducible.
+    cv2.setRNGSeed(config["flann_random_seed"])
+
     return context.flann_Index(descriptors, flann_params)
