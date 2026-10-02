@@ -267,9 +267,12 @@ def test_shot_view_ref_count() -> None:
     rec.create_shot("shot1", "camera1", pygeometry.Pose())
     rec.create_shot("shot2", "camera1", pygeometry.Pose())
 
-    # The reconstruction has ref count = 2
+    # Only the local variable references the reconstruction. Compare against
+    # another local: Python 3.14 borrows local references when calling
+    # getrefcount, so the absolute value differs between versions.
+    local_only = object()
     count = sys.getrefcount(rec)
-    assert count == 2
+    assert count == sys.getrefcount(local_only)
 
     # The map has a bigger ref count because all the views are referencing it
     count = sys.getrefcount(rec.map)
