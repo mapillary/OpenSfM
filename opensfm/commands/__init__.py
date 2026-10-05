@@ -26,7 +26,7 @@ from . import (
     reconstruct_from_prior,
     undistort,
 )
-from .command_runner import command_runner
+from .command_runner import command_runner as command_runner
 
 
 opensfm_commands: List[ModuleType] = [
