@@ -96,7 +96,7 @@ class Gui:
         ]
 
         @self.app.route("/")
-        def send_main_page():
+        def send_main_page() -> str:
             return flask.render_template("mosaic.html", subpane_routes=subpane_routes)
 
     def analyze_rigid(self) -> None:

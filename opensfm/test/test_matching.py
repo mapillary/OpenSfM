@@ -91,16 +91,8 @@ def test_match_images(scene_synthetic: synthetic_scene.SyntheticInputData) -> No
         scene_synthetic.tracks_manager,
     )
 
-    # pyre-fixme[8]: Attribute has type
-    #  `BoundMethod[typing.Callable(SyntheticDataSet.matches_exists)[[Named(self,
-    #  SyntheticDataSet), Named(image, str)], bool], SyntheticDataSet]`; used as `(im:
-    #  Any) -> bool`.
-    synthetic.matches_exists = lambda im: False
-    # pyre-fixme[8]: Attribute has type
-    #  `BoundMethod[typing.Callable(DataSet.save_matches)[[Named(self, DataSet),
-    #  Named(image, str), Named(matches, Dict[str, ndarray])], None],
-    #  SyntheticDataSet]`; used as `(im: Any, m: Any) -> bool`.
-    synthetic.save_matches = lambda im, m: False
+    synthetic.matches_exists = lambda image: False
+    synthetic.save_matches = lambda image, matches: None
 
     override = {}
     override["matching_gps_neighbors"] = 0

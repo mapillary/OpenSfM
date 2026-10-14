@@ -199,7 +199,6 @@ def array_to_blob(array: NDArray) -> bytes:
     if IS_PYTHON3:
         return array.tobytes()
     else:
-        # pyre-fixme[16]: Module `numpy` has no attribute `getbuffer`.
         return np.getbuffer(array)
 
 
@@ -207,7 +206,6 @@ def blob_to_array(
     blob: bytes, dtype: DTypeLike, shape: Tuple[int, ...] = (-1,)
 ) -> NDArray:
     if IS_PYTHON3:
-        # pyre-fixme[20]: Argument `sep` expected.
         return np.fromstring(blob, dtype=dtype).reshape(*shape)
     else:
         return np.frombuffer(blob, dtype=dtype).reshape(*shape)

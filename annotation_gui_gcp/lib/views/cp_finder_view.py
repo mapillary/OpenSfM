@@ -1,12 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from flask import Flask
 
 from .image_view import ImageView
+
+if TYPE_CHECKING:
+    from ..GUI import Gui
 
 
 class ControlPointFinderView(ImageView):
     def __init__(
         self,
-        main_ui: object,
+        main_ui: Gui,
         web_app: Flask,
     ) -> None:
         super().__init__(main_ui, web_app, "/current_cp_view", [], False)
@@ -21,7 +28,12 @@ class ControlPointFinderView(ImageView):
         for v in self.main_ui.sequence_views:
             images_in_existing_views.extend(v.image_list)
 
-        point = self.main_ui.gcp_manager.points.get(self.main_ui.curr_point)
+        curr_point = self.main_ui.curr_point
+        point = (
+            self.main_ui.gcp_manager.points.get(curr_point)
+            if curr_point is not None
+            else None
+        )
         images_this_point = (
             [obs.image_id for obs in point.observations] if point else []
         )

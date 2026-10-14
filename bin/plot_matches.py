@@ -4,7 +4,7 @@
 import argparse
 import os.path
 from itertools import combinations
-from typing import List
+from typing import Iterable, List
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as pl
@@ -13,7 +13,7 @@ from numpy import ndarray
 from opensfm import dataset, features, io
 
 
-def plot_matches(im1, im2, p1: ndarray, p2: ndarray) -> None:
+def plot_matches(im1: ndarray, im2: ndarray, p1: ndarray, p2: ndarray) -> None:
     h1, w1, c = im1.shape
     h2, w2, c = im2.shape
     image = np.zeros((max(h1, h2), w1 + w2, 3), dtype=im1.dtype)
@@ -30,7 +30,7 @@ def plot_matches(im1, im2, p1: ndarray, p2: ndarray) -> None:
     pl.plot(p2[:, 0] + w1, p2[:, 1], "ob")
 
 
-def plot_graph(data) -> None:
+def plot_graph(data: dataset.DataSet) -> None:
     cmap = cm.get_cmap("viridis")
     connectivity = {}
     for im1 in images:
@@ -71,11 +71,14 @@ def plot_graph(data) -> None:
     pl.savefig(os.path.join(data.data_path, "matchgraph.png"))
 
 
-def plot_matches_for_images(data, image, images) -> None:
+def plot_matches_for_images(
+    data: dataset.DataSet, image: str | None, images_subset: str | None
+) -> None:
+    pairs: Iterable[tuple[str, str]]
     if image:
         pairs = [(image, o) for o in images if o != image]
-    elif images:
-        subset = images.split(",")
+    elif images_subset:
+        subset = images_subset.split(",")
         pairs = combinations(subset, 2)
     else:
         pairs = combinations(images, 2)

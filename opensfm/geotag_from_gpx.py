@@ -13,10 +13,10 @@ from opensfm import geo
 
 
 try:
-    # pyre-fixme[21]: Could not find module `pyexiv2`.
+    # pyre-fixme[21]: Could not find module `pyexiv2` (Python 2 only; not in third-party).
     import pyexiv2
 
-    # pyre-fixme[21]: Could not find module `pyexiv2.utils`.
+    # pyre-fixme[21]: Could not find module `pyexiv2.utils` (Python 2 only; not in third-party).
     from pyexiv2.utils import make_fraction
 except ImportError:
     # pyexiv2 is not available in python 3. We catch the error
@@ -25,7 +25,6 @@ except ImportError:
     print("ERROR: pyexiv2 module not available")
 
 try:
-    # pyre-fixme[21]: Could not find module `gpxpy`.
     import gpxpy
 except ImportError:
     print("ERROR: gpxpy module not available")
@@ -59,7 +58,7 @@ def utc_to_localtime(utc_time: datetime.datetime) -> datetime.datetime:
 
 def get_lat_lon_time(
     gpx_file: str, gpx_time: str = "utc"
-) -> list[tuple[datetime.datetime, float, float, float]]:
+) -> list[tuple[datetime.datetime, float, float, float | None]]:
     """
     Read location and time stamps from a track in a GPX file.
 
@@ -75,6 +74,7 @@ def get_lat_lon_time(
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
+                assert point.time is not None, "GPX point without timestamp"
                 ptime = (
                     utc_to_localtime(point.time) if gpx_time == "utc" else point.time
                 )
@@ -119,7 +119,7 @@ def compute_bearing(
 
 
 def interpolate_lat_lon(
-    points: list[tuple[datetime.datetime, float, float, float]],
+    points: list[tuple[datetime.datetime, float, float, float | None]],
     t: datetime.datetime,
 ) -> tuple[float, float, float, float | None]:
     """
@@ -153,7 +153,7 @@ def interpolate_lat_lon(
 
     bearing = compute_bearing(before[1], before[2], after[1], after[2])
 
-    if before[3] is not None:
+    if before[3] is not None and after[3] is not None:
         ele = (before[3] * dt_after + after[3] * dt_before) / (dt_before + dt_after)
     else:
         ele = None
@@ -181,15 +181,19 @@ def to_deg(value: float, loc: list[str]) -> tuple[int, int, float, str]:
 
 def gpx_lerp(
     alpha: float,
-    a: tuple[datetime.datetime, float, float, float],
-    b: tuple[datetime.datetime, float, float, float],
-) -> tuple[datetime.datetime, float, float, float]:
+    a: tuple[datetime.datetime, float, float, float | None],
+    b: tuple[datetime.datetime, float, float, float | None],
+) -> tuple[datetime.datetime, float, float, float | None]:
     """Interpolate gpx point as (1 - alpha) * a + alpha * b"""
     dt = alpha * (b[0] - a[0]).total_seconds()
     t = a[0] + datetime.timedelta(seconds=dt)
     lat = (1 - alpha) * a[1] + alpha * b[1]
     lon = (1 - alpha) * a[2] + alpha * b[2]
-    alt = (1 - alpha) * a[3] + alpha * b[3]
+    alt = (
+        (1 - alpha) * a[3] + alpha * b[3]
+        if a[3] is not None and b[3] is not None
+        else None
+    )
     return t, lat, lon, alt
 
 
@@ -215,11 +219,11 @@ def segment_sphere_intersection(
 
 
 def space_next_point(
-    a: tuple[datetime.datetime, float, float, float],
-    b: tuple[datetime.datetime, float, float, float],
-    last: tuple[datetime.datetime, float, float, float],
+    a: tuple[datetime.datetime, float, float, float | None],
+    b: tuple[datetime.datetime, float, float, float | None],
+    last: tuple[datetime.datetime, float, float, float | None],
     dx: float,
-) -> tuple[datetime.datetime, float, float, float]:
+) -> tuple[datetime.datetime, float, float, float | None]:
     A = geo.ecef_from_lla(a[1], a[2], 0.0)
     B = geo.ecef_from_lla(b[1], b[2], 0.0)
     C = geo.ecef_from_lla(last[1], last[2], 0.0)
@@ -228,11 +232,11 @@ def space_next_point(
 
 
 def time_next_point(
-    a: tuple[datetime.datetime, float, float, float],
-    b: tuple[datetime.datetime, float, float, float],
-    last: tuple[datetime.datetime, float, float, float],
+    a: tuple[datetime.datetime, float, float, float | None],
+    b: tuple[datetime.datetime, float, float, float | None],
+    last: tuple[datetime.datetime, float, float, float | None],
     dt: float,
-) -> tuple[datetime.datetime, float, float, float]:
+) -> tuple[datetime.datetime, float, float, float | None]:
     da = (a[0] - last[0]).total_seconds()
     db = (b[0] - last[0]).total_seconds()
     alpha = (dt - da) / (db - da)
@@ -240,24 +244,24 @@ def time_next_point(
 
 
 def time_distance(
-    a: tuple[datetime.datetime, float, float, float],
-    b: tuple[datetime.datetime, float, float, float],
+    a: tuple[datetime.datetime, float, float, float | None],
+    b: tuple[datetime.datetime, float, float, float | None],
 ) -> float:
     return (b[0] - a[0]).total_seconds()
 
 
 def space_distance(
-    a: tuple[datetime.datetime, float, float, float],
-    b: tuple[datetime.datetime, float, float, float],
+    a: tuple[datetime.datetime, float, float, float | None],
+    b: tuple[datetime.datetime, float, float, float | None],
 ) -> float:
     return geo.gps_distance(a[1:3], b[1:3])
 
 
 def sample_gpx(
-    points: list[tuple[datetime.datetime, float, float, float]],
+    points: list[tuple[datetime.datetime, float, float, float | None]],
     dx: float,
     dt: float | None = None,
-) -> list[tuple[datetime.datetime, float, float, float]]:
+) -> list[tuple[datetime.datetime, float, float, float | None]]:
     if dt is not None:
         dx = float(dt)
         print("Sampling GPX file every {0} seconds".format(dx))
@@ -341,7 +345,7 @@ def add_gps_to_exif(
 
 def add_exif_using_timestamp(
     filename: os.PathLike[str] | str,
-    points: list[tuple[datetime.datetime, float, float, float]],
+    points: list[tuple[datetime.datetime, float, float, float | None]],
     offset_time: int = 0,
     timestamp: datetime.datetime | None = None,
     orientation: int = 1,

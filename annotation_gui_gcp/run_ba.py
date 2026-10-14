@@ -4,10 +4,11 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from typing import List
+from typing import Any, List, Sequence
 
 import numpy as np
 import opensfm.reconstruction as orec
+from numpy.typing import NDArray
 from opensfm import (
     dataset,
     log,
@@ -23,7 +24,9 @@ from opensfm.align import apply_similarity
 logger = logging.getLogger(__name__)
 
 
-def merge_reconstructions(reconstructions, tracks_manager):
+def merge_reconstructions(
+    reconstructions: List[types.Reconstruction], tracks_manager: pymap.TracksManager
+) -> types.Reconstruction:
     """Put all reconstruction points and shots in a single one.
 
     No alignment is performed.  Just merging the lists of points and
@@ -60,7 +63,9 @@ def merge_reconstructions(reconstructions, tracks_manager):
     return merged
 
 
-def resplit_reconstruction(merged, original_reconstructions):
+def resplit_reconstruction(
+    merged: types.Reconstruction, original_reconstructions: List[types.Reconstruction]
+) -> List[types.Reconstruction]:
     """Resplit reconstructions that were previously merged.
 
     The original_reconstructions are used to decide which point and shot
@@ -89,7 +94,7 @@ def resplit_reconstruction(merged, original_reconstructions):
 
 def gcp_geopositional_error(
     gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction
-):
+) -> dict[str, dict[str, Any]]:
     coords_reconstruction = triangulate_gcps(gcps, reconstruction)
     out = {}
     for ix, gcp in enumerate(gcps):
@@ -126,7 +131,7 @@ def gcp_geopositional_error(
 
 def triangulate_gcps(
     gcps: List[pymap.GroundControlPoint], reconstruction: types.Reconstruction
-):
+) -> List[NDArray | None]:
     coords = []
     for gcp in gcps:
         res = multiview.triangulate_gcp(
@@ -143,8 +148,8 @@ def triangulate_gcps(
 def reproject_gcps(
     gcps: List[pymap.GroundControlPoint],
     reconstruction: types.Reconstruction,
-    reproj_threshold,
-):
+    reproj_threshold: float,
+) -> dict[str, dict[str, dict[str, Any]]]:
     output = {}
     for gcp in gcps:
         point = multiview.triangulate_gcp(
@@ -177,7 +182,9 @@ def reproject_gcps(
     return output
 
 
-def get_sorted_reprojection_errors(gcp_reprojections):
+def get_sorted_reprojection_errors(
+    gcp_reprojections: dict[str, dict[str, dict[str, Any]]],
+) -> List[tuple[str, str, float]]:
     output = []
     for gcp_id in gcp_reprojections:
         for shot_id in gcp_reprojections[gcp_id]:
@@ -186,7 +193,9 @@ def get_sorted_reprojection_errors(gcp_reprojections):
     return sorted(output, key=lambda t: -t[2])
 
 
-def get_number_of_wrong_annotations_per_gcp(gcp_reprojections, wrong_threshold):
+def get_number_of_wrong_annotations_per_gcp(
+    gcp_reprojections: dict[str, dict[str, dict[str, Any]]], wrong_threshold: float
+) -> dict[str, int]:
     output = {}
     for gcp_id, reprojections in gcp_reprojections.items():
         errors = [reprojections[shot_id]["error"] for shot_id in reprojections]
@@ -194,7 +203,7 @@ def get_number_of_wrong_annotations_per_gcp(gcp_reprojections, wrong_threshold):
     return output
 
 
-def compute_gcp_std(gcp_errors):
+def compute_gcp_std(gcp_errors: dict[str, dict[str, dict[str, Any]]]) -> float:
     """Compute the standard deviation of reprojection errors of all gcps."""
     all_errors = []
     for gcp_id in gcp_errors:
@@ -206,7 +215,9 @@ def compute_gcp_std(gcp_errors):
     return np.sqrt(np.mean(np.array(all_errors) ** 2))
 
 
-def find_alignment(points0, points1):
+def find_alignment(
+    points0: Sequence[NDArray | None], points1: Sequence[NDArray | None]
+) -> tuple[float, NDArray, NDArray]:
     """Compute similarity transform between point sets.
 
     Returns (s, A, b) such that ``points0 = s * A * points1 + b``
@@ -222,16 +233,16 @@ def find_alignment(points0, points1):
     s = np.linalg.det(M[:3, :3]) ** (1.0 / 3.0)
     A = M[:3, :3] / s
     b = M[:3, 3]
-    return s, A, b
+    return float(s), A, b
 
 
 def add_gcp_to_bundle(
     ba: orec.pybundle.BundleAdjuster,
     reference: types.TopocentricConverter,
     gcp: List[pymap.GroundControlPoint],
-    gcp_std,
-    shots,
-):
+    gcp_std: float,
+    shots: pymap.ShotView,
+) -> None:
     """Add Ground Control Points constraints to the bundle problem."""
     for point in gcp:
         point_id = "gcp-" + point.id
@@ -351,13 +362,18 @@ def bundle_with_fixed_images(
     return cov_valid
 
 
-def decompose_covariance(covariance):
+def decompose_covariance(covariance: NDArray) -> tuple[NDArray, NDArray]:
     """Decompose covariance into a rotation and diagonal scaling."""
     u, s, vh = np.linalg.svd(covariance)
     return u, np.sqrt(s)
 
 
-def resect_annotated_single_images(reconstruction, gcps, camera_models, data):
+def resect_annotated_single_images(
+    reconstruction: types.Reconstruction,
+    gcps: List[pymap.GroundControlPoint],
+    camera_models: dict[str, pygeometry.Camera],
+    data: dataset.DataSet,
+) -> types.Reconstruction:
     """Resect images that do not belong to reconstruction but have enough GCPs annotated.
 
     Returns:
@@ -383,14 +399,23 @@ def resect_annotated_single_images(reconstruction, gcps, camera_models, data):
     return resected
 
 
-def _gcp_image_observation(gcp, image):
+def _gcp_image_observation(
+    gcp: pymap.GroundControlPoint, image: str
+) -> pymap.GroundControlPointObservation | None:
     for obs in gcp.observations:
         if image == obs.shot_id:
             return obs
     return None
 
 
-def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None):
+def resect_image(
+    im: str,
+    camera: pygeometry.Camera,
+    gcps: List[pymap.GroundControlPoint],
+    reconstruction: types.Reconstruction,
+    data: dataset.DataSet,
+    dst_reconstruction: types.Reconstruction | None = None,
+) -> pymap.Shot | None:
     """
     Resect an image into a reconstruction based only on GCPs annotations.
     Pass another reconstruction to dst_reconstruction
@@ -453,7 +478,7 @@ def resect_image(im, camera, gcps, reconstruction, data, dst_reconstruction=None
         return None
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Merge reconstructions and run BA with GCPs"
     )
@@ -507,16 +532,16 @@ def parse_args():
 
 
 def align_3d_annotations_to_reconstruction(
-    gcps_this_model,
-    gcps_3d,
-    model_id,
-    reconstruction,
-):
+    gcps_this_model: List[pymap.GroundControlPoint],
+    gcps_3d: dict[str, List[tuple[List[float], str]]],
+    model_id: str,
+    reconstruction: types.Reconstruction,
+) -> tuple[dict[str, List[float] | None], dict[str, Any]] | None:
     coords_triangulated_gcps = triangulate_gcps(gcps_this_model, reconstruction)
     n_triangulated = sum(x is not None for x in coords_triangulated_gcps)
     if n_triangulated < 3:
         logger.info(f"{model_id} has {n_triangulated} gcps, not aligning")
-        return
+        return None
 
     coords_annotated_gcps = []
     for gcp in gcps_this_model:
@@ -536,11 +561,17 @@ def align_3d_annotations_to_reconstruction(
             )
     except ValueError:
         logger.warning(f"Could not align reconstruction with {model_id}")
+        return None
 
-    return gcp_reprojections, {"s": s.tolist(), "A": A.tolist(), "b": b.tolist()}
+    return gcp_reprojections, {"s": s, "A": A.tolist(), "b": b.tolist()}
 
 
-def align_external_3d_models_to_reconstruction(data, gcps, reconstruction, ix_rec):
+def align_external_3d_models_to_reconstruction(
+    data: dataset.DataSet,
+    gcps: List[pymap.GroundControlPoint],
+    reconstruction: types.Reconstruction,
+    ix_rec: int,
+) -> None:
     """
     Triangulates all the control points in common with 3D models (those that have at least one 3D annotation)
     and saves them in the coordinate space of the 3D models so that they can be visualized in the annotation tool.
@@ -571,9 +602,12 @@ def align_external_3d_models_to_reconstruction(data, gcps, reconstruction, ix_re
 
     # We now operate independently on each 3D model
     for model_id, gcps_this_model in gcps_per_source_file.items():
-        gcp_reprojections, alignment = align_3d_annotations_to_reconstruction(
+        result = align_3d_annotations_to_reconstruction(
             gcps_this_model, gcps_3d, model_id, reconstruction
         )
+        if result is None:
+            continue
+        gcp_reprojections, alignment = result
         p_out = f"{data.data_path}/gcp_reprojections_3D_{ix_rec}x{model_id}.json"
         logger.info(f"Saving reprojected 3D points to {p_out}")
         with open(p_out, "w") as f:
@@ -584,10 +618,12 @@ def align_external_3d_models_to_reconstruction(data, gcps, reconstruction, ix_re
             json.dump(alignment, f, indent=4, sort_keys=True)
 
 
-def load_3d_annotations_from_gcp_file(data):
+def load_3d_annotations_from_gcp_file(
+    data: dataset.DataSet,
+) -> dict[str, List[tuple[List[float], str]]]:
     with open(data._ground_control_points_file()) as f:
         raw_gcps = json.load(f)
-    dict_gcps = defaultdict(list)
+    dict_gcps: defaultdict[str, List[tuple[List[float], str]]] = defaultdict(list)
     for gcp in raw_gcps["points"]:
         for obs in gcp["observations"]:
             if "point" in obs:
@@ -595,7 +631,7 @@ def load_3d_annotations_from_gcp_file(data):
     return dict_gcps
 
 
-def fix_3d_annotations_in_gcp_file(data):
+def fix_3d_annotations_in_gcp_file(data: dataset.DataSet) -> None:
     # Temporary hack: correct the GCP file so that 3D observations are called 'point' and not 'projection'
     with open(data._ground_control_points_file()) as f:
         raw_gcps = json.load(f)
@@ -619,7 +655,7 @@ def align(
     covariance: bool,
     px_threshold: float,
     std_threshold: float,
-):
+) -> None:
     data = dataset.DataSet(path)
     for fn in ("reconstruction.json", "ground_control_points.json", "tracks.csv"):
         if not (os.path.exists(os.path.join(path, fn))):

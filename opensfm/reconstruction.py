@@ -289,8 +289,6 @@ def _two_view_reconstruction_inliers(
 ) -> List[int]:
     """Returns indices of matches that can be triangulated."""
     ok = matching.compute_inliers_bearings(b1, b2, R, t, threshold)
-    # pyre-fixme[7]: Expected `List[int]` but got `ndarray[typing.Any,
-    #  dtype[typing.Any]]`.
     return np.nonzero(ok)[0]
 
 
@@ -325,7 +323,6 @@ def two_view_reconstruction_plane_based(
         inliers = _two_view_reconstruction_inliers(b1, b2, R.T, -R.T.dot(t), threshold)
         motion_inliers.append(inliers)
 
-    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     best = np.argmax(map(len, motion_inliers))
     R, t, n, d = motions[best]
     inliers = motion_inliers[best]
@@ -378,8 +375,6 @@ def _two_view_rotation_inliers(
 ) -> List[int]:
     br2 = R.dot(b2.T).T
     ok = np.linalg.norm(br2 - b1, axis=1) < threshold
-    # pyre-fixme[7]: Expected `List[int]` but got `ndarray[typing.Any,
-    #  dtype[typing.Any]]`.
     return np.nonzero(ok)[0]
 
 
@@ -400,9 +395,7 @@ def two_view_reconstruction_rotation_only(
     Returns:
         rotation and inlier list
     """
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     R = multiview.relative_pose_ransac_rotation_only(b1, b2, threshold, 1000, 0.999)
@@ -512,9 +505,7 @@ def two_view_reconstruction_general(
         rotation, translation and inlier list
     """
 
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b1 = camera1.pixel_bearing_many(p1)
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     b2 = camera2.pixel_bearing_many(p2)
 
     # Get 5-point relative motion
@@ -589,7 +580,6 @@ def reconstruction_from_relative_pose(
             reconstruction,
             rig_assignments,
             im2,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             pygeometry.Pose(R, t),
         )
 
@@ -962,15 +952,12 @@ class TrackTriangulator:
             bs_t = np.array([bs[i], bs[j]])
 
             valid_triangulation, X = pygeometry.triangulate_bearings_midpoint(
-                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 os_t,
-                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 bs_t,
                 thresholds,
                 min_ray_angle_radians,
                 min_depth,
             )
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             X = pygeometry.point_refinement(os_t, bs_t, X, iterations)
 
             if valid_triangulation:
@@ -989,10 +976,8 @@ class TrackTriangulator:
                         min_depth,
                     )
                     new_X = pygeometry.point_refinement(
-                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                         os[inliers],
                         bs[inliers],
-                        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                         X,
                         iterations,
                     )
@@ -1058,11 +1043,8 @@ class TrackTriangulator:
             )
             if valid_triangulation:
                 X = pygeometry.point_refinement(
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     np.array(os),
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     np.array(bs),
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     X,
                     iterations,
                 )
@@ -1091,8 +1073,6 @@ class TrackTriangulator:
 
         if len(Rts) >= 2:
             e, X = pygeometry.triangulate_bearings_dlt(
-                # pyre-fixme[6]: For 1st argument expected `List[ndarray[typing.Any,
-                #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
                 np.asarray(Rts),
                 np.asarray(bs),
                 reproj_threshold,
@@ -1101,11 +1081,8 @@ class TrackTriangulator:
             )
             if e:
                 X = pygeometry.point_refinement(
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     np.array(os),
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     np.array(bs),
-                    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                     X,
                     iterations,
                 )

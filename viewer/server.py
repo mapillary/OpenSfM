@@ -19,8 +19,7 @@ datapath: str | None = None
 
 @app.route("/")
 def index() -> Response:
-    # pyre-fixme[6]: For 1st argument expected `typing_extensions.LiteralString` but
-    #  got `Optional[str]`.
+    assert app.static_folder is not None
     return send_file(os.path.join(app.static_folder, "index.html"))
 
 

@@ -1103,9 +1103,7 @@ def test_rec_deepcopy() -> None:
         _helper_populate_metadata(shot.metadata)
 
     # When we deep-copy it
-    # pyre-fixme[6]: For 2nd param expected `Optional[Dict[int, typing.Any]]` but
-    #  got `Dict[str, bool]`.
-    rec2 = copy.deepcopy(rec, {"copy_observations": True})
+    rec2 = rec.__deepcopy__({"copy_observations": True})
 
     # It has the expected count of data
     assert len(rec2.cameras) == 2

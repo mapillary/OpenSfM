@@ -15,28 +15,17 @@ import sqlite3
 from collections import defaultdict
 from pathlib import Path
 from struct import unpack
+from typing import Sequence
 
 import cv2
 import matplotlib.pyplot as pl
 import numpy as np
-import opensfm.actions.undistort as osfm_u
+import opensfm.undistort as osfm_u
 from matplotlib import cm
+from matplotlib.axes import Axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-try:
-    from opensfm import dataset, features, pygeometry, pymap, types
-except ImportError:
-    # If ImportError, try importing without 'types'
-    try:
-        from opensfm import dataset, features, pygeometry, pymap
-
-        types = None
-    except ImportError as e:
-        print(f"Fallback import failed: {e}")
-        dataset = features = pygeometry = pymap = types = None
-except Exception as e:
-    print(f"Unexpected error importing OpenSfM: {e}")
-    dataset = features = pygeometry = pymap = types = None
+from numpy.typing import NDArray
+from opensfm import dataset, features, pygeometry, pymap, types
 
 
 EXPORT_DIR_NAME = "opensfm_export"
@@ -58,8 +47,11 @@ camera_models = {
 
 
 def compute_and_save_undistorted_reconstruction(
-    reconstruction, tracks_manager, data, udata
-):
+    reconstruction: types.Reconstruction,
+    tracks_manager: pymap.TracksManager | None,
+    data: dataset.DataSet,
+    udata: dataset.UndistortedDataSet,
+) -> types.Reconstruction:
     image_format = data.config["undistorted_image_format"]
     urec = types.Reconstruction()
     utracks_manager = pymap.TracksManager()
@@ -95,13 +87,18 @@ def compute_and_save_undistorted_reconstruction(
     return urec
 
 
-def small_colorbar(ax, mappable=None):
+def small_colorbar(ax: Axes, mappable: cm.ScalarMappable | None = None) -> None:
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     pl.colorbar(cax=cax, mappable=mappable)
 
 
-def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(0.5, 0.5, 0.5)):
+def depth_colormap(
+    d: NDArray,
+    cmap: str | None = None,
+    invalid_val: float = 0,
+    invalid_color: tuple[float, float, float] = (0.5, 0.5, 0.5),
+) -> tuple[NDArray, cm.ScalarMappable]:
     """
     Colormaps and sets 0 (invalid) values to zero_color
     """
@@ -112,7 +109,9 @@ def depth_colormap(d, cmap=None, invalid_val=0, invalid_color=(0.5, 0.5, 0.5)):
     return rgb, sm
 
 
-def import_cameras_images(db, data):
+def import_cameras_images(
+    db: sqlite3.Connection, data: dataset.DataSet
+) -> tuple[dict[int, pygeometry.Camera], dict[int, tuple[str, int]]]:
     cursor = db.cursor()
     cursor.execute(
         "SELECT camera_id, model, width, height, prior_focal_length, params FROM "
@@ -137,7 +136,7 @@ def import_cameras_images(db, data):
         images_map[image_id] = (filename, camera_id)
         cam = cameras[camera_id]
 
-        focal_ratio = cam.focal_x if cam.projection_type == "brown" else cam.focal
+        focal_ratio = cam.focal
         exif_data = {
             "make": "unknown",
             "model": "unknown",
@@ -157,13 +156,13 @@ def import_cameras_images(db, data):
     return cameras, images_map
 
 
-def pair_id_to_image_ids(pair_id):
+def pair_id_to_image_ids(pair_id: int) -> tuple[int, int]:
     image_id2 = pair_id % 2147483647
     image_id1 = (pair_id - image_id2) // 2147483647
     return image_id1, image_id2
 
 
-def get_scale_orientation_from_affine(arr):
+def get_scale_orientation_from_affine(arr: NDArray) -> tuple[NDArray, NDArray]:
     # (x, y, a_11, a_12, a_21, a_22)
     a11 = arr[:, 2]
     a12 = arr[:, 3]
@@ -177,7 +176,12 @@ def get_scale_orientation_from_affine(arr):
     return scale, orientation
 
 
-def import_features(db, data, image_map, camera_map):
+def import_features(
+    db: sqlite3.Connection,
+    data: dataset.DataSet,
+    image_map: dict[int, tuple[str, int]],
+    camera_map: dict[int, pygeometry.Camera],
+) -> dict[int, NDArray]:
     cursor = db.cursor()
     cursor.execute("SELECT image_id, rows, cols, data FROM keypoints;")
     keypoints = {}
@@ -224,7 +228,11 @@ def import_features(db, data, image_map, camera_map):
     return keypoints
 
 
-def import_matches(db, data, image_map):
+def import_matches(
+    db: sqlite3.Connection,
+    data: dataset.DataSet,
+    image_map: dict[int, tuple[str, int]],
+) -> None:
     cursor = db.cursor()
     min_matches = 1
     cursor.execute(
@@ -247,7 +255,9 @@ def import_matches(db, data, image_map):
     cursor.close()
 
 
-def import_cameras_reconstruction(path_cameras, rec):
+def import_cameras_reconstruction(
+    path_cameras: Path, rec: types.Reconstruction
+) -> None:
     """
     Imports cameras from a COLMAP reconstruction cameras.bin file
     """
@@ -268,7 +278,13 @@ def import_cameras_reconstruction(path_cameras, rec):
             rec.add_camera(cam)
 
 
-def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1):
+def cam_from_colmap_params(
+    camera_model_id: int,
+    width: int,
+    height: int,
+    params: Sequence[float] | NDArray,
+    prior_focal: float = 1,
+) -> pygeometry.Camera:
     """
     Helper function to map from colmap parameters to an OpenSfM camera
     """
@@ -289,7 +305,7 @@ def cam_from_colmap_params(camera_model_id, width, height, params, prior_focal=1
     return cam
 
 
-def import_points_reconstruction(path_points, rec):
+def import_points_reconstruction(path_points: Path, rec: types.Reconstruction) -> None:
     logger.info("Importing points from {}".format(path_points))
     with open(path_points, "rb") as f:
         n_points = unpack("<Q", f.read(8))[0]
@@ -305,11 +321,11 @@ def import_points_reconstruction(path_points, rec):
             track_len = unpack("<Q", f.read(8))[0]
             # Ignore track info
             f.seek(8 * track_len, 1)
-            p = rec.create_point(str(pid), (x, y, z))
+            p = rec.create_point(str(pid), np.array((x, y, z)))
             p.color = (r, g, b)
 
 
-def read_colmap_ply(path_ply):
+def read_colmap_ply(path_ply: Path) -> tuple[NDArray, NDArray, NDArray]:
     """
     Reads the ply output from COLMAP.
     This is not a generic ply binary reader but a quick hack to read only this file
@@ -365,7 +381,9 @@ def read_colmap_ply(path_ply):
     return np.array(points), np.array(normals), np.array(colors)
 
 
-def import_images_reconstruction(path_images, keypoints, rec):
+def import_images_reconstruction(
+    path_images: Path, keypoints: dict[int, NDArray], rec: types.Reconstruction
+) -> tuple[pymap.TracksManager, dict[int, str]]:
     """
     Read images.bin, building shots and tracks graph
     """
@@ -420,7 +438,9 @@ def import_images_reconstruction(path_images, keypoints, rec):
     return tracks_manager, image_ix_to_shot_id
 
 
-def read_vis(path_vis, image_ix_to_shot_id):
+def read_vis(
+    path_vis: Path, image_ix_to_shot_id: dict[int, str]
+) -> dict[str, list[int]]:
     logger.info("Reading visibility file {}".format(path_vis))
     points_seen = defaultdict(list)
     with open(path_vis, "rb") as f:
@@ -436,7 +456,12 @@ def read_vis(path_vis, image_ix_to_shot_id):
     return points_seen
 
 
-def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, path_ply):
+def import_depthmaps_from_fused_pointcloud(
+    udata: dataset.UndistortedDataSet,
+    urec: types.Reconstruction,
+    image_ix_to_shot_id: dict[int, str],
+    path_ply: Path,
+) -> None:
     """
     Imports the depthmaps by reprojecting the fused pointcloud
     """
@@ -455,7 +480,13 @@ def import_depthmaps_from_fused_pointcloud(udata, urec, image_ix_to_shot_id, pat
         )
 
 
-def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
+def project_pointcloud_save_depth(
+    udata: dataset.UndistortedDataSet,
+    urec: types.Reconstruction,
+    points: NDArray,
+    shot_id: str,
+    max_sz: int,
+) -> None:
     # Project points to the undistorted image
     shot = urec.shots[shot_id]
     w, h = shot.camera.width, shot.camera.height
@@ -511,7 +542,7 @@ def project_pointcloud_save_depth(udata, urec, points, shot_id, max_sz):
     plt.close(fig)
 
 
-def quaternion_to_angle_axis(quaternion):
+def quaternion_to_angle_axis(quaternion: NDArray) -> list[float]:
     if quaternion[0] > 1:
         quaternion = quaternion / np.linalg.norm(quaternion)
     qw, qx, qy, qz = quaternion
@@ -523,7 +554,7 @@ def quaternion_to_angle_axis(quaternion):
     return [angle * x, angle * y, angle * z]
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Convert COLMAP database to OpenSfM dataset"
     )
@@ -548,7 +579,7 @@ def main():
     ):
         os.symlink(p_db.parent.parent / "config.yaml", export_folder / "config.yaml")
 
-    data = dataset.DataSet(export_folder)
+    data = dataset.DataSet(str(export_folder))
     db = sqlite3.connect(p_db.as_posix())
     camera_map, image_map = import_cameras_images(db, data)
 
@@ -576,7 +607,7 @@ def main():
         data.save_tracks_manager(tracks_manager)
 
         # Save undistorted reconstruction as well
-        udata = dataset.UndistortedDataSet(data, io_handler=data.io_handler)
+        udata = data.undistorted_dataset()
         urec = compute_and_save_undistorted_reconstruction(
             reconstruction, tracks_manager, data, udata
         )

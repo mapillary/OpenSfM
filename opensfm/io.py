@@ -43,9 +43,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_brown(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     obj.get("k1", 0.0),
@@ -64,9 +62,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_fisheye_opencv(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     obj.get("k1", 0.0),
@@ -80,9 +76,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_fisheye62(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     obj.get("k1", 0.0),
@@ -100,9 +94,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_fisheye624(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     obj.get("k1", 0.0),
@@ -124,9 +116,7 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_radial(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array(
                 [
                     obj.get("k1", 0.0),
@@ -138,7 +128,6 @@ def camera_from_json(key: str, obj: Dict[str, Any]) -> pygeometry.Camera:
         camera = pygeometry.Camera.create_simple_radial(
             obj["focal_x"],
             obj["focal_y"] / obj["focal_x"],
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([obj.get("c_x", 0.0), obj.get("c_y", 0.0)]),
             obj.get("k1", 0.0),
         )
@@ -176,7 +165,6 @@ def assign_shot_attributes(obj: Dict[str, Any], shot: pymap.Shot) -> None:
     if "scale" in obj:
         shot.scale = obj["scale"]
     if "covariance" in obj:
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         shot.covariance = np.array(obj["covariance"])
     if "merge_cc" in obj:
         shot.merge_cc = obj["merge_cc"]
@@ -714,9 +702,7 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_brown(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([k1, k2, k3, p1, p2]),
         )
     elif projection_type == "fisheye":
@@ -727,9 +713,7 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_fisheye_opencv(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([k1, k2, k3, k4]),
         )
     elif projection_type == "fisheye62":
@@ -737,9 +721,7 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_fisheye62(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([k1, k2, k3, k4, k5, k6, p1, p2]),
         )
     elif projection_type == "fisheye624":
@@ -747,9 +729,7 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_fisheye624(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([k1, k2, k3, k4, k5, k6, p1, p2, s0, s1, s2, s3]),
         )
     elif projection_type == "radial":
@@ -757,9 +737,7 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_radial(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([k1, k2]),
         )
     elif projection_type == "simple_radial":
@@ -767,7 +745,6 @@ def camera_from_vector(
         camera = pygeometry.Camera.create_simple_radial(
             fx,
             fy / fx,
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             np.array([cx, cy]),
             k1,
         )
@@ -1013,7 +990,6 @@ def read_ground_control_points(fileobj: IO[str]) -> List[pymap.GroundControlPoin
                 )
             observing_images.add(o.shot_id)
             if "projection" in o_dict:
-                # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
                 o.projection = np.array(o_dict["projection"])
             observations.append(o)
         point.observations = observations

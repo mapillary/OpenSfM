@@ -220,7 +220,7 @@ def fit_similarity_transform(
 
     assert p1.shape[0] == p2.shape[0]
 
-    best_inliers = []
+    best_inliers = np.empty(0, dtype=int)
     best_T = np.array((3, 4))
     for _ in range(max_iterations):
         rnd = np.random.permutation(num_points)
@@ -245,9 +245,6 @@ def fit_similarity_transform(
         errors = np.sqrt(np.sum((p2h.T - np.dot(best_T, p1h.T)) ** 2, axis=0))
         best_inliers = np.argwhere(errors < threshold)[:, 0]
 
-    # pyre-fixme[7]: Expected `Tuple[ndarray[typing.Any, typing.Any],
-    #  ndarray[typing.Any, typing.Any]]` but got `Tuple[ndarray[typing.Any,
-    #  typing.Any], Union[List[typing.Any], ndarray[typing.Any, dtype[typing.Any]]]]`.
     return best_T, best_inliers
 
 
@@ -283,9 +280,7 @@ def focal_from_homography(H: NDArray) -> NDArray:
 
 
 def R_from_homography(H: NDArray, f1: NDArray, f2: NDArray) -> Optional[NDArray]:
-    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     K1 = np.diag([f1, f1, 1])
-    # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing.Any...
     K2 = np.diag([f2, f2, 1])
     K2inv = np.linalg.inv(K2)
     R = K2inv.dot(H).dot(K1)
@@ -450,9 +445,7 @@ def absolute_pose_known_rotation_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_absolute_pose_known_rotation(
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bs,
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         Xs,
         threshold,
         params,
@@ -474,9 +467,7 @@ def absolute_pose_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_absolute_pose(
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         bs,
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         Xs,
         threshold,
         params,
@@ -500,9 +491,7 @@ def relative_pose_ransac(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_relative_pose(
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         b1,
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         b2,
         threshold,
         params,
@@ -526,9 +515,7 @@ def relative_pose_ransac_rotation_only(
     params = pyrobust.RobustEstimatorParams()
     params.iterations = iterations
     result = pyrobust.ransac_relative_rotation(
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         b1,
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
         b2,
         threshold,
         params,
@@ -543,7 +530,6 @@ def relative_pose_optimize_nonlinear(
     Rt = np.zeros((3, 4))
     Rt[:3, :3] = R.T
     Rt[:, 3] = -R.T.dot(t)
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     Rt_refined = pygeometry.relative_pose_refinement(Rt, b1, b2, iterations)
 
     R, t = Rt_refined[:3, :3].copy(), Rt_refined[:, 3].copy()
@@ -554,7 +540,7 @@ def relative_pose_optimize_nonlinear(
 
 def triangulate_gcp(
     point: pymap.GroundControlPoint,
-    shots: Dict[str, pymap.Shot],
+    shots: Dict[str, pymap.Shot] | pymap.ShotView,
     reproj_threshold: float = 0.02,
     min_ray_angle_degrees: float = 1.0,
     min_depth: float = 0.001,
@@ -568,7 +554,6 @@ def triangulate_gcp(
             shot = shots[shot_id]
             os.append(shot.pose.get_origin())
             x = observation.projection
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             b = shot.camera.pixel_bearing(np.array(x))
             r = shot.pose.get_rotation_matrix().T
             bs.append(r.dot(b))

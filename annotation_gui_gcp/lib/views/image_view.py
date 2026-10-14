@@ -1,6 +1,15 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any, Dict, TYPE_CHECKING
+
+from flask import Response
 
 from .web_view import distinct_colors, WebView
+
+if TYPE_CHECKING:
+    from flask import Flask
+
+    from ..GUI import Gui
 
 
 def point_color(point_id: str) -> str:
@@ -11,12 +20,12 @@ def point_color(point_id: str) -> str:
 class ImageView(WebView):
     def __init__(
         self,
-        main_ui,
-        web_app,
-        route_prefix,
-        image_keys,
-        is_geo_reference,
-    ):
+        main_ui: Gui,
+        web_app: Flask,
+        route_prefix: str,
+        image_keys: list[str],
+        is_geo_reference: bool,
+    ) -> None:
         super().__init__(main_ui, web_app, route_prefix)
         self.main_ui = main_ui
         self.image_manager = main_ui.image_manager
@@ -29,18 +38,18 @@ class ImageView(WebView):
             view_func=self.get_image,
         )
 
-    def get_candidate_images(self):
+    def get_candidate_images(self) -> list[str]:
         return self.image_list
 
-    def get_image(self, path, max_sz):
+    def get_image(self, path: str, max_sz: int) -> Response:
         return self.image_manager.get_image(path, max_sz)
 
     def add_remove_update_point_observation(
         self,
-        image_id,
-        point_coordinates=None,  # normalized pixels
-        precision=None,  # std. deviation in px / max(w,h)
-    ):
+        image_id: str,
+        point_coordinates: tuple[float, float] | None = None,  # normalized pixels
+        precision: float | None = None,  # std. deviation in px / max(w,h)
+    ) -> None:
         gcp_manager = self.main_ui.gcp_manager
         active_gcp = self.main_ui.curr_point
         if active_gcp is None:
@@ -65,16 +74,16 @@ class ImageView(WebView):
 
         self.main_ui.populate_gcp_list()
 
-    def display_points(self):
+    def display_points(self) -> None:
         pass
 
-    def highlight_gcp_reprojection(self, *args, **kwargs):
+    def highlight_gcp_reprojection(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def populate_image_list(self, *args, **kwargs):
+    def populate_image_list(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def sync_to_client(self):
+    def sync_to_client(self) -> None:
         """
         Sends all the data required to initialize or sync the image view
         """

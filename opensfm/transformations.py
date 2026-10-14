@@ -411,7 +411,6 @@ def scale_matrix(
     """
     if direction is None:
         # uniform scaling
-        # pyre-fixme[6]: For 1st argument expected `Union[_SupportsArray[dtype[typing...
         M = numpy.diag([factor, factor, factor, 1.0])
         if origin is not None:
             M[:3, 3] = origin[:3]
@@ -429,7 +428,7 @@ def scale_matrix(
 
 def scale_from_matrix(
     matrix: NDArray,
-) -> Tuple[NDArray, NDArray, NDArray]:
+) -> Tuple[NDArray, NDArray, Optional[NDArray]]:
     """Return scaling factor, origin and direction from scaling matrix.
 
     >>> factor = numpy.random.random() * 10 - 5
@@ -467,10 +466,6 @@ def scale_from_matrix(
         raise ValueError("no eigenvector corresponding to eigenvalue 1")
     origin = numpy.real(V[:, i[-1]]).squeeze()
     origin /= origin[3]
-    # pyre-fixme[7]: Expected `Tuple[ndarray[typing.Any, typing.Any],
-    #  ndarray[typing.Any, typing.Any], ndarray[typing.Any, typing.Any]]` but got
-    #  `Tuple[typing.Any, ndarray[typing.Any, dtype[typing.Any]],
-    #  Optional[ndarray[typing.Any, dtype[typing.Any]]]]`.
     return factor, origin, direction
 
 
@@ -1012,8 +1007,7 @@ def affine_matrix_from_points(
         C = vh[ndims : 2 * ndims]
         t = numpy.dot(C, numpy.linalg.pinv(B))
         t = numpy.concatenate((t, numpy.zeros((ndims, 1))), axis=1)
-        # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
-        M = numpy.vstack((t, ((0.0,) * ndims) + (1.0,)))
+        M = numpy.vstack((t, numpy.array(((0.0,) * ndims) + (1.0,))))
     elif usesvd or ndims != 3:
         # Rigid transformation via SVD of covariance matrix
         u, s, vh = numpy.linalg.svd(numpy.dot(v1, v0.T))
@@ -1109,7 +1103,9 @@ def superimposition_matrix(
     return affine_matrix_from_points(v0, v1, shear=False, scale=scale, usesvd=usesvd)
 
 
-def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> NDArray:
+def euler_matrix(
+    ai: float, aj: float, ak: float, axes: str | tuple[int, ...] = "sxyz"
+) -> NDArray:
     """Return homogeneous rotation matrix from Euler angles and axis sequence.
 
     ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -1128,10 +1124,9 @@ def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> NDArray
     ...    R = euler_matrix(ai, aj, ak, axes)
 
     """
-    try:
+    if isinstance(axes, str):
         firstaxis, parity, repetition, frame = _AXES2TUPLE[axes]
-    except (AttributeError, KeyError):
-        # pyre-fixme[6]: For 1st argument expected `tuple[int, ...]` but got `str`.
+    else:
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
@@ -1175,7 +1170,7 @@ def euler_matrix(ai: float, aj: float, ak: float, axes: str = "sxyz") -> NDArray
 
 
 def euler_from_matrix(
-    matrix: NDArray, axes: str = "sxyz"
+    matrix: NDArray, axes: str | tuple[int, ...] = "sxyz"
 ) -> Tuple[float, float, float]:
     """Return Euler angles from rotation matrix for specified axis sequence.
 
@@ -1195,10 +1190,9 @@ def euler_from_matrix(
     ...    if not numpy.allclose(R0, R1): print(axes, "failed")
 
     """
-    try:
+    if isinstance(axes, str):
         firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
-    except (AttributeError, KeyError):
-        # pyre-fixme[6]: For 1st argument expected `tuple[int, ...]` but got `str`.
+    else:
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
@@ -1237,7 +1231,7 @@ def euler_from_matrix(
 
 
 def euler_from_quaternion(
-    quaternion: NDArray, axes: str = "sxyz"
+    quaternion: NDArray, axes: str | tuple[int, ...] = "sxyz"
 ) -> Tuple[float, float, float]:
     """Return Euler angles from quaternion for specified axis sequence.
 
@@ -1250,7 +1244,7 @@ def euler_from_quaternion(
 
 
 def quaternion_from_euler(
-    ai: NDArray, aj: NDArray, ak: NDArray, axes: str = "sxyz"
+    ai: NDArray, aj: NDArray, ak: NDArray, axes: str | tuple[int, ...] = "sxyz"
 ) -> NDArray:
     """Return quaternion from Euler angles and axis sequence.
 
@@ -1262,10 +1256,9 @@ def quaternion_from_euler(
     True
 
     """
-    try:
+    if isinstance(axes, str):
         firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
-    except (AttributeError, KeyError):
-        # pyre-fixme[6]: For 1st argument expected `tuple[int, ...]` but got `str`.
+    else:
         _TUPLE2AXES[axes]  # validation
         firstaxis, parity, repetition, frame = axes
 
@@ -1669,14 +1662,10 @@ def vector_norm(
         data *= data
         out = numpy.atleast_1d(numpy.sum(data, axis=axis))
         numpy.sqrt(out, out)
-        # pyre-fixme[7]: Expected `float` but got `ndarray[typing.Any,
-        #  dtype[typing.Any]]`.
         return out
     else:
         data *= data
         numpy.sum(data, axis=axis, out=out)
-        # pyre-fixme[7]: Expected `float` but got `ndarray[typing.Any,
-        #  dtype[typing.Any]]`.
         return numpy.sqrt(out, out)
 
 
@@ -1840,7 +1829,6 @@ def is_same_transform(matrix0: NDArray, matrix1: NDArray) -> NDArray:
     matrix0 /= matrix0[3, 3]
     matrix1 = numpy.array(matrix1, dtype=numpy.float64, copy=True)
     matrix1 /= matrix1[3, 3]
-    # pyre-fixme[7]: Expected `ndarray[typing.Any, typing.Any]` but got `bool`.
     return numpy.allclose(matrix0, matrix1)
 
 

@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import rasterio
 from flask import Response, send_file
 from PIL import ImageColor
 
+from ..gcp_manager import GeodeticDict
 from ..views.web_view import distinct_colors, WebView
+
+if TYPE_CHECKING:
+    from flask import Flask
+
+    from ..GUI import Gui
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -26,8 +34,8 @@ def _load_georeference_metadata(path_cad_model: Path) -> dict[str, Any]:
 class CADView(WebView):
     def __init__(
         self,
-        main_ui: object,
-        web_app: object,
+        main_ui: Gui,
+        web_app: Flask,
         route_prefix: str,
         path_cad_file: Path,
         is_geo_reference: bool = False,
@@ -79,12 +87,11 @@ class CADView(WebView):
         if point_coordinates is not None and self.is_geo_reference is not None:
             lla = self.xyz_to_latlon(*point_coordinates)
 
-            geo = {
+            geo: GeodeticDict = {
                 "latitude": lla[0],
                 "longitude": lla[1],
                 "altitude": lla[2],
                 "horizontal_std": 100,
-                "vertical_std": None,
             }
             self.main_ui.gcp_manager.add_point_observation(
                 active_gcp,

@@ -1,9 +1,18 @@
+from __future__ import annotations
+
 import abc
 import json
 import time
+from collections.abc import Iterator
 from queue import Queue
+from typing import Any, TYPE_CHECKING
 
 from flask import jsonify, render_template, request, Response
+
+if TYPE_CHECKING:
+    from flask import Flask
+
+    from ..GUI import Gui
 
 distinct_colors = [
     "#46f0f0",
@@ -29,34 +38,34 @@ distinct_colors = [
 
 
 class WebView(abc.ABC):
-    def __init__(self, main_ui, web_app, route_prefix):
+    def __init__(self, main_ui: Gui, web_app: Flask, route_prefix: str) -> None:
         self.main_ui = main_ui
         self.app = web_app
-        self.eventQueue = Queue()
+        self.eventQueue: Queue[str] = Queue()
         self.latlons = main_ui.image_manager.load_latlons()
         self.register_routes(route_prefix)
         self.route_prefix = route_prefix
 
     @abc.abstractclassmethod
-    def sync_to_client(self):
+    def sync_to_client(self) -> None:
         pass
 
     @abc.abstractclassmethod
-    def process_client_message(self, data):
+    def process_client_message(self, data: dict[str, Any]) -> None:
         pass
 
-    def template_name(self):
+    def template_name(self) -> str:
         class_name = type(self).__name__
         return class_name
 
-    def register_routes(self, route):
-        def send_main_page():
+    def register_routes(self, route: str) -> None:
+        def send_main_page() -> str:
             template = self.template_name()
             return render_template(f"{template}.html", class_name=template)
 
         self.app.add_url_rule(route, route + "_index", send_main_page)
 
-        def postdata():
+        def postdata() -> Response:
             data = request.get_json()
 
             # Do something with the event received from the client
@@ -72,8 +81,8 @@ class WebView(abc.ABC):
         )
 
         # Stream for server -> client updates through Server-Sent Events
-        def stream():
-            def eventStream():
+        def stream() -> Response:
+            def eventStream() -> Iterator[str]:
                 while True:
                     msg = self.eventQueue.get()  # blocks until a new message arrives
                     yield msg
@@ -82,7 +91,7 @@ class WebView(abc.ABC):
 
         self.app.add_url_rule(route + "/stream", route + "_stream", stream)
 
-    def send_sse_message(self, data, event_type="sync"):
+    def send_sse_message(self, data: dict[str, Any], event_type: str = "sync") -> None:
         # Send to the client
         data["time"] = time.time()
         sse_string = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"

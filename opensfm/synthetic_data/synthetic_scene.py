@@ -72,9 +72,7 @@ def camera_pose(position: NDArray, lookat: NDArray, up: NDArray) -> pygeometry.P
     ex = normalized(np.cross(ez, up))
     ey = normalized(np.cross(ez, ex))
     pose = pygeometry.Pose()
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     pose.set_rotation_matrix(np.array([ex, ey, ez]))
-    # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
     pose.set_origin(position)
     return pose
 
@@ -122,7 +120,6 @@ class SyntheticCubeScene(SyntheticScene):
         for i, p in enumerate(points):
             point_id = "point" + str(i)
             pt = self.reconstruction.create_point(point_id, p)
-            # pyre-fixme[6]: opensfm pybind / numpy stubs gap — runtime ok.
             pt.color = np.array([100, 100, 20])
 
     def get_reconstruction(self) -> types.Reconstruction:
@@ -398,11 +395,7 @@ class SyntheticStreetScene(SyntheticScene):
         wall_color = [10, 90, 130]
 
         return sg.create_reconstruction(
-            # pyre-fixme[6]: For 1st argument expected `List[ndarray[typing.Any,
-            #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
             points=np.asarray([self.floor_points, self.wall_points], dtype=object),
-            # pyre-fixme[6]: For 2nd argument expected `List[ndarray[typing.Any,
-            #  typing.Any]]` but got `ndarray[typing.Any, dtype[typing.Any]]`.
             colors=np.asarray([floor_color, wall_color]),
             cameras=self.cameras,
             shot_ids=self.shot_ids,

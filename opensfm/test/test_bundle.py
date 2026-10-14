@@ -3,16 +3,7 @@ import copy
 import numpy as np
 import pytest
 from numpy.typing import NDArray
-from opensfm import (
-    config,
-    geometry,
-    pybundle,
-    pygeometry,
-    pymap,
-    reconstruction,
-    tracking,
-    types,
-)
+from opensfm import config, geometry, pybundle, pygeometry, pymap, reconstruction, types
 from opensfm.synthetic_data import synthetic_scene
 
 
@@ -28,7 +19,7 @@ def test_unicode_strings_in_bundle() -> None:
     camera.id = unicode_id
     ba.add_camera(camera.id, camera, camera, True)
 
-    # pyre-fixme[8]: Attribute has type `str`; used as `bytes`.
+    # pyre-fixme[8]: pybind accepts `bytes` for `std::string`, but the generated stub types `id` as `str`.
     camera.id = byte_id
     ba.add_camera(camera.id, camera, camera, True)
 
@@ -109,36 +100,26 @@ def test_bundle_projection_fixed_internals(
     reference = scene_synthetic.reconstruction
     camera_priors = dict(reference.cameras.items())
     rig_priors = dict(reference.rig_cameras.items())
-    graph = tracking.as_graph(scene_synthetic.tracks_manager)
+    tracks_manager = scene_synthetic.tracks_manager
+    track_ids = set(tracks_manager.get_track_ids())
     # Create the connections in the reference
     for point_id in reference.points.keys():
-        if point_id in graph:
-            for shot_id, g_obs in graph[point_id].items():
-                color = g_obs["feature_color"]
-                pt = g_obs["feature"]
+        if point_id in track_ids:
+            for shot_id, track_obs in tracks_manager.get_track_observations(
+                point_id
+            ).items():
+                color = track_obs.color
+                pt = track_obs.point
                 obs = pymap.Observation(
-                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[0],
-                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     pt[1],
-                    # pyre-fixme[6]: For 3rd argument expected `float` but got
-                    #  `Dict[str, typing.Any]`.
-                    g_obs["feature_scale"],
-                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
+                    track_obs.scale,
                     color[0],
-                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[1],
-                    # pyre-fixme[6]: For 1st argument expected `str` but got `int`.
                     color[2],
-                    # pyre-fixme[6]: For 7th argument expected `int` but got
-                    #  `Dict[str, typing.Any]`.
-                    g_obs["feature_id"],
-                    # pyre-fixme[6]: For 8th argument expected `int` but got
-                    #  `Dict[str, typing.Any]`.
-                    g_obs["feature_segmentation"],
-                    # pyre-fixme[6]: For 9th argument expected `int` but got
-                    #  `Dict[str, typing.Any]`.
-                    g_obs["feature_instance"],
+                    track_obs.id,
+                    track_obs.segmentation,
+                    track_obs.instance,
                 )
                 reference.map.add_observation(shot_id, point_id, obs)
 
