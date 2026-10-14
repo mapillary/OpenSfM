@@ -1662,6 +1662,7 @@ def vector_norm(
         data *= data
         out = numpy.atleast_1d(numpy.sum(data, axis=axis))
         numpy.sqrt(out, out)
+        # pyrefly: ignore [bad-return]
         return out
     else:
         data *= data
