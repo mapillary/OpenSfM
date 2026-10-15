@@ -10,19 +10,8 @@ import time
 
 import numpy as np
 from opensfm import geo
-
-
-try:
-    # pyre-fixme[21]: Could not find module `pyexiv2` (Python 2 only; not in third-party).
-    import pyexiv2
-
-    # pyre-fixme[21]: Could not find module `pyexiv2.utils` (Python 2 only; not in third-party).
-    from pyexiv2.utils import make_fraction
-except ImportError:
-    # pyexiv2 is not available in python 3. We catch the error
-    # so that py.test can load this module anyway.
-    # TODO(pau): find an alternative package. Probably py3exiv2.
-    print("ERROR: pyexiv2 module not available")
+from PIL import Image, TiffImagePlugin
+from PIL.ExifTags import Base, GPS, IFD
 
 try:
     import gpxpy
@@ -45,9 +34,6 @@ for each image, and writes the values to the EXIF of the image.
 You can supply a time offset in seconds if the GPS clock and camera clocks are not in sync.
 
 Requires gpxpy, e.g. 'pip install gpxpy'
-
-Requires pyexiv2, see install instructions at http://tilloy.net/dev/pyexiv2/
-(or use your favorite installer, e.g. 'brew install pyexiv2').
 """
 
 
@@ -286,6 +272,66 @@ def sample_gpx(
     return key_points
 
 
+EXIF_DATETIME_FORMAT = "%Y:%m:%d %H:%M:%S"
+
+
+def _dms_rationals(
+    deg: tuple[int, int, float, str],
+) -> tuple[
+    TiffImagePlugin.IFDRational,
+    TiffImagePlugin.IFDRational,
+    TiffImagePlugin.IFDRational,
+]:
+    return (
+        TiffImagePlugin.IFDRational(deg[0], 1),
+        TiffImagePlugin.IFDRational(int(deg[1]), 1),
+        TiffImagePlugin.IFDRational(int(deg[2] * 1000000), 1000000),
+    )
+
+
+def _set_gps_exif(
+    exif: Image.Exif,
+    lat: float,
+    lon: float,
+    bearing: float,
+    bearing_denominator: int,
+    elevation: float | None,
+) -> None:
+    lat_deg = to_deg(lat, ["S", "N"])
+    lon_deg = to_deg(lon, ["W", "E"])
+    gps: dict[int, object] = {
+        GPS.GPSVersionID: b"\x02\x00\x00\x00",
+        GPS.GPSLatitudeRef: lat_deg[3],
+        GPS.GPSLatitude: _dms_rationals(lat_deg),
+        GPS.GPSLongitudeRef: lon_deg[3],
+        GPS.GPSLongitude: _dms_rationals(lon_deg),
+        GPS.GPSMapDatum: "WGS-84",
+        GPS.GPSImgDirectionRef: "T",
+        GPS.GPSImgDirection: TiffImagePlugin.IFDRational(
+            int(bearing * bearing_denominator), bearing_denominator
+        ),
+    }
+    if elevation is not None:
+        gps[GPS.GPSAltitudeRef] = 0 if elevation >= 0 else 1
+        gps[GPS.GPSAltitude] = TiffImagePlugin.IFDRational(
+            int(abs(elevation) * 100), 100
+        )
+    exif[IFD.GPSInfo] = gps
+
+
+def _save_with_exif(
+    image: Image.Image, filename: os.PathLike[str] | str, exif: Image.Exif
+) -> None:
+    image.save(
+        filename,
+        format=image.format,
+        exif=exif,
+        icc_profile=image.info.get("icc_profile"),
+        quality="keep",
+        subsampling="keep",
+    )
+
+
 def add_gps_to_exif(
     filename: os.PathLike[str] | str,
     lat: float,
@@ -298,49 +344,17 @@ def add_gps_to_exif(
     """
     Given lat, lon, bearing, elevation, write to EXIF
     """
-    # TODO: use this within add_exif_using_timestamp
     if updated_filename is not None:
         shutil.copy2(filename, updated_filename)
         filename = updated_filename
 
-    metadata = pyexiv2.ImageMetadata(filename)
-    metadata.read()
-    lat_deg = to_deg(lat, ["S", "N"])
-    lon_deg = to_deg(lon, ["W", "E"])
-
-    # convert decimal coordinates into degrees, minutes and seconds as fractions for EXIF
-    exiv_lat = (
-        make_fraction(lat_deg[0], 1),
-        make_fraction(int(lat_deg[1]), 1),
-        make_fraction(int(lat_deg[2] * 1000000), 1000000),
-    )
-    exiv_lon = (
-        make_fraction(lon_deg[0], 1),
-        make_fraction(int(lon_deg[1]), 1),
-        make_fraction(int(lon_deg[2] * 1000000), 1000000),
-    )
-
-    # convert direction into fraction
-    exiv_bearing = make_fraction(int(bearing * 100), 100)
-
-    # add to exif
-    metadata["Exif.GPSInfo.GPSLatitude"] = exiv_lat
-    metadata["Exif.GPSInfo.GPSLatitudeRef"] = lat_deg[3]
-    metadata["Exif.GPSInfo.GPSLongitude"] = exiv_lon
-    metadata["Exif.GPSInfo.GPSLongitudeRef"] = lon_deg[3]
-    metadata["Exif.Image.GPSTag"] = 654
-    metadata["Exif.GPSInfo.GPSMapDatum"] = "WGS-84"
-    metadata["Exif.GPSInfo.GPSVersionID"] = "2 0 0 0"
-    metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
-    metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
-    if remove_image_description:
-        metadata["Exif.Image.ImageDescription"] = []
-
-    if elevation is not None:
-        exiv_elevation = make_fraction(int(abs(elevation) * 100), 100)
-        metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
-        metadata["Exif.GPSInfo.GPSAltitudeRef"] = "0" if elevation >= 0 else "1"
-    metadata.write()
+    with Image.open(filename) as image:
+        image.load()
+        exif = image.getexif()
+        _set_gps_exif(exif, lat, lon, bearing, 100, elevation)
+        if remove_image_description:
+            exif.pop(Base.ImageDescription, None)
+        _save_with_exif(image, filename, exif)
 
 
 def add_exif_using_timestamp(
@@ -354,66 +368,38 @@ def add_exif_using_timestamp(
     """
     Find lat, lon and bearing of filename and write to EXIF.
     """
-
-    metadata = pyexiv2.ImageMetadata(filename)
-    metadata.read()
-    if timestamp:
-        metadata["Exif.Photo.DateTimeOriginal"] = timestamp
-
-    t = metadata["Exif.Photo.DateTimeOriginal"].value
-
-    # subtract offset in s between gpx time and exif time
-    t = t - datetime.timedelta(seconds=offset_time)
-
-    try:
-        lat, lon, bearing, elevation = interpolate_lat_lon(points, t)
-
-        lat_deg = to_deg(lat, ["S", "N"])
-        lon_deg = to_deg(lon, ["W", "E"])
-
-        # convert decimal coordinates into degrees, minutes and seconds as fractions for EXIF
-        exiv_lat = (
-            make_fraction(lat_deg[0], 1),
-            make_fraction(int(lat_deg[1]), 1),
-            make_fraction(int(lat_deg[2] * 1000000), 1000000),
-        )
-        exiv_lon = (
-            make_fraction(lon_deg[0], 1),
-            make_fraction(int(lon_deg[1]), 1),
-            make_fraction(int(lon_deg[2] * 1000000), 1000000),
-        )
-
-        # convert direction into fraction
-        exiv_bearing = make_fraction(int(bearing * 1000), 1000)
-
-        # add to exif
-        metadata["Exif.GPSInfo.GPSLatitude"] = exiv_lat
-        metadata["Exif.GPSInfo.GPSLatitudeRef"] = lat_deg[3]
-        metadata["Exif.GPSInfo.GPSLongitude"] = exiv_lon
-        metadata["Exif.GPSInfo.GPSLongitudeRef"] = lon_deg[3]
-        metadata["Exif.Image.GPSTag"] = 654
-        metadata["Exif.GPSInfo.GPSMapDatum"] = "WGS-84"
-        metadata["Exif.GPSInfo.GPSVersionID"] = "2 0 0 0"
-        metadata["Exif.GPSInfo.GPSImgDirection"] = exiv_bearing
-        metadata["Exif.GPSInfo.GPSImgDirectionRef"] = "T"
-        metadata["Exif.Image.Orientation"] = orientation
-        if image_description is not None:
-            metadata["Exif.Image.ImageDescription"] = image_description
-
-        if elevation is not None:
-            exiv_elevation = make_fraction(int(abs(elevation) * 100), 100)
-            metadata["Exif.GPSInfo.GPSAltitude"] = exiv_elevation
-            metadata["Exif.GPSInfo.GPSAltitudeRef"] = "0" if elevation >= 0 else "1"
-
-        metadata.write()
-
-        print(
-            "Added geodata to: {0} ({1}, {2}, {3}), altitude {4}".format(
-                filename, lat, lon, bearing, elevation
+    with Image.open(filename) as image:
+        image.load()
+        exif = image.getexif()
+        exif_ifd = exif.get_ifd(IFD.Exif)
+        if timestamp:
+            exif_ifd[Base.DateTimeOriginal] = timestamp.strftime(EXIF_DATETIME_FORMAT)
+            exif[IFD.Exif] = exif_ifd
+            t = timestamp
+        else:
+            t = datetime.datetime.strptime(
+                exif_ifd[Base.DateTimeOriginal], EXIF_DATETIME_FORMAT
             )
+
+        # subtract offset in s between gpx time and exif time
+        t = t - datetime.timedelta(seconds=offset_time)
+
+        try:
+            lat, lon, bearing, elevation = interpolate_lat_lon(points, t)
+            _set_gps_exif(exif, lat, lon, bearing, 1000, elevation)
+            exif[Base.Orientation] = orientation
+            if image_description is not None:
+                exif[Base.ImageDescription] = image_description
+            _save_with_exif(image, filename, exif)
+        except ValueError as e:
+            print("Skipping {0}: {1}".format(filename, e))
+            return
+
+    print(
+        "Added geodata to: {0} ({1}, {2}, {3}), altitude {4}".format(
+            filename, lat, lon, bearing, elevation
         )
-    except ValueError as e:
-        print("Skipping {0}: {1}".format(filename, e))
+    )
 
 
 if __name__ == "__main__":

@@ -8,20 +8,14 @@ from opensfm.synthetic_data import synthetic_scene
 
 
 def test_unicode_strings_in_bundle() -> None:
-    """Test that byte and unicode strings can be used as camera ids."""
+    """Test that ASCII and non-ASCII unicode strings can be used as camera ids."""
     ba = pybundle.BundleAdjuster()
-
-    unicode_id = "A\xb2"
-    byte_id = b"A_2"
-
     camera = pygeometry.Camera.create_perspective(0.4, 0.1, -0.01)
 
-    camera.id = unicode_id
-    ba.add_camera(camera.id, camera, camera, True)
-
-    # pyre-fixme[8]: pybind accepts `bytes` for `std::string`, but the generated stub types `id` as `str`.
-    camera.id = byte_id
-    ba.add_camera(camera.id, camera, camera, True)
+    for camera_id in ("A\xb2", "A_2"):
+        camera.id = camera_id
+        ba.add_camera(camera.id, camera, camera, True)
+        assert ba.get_camera(camera_id).id == camera_id
 
 
 @pytest.fixture()
