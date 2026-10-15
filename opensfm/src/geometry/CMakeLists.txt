@@ -20,7 +20,7 @@ set(GEOMETRY_FILES
     )
 add_library(geometry ${GEOMETRY_FILES})
 target_link_libraries(geometry
-    PRIVATE
+    PUBLIC
     foundation
     ${CERES_LIBRARIES}
     )
