@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <optional>
 #include <vector>
 
 extern "C" {
@@ -16,6 +17,144 @@ extern "C" {
 }
 
 namespace sfm::map_helpers {
+
+namespace {
+
+struct LandmarkViews {
+  std::vector<geometry::Camera> cameras;
+  std::vector<geometry::Pose> poses;
+  std::vector<Vec2d> observations;
+};
+
+// Build camera/pose/observation vectors from a landmark's observations.
+LandmarkViews CollectLandmarkViews(const map::Landmark& lm) {
+  const auto& observations = lm.GetObservations();
+
+  LandmarkViews views;
+  views.cameras.reserve(observations.size());
+  views.poses.reserve(observations.size());
+  views.observations.reserve(observations.size());
+
+  for (const auto& [shot_ptr, feat_id] : observations) {
+    if (!shot_ptr) {
+      continue;
+    }
+
+    const geometry::Pose* pose_ptr = shot_ptr->GetPose();
+    const geometry::Camera* cam_ptr = shot_ptr->GetCamera();
+    if (!pose_ptr || !cam_ptr) {
+      continue;
+    }
+
+    // Get the shot's Observation for this landmark.
+    map::Observation* obs_ptr =
+        shot_ptr->GetLandmarkObservation(const_cast<map::Landmark*>(&lm));
+    if (!obs_ptr) {
+      continue;
+    }
+
+    views.cameras.push_back(*cam_ptr);
+    views.poses.push_back(*pose_ptr);
+    views.observations.push_back(obs_ptr->point);
+  }
+  return views;
+}
+
+// Simple check based on angle between all pairs of rays
+bool HasWideEnoughRays(const std::vector<geometry::Pose>& poses,
+                       const Vec3d& global_pos, double rad_angle) {
+  for (size_t i = 0; i < poses.size(); ++i) {
+    for (size_t j = i + 1; j < poses.size(); ++j) {
+      const auto ray1 = (global_pos - poses[i].GetOrigin()).normalized();
+      const auto ray2 = (global_pos - poses[j].GetOrigin()).normalized();
+      if (geometry::AngleBetweenVectors(ray1, ray2) > rad_angle) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Condition number of the point covariance, or nullopt if the point is
+// numerically degenerate and must be removed.
+std::optional<double> ComputeConditionNumber(const LandmarkViews& views,
+                                             const Vec3d& global_pos,
+                                             double min_abs_det,
+                                             double max_cond) {
+  auto [invcov, score] = geometry::covariance::ComputePointInverseCovariance(
+      views.cameras, views.poses, views.observations, global_pos);
+  if (!invcov.allFinite()) {
+    return std::nullopt;
+  }
+
+  const double det = invcov.determinant();
+  if (!std::isfinite(det) || std::abs(det) < min_abs_det) {
+    return std::nullopt;
+  }
+
+  Eigen::SelfAdjointEigenSolver<Mat3d> es(invcov.inverse());
+  if (es.info() != Eigen::Success) {
+    return std::nullopt;
+  }
+  const auto& eigs = es.eigenvalues();
+  if (!(eigs.array().isFinite().all())) {
+    return std::nullopt;
+  }
+
+  const double max_eig = eigs.maxCoeff();
+  const double min_eig = eigs.minCoeff();
+
+  // If any eigenvalue is non-positive or extremely small, mark removal.
+  if (min_eig <= 0.0 || !std::isfinite(min_eig)) {
+    return std::nullopt;
+  }
+
+  const double cond = std::min(std::sqrt(max_eig / min_eig), max_cond);
+  if (!std::isfinite(cond)) {
+    return std::nullopt;
+  }
+  return cond;
+}
+
+// Append landmarks whose condition number is above mean + k * sigma.
+void AppendConditionOutliers(
+    const std::vector<std::pair<map::LandmarkId, double>>& landmark_conds,
+    double sigma_multiplier, std::vector<map::LandmarkId>& to_remove) {
+  if (landmark_conds.empty()) {
+    return;
+  }
+  const double avg_cond =
+      std::accumulate(
+          landmark_conds.begin(), landmark_conds.end(), 0.0,
+          [](double sum, const auto& pair) { return sum + pair.second; }) /
+      landmark_conds.size();
+  const double sigma = std::sqrt(
+      std::accumulate(landmark_conds.begin(), landmark_conds.end(), 0.0,
+                      [avg_cond](double sum, const auto& pair) {
+                        return sum + (pair.second - avg_cond) *
+                                         (pair.second - avg_cond);
+                      }) /
+      landmark_conds.size());
+  const double threshold = avg_cond + sigma_multiplier * sigma;
+  for (const auto& [lm_id, cond] : landmark_conds) {
+    if (cond > threshold) {
+      to_remove.push_back(lm_id);
+    }
+  }
+}
+
+int RemoveLandmarks(map::Map& map, const std::vector<map::LandmarkId>& ids) {
+  int removed = 0;
+  for (const auto& lm_id : ids) {
+    if (map.HasLandmark(lm_id)) {
+      map.RemoveLandmark(lm_id);
+      ++removed;
+    }
+  }
+  return removed;
+}
+
+}  // namespace
 
 int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
                                  double min_abs_det) {
@@ -31,136 +170,24 @@ int FilterBadlyConditionedPoints(map::Map& map, double min_angle_deg,
 
   // Iterate over a snapshot of landmarks to decide removals.
   for (const auto& [lm_id, lm] : map.GetLandmarks()) {
-    const auto& observations = lm.GetObservations();
-
-    std::vector<geometry::Camera> cameras;
-    cameras.reserve(observations.size());
-    std::vector<geometry::Pose> poses;
-    poses.reserve(observations.size());
-    std::vector<Vec2d> obs_vec;
-    obs_vec.reserve(observations.size());
-
-    // Build camera/pose/observation vectors from observations.
-    for (const auto& [shot_ptr, feat_id] : observations) {
-      if (!shot_ptr) {
-        continue;
-      }
-
-      const geometry::Pose* pose_ptr = shot_ptr->GetPose();
-      const geometry::Camera* cam_ptr = shot_ptr->GetCamera();
-      if (!pose_ptr || !cam_ptr) {
-        continue;
-      }
-
-      // Get the shot's Observation for this landmark.
-      map::Observation* obs_ptr =
-          shot_ptr->GetLandmarkObservation(const_cast<map::Landmark*>(&lm));
-      if (!obs_ptr) {
-        continue;
-      }
-
-      cameras.push_back(*cam_ptr);
-      poses.push_back(*pose_ptr);
-      obs_vec.push_back(obs_ptr->point);
-    }
-
-    // First simple check based on angle between all pairs of raysmap
+    const auto views = CollectLandmarkViews(lm);
     const auto global_pos = lm.GetGlobalPos();
-    bool to_keep = false;
-    for (size_t i = 0; i < poses.size() && !to_keep; ++i) {
-      for (size_t j = i + 1; j < poses.size() && !to_keep; ++j) {
-        const auto ray1 = (global_pos - poses[i].GetOrigin()).normalized();
-        const auto ray2 = (global_pos - poses[j].GetOrigin()).normalized();
-        const double angle = geometry::AngleBetweenVectors(ray1, ray2);
-        if (angle > rad_angle) {
-          to_keep = true;
-          break;
-        }
-      }
-    }
-    if (!to_keep) {
+    if (!HasWideEnoughRays(views.poses, global_pos, rad_angle)) {
       to_remove.push_back(lm_id);
       continue;
     }
 
-    // Compute inverse covariance for the point.
-    auto [invcov, score] = geometry::covariance::ComputePointInverseCovariance(
-        cameras, poses, obs_vec, global_pos);
-
-    // Basic numerical checks.
-    if (!invcov.allFinite()) {
+    const auto cond =
+        ComputeConditionNumber(views, global_pos, min_abs_det, kMaxCond);
+    if (!cond) {
       to_remove.push_back(lm_id);
       continue;
     }
-
-    // Determinant-based test.
-    const double det = invcov.determinant();
-    if (!std::isfinite(det) || std::abs(det) < min_abs_det) {
-      to_remove.push_back(lm_id);
-      continue;
-    }
-
-    // Eigenvalue-based test (condition number).
-    Eigen::SelfAdjointEigenSolver<Mat3d> es(invcov.inverse());
-    if (es.info() != Eigen::Success) {
-      to_remove.push_back(lm_id);
-      continue;
-    }
-    const auto& eigs = es.eigenvalues();
-    if (!(eigs.array().isFinite().all())) {
-      to_remove.push_back(lm_id);
-      continue;
-    }
-
-    const double max_eig = eigs.maxCoeff();
-    const double min_eig = eigs.minCoeff();
-
-    // If any eigenvalue is non-positive or extremely small, mark removal.
-    if (min_eig <= 0.0 || !std::isfinite(min_eig)) {
-      to_remove.push_back(lm_id);
-      continue;
-    }
-
-    const double cond = std::min(std::sqrt(max_eig / min_eig), kMaxCond);
-    if (!std::isfinite(cond)) {
-      to_remove.push_back(lm_id);
-      continue;
-    }
-    landmark_conds.emplace_back(lm_id, cond);
+    landmark_conds.emplace_back(lm_id, *cond);
   }
 
-  // Compute median and MAD of condition numbers.
-  if (!landmark_conds.empty()) {
-    const double avg_cond =
-        std::accumulate(
-            landmark_conds.begin(), landmark_conds.end(), 0.0,
-            [](double sum, const auto& pair) { return sum + pair.second; }) /
-        landmark_conds.size();
-    const double sigma = std::sqrt(
-        std::accumulate(landmark_conds.begin(), landmark_conds.end(), 0.0,
-                        [avg_cond](double sum, const auto& pair) {
-                          return sum + (pair.second - avg_cond) *
-                                           (pair.second - avg_cond);
-                        }) /
-        landmark_conds.size());
-    const double threshold = avg_cond + kSigmaMultiplier * sigma;
-    for (const auto& [lm_id, cond] : landmark_conds) {
-      if (cond > threshold) {
-        to_remove.push_back(lm_id);
-      }
-    }
-  }
-
-  // Remove collected landmarks from the map.
-  int removed = 0;
-  for (const auto& lm_id : to_remove) {
-    if (map.HasLandmark(lm_id)) {
-      map.RemoveLandmark(lm_id);
-      ++removed;
-    }
-  }
-
-  return removed;
+  AppendConditionOutliers(landmark_conds, kSigmaMultiplier, to_remove);
+  return RemoveLandmarks(map, to_remove);
 }
 
 int RemoveIsolatedPoints(map::Map& map, int k) {

@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -114,6 +115,353 @@ std::unordered_set<map::Shot*> BAHelpers::DirectShotNeighbors(
   return neighbors;
 }
 
+namespace {
+using Clock = std::chrono::high_resolution_clock;
+
+double ElapsedSeconds(const Clock::time_point& from,
+                      const Clock::time_point& to) {
+  return std::chrono::duration_cast<std::chrono::microseconds>(to - from)
+             .count() /
+         1000000.0;
+}
+
+void SetWallTimes(py::dict& report, const Clock::time_point& start,
+                  const Clock::time_point& timer_setup,
+                  const Clock::time_point& timer_run,
+                  const Clock::time_point& timer_teardown) {
+  report["wall_times"] = py::dict();
+  report["wall_times"]["setup"] = ElapsedSeconds(start, timer_setup);
+  report["wall_times"]["run"] = ElapsedSeconds(timer_setup, timer_run);
+  report["wall_times"]["teardown"] = ElapsedSeconds(timer_run, timer_teardown);
+}
+
+void SetLossAndPriorsFromConfig(bundle::BundleAdjuster& ba,
+                                const py::dict& config) {
+  ba.SetPointProjectionLossFunction(
+      config["loss_function"].cast<std::string>(),
+      config["loss_function_threshold"].cast<double>());
+  ba.SetInternalParametersPriorSD(
+      config["exif_focal_sd"].cast<double>(),
+      config["aspect_ratio_sd"].cast<double>(),
+      config["principal_point_sd"].cast<double>(),
+      config["radial_distortion_k1_sd"].cast<double>(),
+      config["radial_distortion_k2_sd"].cast<double>(),
+      config["tangential_distortion_p1_sd"].cast<double>(),
+      config["tangential_distortion_p2_sd"].cast<double>(),
+      config["radial_distortion_k3_sd"].cast<double>(),
+      config["radial_distortion_k4_sd"].cast<double>());
+  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
+                             config["rig_rotation_sd"].cast<double>());
+}
+
+void RunWithoutGIL(bundle::BundleAdjuster& ba) {
+  py::gil_scoped_release release;
+  ba.Run();
+}
+
+// We're going to assign GPS constraint to the instance itself by averaging
+// its shot's GPS values (and std dev.)
+struct GpsAverage {
+  Vec3d position{Vec3d::Zero()};
+  double std_dev{0.};
+  int count{0};
+
+  void Add(const Vec3d& gps_position, double gps_accuracy) {
+    position += gps_position;
+    std_dev += gps_accuracy;
+    ++count;
+  }
+
+  // Only add averaged rig position constraints to moving instances
+  void AddPriorTo(bundle::BundleAdjuster& ba,
+                  const map::RigInstanceId& rig_instance_id,
+                  const std::string& gps_scale_group) {
+    position /= count;
+    std_dev /= count;
+    ba.AddRigInstancePositionPrior(rig_instance_id, position,
+                                   Vec3d::Constant(std_dev), gps_scale_group);
+  }
+};
+
+const std::string kGpsScaleGroup = "dummy";  // unused for now
+
+void SetFixedRigCameras(
+    bundle::BundleAdjuster& ba, map::Map& map,
+    const std::unordered_set<map::RigCameraId>& rig_cameras_ids,
+    const std::unordered_map<map::RigCameraId, map::RigCamera>&
+        rig_camera_priors) {
+  constexpr bool rig_camera_constant{true};
+  for (const auto& rig_camera_id : rig_cameras_ids) {
+    const auto& rig_camera = map.GetRigCamera(rig_camera_id);
+    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
+                    rig_camera_priors.at(rig_camera_id).pose,
+                    rig_camera_constant);
+  }
+}
+
+// Local bundle : if any instance's shot is in boundary, then the entire
+// instance will be fixed
+void AddLocalBundleRigInstance(bundle::BundleAdjuster& ba, map::Map& map,
+                               const map::RigInstanceId& rig_instance_id,
+                               const std::unordered_set<map::Shot*>& boundary,
+                               const py::dict& config) {
+  auto& instance = map.GetRigInstance(rig_instance_id);
+  std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
+  GpsAverage gps;
+  bool fix_instance = false;
+  for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
+    auto& shot = map.GetShot(shot_id);
+    shot_cameras[shot_id] = shot.GetCamera()->id;
+    shot_rig_cameras[shot_id] = rig_camera->id;
+
+    const auto is_boundary = boundary.find(&shot) != boundary.end();
+    if (is_boundary) {
+      fix_instance = true;
+      continue;
+    }
+    const auto& measurements = shot.GetShotMeasurements();
+    if (config["bundle_use_gps"].cast<bool>() &&
+        measurements.gps_position_.HasValue()) {
+      gps.Add(measurements.gps_position_.Value(),
+              measurements.gps_accuracy_.Value());
+    }
+  }
+
+  ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
+                    shot_rig_cameras, fix_instance);
+  if (!fix_instance && gps.count > 0) {
+    gps.AddPriorTo(ba, rig_instance_id, kGpsScaleGroup);
+  }
+}
+
+struct LocalBundleCounts {
+  size_t added_landmarks{0};
+  size_t added_reprojections{0};
+};
+
+// Add all points of the shots that are in the interior, and their
+// observations from interior and boundary shots.
+LocalBundleCounts AddLocalBundlePointsAndObservations(
+    bundle::BundleAdjuster& ba, const std::unordered_set<map::Shot*>& interior,
+    const std::unordered_set<map::Shot*>& boundary,
+    std::unordered_set<map::Landmark*>& points, py::list& pt_ids) {
+  constexpr bool point_constant{false};
+  LocalBundleCounts counts;
+  for (auto* shot : interior) {
+    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
+      if (points.count(lm) == 0) {
+        points.insert(lm);
+        pt_ids.append(lm->id_);
+        ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
+        ++counts.added_landmarks;
+      }
+      ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
+      ++counts.added_reprojections;
+    }
+  }
+  for (auto* shot : boundary) {
+    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
+      if (points.count(lm) > 0) {
+        ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point,
+                                         obs.scale, obs.depth_prior);
+        ++counts.added_reprojections;
+      }
+    }
+  }
+  return counts;
+}
+
+struct ShotPosesIds {
+  std::unordered_set<map::RigInstanceId> rig_instances;
+  std::unordered_set<map::RigCameraId> rig_cameras;
+  std::unordered_set<map::CameraId> cameras;
+};
+
+ShotPosesIds CollectShotPosesIds(
+    map::Map& map, const std::unordered_set<map::ShotId>& shot_ids) {
+  ShotPosesIds ids;
+  for (const auto& shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    ids.rig_instances.insert(shot.GetRigInstanceId());
+  }
+  for (const auto& rig_instance_id : ids.rig_instances) {
+    auto& instance = map.GetRigInstance(rig_instance_id);
+    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
+      ids.rig_cameras.insert(rig_camera->id);
+
+      const auto camera_id = map.GetShot(shot_id).GetCamera()->id;
+      ids.cameras.insert(camera_id);
+    }
+  }
+  return ids;
+}
+
+void AddShotPosesFixedPoints(bundle::BundleAdjuster& ba, map::Map& map,
+                             const std::unordered_set<map::ShotId>& shot_ids) {
+  constexpr auto fix_points = true;
+  std::unordered_set<map::Landmark*> landmarks;
+  for (const auto& shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    for (const auto& [landmark, obs] : shot.GetLandmarkObservations()) {
+      landmarks.insert(landmark);
+    }
+  }
+  for (const auto& landmark : landmarks) {
+    ba.AddPoint(landmark->id_, landmark->GetGlobalPos(), fix_points);
+  }
+}
+
+// Shot poses bundle : shots not in shot_ids are fixed, and so is their
+// whole instance.
+void AddShotPosesRigInstance(bundle::BundleAdjuster& ba, map::Map& map,
+                             const map::RigInstanceId& rig_instance_id,
+                             const std::unordered_set<map::ShotId>& shot_ids,
+                             const py::dict& config) {
+  auto& instance = map.GetRigInstance(rig_instance_id);
+  std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
+  GpsAverage gps;
+  bool fix_instance = false;
+
+  for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
+    auto& shot = map.GetShot(shot_id);
+    shot_cameras[shot_id] = shot.GetCamera()->id;
+    shot_rig_cameras[shot_id] = rig_camera->id;
+    const auto is_fixed = shot_ids.find(shot_id) == shot_ids.end();
+    if (is_fixed) {
+      fix_instance = true;
+    } else if (config["bundle_use_gps"].cast<bool>()) {
+      const auto pos = shot.GetShotMeasurements().gps_position_;
+      const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+      if (pos.HasValue() && acc.HasValue()) {
+        gps.Add(pos.Value(), acc.Value());
+      }
+    }
+  }
+
+  ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
+                    shot_rig_cameras, fix_instance);
+  if (!fix_instance && gps.count > 0) {
+    gps.AddPriorTo(ba, rig_instance_id, kGpsScaleGroup);
+  }
+}
+
+void AddShotPosesObservations(bundle::BundleAdjuster& ba, map::Map& map,
+                              const std::unordered_set<map::ShotId>& shot_ids) {
+  for (const auto& shot_id : shot_ids) {
+    const auto& shot = map.GetShot(shot_id);
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
+    }
+  }
+}
+
+// Up vector prior to add to every shot, if the alignment method asks for it.
+std::optional<Vec3d> GetAlignmentUpVector(
+    const map::Map& map, const py::dict& config,
+    const AlignedVector<map::GroundControlPoint>& gcp) {
+  auto align_method = config["align_method"].cast<std::string>();
+  if (align_method.compare("auto") == 0) {
+    align_method = BAHelpers::DetectAlignmentConstraints(map, config, gcp);
+  }
+  if (align_method.compare("orientation_prior") != 0) {
+    return std::nullopt;
+  }
+  const std::string align_orientation_prior =
+      config["align_orientation_prior"].cast<std::string>();
+  if (align_orientation_prior.compare("vertical") == 0) {
+    return Vec3d(0, 0, -1);
+  }
+  if (align_orientation_prior.compare("horizontal") == 0) {
+    return Vec3d(0, -1, 0);
+  }
+  return std::nullopt;
+}
+
+void AddBundleRigCameras(
+    bundle::BundleAdjuster& ba, map::Map& map,
+    const std::unordered_map<map::RigCameraId, map::RigCamera>&
+        rig_camera_priors) {
+  constexpr size_t kMinRigInstanceForAdjust{10};
+  const auto& all_cameras = map.GetCameras();
+  const size_t shots_per_rig_cameras =
+      map.GetRigCameras().size() > 0
+          ? static_cast<size_t>(map.GetShots().size() /
+                                map.GetRigCameras().size())
+          : 1;
+  const auto lock_rig_camera =
+      shots_per_rig_cameras <= kMinRigInstanceForAdjust;
+  for (const auto& [rig_camera_id, rig_camera] : map.GetRigCameras()) {
+    // could be set to false (not locked) the day we expose leverarm adjustment
+    const bool is_leverarm =
+        all_cameras.find(rig_camera_id) != all_cameras.end();
+    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
+                    rig_camera_priors.at(rig_camera_id).pose,
+                    is_leverarm | lock_rig_camera);
+  }
+}
+
+void AddBundleRigInstance(bundle::BundleAdjuster& ba, map::Map& map,
+                          const map::RigInstanceId& rig_instance_id,
+                          const map::RigInstance& instance,
+                          const py::dict& config) {
+  GpsAverage gps;
+
+  // average GPS and assign GPS constraint to the instance
+  std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
+  for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
+    const auto& shot = map.GetShot(shot_id);
+    shot_cameras[shot_id] = shot.GetCamera()->id;
+    shot_rig_cameras[shot_id] = rig_camera->id;
+
+    if (!config["bundle_use_gps"].cast<bool>()) {
+      continue;
+    }
+    const auto pos = shot.GetShotMeasurements().gps_position_;
+    const auto acc = shot.GetShotMeasurements().gps_accuracy_;
+    if (!pos.HasValue() || !acc.HasValue()) {
+      continue;
+    }
+    if (acc.Value() <= 0) {
+      throw std::runtime_error(
+          "Shot " + shot.GetId() +
+          " has an accuracy <= 0: " + std::to_string(acc.Value()) +
+          ". Try modifying "
+          "your input parser to filter such values.");
+    }
+    gps.Add(pos.Value(), acc.Value());
+  }
+
+  ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
+                    shot_rig_cameras, false);
+
+  if (config["bundle_use_gps"].cast<bool>() && gps.count > 0) {
+    gps.AddPriorTo(ba, rig_instance_id, kGpsScaleGroup);
+  }
+}
+
+size_t AddBundleObservations(bundle::BundleAdjuster& ba, map::Map& map,
+                             const std::optional<Vec3d>& up_vector) {
+  size_t added_reprojections = 0;
+  for (const auto& [shot_id, shot] : map.GetShots()) {
+    // that one doesn't have it's rig counterpart
+    if (up_vector) {
+      constexpr double std_dev = 1e-3;
+      ba.AddAbsoluteUpVector(shot.id_, *up_vector, std_dev);
+    }
+
+    // setup observations for any shot type
+    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
+      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
+                                       obs.depth_prior);
+      ++added_reprojections;
+    }
+  }
+  return added_reprojections;
+}
+}  // namespace
+
 py::tuple BAHelpers::BundleLocal(
     map::Map& map,
     const std::unordered_map<map::CameraId, geometry::Camera>& camera_priors,
@@ -122,7 +470,7 @@ py::tuple BAHelpers::BundleLocal(
     const AlignedVector<map::GroundControlPoint>& gcp,
     const map::ShotId& central_shot_id, const py::dict& config) {
   py::dict report;
-  const auto start = std::chrono::high_resolution_clock::now();
+  const auto start = Clock::now();
   auto neighborhood = ShotNeighborhood(
       map, central_shot_id, config["local_bundle_radius"].cast<size_t>(),
       config["local_bundle_min_common_points"].cast<size_t>(),
@@ -147,9 +495,6 @@ py::tuple BAHelpers::BundleLocal(
   std::unordered_set<map::Landmark*> points;
   py::list pt_ids;
 
-  constexpr bool point_constant{false};
-  constexpr bool rig_camera_constant{true};
-
   // gather required rig data to setup
   std::unordered_set<map::RigCameraId> rig_cameras_ids;
   std::unordered_set<map::RigInstanceId> rig_instances_ids;
@@ -159,119 +504,29 @@ py::tuple BAHelpers::BundleLocal(
   }
 
   // rig cameras are going to be fixed
-  for (const auto& rig_camera_id : rig_cameras_ids) {
-    const auto& rig_camera = map.GetRigCamera(rig_camera_id);
-    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
-                    rig_camera_priors.at(rig_camera_id).pose,
-                    rig_camera_constant);
-  }
+  SetFixedRigCameras(ba, map, rig_cameras_ids, rig_camera_priors);
 
   // add rig instances shots
-  const std::string gps_scale_group = "dummy";  // unused for now
   for (const auto& rig_instance_id : rig_instances_ids) {
-    auto& instance = map.GetRigInstance(rig_instance_id);
-    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
-
-    // we're going to assign GPS constraint to the instance itself
-    // by averaging its shot's GPS values (and std dev.)
-    Vec3d average_position = Vec3d::Zero();
-    double average_std = 0.;
-    int gps_count = 0;
-
-    // if any instance's shot is in boundary
-    // then the entire instance will be fixed
-    bool fix_instance = false;
-    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
-      auto& shot = map.GetShot(shot_id);
-      shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = rig_camera->id;
-
-      const auto is_boundary = boundary.find(&shot) != boundary.end();
-      const auto is_interior = !is_boundary;
-
-      if (is_interior) {
-        const auto& measurements = shot.GetShotMeasurements();
-        if (config["bundle_use_gps"].cast<bool>() &&
-            measurements.gps_position_.HasValue()) {
-          average_position += measurements.gps_position_.Value();
-          average_std += measurements.gps_accuracy_.Value();
-          ++gps_count;
-        }
-      } else {
-        fix_instance = true;
-      }
-    }
-
-    ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
-                      shot_rig_cameras, fix_instance);
-
-    // only add averaged rig position constraints to moving instances
-    if (!fix_instance && gps_count > 0) {
-      average_position /= gps_count;
-      average_std /= gps_count;
-      ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
-                                     Vec3d::Constant(average_std),
-                                     gps_scale_group);
-    }
+    AddLocalBundleRigInstance(ba, map, rig_instance_id, boundary, config);
   }
 
-  size_t added_landmarks = 0;
-  size_t added_reprojections = 0;
-  for (auto* shot : interior) {
-    // Add all points of the shots that are in the interior
-    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
-      if (points.count(lm) == 0) {
-        points.insert(lm);
-        pt_ids.append(lm->id_);
-        ba.AddPoint(lm->id_, lm->GetGlobalPos(), point_constant);
-        ++added_landmarks;
-      }
-      ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point, obs.scale,
-                                       obs.depth_prior);
-      ++added_reprojections;
-    }
-  }
-  for (auto* shot : boundary) {
-    for (const auto& [lm, obs] : shot->GetLandmarkObservations()) {
-      if (points.count(lm) > 0) {
-        ba.AddPointProjectionObservation(shot->id_, lm->id_, obs.point,
-                                         obs.scale, obs.depth_prior);
-        ++added_reprojections;
-      }
-    }
-  }
+  const auto counts = AddLocalBundlePointsAndObservations(
+      ba, interior, boundary, points, pt_ids);
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, map, gcp, config);
   }
 
-  ba.SetPointProjectionLossFunction(
-      config["loss_function"].cast<std::string>(),
-      config["loss_function_threshold"].cast<double>());
-  ba.SetInternalParametersPriorSD(
-      config["exif_focal_sd"].cast<double>(),
-      config["aspect_ratio_sd"].cast<double>(),
-      config["principal_point_sd"].cast<double>(),
-      config["radial_distortion_k1_sd"].cast<double>(),
-      config["radial_distortion_k2_sd"].cast<double>(),
-      config["tangential_distortion_p1_sd"].cast<double>(),
-      config["tangential_distortion_p2_sd"].cast<double>(),
-      config["radial_distortion_k3_sd"].cast<double>(),
-      config["radial_distortion_k4_sd"].cast<double>());
-  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
-                             config["rig_rotation_sd"].cast<double>());
-
+  SetLossAndPriorsFromConfig(ba, config);
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(10);
   ba.SetLinearSolverType("DENSE_SCHUR");
-  const auto timer_setup = std::chrono::high_resolution_clock::now();
+  const auto timer_setup = Clock::now();
 
-  {
-    py::gil_scoped_release release;
-    ba.Run();
-  }
+  RunWithoutGIL(ba);
 
-  const auto timer_run = std::chrono::high_resolution_clock::now();
+  const auto timer_run = Clock::now();
   for (const auto& rig_instance_id : rig_instances_ids) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     auto i = ba.GetRigInstance(rig_instance_id);
@@ -283,30 +538,16 @@ py::tuple BAHelpers::BundleLocal(
     point->SetGlobalPos(pt.GetValue());
     point->SetReprojectionErrors(pt.reprojection_errors);
   }
-  const auto timer_teardown = std::chrono::high_resolution_clock::now();
+  const auto timer_teardown = Clock::now();
   report["brief_report"] = ba.BriefReport();
-  report["wall_times"] = py::dict();
-  report["wall_times"]["setup"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
-          .count() /
-      1000000.0;
-  report["wall_times"]["run"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
-                                                            timer_setup)
-          .count() /
-      1000000.0;
-  report["wall_times"]["teardown"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
-                                                            timer_run)
-          .count() /
-      1000000.0;
+  SetWallTimes(report, start, timer_setup, timer_run, timer_teardown);
   report["num_images"] = interior.size();
   report["num_interior_images"] = interior.size();
   report["num_boundary_images"] = boundary.size();
   report["num_other_images"] =
       map.NumberOfShots() - interior.size() - boundary.size();
-  report["num_points"] = added_landmarks;
-  report["num_reprojections"] = added_reprojections;
+  report["num_points"] = counts.added_landmarks;
+  report["num_reprojections"] = counts.added_reprojections;
   return py::make_tuple(pt_ids, report);
 }
 
@@ -414,167 +655,52 @@ py::dict BAHelpers::BundleShotPoses(
   py::dict report;
 
   constexpr auto fix_cameras = true;
-  constexpr auto fix_points = true;
-  constexpr auto fix_rig_camera = true;
 
   auto ba = bundle::BundleAdjuster();
   ba.SetUseAnalyticDerivatives(
       config["bundle_analytic_derivatives"].cast<bool>());
-  const auto start = std::chrono::high_resolution_clock::now();
+  const auto start = Clock::now();
 
   // gather required rig data to setup
-  std::unordered_set<map::RigInstanceId> rig_instances_ids;
-  for (const auto& shot_id : shot_ids) {
-    const auto& shot = map.GetShot(shot_id);
-    rig_instances_ids.insert(shot.GetRigInstanceId());
-  }
-  std::unordered_set<map::RigCameraId> rig_cameras_ids;
-  std::unordered_set<map::CameraId> cameras_ids;
-  for (const auto& rig_instance_id : rig_instances_ids) {
-    auto& instance = map.GetRigInstance(rig_instance_id);
-    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
-      rig_cameras_ids.insert(rig_camera->id);
-
-      const auto camera_id = map.GetShot(shot_id).GetCamera()->id;
-      cameras_ids.insert(camera_id);
-    }
-  }
+  const auto ids = CollectShotPosesIds(map, shot_ids);
 
   // rig cameras are going to be fixed
-  for (const auto& rig_camera_id : rig_cameras_ids) {
-    const auto& rig_camera = map.GetRigCamera(rig_camera_id);
-    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
-                    rig_camera_priors.at(rig_camera_id).pose, fix_rig_camera);
-  }
+  SetFixedRigCameras(ba, map, ids.rig_cameras, rig_camera_priors);
 
-  for (const auto& camera_id : cameras_ids) {
+  for (const auto& camera_id : ids.cameras) {
     const auto& cam = map.GetCamera(camera_id);
     const auto& cam_prior = camera_priors.at(camera_id);
     ba.AddCamera(camera_id, cam, cam_prior, fix_cameras);
   }
 
-  std::unordered_set<map::Landmark*> landmarks;
-  for (const auto& shot_id : shot_ids) {
-    const auto& shot = map.GetShot(shot_id);
-    for (const auto& [landmark, obs] : shot.GetLandmarkObservations()) {
-      landmarks.insert(landmark);
-    }
-  }
-  for (const auto& landmark : landmarks) {
-    ba.AddPoint(landmark->id_, landmark->GetGlobalPos(), fix_points);
-  }
+  AddShotPosesFixedPoints(ba, map, shot_ids);
 
   // add rig instances shots
-  const std::string gps_scale_group = "dummy";  // unused for now
-  for (const auto& rig_instance_id : rig_instances_ids) {
-    auto& instance = map.GetRigInstance(rig_instance_id);
-    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
-
-    // we're going to assign GPS constraint to the instance itself
-    // by averaging its shot's GPS values (and std dev.)
-    Vec3d average_position = Vec3d::Zero();
-    double average_std = 0.;
-    int gps_count = 0;
-
-    // if any instance's shot is in boundary
-    // then the entire instance will be fixed
-    bool fix_instance = false;
-
-    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
-      auto& shot = map.GetShot(shot_id);
-      shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = rig_camera->id;
-      // If the shot_id is in the shot_ids we aim to optimize this shot, so
-      // don't fix it
-      const auto is_fixed = shot_ids.find(shot_id) == shot_ids.end();
-      if (!is_fixed) {
-        if (config["bundle_use_gps"].cast<bool>()) {
-          const auto pos = shot.GetShotMeasurements().gps_position_;
-          const auto acc = shot.GetShotMeasurements().gps_accuracy_;
-          if (pos.HasValue() && acc.HasValue()) {
-            average_position += pos.Value();
-            average_std += acc.Value();
-            ++gps_count;
-          }
-        }
-      } else {
-        fix_instance = true;
-      }
-
-      ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
-                        shot_rig_cameras, fix_instance);
-
-      // only add averaged rig position constraints to moving instances
-      if (!fix_instance && gps_count > 0) {
-        average_position /= gps_count;
-        average_std /= gps_count;
-        ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
-                                       Vec3d::Constant(average_std),
-                                       gps_scale_group);
-      }
-    }
+  for (const auto& rig_instance_id : ids.rig_instances) {
+    AddShotPosesRigInstance(ba, map, rig_instance_id, shot_ids, config);
   }
 
-  // add observations
-  for (const auto& shot_id : shot_ids) {
-    const auto& shot = map.GetShot(shot_id);
-    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
-      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
-                                       obs.depth_prior);
-    }
-  }
+  AddShotPosesObservations(ba, map, shot_ids);
 
-  ba.SetPointProjectionLossFunction(
-      config["loss_function"].cast<std::string>(),
-      config["loss_function_threshold"].cast<double>());
-  ba.SetInternalParametersPriorSD(
-      config["exif_focal_sd"].cast<double>(),
-      config["aspect_ratio_sd"].cast<double>(),
-      config["principal_point_sd"].cast<double>(),
-      config["radial_distortion_k1_sd"].cast<double>(),
-      config["radial_distortion_k2_sd"].cast<double>(),
-      config["tangential_distortion_p1_sd"].cast<double>(),
-      config["tangential_distortion_p2_sd"].cast<double>(),
-      config["radial_distortion_k3_sd"].cast<double>(),
-      config["radial_distortion_k4_sd"].cast<double>());
-  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
-                             config["rig_rotation_sd"].cast<double>());
-
+  SetLossAndPriorsFromConfig(ba, config);
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(10);
   ba.SetLinearSolverType("DENSE_QR");
-  const auto timer_setup = std::chrono::high_resolution_clock::now();
+  const auto timer_setup = Clock::now();
 
-  {
-    py::gil_scoped_release release;
-    ba.Run();
-  }
+  RunWithoutGIL(ba);
 
-  const auto timer_run = std::chrono::high_resolution_clock::now();
+  const auto timer_run = Clock::now();
 
-  for (const auto& rig_instance_id : rig_instances_ids) {
+  for (const auto& rig_instance_id : ids.rig_instances) {
     auto& instance = map.GetRigInstance(rig_instance_id);
     auto i = ba.GetRigInstance(rig_instance_id);
     instance.SetPose(i.GetValue());
   }
 
-  const auto timer_teardown = std::chrono::high_resolution_clock::now();
+  const auto timer_teardown = Clock::now();
   report["brief_report"] = ba.BriefReport();
-  report["wall_times"] = py::dict();
-  report["wall_times"]["setup"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
-          .count() /
-      1000000.0;
-  report["wall_times"]["run"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
-                                                            timer_setup)
-          .count() /
-      1000000.0;
-  report["wall_times"]["teardown"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
-                                                            timer_run)
-          .count() /
-      1000000.0;
+  SetWallTimes(report, start, timer_setup, timer_run, timer_teardown);
   return report;
 }
 
@@ -590,10 +716,9 @@ py::dict BAHelpers::Bundle(
   const bool fix_cameras = !config["optimize_camera_parameters"].cast<bool>();
   ba.SetUseAnalyticDerivatives(
       config["bundle_analytic_derivatives"].cast<bool>());
-  const auto start = std::chrono::high_resolution_clock::now();
+  const auto start = Clock::now();
 
-  const auto& all_cameras = map.GetCameras();
-  for (const auto& [cam_id, cam] : all_cameras) {
+  for (const auto& [cam_id, cam] : map.GetCameras()) {
     const auto& cam_prior = camera_priors.at(cam.id);
     ba.AddCamera(cam.id, cam, cam_prior, fix_cameras);
   }
@@ -602,101 +727,15 @@ py::dict BAHelpers::Bundle(
     ba.AddPoint(pt.id_, pt.GetGlobalPos(), false);
   }
 
-  auto align_method = config["align_method"].cast<std::string>();
-  if (align_method.compare("auto") == 0) {
-    align_method = DetectAlignmentConstraints(map, config, gcp);
-  }
-  bool do_add_align_vector = false;
-  Vec3d up_vector = Vec3d::Zero();
-  if (align_method.compare("orientation_prior") == 0) {
-    const std::string align_orientation_prior =
-        config["align_orientation_prior"].cast<std::string>();
-    if (align_orientation_prior.compare("vertical") == 0) {
-      do_add_align_vector = true;
-      up_vector = Vec3d(0, 0, -1);
-    } else if (align_orientation_prior.compare("horizontal") == 0) {
-      do_add_align_vector = true;
-      up_vector = Vec3d(0, -1, 0);
-    }
-  }
+  const auto up_vector = GetAlignmentUpVector(map, config, gcp);
 
-  // setup rig cameras
-  constexpr size_t kMinRigInstanceForAdjust{10};
-  const size_t shots_per_rig_cameras =
-      map.GetRigCameras().size() > 0
-          ? static_cast<size_t>(map.GetShots().size() /
-                                map.GetRigCameras().size())
-          : 1;
-  const auto lock_rig_camera =
-      shots_per_rig_cameras <= kMinRigInstanceForAdjust;
-  for (const auto& [rig_camera_id, rig_camera] : map.GetRigCameras()) {
-    // could be set to false (not locked) the day we expose leverarm adjustment
-    const bool is_leverarm =
-        all_cameras.find(rig_camera_id) != all_cameras.end();
-    ba.AddRigCamera(rig_camera_id, rig_camera.pose,
-                    rig_camera_priors.at(rig_camera_id).pose,
-                    is_leverarm | lock_rig_camera);
-  }
+  AddBundleRigCameras(ba, map, rig_camera_priors);
 
-  // setup rig instances
-  const std::string gps_scale_group = "dummy";  // unused for now
   for (const auto& [rig_instance_id, instance] : map.GetRigInstances()) {
-    Vec3d average_position = Vec3d::Zero();
-    double average_std = 0.;
-    int gps_count = 0;
-
-    // average GPS and assign GPS constraint to the instance
-    std::unordered_map<std::string, std::string> shot_cameras, shot_rig_cameras;
-    for (const auto& [shot_id, rig_camera] : instance.GetRigCameras()) {
-      const auto& shot = map.GetShot(shot_id);
-      shot_cameras[shot_id] = shot.GetCamera()->id;
-      shot_rig_cameras[shot_id] = rig_camera->id;
-
-      if (config["bundle_use_gps"].cast<bool>()) {
-        const auto pos = shot.GetShotMeasurements().gps_position_;
-        const auto acc = shot.GetShotMeasurements().gps_accuracy_;
-        if (pos.HasValue() && acc.HasValue()) {
-          if (acc.Value() <= 0) {
-            throw std::runtime_error(
-                "Shot " + shot.GetId() +
-                " has an accuracy <= 0: " + std::to_string(acc.Value()) +
-                ". Try modifying "
-                "your input parser to filter such values.");
-          }
-          average_position += pos.Value();
-          average_std += acc.Value();
-          ++gps_count;
-        }
-      }
-    }
-
-    ba.AddRigInstance(rig_instance_id, instance.GetPose(), shot_cameras,
-                      shot_rig_cameras, false);
-
-    if (config["bundle_use_gps"].cast<bool>() && gps_count > 0) {
-      average_position /= gps_count;
-      average_std /= gps_count;
-      ba.AddRigInstancePositionPrior(rig_instance_id, average_position,
-                                     Vec3d::Constant(average_std),
-                                     gps_scale_group);
-    }
+    AddBundleRigInstance(ba, map, rig_instance_id, instance, config);
   }
 
-  size_t added_reprojections = 0;
-  for (const auto& [shot_id, shot] : map.GetShots()) {
-    // that one doesn't have it's rig counterpart
-    if (do_add_align_vector) {
-      constexpr double std_dev = 1e-3;
-      ba.AddAbsoluteUpVector(shot.id_, up_vector, std_dev);
-    }
-
-    // setup observations for any shot type
-    for (const auto& [lm, obs] : shot.GetLandmarkObservations()) {
-      ba.AddPointProjectionObservation(shot.id_, lm->id_, obs.point, obs.scale,
-                                       obs.depth_prior);
-      ++added_reprojections;
-    }
-  }
+  const size_t added_reprojections = AddBundleObservations(ba, map, up_vector);
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, map, gcp, config);
@@ -709,53 +748,21 @@ py::dict BAHelpers::Bundle(
     }
   }
 
-  ba.SetPointProjectionLossFunction(
-      config["loss_function"].cast<std::string>(),
-      config["loss_function_threshold"].cast<double>());
-  ba.SetInternalParametersPriorSD(
-      config["exif_focal_sd"].cast<double>(),
-      config["aspect_ratio_sd"].cast<double>(),
-      config["principal_point_sd"].cast<double>(),
-      config["radial_distortion_k1_sd"].cast<double>(),
-      config["radial_distortion_k2_sd"].cast<double>(),
-      config["tangential_distortion_p1_sd"].cast<double>(),
-      config["tangential_distortion_p2_sd"].cast<double>(),
-      config["radial_distortion_k3_sd"].cast<double>(),
-      config["radial_distortion_k4_sd"].cast<double>());
-  ba.SetRigParametersPriorSD(config["rig_translation_sd"].cast<double>(),
-                             config["rig_rotation_sd"].cast<double>());
-
+  SetLossAndPriorsFromConfig(ba, config);
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(config["bundle_max_iterations"].cast<int>());
   ba.SetLinearSolverType("SPARSE_SCHUR");
-  const auto timer_setup = std::chrono::high_resolution_clock::now();
+  const auto timer_setup = Clock::now();
 
-  {
-    py::gil_scoped_release release;
-    ba.Run();
-  }
+  RunWithoutGIL(ba);
 
-  const auto timer_run = std::chrono::high_resolution_clock::now();
+  const auto timer_run = Clock::now();
 
   BundleToMap(ba, map, !fix_cameras);
 
-  const auto timer_teardown = std::chrono::high_resolution_clock::now();
+  const auto timer_teardown = Clock::now();
   report["brief_report"] = ba.BriefReport();
-  report["wall_times"] = py::dict();
-  report["wall_times"]["setup"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_setup - start)
-          .count() /
-      1000000.0;
-  report["wall_times"]["run"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_run -
-                                                            timer_setup)
-          .count() /
-      1000000.0;
-  report["wall_times"]["teardown"] =
-      std::chrono::duration_cast<std::chrono::microseconds>(timer_teardown -
-                                                            timer_run)
-          .count() /
-      1000000.0;
+  SetWallTimes(report, start, timer_setup, timer_run, timer_teardown);
   report["num_images"] = map.GetShots().size();
   report["num_points"] = map.GetLandmarks().size();
   report["num_reprojections"] = added_reprojections;

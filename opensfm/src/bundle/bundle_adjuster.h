@@ -302,6 +302,27 @@ class BundleAdjuster {
   geometry::Camera GetDefaultCameraSigma(const geometry::Camera& camera) const;
   geometry::Pose GetDefaultRigPoseSigma() const;
 
+  // Run() problem setup, in the order the blocks are added to the problem
+  void AddParameterBlocks(ceres::Problem* problem);
+  void AddReconstructionScaleBlocks(ceres::Problem* problem);
+  void AddPointPositionPriors(ceres::Problem* problem);
+  std::map<std::string, int> GetScaleGroupsIndexes() const;
+  void AddStdDeviationBlocks(std::vector<double>* std_deviations,
+                             ceres::Problem* problem) const;
+  void AddRigInstancePositionPriors(
+      const std::map<std::string, int>& std_dev_group_remap,
+      std::vector<double>* std_deviations, ceres::Problem* problem);
+  void AddRigCameraPriors(ceres::Problem* problem);
+  void AddCameraPriors(ceres::Problem* problem);
+  void AddReprojectionErrors(ceres::Problem* problem);
+  void AddRelativeMotionErrors(ceres::Problem* problem);
+  void AddRelativeRotationErrors(ceres::Problem* problem);
+  void AddCommonPositionErrors(ceres::Problem* problem);
+  void AddAbsolutePositionHeatmapErrors(ceres::Problem* problem);
+  void AddAbsoluteUpVectorErrors(ceres::Problem* problem);
+  void AddLinearMotionPriors(ceres::Problem* problem);
+  void AddGaugeFix(ceres::Problem* problem);
+
   // minimized data
   std::map<std::string, Camera> cameras_;
   std::map<std::string, Similarity> bias_;

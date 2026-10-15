@@ -744,3 +744,39 @@ def test_heatmaps_position(bundle_adjuster: pybundle.BundleAdjuster) -> None:
     assert np.allclose(
         -s3.translation, [x3_offset + hmap_x, y3_offset + hmap_y, 0], atol=res
     )
+
+
+def test_bundle_shot_poses_rig_gps_average() -> None:
+    """A moving rig instance gets the average GPS of all its shots as prior."""
+    camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
+    camera.id = "camera1"
+
+    r = types.Reconstruction()
+    r.add_camera(camera)
+    r.add_rig_instance(pymap.RigInstance("instance"))
+    gps_positions = [
+        np.array([1.0, 0.0, 0.0]),
+        np.array([4.0, 2.0, 0.0]),
+        np.array([10.0, -2.0, 3.0]),
+    ]
+    for i, gps_position in enumerate(gps_positions):
+        r.add_rig_camera(pymap.RigCamera(pygeometry.Pose(), f"rig_camera{i}"))
+        shot = r.create_shot(
+            f"shot{i}",
+            camera.id,
+            rig_camera_id=f"rig_camera{i}",
+            rig_instance_id="instance",
+        )
+        shot.metadata.gps_position.value = gps_position
+        shot.metadata.gps_accuracy.value = 1
+
+    reconstruction.bundle_shot_poses(
+        r,
+        {"shot0", "shot1", "shot2"},
+        {camera.id: camera},
+        dict(r.rig_cameras.items()),
+        config.default_config(),
+    )
+
+    origin = r.rig_instances["instance"].pose.get_origin()
+    assert np.allclose(origin, np.mean(gps_positions, axis=0), atol=1e-6)

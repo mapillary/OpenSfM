@@ -100,12 +100,12 @@ class Gui:
             return flask.render_template("mosaic.html", subpane_routes=subpane_routes)
 
     def analyze_rigid(self) -> None:
-        self.analyze(rigid=True, covariance=False)
+        self.analyze(rigid=True)
 
     def analyze_flex(self) -> None:
-        self.analyze(rigid=False, covariance=False)
+        self.analyze(rigid=False)
 
-    def analyze(self, rigid: bool = False, covariance: bool = True) -> None:
+    def analyze(self, rigid: bool = False) -> None:
         t = time.time() - os.path.getmtime(self.path + "/ground_control_points.json")
         # ix_a = self.reconstruction_options.index(self.rec_a.get())
         # ix_b = self.reconstruction_options.index(self.rec_b.get())
@@ -131,9 +131,6 @@ class Gui:
 
         if rigid:
             args.extend(["--rigid"])
-
-        if covariance:
-            args.extend(["--covariance"])
 
         # Call the run_ba script
         subprocess.run(args)
