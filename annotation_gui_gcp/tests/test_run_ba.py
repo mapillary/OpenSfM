@@ -445,7 +445,7 @@ class AlignEndToEndTest(unittest.TestCase):
     def test_align_single_reconstruction_only_aligns_3d_models(self) -> None:
         self._write_dataset(two_reconstructions=False)
 
-        run_ba.align(str(self.path), 0, 1, True, False, 0.016, 0.3)
+        run_ba.align(str(self.path), 0, 1, True, 0.016)
 
         alignment = self._read_json("affine_alignment_0xmodel.ply.json")
         self.assertAlmostEqual(alignment["s"], 2.0, places=5)
