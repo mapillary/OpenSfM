@@ -500,4 +500,4 @@ class ParseArgsTest(unittest.TestCase):
         ):
             with self.assertRaises(SystemExit):
                 run_ba.main()
-        align.assert_called_once_with("/data", 2, 3, True, False, 0.016, 0.3)
+        align.assert_called_once_with("/data", 2, 3, True, 0.016)
