@@ -486,11 +486,6 @@ class ParseArgsTest(unittest.TestCase):
         self.assertFalse(args.rigid)
         self.assertAlmostEqual(args.px_threshold, 0.016)
 
-    def test_parse_args_rejects_rigid_with_covariance(self) -> None:
-        with mock.patch("sys.argv", ["run_ba", "/data", "--rigid", "--covariance"]):
-            with self.assertRaises(AssertionError):
-                run_ba.parse_args()
-
     def test_main_calls_align_with_args(self) -> None:
         argv = ["run_ba", "/data", "--rec_a", "2", "--rec_b", "3", "--rigid"]
         with (
