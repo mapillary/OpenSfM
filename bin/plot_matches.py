@@ -6,7 +6,6 @@ import os.path
 from itertools import combinations
 from typing import Iterable, List
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as pl
 import numpy as np
 from numpy import ndarray
@@ -31,7 +30,7 @@ def plot_matches(im1: ndarray, im2: ndarray, p1: ndarray, p2: ndarray) -> None:
 
 
 def plot_graph(data: dataset.DataSet) -> None:
-    cmap = cm.get_cmap("viridis")
+    cmap = pl.get_cmap("viridis")
     connectivity = {}
     for im1 in images:
         for im2, matches in data.load_matches(im1).items():

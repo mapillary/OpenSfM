@@ -102,7 +102,7 @@ def depth_colormap(
     """
     Colormaps and sets 0 (invalid) values to zero_color
     """
-    sm = cm.ScalarMappable(cmap=cm.get_cmap(cmap))
+    sm = cm.ScalarMappable(cmap=pl.get_cmap(cmap))
     sm.set_array(d)
     rgb = sm.to_rgba(d)[:, :, :3]
     rgb[d == invalid_val] = invalid_color
