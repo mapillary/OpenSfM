@@ -423,7 +423,7 @@ class AlignEndToEndTest(unittest.TestCase):
 
     def test_missing_files_does_nothing(self) -> None:
         (self.path / "image_list.txt").write_text("images/a0\n")
-        run_ba.align(str(self.path), 0, 1, True, False, 0.016, 0.3)
+        run_ba.align(str(self.path), 0, 1, True, 0.016)
         self.assertEqual(sorted(os.listdir(self.path)), ["image_list.txt"])
 
     def test_fix_and_load_3d_annotations(self) -> None:
