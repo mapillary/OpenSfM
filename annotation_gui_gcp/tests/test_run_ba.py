@@ -248,11 +248,6 @@ class AlignmentTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             run_ba.find_alignment([None], [None])
 
-    def test_decompose_covariance(self) -> None:
-        u, std = run_ba.decompose_covariance(np.diag([9.0, 4.0, 1.0]))
-        np.testing.assert_allclose(std, [3.0, 2.0, 1.0])
-        np.testing.assert_allclose(np.abs(u), np.identity(3))
-
     def test_align_3d_annotations_to_reconstruction(self) -> None:
         rec = _reconstruction("a", 0.0)
         gcps = _gcps(rec)
@@ -456,7 +451,7 @@ class AlignEndToEndTest(unittest.TestCase):
     def test_align_rigid_two_reconstructions(self) -> None:
         self._write_dataset()
 
-        run_ba.align(str(self.path), 0, 1, True, False, 0.016, 0.3)
+        run_ba.align(str(self.path), 0, 1, True, 0.016)
 
         data = dataset.DataSet(str(self.path))
         rigid = data.load_reconstruction("reconstruction_gcp_rigid_0x1.json")
@@ -485,6 +480,15 @@ class ParseArgsTest(unittest.TestCase):
         self.assertEqual((args.rec_a, args.rec_b), (0, 1))
         self.assertFalse(args.rigid)
         self.assertAlmostEqual(args.px_threshold, 0.016)
+
+    def test_parse_args_rejects_rigid_with_covariance(self) -> None:
+        with (
+            mock.patch("sys.argv", ["run_ba", "/data", "--rigid", "--covariance"]),
+            mock.patch("sys.stderr"),
+            self.assertRaises(SystemExit) as raised,
+        ):
+            run_ba.parse_args()
+        self.assertEqual(raised.exception.code, 2)
 
     def test_main_calls_align_with_args(self) -> None:
         argv = ["run_ba", "/data", "--rec_a", "2", "--rec_b", "3", "--rigid"]
