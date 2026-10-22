@@ -885,7 +885,6 @@ def test_point_reproj_errors_assign() -> None:
 
     # When assigning reprojections errors
     reproj_errors = {"shot1": np.random.rand(2), "shot2": np.random.rand(2)}
-    # pyrefly: ignore [bad-argument-type]
     pt.reprojection_errors = reproj_errors
 
     # They should be correct

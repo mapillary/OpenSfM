@@ -57,7 +57,6 @@ class CADView(WebView):
         )
 
     def get_model(self) -> Response:
-        # pyrefly: ignore [bad-argument-type]
         return send_file(self.cad_path, mimetype="application/octet-stream")
 
     def process_client_message(self, data: dict[str, Any]) -> None:

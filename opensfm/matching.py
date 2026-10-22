@@ -76,7 +76,6 @@ def match_images_with_pairs(
     processes = config_override.get("processes", data.config["processes"])
     mem_per_process = 512
     jobs_per_process = 2
-    # pyrefly: ignore [bad-argument-type]
     processes = context.processes_that_fit_in_memory(processes, mem_per_process)
     logger.info("Computing pair matching with %d processes" % processes)
     matches = context.parallel_map(match_unwrap_args, args, processes, jobs_per_process)

@@ -700,7 +700,6 @@ def resect(
     bs, Xs, ids = [], [], []
     for track, obs in tracks_manager.get_shot_observations(shot_id).items():
         if track in reconstruction.points:
-            # pyrefly: ignore [bad-argument-type]
             b = camera.pixel_bearing(obs.point)
             bs.append(b)
             Xs.append(reconstruction.points[track].coordinates)
@@ -920,7 +919,6 @@ class TrackTriangulator:
         for shot_id, obs in self.tracks_handler.get_observations(track).items():
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
-            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             r = self._shot_rotation_inverse(shot)
             bs.append(r.dot(b))
@@ -1025,7 +1023,6 @@ class TrackTriangulator:
         for shot_id, obs in self.tracks_handler.get_observations(track).items():
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
-            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             r = self._shot_rotation_inverse(shot)
             bs.append(r.dot(b))
@@ -1066,7 +1063,6 @@ class TrackTriangulator:
             shot = self.reconstruction.shots[shot_id]
             os.append(self._shot_origin(shot))
             Rts.append(self._shot_Rt(shot))
-            # pyrefly: ignore [bad-argument-type]
             b = shot.camera.pixel_bearing(np.array(obs.point))
             bs.append(b)
             ids.append(shot_id)

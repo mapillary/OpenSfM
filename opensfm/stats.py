@@ -94,7 +94,6 @@ def gcp_errors(
 
         triangulated = None
         for rec in reconstructions:
-            # pyrefly: ignore [bad-argument-type]
             triangulated = multiview.triangulate_gcp(gcp, rec.shots, 1.0, 0.1)
             if triangulated is None:
                 continue
