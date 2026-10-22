@@ -33,3 +33,4 @@ data/berlin/*
 env/*
 
 PACKAGE
+.venv/
