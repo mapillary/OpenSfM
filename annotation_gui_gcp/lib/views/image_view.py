@@ -83,6 +83,7 @@ class ImageView(WebView):
     def populate_image_list(self, *args: object, **kwargs: object) -> None:
         pass
 
+    # pyrefly: ignore[bad-override]
     def sync_to_client(self) -> None:
         """
         Sends all the data required to initialize or sync the image view
@@ -107,6 +108,7 @@ class ImageView(WebView):
 
         self.send_sse_message(data)
 
+    # pyrefly: ignore[bad-override]
     def process_client_message(self, data: Dict[str, Any]) -> None:
         command = data["event"]
         if command not in (

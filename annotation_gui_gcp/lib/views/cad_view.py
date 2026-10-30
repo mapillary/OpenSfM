@@ -59,6 +59,7 @@ class CADView(WebView):
     def get_model(self) -> Response:
         return send_file(self.cad_path, mimetype="application/octet-stream")
 
+    # pyrefly: ignore[bad-override]
     def process_client_message(self, data: dict[str, Any]) -> None:
         event = data["event"]
         if event == "add_or_update_point_observation":
@@ -144,6 +145,7 @@ class CADView(WebView):
         self.crs = metadata["crs"]
         self.offset = metadata["offset"]
 
+    # pyrefly: ignore[bad-override]
     def sync_to_client(self) -> None:
         """
         Sends all the data required to initialize or sync the CAD view

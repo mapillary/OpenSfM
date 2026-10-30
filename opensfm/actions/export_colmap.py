@@ -505,6 +505,7 @@ def export_cameras_reconstruction(
         h = camera.height
         params = camera_to_colmap_params(camera)
         if binary:
+            # pyrefly: ignore[unbound-name]
             fout_bin.write(
                 pack("<2i", colmap_id, COLMAP_ID_MAP[camera.projection_type])
             )
@@ -549,6 +550,7 @@ def export_images_reconstruction(
             q = angle_axis_to_quaternion(shot.pose.rotation)
 
             if binary:
+                # pyrefly: ignore[unbound-name]
                 fout_bin.write(pack("<I", colmap_shot_id))
                 fout_bin.write(pack("<7d", *(list(q) + list(t))))
                 fout_bin.write(pack("<I", colmap_camera_id))
@@ -589,6 +591,7 @@ def export_images_reconstruction(
             format_line += "\n"
 
             if binary:
+                # pyrefly: ignore[unbound-name]
                 fout_bin.write(pack("<Q", len(points_tuple) // 3))
                 for i in range(0, len(points_tuple), 3):
                     x, y, colmap_point_id = points_tuple[i : i + 3]
@@ -634,6 +637,7 @@ def export_points_reconstruction(
             ]
 
             if binary:
+                # pyrefly: ignore[unbound-name]
                 fout_bin.write(pack("<Q", int(i)))
                 fout_bin.write(pack("<3d", c[0], c[1], c[2]))  # Position
                 fout_bin.write(pack("<3B", *[int(i) for i in cl]))  # Color
@@ -648,6 +652,7 @@ def export_points_reconstruction(
             format_line += "\n"
 
             if binary:
+                # pyrefly: ignore[unbound-name]
                 fout_bin.write(pack("<Q", len(track_tuple) // 2))  # Track length
                 for el in track_tuple:
                     fout_bin.write(pack("<i", el))  # Track

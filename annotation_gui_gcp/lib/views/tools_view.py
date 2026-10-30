@@ -15,6 +15,7 @@ class ToolsView(WebView):
         super().__init__(main_ui, web_app, "/tools")
         self.main_ui = main_ui
 
+    # pyrefly: ignore[bad-override]
     def process_client_message(self, data: Dict[str, Any]) -> None:
         # Got some input from the frontend
         if data["event"] == "select_cp":
@@ -36,6 +37,7 @@ class ToolsView(WebView):
         else:
             raise ValueError(f"Unknown event {data['event']}")
 
+    # pyrefly: ignore[bad-override]
     def sync_to_client(self) -> None:
         # Sync state to frontend
         """
