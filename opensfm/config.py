@@ -111,6 +111,10 @@ class OpenSfMConfig:
     flann_tree: int = 8
     # Smaller -> Faster (but might lose good matches)
     flann_checks: int = 20
+    # If >= 0, OpenCV's random generator is reset to this seed before building each
+    # FLANN index. Indexes, and so matches, then don't depend on what ran earlier in
+    # the same thread. Negative keeps the random generator as is.
+    flann_seed: int = -1
 
     ##################################
     # Params for BoW matching

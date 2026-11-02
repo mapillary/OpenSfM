@@ -399,6 +399,26 @@ def test_build_flann_index_float_descriptors(algorithm: str) -> None:
     assert np.allclose(dists, 0.0, atol=1e-5)
 
 
+def _flann_neighbours(
+    descriptors: np.ndarray, queries: np.ndarray, seed: int
+) -> np.ndarray:
+    index = features.build_flann_index(descriptors, _config(flann_seed=seed))
+    neighbours, _ = index.knnSearch(queries, 2, params={"checks": 20})
+    return neighbours
+
+
+def test_build_flann_index_seeded() -> None:
+    rng = np.random.default_rng(4)
+    descriptors = rng.random((3000, 64)).astype(np.float32)
+    queries = rng.random((500, 64)).astype(np.float32)
+
+    first = _flann_neighbours(descriptors, queries, 0)
+    # building an unseeded index moves OpenCV's random generator on
+    _flann_neighbours(queries, descriptors, -1)
+    assert np.array_equal(_flann_neighbours(descriptors, queries, 0), first)
+    assert not np.array_equal(_flann_neighbours(descriptors, queries, 1), first)
+
+
 def test_build_flann_index_uint8_descriptors() -> None:
     rng = np.random.default_rng(3)
     descriptors = rng.integers(0, 255, size=(50, 32)).astype(np.uint8)

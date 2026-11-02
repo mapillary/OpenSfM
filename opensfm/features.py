@@ -667,5 +667,9 @@ def build_flann_index(descriptors: NDArray, config: Dict[str, Any]) -> cv2.flann
             f"FLANN isn't supported for feature type {descriptors.dtype.type}."
         )
 
+    seed = config.get("flann_seed", -1)
+    if seed >= 0:
+        cv2.setRNGSeed(seed)
+
     # pyrefly: ignore [not-callable]
     return context.flann_Index(descriptors, flann_params)
