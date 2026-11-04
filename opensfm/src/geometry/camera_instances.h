@@ -195,38 +195,38 @@ using SphericalCamera = ProjectGeneric<SphericalProjection, Identity, Identity>;
 /* This is where the pseudo-strategy pattern takes place. If you want to add
  * your own new camera model, just add a new enum value, the corresponding
  * case below and the implementation (see above). */
-template <class FUNC, class... IN>
-void Dispatch(const ProjectionType& type, IN&&... args) {
+template <class FUNC, class... FUNC_IN>
+void Dispatch(const ProjectionType& type, FUNC_IN&&... args) {
   switch (type) {
     case ProjectionType::PERSPECTIVE:
-      FUNC::template Apply<PerspectiveCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<PerspectiveCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::BROWN:
-      FUNC::template Apply<BrownCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<BrownCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::FISHEYE:
-      FUNC::template Apply<FisheyeCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<FisheyeCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::FISHEYE_OPENCV:
-      FUNC::template Apply<FisheyeOpencvCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<FisheyeOpencvCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::FISHEYE62:
-      FUNC::template Apply<Fisheye62Camera>(std::forward<IN>(args)...);
+      FUNC::template Apply<Fisheye62Camera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::FISHEYE624:
-      FUNC::template Apply<Fisheye624Camera>(std::forward<IN>(args)...);
+      FUNC::template Apply<Fisheye624Camera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::RADIAL:
-      FUNC::template Apply<RadialCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<RadialCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::SIMPLE_RADIAL:
-      FUNC::template Apply<SimpleRadialCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<SimpleRadialCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::DUAL:
-      FUNC::template Apply<DualCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<DualCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::SPHERICAL:
-      FUNC::template Apply<SphericalCamera>(std::forward<IN>(args)...);
+      FUNC::template Apply<SphericalCamera>(std::forward<FUNC_IN>(args)...);
       break;
     case ProjectionType::NONE:
     default:
