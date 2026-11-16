@@ -780,3 +780,72 @@ def test_bundle_shot_poses_rig_gps_average() -> None:
 
     origin = r.rig_instances["instance"].pose.get_origin()
     assert np.allclose(origin, np.mean(gps_positions, axis=0), atol=1e-6)
+
+
+def _poses_only_problem(
+    num_shots: int, num_points: int
+) -> tuple[types.Reconstruction, dict[str, NDArray]]:
+    """Shots in their own rig instances, with perturbed poses, observing fixed
+    points, as in the resection step of cluster augment. Returns the problem and
+    the true shot origins."""
+    rng = np.random.default_rng(42)
+    camera = pygeometry.Camera.create_perspective(1.0, 0.0, 0.0)
+    camera.id = "camera"
+    r = types.Reconstruction()
+    r.add_camera(camera)
+
+    points = rng.uniform([-10.0, -10.0, -10.0], [10.0, 10.0, 10.0], (num_points, 3))
+    for point_id, coordinates in enumerate(points):
+        r.create_point(str(point_id), coordinates)
+
+    true_origins = {}
+    for i in range(num_shots):
+        shot_id = f"shot{i}"
+        origin = np.array([*rng.uniform(-3.0, 3.0, 2), -20.0])
+        rotation = rng.normal(0.0, 0.05, 3)
+        pose = pygeometry.Pose(rotation)
+        pose.set_origin(origin)
+        shot = r.create_shot(shot_id, camera.id, pose)
+        for point_id, coordinates in enumerate(points):
+            x, y = shot.project(coordinates) + rng.normal(0.0, 1e-4, 2)
+            obs = pymap.Observation(x, y, 0.004, 0, 0, 0, point_id)
+            r.add_observation(shot_id, str(point_id), obs)
+        true_origins[shot_id] = origin
+
+        perturbed = pygeometry.Pose(rotation + rng.normal(0.0, 0.01, 3))
+        perturbed.set_origin(origin + rng.normal(0.0, 0.2, 3))
+        shot.pose = perturbed
+    return r, true_origins
+
+
+def test_bundle_shot_poses_sparse_solver_matches_dense() -> None:
+    """The sparse solver finds the same poses as the default dense one."""
+    poses = {}
+    for solver in ("DENSE_QR", "SPARSE_NORMAL_CHOLESKY"):
+        r, true_origins = _poses_only_problem(num_shots=20, num_points=100)
+        custom_config = config.default_config()
+        custom_config["bundle_shot_poses_linear_solver_type"] = solver
+
+        reconstruction.bundle_shot_poses(
+            r,
+            set(r.shots),
+            dict(r.cameras.items()),
+            dict(r.rig_cameras.items()),
+            custom_config,
+        )
+
+        for shot_id, origin in true_origins.items():
+            assert np.allclose(r.shots[shot_id].pose.get_origin(), origin, atol=0.01), (
+                solver,
+                shot_id,
+                r.shots[shot_id].pose.get_origin() - origin,
+            )
+        poses[solver] = {
+            shot_id: np.concatenate([shot.pose.rotation, shot.pose.get_origin()])
+            for shot_id, shot in r.shots.items()
+        }
+
+    for shot_id, dense_pose in poses["DENSE_QR"].items():
+        assert np.allclose(
+            poses["SPARSE_NORMAL_CHOLESKY"][shot_id], dense_pose, atol=1e-6
+        )

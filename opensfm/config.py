@@ -283,6 +283,10 @@ class OpenSfMConfig:
     optimize_camera_parameters: bool = True
     # Maximum optimizer iterations.
     bundle_max_iterations: int = 100
+    # Ceres linear solver of the poses-only bundle (points fixed). DENSE_QR
+    # memory grows with the square of the number of shots, SPARSE_NORMAL_CHOLESKY
+    # linearly.
+    bundle_shot_poses_linear_solver_type: str = "DENSE_QR"
 
     # Retriangulate all points from time to time
     retriangulation: bool = True

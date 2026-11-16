@@ -685,7 +685,8 @@ py::dict BAHelpers::BundleShotPoses(
   SetLossAndPriorsFromConfig(ba, config);
   ba.SetNumThreads(config["processes"].cast<int>());
   ba.SetMaxNumIterations(10);
-  ba.SetLinearSolverType("DENSE_QR");
+  ba.SetLinearSolverType(
+      config["bundle_shot_poses_linear_solver_type"].cast<std::string>());
   const auto timer_setup = Clock::now();
 
   RunWithoutGIL(ba);
