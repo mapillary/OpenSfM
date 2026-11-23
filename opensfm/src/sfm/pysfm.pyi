@@ -73,6 +73,10 @@ class BAHelpers:
         arg2: collections.abc.Sequence[opensfm.pymap.GroundControlPoint],
     ) -> str: ...
     @staticmethod
+    def estimate_mount_pitches(
+        arg0: opensfm.pymap.Map, arg1: dict
+    ) -> dict[str, float]: ...
+    @staticmethod
     def shot_neighborhood_ids(
         arg0: opensfm.pymap.Map,
         arg1: str,

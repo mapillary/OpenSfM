@@ -48,6 +48,9 @@ class BAHelpers {
   ShotNeighborhood(map::Map& map, const map::ShotId& central_shot_id,
                    size_t radius, size_t min_common_points,
                    size_t max_interior_size);
+  static std::unordered_map<map::ShotId, double> EstimateMountPitches(
+      const map::Map& map, const py::dict& config);
+
   static std::string DetectAlignmentConstraints(
       const map::Map& map, const py::dict& config,
       const AlignedVector<map::GroundControlPoint>& gcp);

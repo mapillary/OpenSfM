@@ -320,6 +320,15 @@ class OpenSfMConfig:
     align_method: str = "auto"
     # horizontal, vertical or no_roll
     align_orientation_prior: str = "horizontal"
+    # With the horizontal prior, estimate each sequence's camera pitch relative
+    # to its direction of travel and expect that pitch instead of a level camera
+    align_compensate_mount_pitch: bool = False
+    # Minimum number of moving shots needed to estimate a sequence's mount pitch
+    align_mount_pitch_min_samples: int = 10
+    # Maximum median absolute deviation (degrees) of the per-shot pitch samples
+    align_mount_pitch_max_deviation: float = 3.0
+    # Maximum absolute mount pitch (degrees) that is compensated
+    align_mount_pitch_max_abs: float = 30.0
     # Enforce GPS position in bundle adjustment
     bundle_use_gps: bool = True
     # Enforce Ground Control Point position in bundle adjustment

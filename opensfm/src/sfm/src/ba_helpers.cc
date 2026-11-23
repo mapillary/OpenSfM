@@ -4,6 +4,7 @@
 #include <map/ground_control_points.h>
 #include <map/map.h>
 #include <sfm/ba_helpers.h>
+#include <sfm/mount_pitch.h>
 
 #include <chrono>
 #include <cmath>
@@ -15,6 +16,16 @@
 #include "map/defines.h"
 
 namespace sfm {
+std::unordered_map<map::ShotId, double> BAHelpers::EstimateMountPitches(
+    const map::Map& map, const py::dict& config) {
+  mount_pitch::Options options;
+  options.min_samples = config["align_mount_pitch_min_samples"].cast<size_t>();
+  options.max_deviation_deg =
+      config["align_mount_pitch_max_deviation"].cast<double>();
+  options.max_abs_deg = config["align_mount_pitch_max_abs"].cast<double>();
+  return mount_pitch::EstimateMountPitches(map, options);
+}
+
 std::pair<std::unordered_set<map::ShotId>, std::unordered_set<map::ShotId>>
 BAHelpers::ShotNeighborhoodIds(map::Map& map,
                                const map::ShotId& central_shot_id,
@@ -441,14 +452,40 @@ void AddBundleRigInstance(bundle::BundleAdjuster& ba, map::Map& map,
   }
 }
 
-size_t AddBundleObservations(bundle::BundleAdjuster& ba, map::Map& map,
-                             const std::optional<Vec3d>& up_vector) {
+// Per-shot mount pitches to compensate in the horizontal up vector prior.
+std::unordered_map<map::ShotId, double> AlignmentMountPitches(
+    const map::Map& map, const py::dict& config,
+    const std::optional<Vec3d>& up_vector) {
+  if (!up_vector ||
+      config["align_orientation_prior"].cast<std::string>() != "horizontal" ||
+      !config["align_compensate_mount_pitch"].cast<bool>()) {
+    return {};
+  }
+  return BAHelpers::EstimateMountPitches(map, config);
+}
+
+Vec3d ShotUpVector(const Vec3d& up_vector,
+                   const std::unordered_map<map::ShotId, double>& mount_pitches,
+                   const map::ShotId& shot_id) {
+  const auto it = mount_pitches.find(shot_id);
+  if (it == mount_pitches.end()) {
+    return up_vector;
+  }
+  // World up seen from a camera pitched nose-up by the mount angle.
+  return Vec3d(0, -std::cos(it->second), std::sin(it->second));
+}
+
+size_t AddBundleObservations(
+    bundle::BundleAdjuster& ba, map::Map& map,
+    const std::optional<Vec3d>& up_vector,
+    const std::unordered_map<map::ShotId, double>& mount_pitches) {
   size_t added_reprojections = 0;
   for (const auto& [shot_id, shot] : map.GetShots()) {
     // that one doesn't have it's rig counterpart
     if (up_vector) {
       constexpr double std_dev = 1e-3;
-      ba.AddAbsoluteUpVector(shot.id_, *up_vector, std_dev);
+      ba.AddAbsoluteUpVector(
+          shot.id_, ShotUpVector(*up_vector, mount_pitches, shot.id_), std_dev);
     }
 
     // setup observations for any shot type
@@ -736,7 +773,8 @@ py::dict BAHelpers::Bundle(
     AddBundleRigInstance(ba, map, rig_instance_id, instance, config);
   }
 
-  const size_t added_reprojections = AddBundleObservations(ba, map, up_vector);
+  const size_t added_reprojections = AddBundleObservations(
+      ba, map, up_vector, AlignmentMountPitches(map, config, up_vector));
 
   if (config["bundle_use_gcp"].cast<bool>() && !gcp.empty()) {
     AddGCPToBundle(ba, map, gcp, config);

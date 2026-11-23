@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 from numpy.typing import NDArray
-from opensfm import multiview, pygeometry, pymap, transformations as tf, types
+from opensfm import multiview, pygeometry, pymap, pysfm, transformations as tf, types
 
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -369,6 +369,11 @@ def estimate_ground_plane(
     horizontally or vertically.
     """
     orientation_type = config["align_orientation_prior"]
+    mount_pitches = (
+        pysfm.BAHelpers.estimate_mount_pitches(reconstruction.map, config)
+        if orientation_type == "horizontal" and config["align_compensate_mount_pitch"]
+        else {}
+    )
     onplane, verticals, ground_points = [], [], []
     for shot in reconstruction.shots.values():
         ground_points.append(shot.pose.get_origin())
@@ -383,9 +388,10 @@ def estimate_ground_plane(
             onplane.append(x)
             verticals.append(-y)
         elif orientation_type == "horizontal":
+            pitch = mount_pitches.get(shot.id, 0.0)
             onplane.append(x)
-            onplane.append(z)
-            verticals.append(-y)
+            onplane.append(np.cos(pitch) * z + np.sin(pitch) * y)
+            verticals.append(np.sin(pitch) * z - np.cos(pitch) * y)
         elif orientation_type == "vertical":
             onplane.append(x)
             onplane.append(y)

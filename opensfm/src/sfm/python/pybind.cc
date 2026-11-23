@@ -34,6 +34,8 @@ PYBIND11_MODULE(pysfm, m) {
       .def_static("bundle_shot_poses", &sfm::BAHelpers::BundleShotPoses)
       .def_static("bundle_to_map", &sfm::BAHelpers::BundleToMap)
       .def_static("shot_neighborhood_ids", &sfm::BAHelpers::ShotNeighborhoodIds)
+      .def_static("estimate_mount_pitches",
+                  &sfm::BAHelpers::EstimateMountPitches)
       .def_static("detect_alignment_constraints",
                   &sfm::BAHelpers::DetectAlignmentConstraints)
       .def_static("add_gcp_to_bundle", &sfm::BAHelpers::AddGCPToBundle);
