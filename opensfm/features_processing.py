@@ -71,6 +71,13 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
         processes = min(max(1, int(expected_mb / processing_size)), processes)
     else:
         expected_images = default_queue_size
+    if data.config.get("features_dedicated_readers", False):
+        # Each dedicated reader holds one more decoded image while it waits to
+        # queue it: count those in the queue's share of the memory.
+        expected_images = max(1, expected_images - data.config["read_processes"])
+    queue_size = data.config.get("features_queue_size", 0)
+    if queue_size > 0:
+        expected_images = min(expected_images, queue_size)
     logger.info(
         f"Expecting to queue at most {expected_images} images while parallel processing of {processes} images."
     )
@@ -87,7 +94,8 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
     else:
         counter = Counter()
         read_processes = data.config["read_processes"]
-        if 1.5 * read_processes >= processes:
+        dedicated_readers = data.config.get("features_dedicated_readers", False)
+        if not dedicated_readers and 1.5 * read_processes >= processes:
             read_processes = max(1, processes // 2)
 
         chunk_size = math.ceil(len(images) / read_processes)
@@ -105,7 +113,11 @@ def run_features_processing(data: DataSetBase, images: List[str], force: bool) -
             )
         for _ in range(processes):
             arguments.append(("consumer", process_queue))
-        parallel_map(process, arguments, processes, 1)
+        # Without dedicated readers, the readers take `read_processes` of the
+        # `processes` threads, and the remaining extractors only start once
+        # every image has been read.
+        threads = processes + read_processes if dedicated_readers else processes
+        parallel_map(process, arguments, threads, 1)
 
 
 def average_image_size(data: DataSetBase) -> float:

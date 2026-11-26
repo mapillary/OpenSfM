@@ -391,6 +391,13 @@ class OpenSfMConfig:
     processes: int = 1
     # When processes > 1, number of threads used for reading images
     read_processes: int = 4
+    # When processes > 1, give the image readers threads of their own, so that
+    # all `processes` extractors run while images are being read, and use
+    # `read_processes` as given.
+    features_dedicated_readers: bool = False
+    # Maximum number of read images waiting for feature extraction. 0 derives it
+    # from the memory available.
+    features_queue_size: int = 0
 
     ##################################
     # Params for submodel split and merge
